@@ -87,7 +87,7 @@ typedef struct fb_t {
 
 
 /* Synchronize with the page flip by waiting for its event. */
-static void fb_drm_flip_wait(fb_t *fb)
+static inline void fb_drm_flip_wait(fb_t *fb)
 {
 	drmEventContext	drm_ev_ctx = {
 				.version = DRM_EVENT_CONTEXT_VERSION,
