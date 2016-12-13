@@ -22,5 +22,7 @@
 	(sizeof(_str) - 1)
 
 unsigned get_ncpus(void);
+void ask_string(char *buf, int len, const char *prompt, const char *def);
+void ask_num(int *res, int max, const char *prompt, int def);
 
 #endif /* _UTIL_H */
