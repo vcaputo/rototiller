@@ -1,5 +1,5 @@
 This is a quick little graphics hack I put together to experiment with libdrm
-and this "dumb buffer" thingy David Arlie added to the kernel back in 2011.
+and this "dumb buffer" thingy David Airlie added to the kernel back in 2011.
 
 If you're like me and miss the pre-KMS days of functional SVGAlib on linux
 where we could write purely software-rendered graphics toys like demos that
