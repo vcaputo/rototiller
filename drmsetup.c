@@ -76,7 +76,7 @@ static const char * connection_type_name(int type) {
 /* interactively setup the drm device, store the selections */
 void drm_setup(int *res_drm_fd, uint32_t *res_crtc_id, uint32_t *res_connector_id, drmModeModeInfoPtr *res_mode)
 {
-	int			drm_fd, i;
+	int			drm_fd, i, connected;
 	drmVersionPtr		drm_ver;
 	drmModeResPtr		drm_res;
 	drmModeConnectorPtr	drm_con;
@@ -107,20 +107,23 @@ void drm_setup(int *res_drm_fd, uint32_t *res_crtc_id, uint32_t *res_connector_i
 		drm_ver->desc_len,
 		drm_ver->desc);
 
-	exit_if(!(drm_res = drmModeGetResources(drm_fd)),
+	pexit_if(!(drm_res = drmModeGetResources(drm_fd)),
 		"unable to get drm resources");
 
+	connected = 0;
 	for (i = 0; i < drm_res->count_connectors; i++) {
 
-		exit_if(!(drm_con = drmModeGetConnector(drm_fd, drm_res->connectors[i])),
+		pexit_if(!(drm_con = drmModeGetConnector(drm_fd, drm_res->connectors[i])),
 			"unable to get connector %x", (int)drm_res->connectors[i]);
 
 		if (!drm_con->encoder_id) {
 			continue;
 		}
 
-		exit_if(!(drm_enc = drmModeGetEncoder(drm_fd, drm_con->encoder_id)),
+		pexit_if(!(drm_enc = drmModeGetEncoder(drm_fd, drm_con->encoder_id)),
 			"unable to get encoder %x", (int)drm_con->encoder_id);
+
+		connected++;
 
 		printf("%i: Connector [%x]: %s [%s%s%s]\n",
 			i, (int)drm_res->connectors[i],
@@ -130,14 +133,17 @@ void drm_setup(int *res_drm_fd, uint32_t *res_crtc_id, uint32_t *res_connector_i
 			drm_con->encoder_id ? encoder_type_name(drm_enc->encoder_type) : "");
 			/* TODO show mmWidth/mmHeight? */
 	}
+
+	exit_if(!connected,
+		"No connectors available, try different card or my bug?");
 	ask_num(&connector_num, drm_res->count_connectors, "Connector", 0); // TODO default? 
 
-	exit_if(!(drm_con = drmModeGetConnector(drm_fd, drm_res->connectors[connector_num])),
+	pexit_if(!(drm_con = drmModeGetConnector(drm_fd, drm_res->connectors[connector_num])),
 		"unable to get connector %x", (int)drm_res->connectors[connector_num]);
-	exit_if(!(drm_enc = drmModeGetEncoder(drm_fd, drm_con->encoder_id)),
+	pexit_if(!(drm_enc = drmModeGetEncoder(drm_fd, drm_con->encoder_id)),
 		"unable to get encoder %x", (int)drm_con->encoder_id);
 
-	exit_if(!(drm_crtc = drmModeGetCrtc(drm_fd, drm_enc->crtc_id)),
+	pexit_if(!(drm_crtc = drmModeGetCrtc(drm_fd, drm_enc->crtc_id)),
 		"unable to get crtc %x", (int)drm_enc->crtc_id);
 
 	*res_drm_fd = drm_fd;

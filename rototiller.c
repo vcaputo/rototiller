@@ -62,7 +62,7 @@ int main(int argc, const char *argv[])
 	drm_setup(&drm_fd, &drm_crtc_id, &drm_connector_id, &drm_mode);
 	renderer_select(&renderer);
 
-	exit_if(!(fb = fb_new(drm_fd, drm_crtc_id, &drm_connector_id, 1, drm_mode, NUM_FB_PAGES)),
+	pexit_if(!(fb = fb_new(drm_fd, drm_crtc_id, &drm_connector_id, 1, drm_mode, NUM_FB_PAGES)),
 		"unable to create fb");
 
 	pexit_if(!fps_setup(),
