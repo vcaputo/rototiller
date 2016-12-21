@@ -1,3 +1,5 @@
+#include <assert.h>
+
 #include "ray_object.h"
 #include "ray_object_light.h"
 #include "ray_object_plane.h"
@@ -25,6 +27,8 @@ int ray_object_intersects_ray(ray_object_t *object, ray_ray_t *ray, float *res_d
 
 	case RAY_OBJECT_TYPE_LIGHT:
 		return ray_object_light_intersects_ray(&object->light, ray, res_distance);
+	default:
+		assert(0);
 	}
 }
 
@@ -44,6 +48,8 @@ ray_3f_t ray_object_normal(ray_object_t *object, ray_3f_t *point)
 
 	case RAY_OBJECT_TYPE_LIGHT:
 		return ray_object_light_normal(&object->light, point);
+	default:
+		assert(0);
 	}
 }
 
@@ -63,5 +69,7 @@ ray_surface_t ray_object_surface(ray_object_t *object, ray_3f_t *point)
 
 	case RAY_OBJECT_TYPE_LIGHT:
 		return ray_object_light_surface(&object->light, point);
+	default:
+		assert(0);
 	}
 }

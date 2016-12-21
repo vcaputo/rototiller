@@ -1,6 +1,8 @@
 #ifndef _RAY_OBJECT_LIGHT_H
 #define _RAY_OBJECT_LIGHT_H
 
+#include <assert.h>
+
 #include "ray_light_emitter.h"
 #include "ray_object_light.h"
 #include "ray_object_point.h"
@@ -27,6 +29,8 @@ static inline int ray_object_light_intersects_ray(ray_object_light_t *light, ray
 
 	case RAY_LIGHT_EMITTER_TYPE_SPHERE:
 		return ray_object_sphere_intersects_ray(&light->emitter.sphere, ray, res_distance);
+	default:
+		assert(0);
 	}
 }
 
@@ -42,6 +46,8 @@ static inline ray_3f_t ray_object_light_normal(ray_object_light_t *light, ray_3f
 
 	case RAY_LIGHT_EMITTER_TYPE_POINT:
 		return normal;
+	default:
+		assert(0);
 	}
 }
 
@@ -54,6 +60,8 @@ static inline ray_surface_t ray_object_light_surface(ray_object_light_t *light, 
 
 	case RAY_LIGHT_EMITTER_TYPE_POINT:
 		return ray_object_point_surface(&light->emitter.point, point);
+	default:
+		assert(0);
 	}
 }
 
