@@ -8,13 +8,14 @@
 /* Copyright (C) 2016 Vito Caputo <vcaputo@pengaru.com> */
 
 /* Some defines for the fixed-point stuff in render(). */
-#define FIXED_TRIG_LUT_SIZE	4096	/* size of the cos/sin look-up tables */
-#define FIXED_BITS		12	/* fractional bits */
-#define FIXED_EXP		4096	/* 2^FIXED_BITS */
-#define FIXED_COS(_rad)		costab[_rad % FIXED_TRIG_LUT_SIZE]
-#define FIXED_SIN(_rad)		sintab[_rad % FIXED_TRIG_LUT_SIZE]
-#define FIXED_MULT(_a, _b)	((_a * _b) >> FIXED_BITS)
-#define FIXED_NEW(_i)		(_i << FIXED_BITS)
+#define FIXED_TRIG_LUT_SIZE	4096			/* size of the cos/sin look-up tables */
+#define FIXED_BITS		11			/* fractional bits */
+#define FIXED_EXP		(1 << FIXED_BITS)	/* 2^FIXED_BITS */
+#define FIXED_MASK		(FIXED_EXP - 1)		/* fractional part mask */
+#define FIXED_COS(_rad)		costab[(_rad) % FIXED_TRIG_LUT_SIZE]
+#define FIXED_SIN(_rad)		sintab[(_rad) % FIXED_TRIG_LUT_SIZE]
+#define FIXED_MULT(_a, _b)	(((_a) * (_b)) >> FIXED_BITS)
+#define FIXED_NEW(_i)		((_i) << FIXED_BITS)
 #define FIXED_TO_INT(_f)	((_f) >> FIXED_BITS)
 
 
