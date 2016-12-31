@@ -19,6 +19,34 @@
 #define FIXED_TO_INT(_f)	((_f) >> FIXED_BITS)
 
 
+static void init_roto(uint8_t texture[256][256], int32_t *costab, int32_t *sintab)
+{
+	int	x, y, i;
+
+	/* Generate simple checker pattern texture, nothing clever, feel free to play! */
+	/* If you modify texture on every frame instead of only @ initialization you can
+	 * produce some neat output.  These values are indexed into palette[] below. */
+	for (y = 0; y < 128; y++) {
+		for (x = 0; x < 128; x++)
+			texture[y][x] = 1;
+		for (; x < 256; x++)
+			texture[y][x] = 0;
+	}
+	for (; y < 256; y++) {
+		for (x = 0; x < 128; x++)
+			texture[y][x] = 0;
+		for (; x < 256; x++)
+			texture[y][x] = 1;
+	}
+
+	/* Generate fixed-point cos & sin LUTs. */
+	for (i = 0; i < FIXED_TRIG_LUT_SIZE; i++) {
+		costab[i] = ((cos((double)2*M_PI*i/FIXED_TRIG_LUT_SIZE))*FIXED_EXP);
+		sintab[i] = ((sin((double)2*M_PI*i/FIXED_TRIG_LUT_SIZE))*FIXED_EXP);
+	}
+}
+
+
 /* Draw a rotating checkered 256x256 texture into fragment. (32-bit version) */
 static void roto32(fb_fragment_t *fragment)
 {
@@ -34,31 +62,9 @@ static void roto32(fb_fragment_t *fragment)
 	uint32_t	*buf = fragment->buf;
 
 	if (!initialized) {
-		int i;
-
 		initialized = 1;
 
-		/* Generate simple checker pattern texture, nothing clever, feel free to play! */
-		/* If you modify texture on every frame instead of only @ initialization you can
-		 * produce some neat output.  These values are indexed into colors[] below. */
-		for (y = 0; y < 128; y++) {
-			for (x = 0; x < 128; x++)
-				texture[y][x] = 1;
-			for (; x < 256; x++)
-				texture[y][x] = 0;
-		}
-		for (; y < 256; y++) {
-			for (x = 0; x < 128; x++)
-				texture[y][x] = 0;
-			for (; x < 256; x++)
-				texture[y][x] = 1;
-		}
-
-		/* Generate fixed-point cos & sin LUTs. */
-		for (i = 0; i < FIXED_TRIG_LUT_SIZE; i++) {
-			costab[i] = ((cos((double)2*M_PI*i/FIXED_TRIG_LUT_SIZE))*FIXED_EXP);
-			sintab[i] = ((sin((double)2*M_PI*i/FIXED_TRIG_LUT_SIZE))*FIXED_EXP);
-		}
+		init_roto(texture, costab, sintab);
 	}
 
 	/* This is all done using fixed-point in the hopes of being faster, and yes assumptions
@@ -125,31 +131,9 @@ static void roto64(fb_fragment_t *fragment)
 	uint64_t	*buf = (uint64_t *)fragment->buf;
 
 	if (!initialized) {
-		int i;
-
 		initialized = 1;
 
-		/* Generate simple checker pattern texture, nothing clever, feel free to play! */
-		/* If you modify texture on every frame instead of only @ initialization you can
-		 * produce some neat output.  These values are indexed into colors[] below. */
-		for (y = 0; y < 128; y++) {
-			for (x = 0; x < 128; x++)
-				texture[y][x] = 1;
-			for (; x < 256; x++)
-				texture[y][x] = 0;
-		}
-		for (; y < 256; y++) {
-			for (x = 0; x < 128; x++)
-				texture[y][x] = 0;
-			for (; x < 256; x++)
-				texture[y][x] = 1;
-		}
-
-		/* Generate fixed-point cos & sin LUTs. */
-		for (i = 0; i < FIXED_TRIG_LUT_SIZE; i++) {
-			costab[i] = ((cos((double)2*M_PI*i/FIXED_TRIG_LUT_SIZE))*FIXED_EXP);
-			sintab[i] = ((sin((double)2*M_PI*i/FIXED_TRIG_LUT_SIZE))*FIXED_EXP);
-		}
+		init_roto(texture, costab, sintab);
 	}
 
 	/* This is all done using fixed-point in the hopes of being faster, and yes assumptions
