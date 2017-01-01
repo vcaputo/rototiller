@@ -83,7 +83,7 @@ void drm_setup(int *res_drm_fd, uint32_t *res_crtc_id, uint32_t *res_connector_i
 	drmModeEncoderPtr	drm_enc;
 	drmModeCrtcPtr		drm_crtc;
 	char			dev[256];
-	int			connector_num;
+	int			connector_num, mode_num;
 
 	pexit_if(!drmAvailable(),
 		"drm unavailable");
@@ -110,6 +110,7 @@ void drm_setup(int *res_drm_fd, uint32_t *res_crtc_id, uint32_t *res_connector_i
 	pexit_if(!(drm_res = drmModeGetResources(drm_fd)),
 		"unable to get drm resources");
 
+	printf("\nConnectors\n");
 	connected = 0;
 	for (i = 0; i < drm_res->count_connectors; i++) {
 
@@ -125,9 +126,8 @@ void drm_setup(int *res_drm_fd, uint32_t *res_crtc_id, uint32_t *res_connector_i
 
 		connected++;
 
-		printf("%i: Connector [%x]: %s [%s%s%s]\n",
-			i, (int)drm_res->connectors[i],
-			connector_type_name(drm_con->connector_type),
+		printf(" %i: %s (%s%s%s)\n",
+			i, connector_type_name(drm_con->connector_type),
 			connection_type_name(drm_con->connection),
 			drm_con->encoder_id ? " via " : "",
 			drm_con->encoder_id ? encoder_type_name(drm_enc->encoder_type) : "");
@@ -136,7 +136,7 @@ void drm_setup(int *res_drm_fd, uint32_t *res_crtc_id, uint32_t *res_connector_i
 
 	exit_if(!connected,
 		"No connectors available, try different card or my bug?");
-	ask_num(&connector_num, drm_res->count_connectors, "Connector", 0); // TODO default? 
+	ask_num(&connector_num, drm_res->count_connectors, "Select connector", 0); // TODO default? 
 
 	pexit_if(!(drm_con = drmModeGetConnector(drm_fd, drm_res->connectors[connector_num])),
 		"unable to get connector %x", (int)drm_res->connectors[connector_num]);
@@ -149,5 +149,14 @@ void drm_setup(int *res_drm_fd, uint32_t *res_crtc_id, uint32_t *res_connector_i
 	*res_drm_fd = drm_fd;
 	*res_crtc_id = drm_crtc->crtc_id;
 	*res_connector_id = drm_con->connector_id;
-	*res_mode = &drm_crtc->mode;
+
+	printf("\nModes\n");
+	for (i = 0; i < drm_con->count_modes; i++) {
+		printf(" %i: %s @ %"PRIu32"Hz\n",
+			i, drm_con->modes[i].name,
+			drm_con->modes[i].vrefresh);
+	}
+	ask_num(&mode_num, drm_con->count_modes, "Select mode", 0); // TODO default to &drm_crtc->mode?
+
+	*res_mode = &drm_con->modes[mode_num];
 }
