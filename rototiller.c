@@ -41,12 +41,12 @@ static void renderer_select(int *renderer)
 {
 	int	i;
 
-	puts("");
+	printf("\nRenderers\n");
 	for (i = 0; i < nelems(renderers); i++) {
-		printf("%i: %s - %s\n", i, renderers[i]->name, renderers[i]->description);
+		printf(" %i: %s - %s\n", i, renderers[i]->name, renderers[i]->description);
 	}
 
-	ask_num(renderer, nelems(renderers) - 1, "Renderer", 0);
+	ask_num(renderer, nelems(renderers) - 1, "Select renderer", 0);
 }
 
 
