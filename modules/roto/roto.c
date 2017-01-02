@@ -92,8 +92,22 @@ static uint32_t bilerp_color(uint8_t texture[256][256], color_t *palette, int tx
 		}
 	}
 
-	n_color = lerp_color(&palette[nw], &palette[ne], x_alpha);
-	s_color = lerp_color(&palette[sw], &palette[se], x_alpha);
+	/* Skip interpolation of same colors, a substantial optimization with plain textures like the checker pattern */
+	if (nw == ne) {
+		if (ne == sw && sw == se) {
+			return (FIXED_TO_INT(palette[sw].r) << 16) | (FIXED_TO_INT(palette[sw].g) << 8) | FIXED_TO_INT(palette[sw].b);
+		}
+		n_color = palette[nw];
+	} else {
+		n_color = lerp_color(&palette[nw], &palette[ne], x_alpha);
+	}
+
+	if (sw == se) {
+		s_color = palette[sw];
+	} else {
+		s_color = lerp_color(&palette[sw], &palette[se], x_alpha);
+	}
+
 	color = lerp_color(&n_color, &s_color, y_alpha);
 
 	return (FIXED_TO_INT(color.r) << 16) | (FIXED_TO_INT(color.g) << 8) | FIXED_TO_INT(color.b);
