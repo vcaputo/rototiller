@@ -26,6 +26,12 @@ typedef struct color_t {
 /* linearly interpolate between two colors, alpha is fixed-point value 0-FIXED_EXP. */
 static inline color_t lerp_color(color_t *a, color_t *b, int alpha)
 {
+	/* TODO: This could be done without multiplies with a bit of effort,
+	 * maybe a simple table mapping integer color deltas to shift values
+	 * for shifting alpha which then gets simply added?  A table may not even
+	 * be necessary, use the order of the delta to derive how much to shift
+	 * alpha?
+	 */
 	color_t	c = {
 			.r = a->r + FIXED_MULT(alpha, b->r - a->r),
 			.g = a->g + FIXED_MULT(alpha, b->g - a->g),
