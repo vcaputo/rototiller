@@ -7,7 +7,6 @@
 #include "ray_object_sphere.h"
 #include "ray_object_type.h"
 #include "ray_ray.h"
-#include "ray_scene.h"
 #include "ray_surface.h"
 
 typedef union ray_object_t {

@@ -3,7 +3,6 @@
 
 #include "ray_object_type.h"
 #include "ray_ray.h"
-#include "ray_scene.h"
 #include "ray_surface.h"
 
 
