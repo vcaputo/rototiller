@@ -260,7 +260,8 @@ static inline particle_status_t _particles_sim(particles_t *particles, list_head
 		if ((s = particle_sim(particles, &p->public)) == PARTICLE_ALIVE) {
 			ret = PARTICLE_ALIVE;
 
-			if (_particles_sim(particles, &p->children) == PARTICLE_ALIVE) {
+			if (!list_empty(&p->children) &&
+			    _particles_sim(particles, &p->children) == PARTICLE_ALIVE) {
 				ret = PARTICLE_ALIVE;
 			}
 		} else {
@@ -326,7 +327,9 @@ static inline void _particles_age(particles_t *particles, list_head_t *list)
 			bsp_move_occupant(particles->bsp, &p->public.occupant, &p->props.position);
 		}
 
-		_particles_age(particles, &p->children);
+		if (!list_empty(&p->children)) {
+			_particles_age(particles, &p->children);
+		}
 	}
 }
 
