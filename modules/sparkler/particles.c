@@ -231,7 +231,10 @@ static inline void _particles_draw(particles_t *particles, list_head_t *list, fb
 		y = ((float)(p->props.position.y / (p->props.position.z - ZCONST)) * h2) + h2;
 
 		particle_draw(particles, &p->public, x, y, fragment);
-		_particles_draw(particles, &p->children, fragment);
+
+		if (!list_empty(&p->children)) {
+			_particles_draw(particles, &p->children, fragment);
+		}
 	}
 }
 
