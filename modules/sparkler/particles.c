@@ -300,11 +300,9 @@ static inline void _particles_age(particles_t *particles, list_head_t *list)
 #if 1
 		if (p->props.mass > 0.0f) {
 			/* gravity, TODO: mass isn't applied. */
-			static v3f_t	gravity = v3f_init(0.0f, -1.0f, 0.0f);
-			v3f_t		g;
+			static v3f_t	gravity = v3f_init(0.0f, -0.05f, 0.0f);
 
-			g = v3f_mult_scalar(&gravity, 0.08f);
-			p->props.direction = v3f_add(&p->props.direction, &g);
+			p->props.direction = v3f_add(&p->props.direction, &gravity);
 			p->props.direction = v3f_normalize(&p->props.direction);
 		}
 #endif
