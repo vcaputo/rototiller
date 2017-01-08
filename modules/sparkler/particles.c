@@ -216,7 +216,7 @@ bsp_t * particles_bsp(particles_t *particles)
 
 static inline void _particles_draw(particles_t *particles, list_head_t *list, fb_fragment_t *fragment)
 {
-	float		w2 = fragment->width / 2, h2 = fragment->height / 2;
+	float		w2 = fragment->width * .5f, h2 = fragment->height * .5f;
 	_particle_t	*p;
 
 	assert(particles);

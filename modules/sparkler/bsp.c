@@ -235,23 +235,23 @@ static inline void _bsp_add_occupant(bsp_t *bsp, bsp_occupant_t *occupant, v3f_t
 		/* XXX: note this is pretty unreadable due to reusing the earlier computed values
 		 * where the identical computation is required.
 		 */
-		bv->octrants[OCT_XR_YR_ZR].center.x = (l->right.x - bv->center.x) / 2 + bv->center.x;
-		bv->octrants[OCT_XR_YR_ZR].center.y = (l->right.y - bv->center.y) / 2 + bv->center.y;
-		bv->octrants[OCT_XR_YR_ZR].center.z = (l->right.z - bv->center.z) / 2 + bv->center.z;
+		bv->octrants[OCT_XR_YR_ZR].center.x = (l->right.x - bv->center.x) * .5f + bv->center.x;
+		bv->octrants[OCT_XR_YR_ZR].center.y = (l->right.y - bv->center.y) * .5f + bv->center.y;
+		bv->octrants[OCT_XR_YR_ZR].center.z = (l->right.z - bv->center.z) * .5f + bv->center.z;
 
 		bv->octrants[OCT_XR_YR_ZL].center.x = bv->octrants[OCT_XR_YR_ZR].center.x;
 		bv->octrants[OCT_XR_YR_ZL].center.y = bv->octrants[OCT_XR_YR_ZR].center.y;
-		bv->octrants[OCT_XR_YR_ZL].center.z = (bv->center.z - l->left.z) / 2 + l->left.z;
+		bv->octrants[OCT_XR_YR_ZL].center.z = (bv->center.z - l->left.z) * .5f + l->left.z;
 
 		bv->octrants[OCT_XR_YL_ZR].center.x = bv->octrants[OCT_XR_YR_ZR].center.x;
-		bv->octrants[OCT_XR_YL_ZR].center.y = (bv->center.y - l->left.y) / 2 + l->left.y;
+		bv->octrants[OCT_XR_YL_ZR].center.y = (bv->center.y - l->left.y) * .5f + l->left.y;
 		bv->octrants[OCT_XR_YL_ZR].center.z = bv->octrants[OCT_XR_YR_ZR].center.z;
 
 		bv->octrants[OCT_XR_YL_ZL].center.x = bv->octrants[OCT_XR_YR_ZR].center.x;
 		bv->octrants[OCT_XR_YL_ZL].center.y = bv->octrants[OCT_XR_YL_ZR].center.y;
 		bv->octrants[OCT_XR_YL_ZL].center.z = bv->octrants[OCT_XR_YR_ZL].center.z;
 
-		bv->octrants[OCT_XL_YR_ZR].center.x = (bv->center.x - l->left.x) / 2 + l->left.x;
+		bv->octrants[OCT_XL_YR_ZR].center.x = (bv->center.x - l->left.x) * .5f + l->left.x;
 		bv->octrants[OCT_XL_YR_ZR].center.y = bv->octrants[OCT_XR_YR_ZR].center.y;
 		bv->octrants[OCT_XL_YR_ZR].center.z = bv->octrants[OCT_XR_YR_ZR].center.z;
 
