@@ -32,13 +32,6 @@ struct bsp_node_t {
 	unsigned	n_occupants;	/* number of ^^ */
 };
 
-
-struct bsp_t {
-	bsp_node_t	root;
-	list_head_t	free;
-};
-
-
 #define OCTRANTS					\
 	octrant(OCT_XL_YL_ZL, (1 << 2 | 1 << 1 | 1))	\
 	octrant(OCT_XR_YL_ZL, (         1 << 1 | 1))	\
@@ -49,13 +42,29 @@ struct bsp_t {
 	octrant(OCT_XL_YR_ZR, (1 << 2             ))	\
 	octrant(OCT_XR_YR_ZR, 0)
 
-
 #define octrant(_sym, _val)	_sym = _val,
 typedef enum _octrant_idx_t {
 	OCTRANTS
 } octrant_idx_t;
 #undef octrant
 
+/* bsp lookup state, encapsulated for preservation across composite
+ * lookup-dependent operations, so they can potentially avoid having
+ * to redo the lookup.  i.e. lookup caching.
+ */
+typedef struct _bsp_lookup_t {
+	int		depth;
+	v3f_t		left;
+	v3f_t		right;
+	bsp_node_t	*bv;
+	octrant_idx_t	oidx;
+} bsp_lookup_t;
+
+struct bsp_t {
+	bsp_node_t	root;
+	list_head_t	free;
+	bsp_lookup_t	lookup_cache;
+};
 
 
 static inline const char * octstr(octrant_idx_t oidx)
@@ -95,6 +104,23 @@ void bsp_print(bsp_t *bsp)
 }
 
 
+/* Initialize the lookup cache to the root */
+static inline void bsp_init_lookup_cache(bsp_t *bsp) {
+	bsp->lookup_cache.bv = &bsp->root;
+	bsp->lookup_cache.depth = 0;
+	v3f_set(&bsp->lookup_cache.left, -1.0, -1.0, -1.0);	/* TODO: the bsp AABB should be supplied to bsp_new() */
+	v3f_set(&bsp->lookup_cache.right, 1.0, 1.0, 1.0);
+}
+
+
+/* Invalidate/reset the bsp's lookup cache TODO: make conditional on a supplied node being cached? */
+static inline void bsp_invalidate_lookup_cache(bsp_t *bsp) {
+	if (bsp->lookup_cache.bv != &bsp->root) {
+		bsp_init_lookup_cache(bsp);
+	}
+}
+
+
 /* Create a new bsp octree. */
 bsp_t * bsp_new(void)
 {
@@ -107,6 +133,7 @@ bsp_t * bsp_new(void)
 
 	INIT_LIST_HEAD(&bsp->root.occupants);
 	INIT_LIST_HEAD(&bsp->free);
+	bsp_init_lookup_cache(bsp);
 
 	return bsp;
 }
@@ -120,27 +147,20 @@ void bsp_free(bsp_t *bsp)
 }
 
 
-/* bsp lookup state, encapsulated for preservation across composite
- * lookup-dependent operations, so they can potentially avoid having
- * to redo the lookup.  i.e. lookup caching.
- */
-typedef struct _bsp_lookup_t {
-	int		depth;
-	v3f_t		left;
-	v3f_t		right;
-	bsp_node_t	*bv;
-	octrant_idx_t	oidx;
-} bsp_lookup_t;
-
 /* lookup a position's containing leaf node in the bsp tree, store resultant lookup state in *lookup_res */
-static inline void bsp_lookup_position(bsp_node_t *root, v3f_t *position, bsp_lookup_t *lookup_res)
+static inline void bsp_lookup_position(bsp_t *bsp, bsp_node_t *root, v3f_t *position, bsp_lookup_t *lookup_res)
 {
-	bsp_lookup_t	res = {
-				.bv = root,
-				.depth = 0,
-				.left = v3f_init(-1.0, -1.0, -1.0),	/* TODO: the bsp AABB should be supplied to bsp_new() */
-				.right = v3f_init(1.0, 1.0, 1.0),
-			};
+	bsp_lookup_t	res = bsp->lookup_cache;
+
+	if (res.bv->parent) {
+		/* When starting from a cached (non-root) lookup, we must verify our position falls within the cached bv */
+		if (position->x < res.left.x || position->x > res.right.x ||
+		    position->y < res.left.y || position->y > res.right.y ||
+		    position->z < res.left.z || position->z > res.right.z) {
+			bsp_invalidate_lookup_cache(bsp);
+			res = bsp->lookup_cache;
+		}
+	}
 
 	while (res.bv->octrants) {
 		res.oidx = OCT_XR_YR_ZR;
@@ -169,7 +189,7 @@ static inline void bsp_lookup_position(bsp_node_t *root, v3f_t *position, bsp_lo
 		res.depth++;
 	}
 
-	*lookup_res = res;
+	*lookup_res = bsp->lookup_cache = res;
 }
 
 
@@ -178,10 +198,10 @@ static inline void _bsp_add_occupant(bsp_t *bsp, bsp_occupant_t *occupant, v3f_t
 {
 	bsp_lookup_t	_lookup;
 
-	/* if no cached lookup result was provided, perform the lookup now. */
+	/* if no explicitly cached lookup result was provided, perform the lookup now (which may still be cached). */
 	if (!l) {
 		l = &_lookup;
-		bsp_lookup_position(&bsp->root, position, l);
+		bsp_lookup_position(bsp, &bsp->root, position, l);
 	}
 
 	assert(l);
@@ -344,6 +364,7 @@ static inline void _bsp_delete_occupant(bsp_t *bsp, bsp_occupant_t *occupant, bs
 			/* "freeing" really just entails putting the octrants cluster of nodes onto the free list */
 			list_add(&parent_bv->octrants[0].occupants, &bsp->free);
 			parent_bv->octrants = NULL;
+			bsp_invalidate_lookup_cache(bsp);
 		}
 	}
 
@@ -368,7 +389,14 @@ void bsp_move_occupant(bsp_t *bsp, bsp_occupant_t *occupant, v3f_t *position)
 		return;
 	}
 
-	bsp_lookup_position(&bsp->root, occupant->position, &lookup_res);
+	/* TODO: now that there's a cache maintained in bsp->lookup_cache as well,
+	 * this feels a bit vestigial, see about consolidating things.  We still
+	 * need to be able to pin lookup_res.bv in the delete, but why not just use
+	 * the one in bsp->lookup_cache.bv then stop having lookup_position return
+	 * a result at all????  this bsp isn't concurrent/threaded, so it doens't
+	 * really matter.
+	 */
+	bsp_lookup_position(bsp, &bsp->root, occupant->position, &lookup_res);
 	if (lookup_res.bv == occupant->leaf) {
 		/* leaf unchanged, do nothing past lookup. */
 		occupant->position = position;
