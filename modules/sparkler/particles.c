@@ -227,8 +227,8 @@ static inline void _particles_draw(particles_t *particles, list_head_t *list, fb
 		int	x, y;
 
 		/* project the 3d coordinates onto the 2d plane */
-		x = ((float)(p->props.position.x / (p->props.position.z - ZCONST)) * w2) + w2;
-		y = ((float)(p->props.position.y / (p->props.position.z - ZCONST)) * h2) + h2;
+		x = (p->props.position.x / (p->props.position.z - ZCONST) * w2) + w2;
+		y = (p->props.position.y / (p->props.position.z - ZCONST) * h2) + h2;
 
 		particle_draw(particles, &p->public, x, y, fragment);
 
