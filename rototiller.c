@@ -28,12 +28,14 @@ extern rototiller_renderer_t	roto32_renderer;
 extern rototiller_renderer_t	roto64_renderer;
 extern rototiller_renderer_t	ray_renderer;
 extern rototiller_renderer_t	sparkler_renderer;
+extern rototiller_renderer_t	stars_renderer;
 
 static rototiller_renderer_t	*renderers[] = {
 	&roto32_renderer,
 	&roto64_renderer,
 	&ray_renderer,
 	&sparkler_renderer,
+	&stars_renderer,
 };
 
 

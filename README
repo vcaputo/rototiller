@@ -2,6 +2,7 @@ rototiller is, rendered entirely in software:
 	roto: a simple fixed-point tiled texture rotation
 	ray: a multi-threaded ray tracer
 	sparkler: a fireworks-like particle system with spatial interactions
+	stars: a starfield simulator
 
 ---
 
