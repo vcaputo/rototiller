@@ -1,0 +1,11 @@
+*.[oa]
+*.swp
+Makefile
+.deps/
+config.log
+config.status
+rototiller
+TAGS
+tags
+autom4te.cache/
+*.tar.gz
