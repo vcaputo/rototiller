@@ -1,5 +1,6 @@
 *.[oa]
 *.swp
+*.in
 Makefile
 .deps/
 config.log
@@ -9,3 +10,12 @@ TAGS
 tags
 autom4te.cache/
 *.tar.gz
+aclocal.m4
+ar-lib
+compile
+config.guess
+config.sub
+configure
+depcomp
+install-sh
+missing
