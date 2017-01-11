@@ -24,7 +24,7 @@ static inline int draw_pixel(fb_fragment_t *f, int x, int y, uint32_t pixel)
 	}
 
 	/* FIXME this assumes stride is aligned to 4 */
-	pixels[(y * f->width + (f->stride >> 2)) + x] = pixel;
+	pixels[(y * (f->width + (f->stride >> 2))) + x] = pixel;
 
 	return 1;
 }
