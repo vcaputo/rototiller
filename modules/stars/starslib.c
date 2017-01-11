@@ -114,7 +114,7 @@ int process_point( struct universe *u, struct return_point *rp )
 			}
 		} else {
 			int m = OPACITY_MAX*((u->depth-u->iterator->z)*4)/u->depth;
-			if ( m>=OPACITY_MAX ){ m=OPACITY_MAX-1; }
+			if ( m>OPACITY_MAX ){ m=OPACITY_MAX; }
 			u->iterator->z = u->iterator->z - 1;
 			#ifdef DEBUG
 			printf("RETURN POINT: %lx\n", (long unsigned int )u->iterator);
