@@ -280,6 +280,10 @@ fb_t * fb_new(int drm_fd, uint32_t crtc_id, uint32_t *connectors, int n_connecto
 	_fb_page_t	*page;
 	fb_t		*fb;
 
+	/* XXX: page-flipping is the only supported rendering model, requiring 2+ pages. */
+	if (n_pages < 2)
+		return NULL;
+
 	fb = calloc(1, sizeof(fb_t));
 	if (!fb)
 		return NULL;
