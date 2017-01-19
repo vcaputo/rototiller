@@ -15,10 +15,11 @@ CC="$PTHREAD_CC"
 
 AC_CONFIG_FILES([
  Makefile
- modules/Makefile
- modules/ray/Makefile
- modules/roto/Makefile
- modules/sparkler/Makefile
- modules/stars/Makefile
+ src/Makefile
+ src/modules/Makefile
+ src/modules/ray/Makefile
+ src/modules/roto/Makefile
+ src/modules/sparkler/Makefile
+ src/modules/stars/Makefile
 ])
 AC_OUTPUT
