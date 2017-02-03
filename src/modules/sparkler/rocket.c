@@ -1,7 +1,7 @@
 #include <stdlib.h>
 
-#include "draw.h"
 #include "fb.h"
+#include "helpers.h"
 #include "particle.h"
 #include "particles.h"
 
@@ -123,14 +123,11 @@ static void rocket_draw(particles_t *particles, particle_t *p, int x, int y, fb_
 {
 	rocket_ctxt_t	*ctxt = p->ctxt;
 
-	if (!fb_fragment_contains(f, x, y)) {
+	if (!should_draw_expire_if_oob(particles, p, x, y, f, &ctxt->longevity))
 		/* kill off parts that wander off screen */
-		ctxt->longevity = 0;
-
 		return;
-	}
 
-	draw_pixel(f, x, y, 0xff0000);
+	fb_fragment_put_pixel_unchecked(f, x, y, 0xff0000);
 }
 
 
