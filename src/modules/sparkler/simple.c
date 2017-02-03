@@ -1,6 +1,7 @@
 #include <stdlib.h>
 
 #include "draw.h"
+#include "fb.h"
 #include "particle.h"
 #include "particles.h"
 
@@ -97,10 +98,14 @@ static void simple_draw(particles_t *particles, particle_t *p, int x, int y, fb_
 {
 	simple_ctxt_t	*ctxt = p->ctxt;
 
-	if (!draw_pixel(f, x, y, makergb(0xff, 0xff, 0xff, ((float)ctxt->longevity / ctxt->lifetime)))) {
+	if (!fb_fragment_contains(f, x, y)) {
 		/* immediately kill off stars that wander off screen */
 		ctxt->longevity = 0;
+
+		return;
 	}
+
+	draw_pixel(f, x, y, makergb(0xff, 0xff, 0xff, ((float)ctxt->longevity / ctxt->lifetime)));
 }
 
 

@@ -1,6 +1,7 @@
 #include <stdlib.h>
 
 #include "draw.h"
+#include "fb.h"
 #include "particle.h"
 #include "particles.h"
 
@@ -47,10 +48,15 @@ static void spark_draw(particles_t *particles, particle_t *p, int x, int y, fb_f
 {
 	spark_ctxt_t	*ctxt = p->ctxt;
 
-	if (!draw_pixel(f, x, y, makergb(0xff, 0xa0, 0x20, ((float)ctxt->longevity / ctxt->lifetime)))) {
+	if (!fb_fragment_contains(f, x, y)) {
 		/* offscreen */
 		ctxt->longevity = 0;
+
+		return;
 	}
+
+	draw_pixel(f, x, y, makergb(0xff, 0xa0, 0x20, ((float)ctxt->longevity / ctxt->lifetime)));
+
 }
 
 
