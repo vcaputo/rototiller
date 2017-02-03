@@ -34,4 +34,13 @@ void fb_get_put_pages_count(fb_t *fb, unsigned *count);
 fb_t * fb_new(int drm_fd, uint32_t crtc_id, uint32_t *connectors, int n_connectors, drmModeModeInfoPtr mode, int n_pages);
 void fb_fragment_divide(fb_fragment_t *fragment, unsigned n_fragments, fb_fragment_t fragments[]);
 
+static inline int fb_fragment_contains(fb_fragment_t *fragment, int x, int y)
+{
+	if (x < fragment->x || x >= fragment->x + fragment->width ||
+	    y < fragment->y || y >= fragment->y + fragment->height)
+		return 0;
+
+	return 1;
+}
+
 #endif
