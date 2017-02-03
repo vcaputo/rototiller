@@ -34,11 +34,35 @@ void fb_get_put_pages_count(fb_t *fb, unsigned *count);
 fb_t * fb_new(int drm_fd, uint32_t crtc_id, uint32_t *connectors, int n_connectors, drmModeModeInfoPtr mode, int n_pages);
 void fb_fragment_divide(fb_fragment_t *fragment, unsigned n_fragments, fb_fragment_t fragments[]);
 
+
+/* checks if a coordinate is contained within a fragment */
 static inline int fb_fragment_contains(fb_fragment_t *fragment, int x, int y)
 {
 	if (x < fragment->x || x >= fragment->x + fragment->width ||
 	    y < fragment->y || y >= fragment->y + fragment->height)
 		return 0;
+
+	return 1;
+}
+
+
+/* puts a pixel into the fragment, no bounds checking is performed. */
+static inline void fb_fragment_put_pixel_unchecked(fb_fragment_t *fragment, int x, int y, uint32_t pixel)
+{
+	uint32_t	*pixels = fragment->buf;
+
+	/* FIXME this assumes stride is aligned to 4 */
+	pixels[(y * (fragment->width + (fragment->stride >> 2))) + x] = pixel;
+}
+
+
+/* puts a pixel into the fragment, bounds checking is performed with a draw performed return status */
+static inline int fb_fragment_put_pixel_checked(fb_fragment_t *fragment, int x, int y, uint32_t pixel)
+{
+	if (!fb_fragment_contains(fragment, x, y))
+		return 0;
+
+	fb_fragment_put_pixel_unchecked(fragment, x, y, pixel);
 
 	return 1;
 }
