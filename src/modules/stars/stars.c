@@ -43,7 +43,7 @@ static void stars(fb_fragment_t *fragment)
 	for (;;) {
 		int ret = process_point( u, &rp  );
 		if (ret==0) break;
-		if (ret==1) draw_pixel(fragment, rp.x+(width/2), rp.y+(height/2),
+		if (ret==1) fb_fragment_put_pixel_unchecked(fragment, rp.x+(width/2), rp.y+(height/2),
 				       makergb(0xFF, 0xFF, 0xFF, (float)rp.opacity/OPACITY_MAX)
 				      );
 	}
