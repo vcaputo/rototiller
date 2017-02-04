@@ -37,7 +37,7 @@ static void stars(fb_fragment_t *fragment)
 	}
 
 	// draw space (or blank the frame, if you prefer)
-	memset(fragment->buf, 0, ((fragment->width << 2) + fragment->stride) * fragment->height);
+	fb_fragment_zero(fragment);
 
 	// draw stars
 	for (;;) {
