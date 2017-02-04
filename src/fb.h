@@ -2,6 +2,7 @@
 #define _FB_H
 
 #include <stdint.h>
+#include <string.h>
 #include <sys/types.h>
 #include <xf86drmMode.h> /* for drmModeModeInfoPtr */
 
@@ -65,6 +66,13 @@ static inline int fb_fragment_put_pixel_checked(fb_fragment_t *fragment, int x, 
 	fb_fragment_put_pixel_unchecked(fragment, x, y, pixel);
 
 	return 1;
+}
+
+
+/* zero a fragment */
+static inline void fb_fragment_zero(fb_fragment_t *fragment)
+{
+	memset(fragment->buf, 0, ((fragment->width << 2) + fragment->stride) * fragment->height);
 }
 
 #endif
