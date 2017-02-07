@@ -1,1 +1,1 @@
-SUBDIRS = ray roto sparkler stars
+SUBDIRS = plasma ray roto sparkler stars

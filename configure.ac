@@ -17,6 +17,7 @@ AC_CONFIG_FILES([
  Makefile
  src/Makefile
  src/modules/Makefile
+ src/modules/plasma/Makefile
  src/modules/ray/Makefile
  src/modules/roto/Makefile
  src/modules/sparkler/Makefile

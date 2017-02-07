@@ -24,6 +24,7 @@
  * just two pages we end up twiddling thumbs until the vsync arrives.
  */
 
+extern rototiller_renderer_t	plasma_renderer;
 extern rototiller_renderer_t	roto32_renderer;
 extern rototiller_renderer_t	roto64_renderer;
 extern rototiller_renderer_t	ray_renderer;
@@ -36,6 +37,7 @@ static rototiller_renderer_t	*renderers[] = {
 	&ray_renderer,
 	&sparkler_renderer,
 	&stars_renderer,
+	&plasma_renderer,
 };
 
 

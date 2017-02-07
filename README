@@ -3,6 +3,7 @@ rototiller is, rendered entirely in software:
 	ray: a multi-threaded ray tracer
 	sparkler: a fireworks-like particle system with spatial interactions
 	stars: a starfield simulator
+	plasma: an oldskool "plasma" effect
 
 ---
 
