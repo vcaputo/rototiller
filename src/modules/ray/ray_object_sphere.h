@@ -23,7 +23,7 @@ static inline int ray_object_sphere_intersects_ray(ray_object_sphere_t *sphere, 
 {
 	ray_3f_t	v = ray_3f_sub(&ray->origin, &sphere->center);
 	float		b = ray_3f_dot(&v, &ray->direction);
-	float		disc = (sphere->radius * sphere->radius) - ray_3f_dot(&v, &v) + (b * b);
+	float		disc = (sphere->radius * sphere->radius) - (ray_3f_dot(&v, &v) - (b * b));
 
 	if (disc > 0) {
 		float	i1, i2;
