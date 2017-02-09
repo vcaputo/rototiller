@@ -1,6 +1,7 @@
 #include <stdlib.h>
 
-#include "draw.h"
+#include "fb.h"
+#include "helpers.h"
 #include "particle.h"
 #include "particles.h"
 
@@ -60,16 +61,16 @@ static void xplode_draw(particles_t *particles, particle_t *p, int x, int y, fb_
 	xplode_ctxt_t	*ctxt = p->ctxt;
 	uint32_t	color;
 
+	if (!should_draw_expire_if_oob(particles, p, x, y, f, &ctxt->longevity))
+		return;
+
 	if (ctxt->longevity == ctxt->lifetime) {
 		color = makergb(0xff, 0xff, 0xa0, 1.0);
 	} else {
 		color = makergb(0xff, 0xff, 0x00, ((float)ctxt->longevity / ctxt->lifetime));
 	}
 
-	if (!draw_pixel(f, x, y, color)) {
-		/* offscreen */
-		ctxt->longevity = 0;
-	}
+	fb_fragment_put_pixel_unchecked(f, x, y, color);
 }
 
 

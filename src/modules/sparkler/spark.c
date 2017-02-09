@@ -1,6 +1,7 @@
 #include <stdlib.h>
 
-#include "draw.h"
+#include "fb.h"
+#include "helpers.h"
 #include "particle.h"
 #include "particles.h"
 
@@ -47,10 +48,11 @@ static void spark_draw(particles_t *particles, particle_t *p, int x, int y, fb_f
 {
 	spark_ctxt_t	*ctxt = p->ctxt;
 
-	if (!draw_pixel(f, x, y, makergb(0xff, 0xa0, 0x20, ((float)ctxt->longevity / ctxt->lifetime)))) {
+	if (!should_draw_expire_if_oob(particles, p, x, y, f, &ctxt->longevity))
 		/* offscreen */
-		ctxt->longevity = 0;
-	}
+		return;
+
+	fb_fragment_put_pixel_unchecked(f, x, y, makergb(0xff, 0xa0, 0x20, ((float)ctxt->longevity / ctxt->lifetime)));
 }
 
 

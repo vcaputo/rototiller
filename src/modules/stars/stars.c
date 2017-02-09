@@ -37,13 +37,13 @@ static void stars(fb_fragment_t *fragment)
 	}
 
 	// draw space (or blank the frame, if you prefer)
-	memset(fragment->buf, 0, ((fragment->width << 2) + fragment->stride) * fragment->height);
+	fb_fragment_zero(fragment);
 
 	// draw stars
 	for (;;) {
 		int ret = process_point( u, &rp  );
 		if (ret==0) break;
-		if (ret==1) draw_pixel(fragment, rp.x+(width/2), rp.y+(height/2),
+		if (ret==1) fb_fragment_put_pixel_unchecked(fragment, rp.x+(width/2), rp.y+(height/2),
 				       makergb(0xFF, 0xFF, 0xFF, (float)rp.opacity/OPACITY_MAX)
 				      );
 	}

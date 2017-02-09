@@ -35,7 +35,7 @@ static void sparkler(fb_fragment_t *fragment)
 		initialized = 1;
 	}
 
-	memset(buf, 0, ((fragment->width << 2) + fragment->stride) * fragment->height);
+	fb_fragment_zero(fragment);
 
 	particles_age(particles);
 	particles_draw(particles, fragment);

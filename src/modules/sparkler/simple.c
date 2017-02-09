@@ -1,6 +1,7 @@
 #include <stdlib.h>
 
-#include "draw.h"
+#include "fb.h"
+#include "helpers.h"
 #include "particle.h"
 #include "particles.h"
 
@@ -97,10 +98,11 @@ static void simple_draw(particles_t *particles, particle_t *p, int x, int y, fb_
 {
 	simple_ctxt_t	*ctxt = p->ctxt;
 
-	if (!draw_pixel(f, x, y, makergb(0xff, 0xff, 0xff, ((float)ctxt->longevity / ctxt->lifetime)))) {
+	if (!should_draw_expire_if_oob(particles, p, x, y, f, &ctxt->longevity))
 		/* immediately kill off stars that wander off screen */
-		ctxt->longevity = 0;
-	}
+		return;
+
+	fb_fragment_put_pixel_unchecked(f, x, y, makergb(0xff, 0xff, 0xff, ((float)ctxt->longevity / ctxt->lifetime)));
 }
 
 
