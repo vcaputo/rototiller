@@ -4,6 +4,7 @@ rototiller is, rendered entirely in software:
 	sparkler: a fireworks-like particle system with spatial interactions
 	stars: a starfield simulator
 	plasma: an oldskool "plasma" effect
+	julia: a morphing Julia set (fractal)
 
 ---
 
