@@ -107,7 +107,7 @@ static inline ray_color_t shade_ray(ray_scene_t *scene, ray_ray_t *ray, ray_obje
 	reflected_ray.origin = intersection;
 	reflected_ray.direction = ray_3f_sub(&ray->direction, &reflected_ray.direction);
 
-	reflection = trace_ray(scene, &reflected_ray, depth + 1);
+	reflection = trace_ray(scene, &reflected_ray, depth);
 	reflection = ray_3f_mult_scalar(&reflection, surface.specular);
 	color = ray_3f_add(&color, &reflection);
 #endif
