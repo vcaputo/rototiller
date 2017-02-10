@@ -90,6 +90,7 @@ static void ray(fb_fragment_t *fragment)
 	ray_camera_t		camera = {
 					.position = { .x = 0.0, .y = 0.0, .z = 6.0 },
 					.orientation = {
+						.order = RAY_EULER_ORDER_YPR, /* yaw,pitch,roll */
 						.yaw = RAY_EULER_DEGREES(0.0f),
 						.pitch = RAY_EULER_DEGREES(0.0f),
 						.roll = RAY_EULER_DEGREES(180.0f),
