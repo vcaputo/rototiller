@@ -1,6 +1,7 @@
 #ifndef _RAY_OBJECT_PLANE_H
 #define _RAY_OBJECT_PLANE_H
 
+#include "ray_3f.h"
 #include "ray_object_type.h"
 #include "ray_ray.h"
 #include "ray_surface.h"
@@ -18,8 +19,8 @@ static inline int ray_object_plane_intersects_ray(ray_object_plane_t *plane, ray
 {
 	float	d = ray_3f_dot(&plane->normal, &ray->direction);
 
-	if (d != 0) {
-		float	distance = -(ray_3f_dot(&plane->normal, &ray->origin) + plane->distance) / d;
+	if (d >= 0.00001f) {
+		float	distance = (ray_3f_dot(&plane->normal, &ray->origin) + plane->distance) / d;
 
 		if (distance > 0) {
 			*res_distance = distance;

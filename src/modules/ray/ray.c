@@ -26,7 +26,7 @@ static void ray(fb_fragment_t *fragment)
 					.specular = 0.2f,
 				},
 				.normal = { .x = 0.0, .y = 1.0, .z = 0.0 },
-				.distance = -3.2f,
+				.distance = 3.2f,
 			}
 		}, {
 			.sphere = {
