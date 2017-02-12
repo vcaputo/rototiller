@@ -11,7 +11,7 @@
 #include "ray_scene.h"
 #include "ray_threads.h"
 
-/* Copyright (C) 2016 Vito Caputo <vcaputo@pengaru.com> */
+/* Copyright (C) 2016-2017 Vito Caputo <vcaputo@pengaru.com> */
 
 /* ray trace a simple scene into the fragment */
 static void ray(fb_fragment_t *fragment)
