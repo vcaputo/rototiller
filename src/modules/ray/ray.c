@@ -21,7 +21,7 @@ static void ray(fb_fragment_t *fragment)
 			.plane = {
 				.type = RAY_OBJECT_TYPE_PLANE,
 				.surface = {
-					.color = { .x = 0.4, .y = 0.2, .z = 0.5 },
+					.color = { .x = 0.6, .y = 0.3, .z = 0.8 },
 					.diffuse = 1.0f,
 					.specular = 0.2f,
 				},
@@ -44,8 +44,8 @@ static void ray(fb_fragment_t *fragment)
 				.type = RAY_OBJECT_TYPE_SPHERE,
 				.surface = {
 					.color = { .x = 0.0, .y = 0.0, .z = 1.0 },
-					.diffuse = 1.0f,
-					.specular = 1.0f,
+					.diffuse = 0.9f,
+					.specular = 0.4f,
 				},
 				.center = { .x = -2.0, .y = 1.0, .z = 0.0 },
 				.radius = 0.9f,
@@ -55,8 +55,8 @@ static void ray(fb_fragment_t *fragment)
 				.type = RAY_OBJECT_TYPE_SPHERE,
 				.surface = {
 					.color = { .x = 0.0, .y = 1.0, .z = 1.0 },
-					.diffuse = 1.0f,
-					.specular = 1.0f,
+					.diffuse = 0.9f,
+					.specular = 0.3f,
 				},
 				.center = { .x = 2.0, .y = -1.0, .z = 0.0 },
 				.radius = 1.0f,
@@ -66,8 +66,8 @@ static void ray(fb_fragment_t *fragment)
 				.type = RAY_OBJECT_TYPE_SPHERE,
 				.surface = {
 					.color = { .x = 0.0, .y = 1.0, .z = 0.0 },
-					.diffuse = 1.0f,
-					.specular = 1.0f,
+					.diffuse = 0.95f,
+					.specular = 0.85f,
 				},
 				.center = { .x = 0.2, .y = -1.25, .z = 0.0 },
 				.radius = 0.6f,
