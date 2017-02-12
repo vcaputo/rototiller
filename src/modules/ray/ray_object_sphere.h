@@ -2,7 +2,6 @@
 #define _RAY_OBJECT_SPHERE_H
 
 #include <math.h>
-#include <stdio.h>
 
 #include "ray_3f.h"
 #include "ray_color.h"
