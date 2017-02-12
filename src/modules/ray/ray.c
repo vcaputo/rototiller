@@ -26,7 +26,7 @@ static void ray(fb_fragment_t *fragment)
 					.specular = 0.2f,
 				},
 				.normal = { .x = 0.0, .y = 1.0, .z = 0.0 },
-				.distance = 3.2f,
+				.distance = 2.0f,
 			}
 		}, {
 			.sphere = {
@@ -114,17 +114,25 @@ static void ray(fb_fragment_t *fragment)
 	static unsigned		ncpus;
 #if 1
 	/* animated point light source */
-	static double		r;
+	static float		r;
 
 	r += .02;
 
-	scene.lights[0].light.emitter.point.center.x = cosf(r) * 3.5f;
-	scene.lights[0].light.emitter.point.center.z = sinf(r) * 3.5f;
-	camera.orientation.yaw = sinf(r) / 4;
-	camera.orientation.pitch = sinf(r * 10) / 100;
-	camera.orientation.roll = RAY_EULER_DEGREES(180.0f) + cosf(r) / 10;
-	camera.position.x = cosf(r) / 10;
-	camera.position.z = 4.0f + sinf(r) / 10;
+	scene.lights[0].light.emitter.point.center.x = cosf(r) * 4.5f;
+	scene.lights[0].light.emitter.point.center.z = sinf(r * 3.0f) * 4.5f;
+
+	/* move the camera in a circle */
+	camera.position.x = sinf(r) * (cosf(r) * 2.0f + 5.0f);
+	camera.position.z = cosf(r) * (cosf(r) * 2.0f + 5.0f);
+
+	/* also move up and down */
+	camera.position.y = cosf(r * 1.3f) * 4.0f + 2.08f;
+
+	/* keep camera facing the origin */
+	camera.orientation.yaw = r;
+
+	/* tilt camera pitch in time with up and down movements, phase shifted appreciably */
+	camera.orientation.pitch = sinf((M_PI * 1.5f) + r * 1.3f) * .6f + -.35f;
 #endif
 
 	if (!initialized) {
