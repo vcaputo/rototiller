@@ -8,6 +8,7 @@
 typedef struct ray_surface_t {
 	ray_color_t	color;
 	float		specular;
+	float		highlight_exponent;
 	float		diffuse;
 } ray_surface_t;
 

@@ -83,10 +83,8 @@ static inline ray_color_t shade_ray(ray_scene_t *scene, ray_ray_t *ray, ray_obje
 			diffuse = ray_3f_mult_scalar(&diffuse, surface.diffuse);
 			color = ray_3f_add(&color, &diffuse);
 
-			/* FIXME: assumes light is a point for its color, and 20 is a constant "Phong exponent",
-			 * which should really be object/surface-specific
-			 */
-			specular = ray_3f_mult_scalar(&scene->lights[i].light.emitter.point.surface.color, powf(rvec_lvec_dot, 20));
+			/* FIXME: assumes light is a point for its color */
+			specular = ray_3f_mult_scalar(&scene->lights[i].light.emitter.point.surface.color, powf(rvec_lvec_dot, surface.highlight_exponent));
 			specular = ray_3f_mult_scalar(&specular, surface.specular);
 			color = ray_3f_add(&color, &specular);
 #else

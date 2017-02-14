@@ -24,6 +24,7 @@ static void ray(fb_fragment_t *fragment)
 					.color = { .x = 0.6, .y = 0.3, .z = 0.8 },
 					.diffuse = 1.0f,
 					.specular = 0.2f,
+					.highlight_exponent = 20.0f
 				},
 				.normal = { .x = 0.0, .y = 1.0, .z = 0.0 },
 				.distance = 2.0f,
@@ -35,6 +36,7 @@ static void ray(fb_fragment_t *fragment)
 					.color = { .x = 1.0, .y = 0.0, .z = 0.0 },
 					.diffuse = 1.0f,
 					.specular = 0.05f,
+					.highlight_exponent = 20.0f
 				},
 				.center = { .x = 0.5, .y = 1.0, .z = 0.0 },
 				.radius = 1.2f,
@@ -46,6 +48,7 @@ static void ray(fb_fragment_t *fragment)
 					.color = { .x = 0.0, .y = 0.0, .z = 1.0 },
 					.diffuse = 0.9f,
 					.specular = 0.4f,
+					.highlight_exponent = 20.0f
 				},
 				.center = { .x = -2.0, .y = 1.0, .z = 0.0 },
 				.radius = 0.9f,
@@ -57,6 +60,7 @@ static void ray(fb_fragment_t *fragment)
 					.color = { .x = 0.0, .y = 1.0, .z = 1.0 },
 					.diffuse = 0.9f,
 					.specular = 0.3f,
+					.highlight_exponent = 20.0f
 				},
 				.center = { .x = 2.0, .y = -1.0, .z = 0.0 },
 				.radius = 1.0f,
@@ -68,6 +72,7 @@ static void ray(fb_fragment_t *fragment)
 					.color = { .x = 0.0, .y = 1.0, .z = 0.0 },
 					.diffuse = 0.95f,
 					.specular = 0.85f,
+					.highlight_exponent = 20.0f
 				},
 				.center = { .x = 0.2, .y = -1.25, .z = 0.0 },
 				.radius = 0.6f,
