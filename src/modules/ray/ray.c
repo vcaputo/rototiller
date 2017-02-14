@@ -72,7 +72,7 @@ static void ray(fb_fragment_t *fragment)
 					.color = { .x = 0.0, .y = 1.0, .z = 0.0 },
 					.diffuse = 0.95f,
 					.specular = 0.85f,
-					.highlight_exponent = 20.0f
+					.highlight_exponent = 1500.0f
 				},
 				.center = { .x = 0.2, .y = -1.25, .z = 0.0 },
 				.radius = 0.6f,
