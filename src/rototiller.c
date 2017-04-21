@@ -24,35 +24,35 @@
  * just two pages we end up twiddling thumbs until the vsync arrives.
  */
 
-extern rototiller_renderer_t	julia_renderer;
-extern rototiller_renderer_t	plasma_renderer;
-extern rototiller_renderer_t	roto32_renderer;
-extern rototiller_renderer_t	roto64_renderer;
-extern rototiller_renderer_t	ray_renderer;
-extern rototiller_renderer_t	sparkler_renderer;
-extern rototiller_renderer_t	stars_renderer;
+extern rototiller_module_t	julia_module;
+extern rototiller_module_t	plasma_module;
+extern rototiller_module_t	roto32_module;
+extern rototiller_module_t	roto64_module;
+extern rototiller_module_t	ray_module;
+extern rototiller_module_t	sparkler_module;
+extern rototiller_module_t	stars_module;
 
-static rototiller_renderer_t	*renderers[] = {
-	&roto32_renderer,
-	&roto64_renderer,
-	&ray_renderer,
-	&sparkler_renderer,
-	&stars_renderer,
-	&plasma_renderer,
-	&julia_renderer,
+static rototiller_module_t	*modules[] = {
+	&roto32_module,
+	&roto64_module,
+	&ray_module,
+	&sparkler_module,
+	&stars_module,
+	&plasma_module,
+	&julia_module,
 };
 
 
-static void renderer_select(int *renderer)
+static void module_select(int *module)
 {
 	int	i;
 
-	printf("\nRenderers\n");
-	for (i = 0; i < nelems(renderers); i++) {
-		printf(" %i: %s - %s\n", i, renderers[i]->name, renderers[i]->description);
+	printf("\nModules\n");
+	for (i = 0; i < nelems(modules); i++) {
+		printf(" %i: %s - %s\n", i, modules[i]->name, modules[i]->description);
 	}
 
-	ask_num(renderer, nelems(renderers) - 1, "Select renderer", 0);
+	ask_num(module, nelems(modules) - 1, "Select module", 0);
 }
 
 
@@ -63,10 +63,10 @@ int main(int argc, const char *argv[])
 	uint32_t		drm_crtc_id;
 	uint32_t		drm_connector_id;
 	fb_t			*fb;
-	int			renderer;
+	int			module;
 
 	drm_setup(&drm_fd, &drm_crtc_id, &drm_connector_id, &drm_mode);
-	renderer_select(&renderer);
+	module_select(&module);
 
 	pexit_if(!(fb = fb_new(drm_fd, drm_crtc_id, &drm_connector_id, 1, drm_mode, NUM_FB_PAGES)),
 		"unable to create fb");
@@ -80,7 +80,7 @@ int main(int argc, const char *argv[])
 		fps_print(fb);
 
 		page = fb_page_get(fb);
-		renderers[renderer]->render(&page->fragment);
+		modules[module]->render(&page->fragment);
 		fb_page_put(fb, page);
 	}
 

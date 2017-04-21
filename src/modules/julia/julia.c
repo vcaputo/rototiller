@@ -108,7 +108,7 @@ static void julia(fb_fragment_t *fragment)
 	rr += .01;
 }
 
-rototiller_renderer_t	julia_renderer = {
+rototiller_module_t	julia_module = {
 	.render = julia,
 	.name = "julia",
 	.description = "Julia set fractal morpher",

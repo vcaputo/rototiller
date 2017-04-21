@@ -287,7 +287,7 @@ static void roto64(fb_fragment_t *fragment)
 }
 
 
-rototiller_renderer_t	roto32_renderer = {
+rototiller_module_t	roto32_module = {
 	.render = roto32,
 	.name = "roto32",
 	.description = "Anti-aliased tiled texture rotation (32-bit)",
@@ -296,7 +296,7 @@ rototiller_renderer_t	roto32_renderer = {
 };
 
 
-rototiller_renderer_t	roto64_renderer = {
+rototiller_module_t	roto64_module = {
 	.render = roto64,
 	.name = "roto64",
 	.description = "Anti-aliased tiled texture rotation (64-bit)",

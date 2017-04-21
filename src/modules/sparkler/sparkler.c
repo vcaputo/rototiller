@@ -44,7 +44,7 @@ static void sparkler(fb_fragment_t *fragment)
 }
 
 
-rototiller_renderer_t	sparkler_renderer = {
+rototiller_module_t	sparkler_module = {
 	.render = sparkler,
 	.name = "sparkler",
 	.description = "Particle system with spatial interactions",

@@ -54,7 +54,7 @@ static void stars(fb_fragment_t *fragment)
 	}
 }
 
-rototiller_renderer_t	stars_renderer = {
+rototiller_module_t	stars_module = {
 	.render = stars,
 	.name = "stars",
 	.description = "basic starfield",

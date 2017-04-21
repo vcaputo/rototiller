@@ -117,7 +117,7 @@ static void plasma(fb_fragment_t *fragment)
 	rr += 3;
 }
 
-rototiller_renderer_t	plasma_renderer = {
+rototiller_module_t	plasma_module = {
 	.render = plasma,
 	.name = "plasma",
 	.description = "Oldskool plasma effect",

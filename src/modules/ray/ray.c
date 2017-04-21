@@ -166,7 +166,7 @@ static void ray(fb_fragment_t *fragment)
 }
 
 
-rototiller_renderer_t	ray_renderer = {
+rototiller_module_t	ray_module = {
 	.render = ray,
 	.name = "ray",
 	.description = "Multi-threaded ray tracer",
