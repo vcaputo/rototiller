@@ -14,7 +14,7 @@
 /* Copyright (C) 2016-2017 Vito Caputo <vcaputo@pengaru.com> */
 
 /* ray trace a simple scene into the fragment */
-static void ray(fb_fragment_t *fragment)
+static void ray_render_fragment(fb_fragment_t *fragment)
 {
 	static ray_object_t	objects[] = {
 		{
@@ -167,7 +167,7 @@ static void ray(fb_fragment_t *fragment)
 
 
 rototiller_module_t	ray_module = {
-	.render = ray,
+	.render_fragment = ray_render_fragment,
 	.name = "ray",
 	.description = "Multi-threaded ray tracer",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",

@@ -80,7 +80,7 @@ int main(int argc, const char *argv[])
 		fps_print(fb);
 
 		page = fb_page_get(fb);
-		modules[module]->render(&page->fragment);
+		modules[module]->render_fragment(&page->fragment);
 		fb_page_put(fb, page);
 	}
 

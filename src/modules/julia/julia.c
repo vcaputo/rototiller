@@ -35,7 +35,7 @@ static inline unsigned julia_iter(float real, float imag, float creal, float cim
 }
 
 /* Draw a morphing Julia set */
-static void julia(fb_fragment_t *fragment)
+static void julia_render_fragment(fb_fragment_t *fragment)
 {
 	static uint32_t	colors[] = {
 				/* this palette is just something I slapped together, definitely needs improvement. TODO */
@@ -109,7 +109,7 @@ static void julia(fb_fragment_t *fragment)
 }
 
 rototiller_module_t	julia_module = {
-	.render = julia,
+	.render_fragment = julia_render_fragment,
 	.name = "julia",
 	.description = "Julia set fractal morpher",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",

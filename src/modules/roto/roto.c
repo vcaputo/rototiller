@@ -149,7 +149,7 @@ static void init_roto(uint8_t texture[256][256], int32_t *costab, int32_t *sinta
 
 
 /* Draw a rotating checkered 256x256 texture into fragment. (32-bit version) */
-static void roto32(fb_fragment_t *fragment)
+static void roto32_render_fragment(fb_fragment_t *fragment)
 {
 	static int32_t	costab[FIXED_TRIG_LUT_SIZE], sintab[FIXED_TRIG_LUT_SIZE];
 	static uint8_t	texture[256][256];
@@ -213,7 +213,7 @@ static void roto32(fb_fragment_t *fragment)
 
 
 /* Draw a rotating checkered 256x256 texture into fragment. (64-bit version) */
-static void roto64(fb_fragment_t *fragment)
+static void roto64_render_fragment(fb_fragment_t *fragment)
 {
 	static int32_t	costab[FIXED_TRIG_LUT_SIZE], sintab[FIXED_TRIG_LUT_SIZE];
 	static uint8_t	texture[256][256];
@@ -288,7 +288,7 @@ static void roto64(fb_fragment_t *fragment)
 
 
 rototiller_module_t	roto32_module = {
-	.render = roto32,
+	.render_fragment = roto32_render_fragment,
 	.name = "roto32",
 	.description = "Anti-aliased tiled texture rotation (32-bit)",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",
@@ -297,7 +297,7 @@ rototiller_module_t	roto32_module = {
 
 
 rototiller_module_t	roto64_module = {
-	.render = roto64,
+	.render_fragment = roto64_render_fragment,
 	.name = "roto64",
 	.description = "Anti-aliased tiled texture rotation (64-bit)",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",

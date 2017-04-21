@@ -41,7 +41,7 @@ static void init_plasma(int32_t *costab, int32_t *sintab)
 
 
 /* Draw a plasma effect */
-static void plasma(fb_fragment_t *fragment)
+static void plasma_render_fragment(fb_fragment_t *fragment)
 {
 	static int32_t	costab[FIXED_TRIG_LUT_SIZE], sintab[FIXED_TRIG_LUT_SIZE];
 	static int	initialized;
@@ -118,7 +118,7 @@ static void plasma(fb_fragment_t *fragment)
 }
 
 rototiller_module_t	plasma_module = {
-	.render = plasma,
+	.render_fragment = plasma_render_fragment,
 	.name = "plasma",
 	.description = "Oldskool plasma effect",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",

@@ -20,7 +20,7 @@ extern particle_ops_t	simple_ops;
 
 
 /* Render a 3D particle system */
-static void sparkler(fb_fragment_t *fragment)
+static void sparkler_render_fragment(fb_fragment_t *fragment)
 {
 	static particles_t	*particles;
 	static int		initialized;
@@ -45,7 +45,7 @@ static void sparkler(fb_fragment_t *fragment)
 
 
 rototiller_module_t	sparkler_module = {
-	.render = sparkler,
+	.render_fragment = sparkler_render_fragment,
 	.name = "sparkler",
 	.description = "Particle system with spatial interactions",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",

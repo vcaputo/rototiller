@@ -13,7 +13,7 @@
 
 /* Copyright (C) 2017 Philip J. Freeman <elektron@halo.nu> */
 
-static void stars(fb_fragment_t *fragment)
+static void stars_render_fragment(fb_fragment_t *fragment)
 {
 	static int	initialized, z;
 	static struct	universe* u;
@@ -55,7 +55,7 @@ static void stars(fb_fragment_t *fragment)
 }
 
 rototiller_module_t	stars_module = {
-	.render = stars,
+	.render_fragment = stars_render_fragment,
 	.name = "stars",
 	.description = "basic starfield",
 	.author = "Philip J Freeman <elektron@halo.nu>",
