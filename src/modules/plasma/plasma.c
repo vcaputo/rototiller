@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <inttypes.h>
 #include <math.h>
+#include <stdlib.h>
 
 #include "fb.h"
 #include "rototiller.h"
@@ -22,7 +23,10 @@ typedef struct color_t {
 } color_t;
 
 static int32_t	costab[FIXED_TRIG_LUT_SIZE], sintab[FIXED_TRIG_LUT_SIZE];
-static unsigned	rr;
+
+typedef struct plasma_context_t {
+	unsigned	rr;
+} plasma_context_t;
 
 static inline uint32_t color2pixel(color_t *color)
 {
@@ -42,10 +46,23 @@ static void init_plasma(int32_t *costab, int32_t *sintab)
 }
 
 
+static void * plasma_create_context(void)
+{
+	return calloc(1, sizeof(plasma_context_t));
+}
+
+
+static void plasma_destroy_context(void *context)
+{
+	free(context);
+}
+
+
 /* Prepare a frame for concurrent drawing of fragment using multiple fragments */
 static void plasma_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fragment, rototiller_frame_t *res_frame)
 {
-	static int	initialized;
+	plasma_context_t	*ctxt = context;
+	static int		initialized;
 
 	if (!initialized) {
 		initialized = 1;
@@ -56,34 +73,34 @@ static void plasma_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *
 	res_frame->n_fragments = n_cpus;
 	fb_fragment_divide(fragment, n_cpus, res_frame->fragments);
 
-	rr += 3;
+	ctxt->rr += 3;
 }
 
 
 /* Draw a plasma effect */
 static void plasma_render_fragment(void *context, fb_fragment_t *fragment)
 {
+	plasma_context_t	*ctxt = context;
+	unsigned		stride = fragment->stride / 4, width = fragment->width, height = fragment->height;
+	int			fw2 = FIXED_NEW(width / 2), fh2 = FIXED_NEW(height / 2);
+	int			x, y, cx, cy, dx2, dy2;
+	uint32_t		*buf = fragment->buf;
+	color_t			c = { .r = 0, .g = 0, .b = 0 }, cscale;
+	unsigned		rr2, rr6, rr8, rr16, rr20, rr12;
 
-	unsigned	stride = fragment->stride / 4, width = fragment->width, height = fragment->height;
-	int		fw2 = FIXED_NEW(width / 2), fh2 = FIXED_NEW(height / 2);
-	int		x, y, cx, cy, dx2, dy2;
-	uint32_t	*buf = fragment->buf;
-	color_t		c = { .r = 0, .g = 0, .b = 0 }, cscale;
-	unsigned	rr2, rr6, rr8, rr16, rr20, rr12;
-
-	rr2 = rr * 2;
-	rr6 = rr * 6;
-	rr8 = rr * 8;
-	rr16 = rr * 16;
-	rr20 = rr * 20;
-	rr12 = rr * 12;
+	rr2 = ctxt->rr * 2;
+	rr6 = ctxt->rr * 6;
+	rr8 = ctxt->rr * 8;
+	rr16 = ctxt->rr * 16;
+	rr20 = ctxt->rr * 20;
+	rr12 = ctxt->rr * 12;
 
 	/* vary the color channel intensities */
-	cscale.r = FIXED_MULT(FIXED_COS(rr / 2), FIXED_NEW(64)) + FIXED_NEW(64);
-	cscale.g = FIXED_MULT(FIXED_COS(rr / 5), FIXED_NEW(64)) + FIXED_NEW(64);
-	cscale.b = FIXED_MULT(FIXED_COS(rr / 7), FIXED_NEW(64)) + FIXED_NEW(64);
+	cscale.r = FIXED_MULT(FIXED_COS(ctxt->rr / 2), FIXED_NEW(64)) + FIXED_NEW(64);
+	cscale.g = FIXED_MULT(FIXED_COS(ctxt->rr / 5), FIXED_NEW(64)) + FIXED_NEW(64);
+	cscale.b = FIXED_MULT(FIXED_COS(ctxt->rr / 7), FIXED_NEW(64)) + FIXED_NEW(64);
 
-	cx = FIXED_TO_INT(FIXED_MULT(FIXED_COS(rr), fw2) + fw2);
+	cx = FIXED_TO_INT(FIXED_MULT(FIXED_COS(ctxt->rr), fw2) + fw2);
 	cy = FIXED_TO_INT(FIXED_MULT(FIXED_SIN(rr2), fh2) + fh2);
 
 	for (y = fragment->y; y < fragment->y + height; y++) {
@@ -128,6 +145,8 @@ static void plasma_render_fragment(void *context, fb_fragment_t *fragment)
 }
 
 rototiller_module_t	plasma_module = {
+	.create_context = plasma_create_context,
+	.destroy_context = plasma_destroy_context,
 	.prepare_frame = plasma_prepare_frame,
 	.render_fragment = plasma_render_fragment,
 	.name = "plasma",
