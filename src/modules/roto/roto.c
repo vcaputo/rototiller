@@ -22,6 +22,11 @@ typedef struct color_t {
 	int	r, g, b;
 } color_t;
 
+static int32_t	costab[FIXED_TRIG_LUT_SIZE], sintab[FIXED_TRIG_LUT_SIZE];
+static uint8_t	texture[256][256];
+static color_t	palette[2];
+static unsigned	r, rr;
+
 
 /* linearly interpolate between two colors, alpha is fixed-point value 0-FIXED_EXP. */
 static inline color_t lerp_color(color_t *a, color_t *b, int alpha)
@@ -148,24 +153,32 @@ static void init_roto(uint8_t texture[256][256], int32_t *costab, int32_t *sinta
 }
 
 
-/* Draw a rotating checkered 256x256 texture into fragment. (32-bit version) */
-static void roto32_render_fragment(fb_fragment_t *fragment)
+/* prepare a frame for concurrent rendering */
+static void roto_prepare_frame(unsigned n_cpus, fb_fragment_t *fragment, rototiller_frame_t *res_frame)
 {
-	static int32_t	costab[FIXED_TRIG_LUT_SIZE], sintab[FIXED_TRIG_LUT_SIZE];
-	static uint8_t	texture[256][256];
 	static int	initialized;
-	static color_t	palette[2];
-	static unsigned	r, rr;
-
-	int		y_cos_r, y_sin_r, x_cos_r, x_sin_r, x_cos_r_init, x_sin_r_init, cos_r, sin_r;
-	int		x, y, stride = fragment->stride / 4, width = fragment->width, height = fragment->height;
-	uint32_t	*buf = fragment->buf;
 
 	if (!initialized) {
 		initialized = 1;
 
 		init_roto(texture, costab, sintab);
 	}
+
+	res_frame->n_fragments = n_cpus;
+	fb_fragment_divide(fragment, n_cpus, res_frame->fragments);
+
+	// This governs the rotation and color cycle.
+	r += FIXED_TO_INT(FIXED_MULT(FIXED_SIN(rr), FIXED_NEW(16)));
+	rr += 2;
+}
+
+
+/* Draw a rotating checkered 256x256 texture into fragment. (32-bit version) */
+static void roto32_render_fragment(fb_fragment_t *fragment)
+{
+	int		y_cos_r, y_sin_r, x_cos_r, x_sin_r, x_cos_r_init, x_sin_r_init, cos_r, sin_r;
+	int		x, y, stride = fragment->stride / 4, frame_width = fragment->frame_width, frame_height = fragment->frame_height;
+	uint32_t	*buf = fragment->buf;
 
 	/* This is all done using fixed-point in the hopes of being faster, and yes assumptions
 	 * are being made WRT the overflow of tx/ty as well, only tested on x86_64. */
@@ -183,18 +196,18 @@ static void roto32_render_fragment(fb_fragment_t *fragment)
 
 	/* The dimensions are cut in half and negated to center the rotation. */
 	/* The [xy]_{sin,cos}_r variables are accumulators to replace multiplication with addition. */
-	x_cos_r_init = FIXED_MULT(-FIXED_NEW((width / 2)), cos_r);
-	x_sin_r_init = FIXED_MULT(-FIXED_NEW((width / 2)), sin_r);
+	x_cos_r_init = FIXED_MULT(-FIXED_NEW(frame_width / 2) + FIXED_NEW(fragment->x), cos_r);
+	x_sin_r_init = FIXED_MULT(-FIXED_NEW(frame_width / 2) + FIXED_NEW(fragment->x), sin_r);
 
-	y_cos_r = FIXED_MULT(-FIXED_NEW((height / 2)), cos_r);
-	y_sin_r = FIXED_MULT(-FIXED_NEW((height / 2)), sin_r);
+	y_cos_r = FIXED_MULT(-FIXED_NEW(frame_height / 2) + FIXED_NEW(fragment->y), cos_r);
+	y_sin_r = FIXED_MULT(-FIXED_NEW(frame_height / 2) + FIXED_NEW(fragment->y), sin_r);
 
-	for (y = 0; y < height; y++) {
+	for (y = fragment->y; y < fragment->y + fragment->height; y++) {
 
 		x_cos_r = x_cos_r_init;
 		x_sin_r = x_sin_r_init;
 
-		for (x = 0; x < width; x++, buf++) {
+		for (x = fragment->x; x < fragment->x + fragment->width; x++, buf++) {
 			*buf = bilerp_color(texture, palette, x_sin_r - y_cos_r, y_sin_r + x_cos_r);
 
 			x_cos_r += cos_r;
@@ -206,30 +219,15 @@ static void roto32_render_fragment(fb_fragment_t *fragment)
 		y_sin_r += sin_r;
 	}
 
-	// This governs the rotation and color cycle.
-	r += FIXED_TO_INT(FIXED_MULT(FIXED_SIN(rr), FIXED_NEW(16)));
-	rr += 2;
 }
 
 
 /* Draw a rotating checkered 256x256 texture into fragment. (64-bit version) */
 static void roto64_render_fragment(fb_fragment_t *fragment)
 {
-	static int32_t	costab[FIXED_TRIG_LUT_SIZE], sintab[FIXED_TRIG_LUT_SIZE];
-	static uint8_t	texture[256][256];
-	static int	initialized;
-	static color_t	palette[2];
-	static unsigned	r, rr;
-
 	int		y_cos_r, y_sin_r, x_cos_r, x_sin_r, x_cos_r_init, x_sin_r_init, cos_r, sin_r;
-	int		x, y, stride = fragment->stride / 8, width = fragment->width, height = fragment->height;
+	int		x, y, stride = fragment->stride / 8, frame_width = fragment->frame_width, frame_height = fragment->frame_height, width = fragment->width;
 	uint64_t	*buf = (uint64_t *)fragment->buf;
-
-	if (!initialized) {
-		initialized = 1;
-
-		init_roto(texture, costab, sintab);
-	}
 
 	/* This is all done using fixed-point in the hopes of being faster, and yes assumptions
 	 * are being made WRT the overflow of tx/ty as well, only tested on x86_64. */
@@ -247,20 +245,20 @@ static void roto64_render_fragment(fb_fragment_t *fragment)
 
 	/* The dimensions are cut in half and negated to center the rotation. */
 	/* The [xy]_{sin,cos}_r variables are accumulators to replace multiplication with addition. */
-	x_cos_r_init = FIXED_MULT(-FIXED_NEW((width / 2)), cos_r);
-	x_sin_r_init = FIXED_MULT(-FIXED_NEW((width / 2)), sin_r);
+	x_cos_r_init = FIXED_MULT(-FIXED_NEW(frame_width / 2) + FIXED_NEW(fragment->x), cos_r);
+	x_sin_r_init = FIXED_MULT(-FIXED_NEW(frame_width / 2) + FIXED_NEW(fragment->x), sin_r);
 
-	y_cos_r = FIXED_MULT(-FIXED_NEW((height / 2)), cos_r);
-	y_sin_r = FIXED_MULT(-FIXED_NEW((height / 2)), sin_r);
+	y_cos_r = FIXED_MULT(-FIXED_NEW(frame_height / 2) + FIXED_NEW(fragment->y), cos_r);
+	y_sin_r = FIXED_MULT(-FIXED_NEW(frame_height / 2) + FIXED_NEW(fragment->y), sin_r);
 
 	width /= 2;	/* Since we're processing 64-bit words (2 pixels) at a time */
 
-	for (y = 0; y < height; y++) {
+	for (y = fragment->y; y < fragment->y + fragment->height; y++) {
 
 		x_cos_r = x_cos_r_init;
 		x_sin_r = x_sin_r_init;
 
-		for (x = 0; x < width; x++, buf++) {
+		for (x = fragment->x; x < fragment->x + width; x++, buf++) {
 			uint64_t	p;
 
 			p = bilerp_color(texture, palette, x_sin_r - y_cos_r, y_sin_r + x_cos_r);
@@ -280,26 +278,24 @@ static void roto64_render_fragment(fb_fragment_t *fragment)
 		y_cos_r += cos_r;
 		y_sin_r += sin_r;
 	}
-
-	// This governs the rotation and color cycle.
-	r += FIXED_TO_INT(FIXED_MULT(FIXED_SIN(rr), FIXED_NEW(16)));
-	rr += 2;
 }
 
 
 rototiller_module_t	roto32_module = {
+	.prepare_frame = roto_prepare_frame,
 	.render_fragment = roto32_render_fragment,
 	.name = "roto32",
-	.description = "Anti-aliased tiled texture rotation (32-bit)",
+	.description = "Anti-aliased tiled texture rotation (32-bit, threaded)",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",
 	.license = "GPLv2",
 };
 
 
 rototiller_module_t	roto64_module = {
+	.prepare_frame = roto_prepare_frame,
 	.render_fragment = roto64_render_fragment,
 	.name = "roto64",
-	.description = "Anti-aliased tiled texture rotation (64-bit)",
+	.description = "Anti-aliased tiled texture rotation (64-bit, threaded)",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",
 	.license = "GPLv2",
 };
