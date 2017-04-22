@@ -11,6 +11,12 @@
 
 /* TODO: explore using C99 complex.h and its types? */
 
+static float	rr;
+static float	realscale;
+static float	imagscale;
+static float	creal;
+static float	cimag;
+
 static inline unsigned julia_iter(float real, float imag, float creal, float cimag, unsigned max_iters)
 {
 	unsigned	i;
@@ -33,6 +39,24 @@ static inline unsigned julia_iter(float real, float imag, float creal, float cim
 
 	return 0;
 }
+
+
+/* Prepare a frame for concurrent drawing of fragment using multiple fragments */
+static void julia_prepare_frame(unsigned n_cpus, fb_fragment_t *fragment, rototiller_frame_t *res_frame)
+{
+	res_frame->n_fragments = n_cpus;
+	fb_fragment_divide(fragment, n_cpus, res_frame->fragments);
+
+	rr += .01;
+			/* Rather than just sweeping creal,cimag from -2.0-+2.0, I try to keep things confined
+			 * to an interesting (visually) range.  TODO: could certainly use refinement.
+			 */
+	realscale = 0.01f * cosf(rr) + 0.01f;
+	imagscale = 0.01f * sinf(rr * 3.0f) + 0.01f;
+	creal = (1.01f + (realscale * cosf(1.5f*M_PI+rr) + realscale)) * cosf(rr * .3f);
+	cimag = (1.01f + (imagscale * sinf(rr * 3.0f) + imagscale)) * sinf(rr);
+}
+
 
 /* Draw a morphing Julia set */
 static void julia_render_fragment(fb_fragment_t *fragment)
@@ -78,9 +102,7 @@ static void julia_render_fragment(fb_fragment_t *fragment)
 				0xaa00aa,
 				0x880088,
 				0x440044,
-
 			};
-	static float	rr;
 
 	unsigned	x, y;
 	unsigned	stride = fragment->stride / 4, width = fragment->width, height = fragment->height;
@@ -88,30 +110,22 @@ static void julia_render_fragment(fb_fragment_t *fragment)
 	float		real, imag;
 	float		realstep = 3.6f / (float)fragment->frame_width, imagstep = 3.6f / (float)fragment->frame_height;
 
-			/* Rather than just sweeping creal,cimag from -2.0-+2.0, I try to keep things confined
-			 * to an interesting (visually) range.  TODO: could certainly use refinement.
-			 */
-	float		realscale = 0.01f * cosf(rr) + 0.01f;
-	float		imagscale = 0.01f * sinf(rr * 3.0f) + 0.01f;
-	float		creal = (1.01f + (realscale * cosf(1.5f*M_PI+rr) + realscale)) * cosf(rr * .3f);
-	float		cimag = (1.01f + (imagscale * sinf(rr * 3.0f) + imagscale)) * sinf(rr);
 
 	/* Complex plane confined to {-1.8 - 1.8} on both axis (slightly zoomed), no dynamic zooming is performed. */
-	for (imag = 1.8, y = 0; y < height; y++, imag += -imagstep) {
-		for (real = -1.8, x = 0; x < width; x++, buf++, real += realstep) {
+	for (imag = 1.8 + -(imagstep * (float)fragment->y), y = fragment->y; y < fragment->y + height; y++, imag += -imagstep) {
+		for (real = -1.8 + realstep * (float)fragment->x, x = fragment->x; x < fragment->x + width; x++, buf++, real += realstep) {
 			*buf = colors[julia_iter(real, imag, creal, cimag, sizeof(colors) / sizeof(*colors))];
 		}
 
 		buf += stride;
 	}
-
-	rr += .01;
 }
 
 rototiller_module_t	julia_module = {
+	.prepare_frame = julia_prepare_frame,
 	.render_fragment = julia_render_fragment,
 	.name = "julia",
-	.description = "Julia set fractal morpher",
+	.description = "Julia set fractal morpher (threaded)",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",
 	.license = "GPLv2",
 };
