@@ -13,6 +13,7 @@
 #include "fb.h"
 #include "fps.h"
 #include "rototiller.h"
+#include "threads.h"
 #include "util.h"
 
 /* Copyright (C) 2016 Vito Caputo <vcaputo@pengaru.com> */
@@ -56,14 +57,36 @@ static void module_select(int *module)
 }
 
 
+static void module_render_page_threaded(rototiller_module_t *module, threads_t *threads, fb_page_t *page)
+{
+	rototiller_frame_t	frame;
+	unsigned		i;
+
+	module->prepare_frame(threads_num_threads(threads), &page->fragment, &frame);
+
+	threads_frame_submit(threads, &frame, module->render_fragment);
+	threads_wait_idle(threads);
+}
+
+
+static void module_render_page(rototiller_module_t *module, threads_t *threads, fb_page_t *page)
+{
+	if (!module->prepare_frame)
+		return module->render_fragment(&page->fragment);
+
+	module_render_page_threaded(module, threads, page);
+}
+
+
 int main(int argc, const char *argv[])
 {
 	int			drm_fd;
 	drmModeModeInfoPtr	drm_mode;
 	uint32_t		drm_crtc_id;
 	uint32_t		drm_connector_id;
-	fb_t			*fb;
+	threads_t		*threads;
 	int			module;
+	fb_t			*fb;
 
 	drm_setup(&drm_fd, &drm_crtc_id, &drm_connector_id, &drm_mode);
 	module_select(&module);
@@ -74,16 +97,20 @@ int main(int argc, const char *argv[])
 	pexit_if(!fps_setup(),
 		"unable to setup fps counter");
 
+	pexit_if(!(threads = threads_create()),
+		"unable to create threads");
+
 	for (;;) {
 		fb_page_t	*page;
 
 		fps_print(fb);
 
 		page = fb_page_get(fb);
-		modules[module]->render_fragment(&page->fragment);
+		module_render_page(modules[module], threads, page);
 		fb_page_put(fb, page);
 	}
 
+	threads_destroy(threads);
 	fb_free(fb);
 	close(drm_fd);
 
