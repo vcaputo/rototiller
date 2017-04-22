@@ -86,7 +86,7 @@ static void julia_render_fragment(fb_fragment_t *fragment)
 	unsigned	stride = fragment->stride / 4, width = fragment->width, height = fragment->height;
 	uint32_t	*buf = fragment->buf;
 	float		real, imag;
-	float		realstep = 3.6f / (float)width, imagstep = 3.6f / (float)height;
+	float		realstep = 3.6f / (float)fragment->frame_width, imagstep = 3.6f / (float)fragment->frame_height;
 
 			/* Rather than just sweeping creal,cimag from -2.0-+2.0, I try to keep things confined
 			 * to an interesting (visually) range.  TODO: could certainly use refinement.

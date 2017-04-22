@@ -14,6 +14,8 @@ typedef struct fb_fragment_t {
 	uint32_t	*buf;		/* pointer to the first pixel in the fragment */
 	unsigned	x, y;		/* absolute coordinates of the upper left corner of this fragment */
 	unsigned	width, height;	/* width and height of this fragment */
+	unsigned	frame_width;	/* width of the frame this fragment is part of */
+	unsigned	frame_height;	/* height of the frame this fragment is part of */
 	unsigned	stride;		/* number of bytes from the end of one row to the start of the next */
 } fb_fragment_t;
 

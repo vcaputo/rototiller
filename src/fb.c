@@ -172,7 +172,9 @@ static void fb_page_new(fb_t *fb, drmModeModeInfoPtr mode)
 
 	page->public_page.fragment.buf = map;
 	page->public_page.fragment.width = mode->hdisplay;
+	page->public_page.fragment.frame_width = mode->hdisplay;
 	page->public_page.fragment.height = mode->vdisplay;
+	page->public_page.fragment.frame_height = mode->vdisplay;
 	page->public_page.fragment.stride = create_dumb.pitch - (mode->hdisplay * 4);
 
 	page->next = fb->inactive_pages;
@@ -338,6 +340,8 @@ void fb_fragment_divide(fb_fragment_t *fragment, unsigned n_fragments, fb_fragme
 		fragments[i].y = y;
 		fragments[i].width = fragment->width;
 		fragments[i].height = slice;
+		fragments[i].frame_width = fragment->frame_width;
+		fragments[i].frame_height = fragment->frame_height;
 		fragments[i].stride = fragment->stride;
 
 		buf += pitch * slice;
