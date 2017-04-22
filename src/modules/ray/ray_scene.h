@@ -6,7 +6,6 @@
 #include "ray_camera.h"
 #include "ray_color.h"
 #include "ray_ray.h"
-#include "ray_threads.h"
 
 typedef union ray_object_t ray_object_t;
 
@@ -21,7 +20,6 @@ typedef struct ray_scene_t {
 	float		ambient_brightness;
 } ray_scene_t;
 
-void ray_scene_render_fragments(ray_scene_t *scene, ray_camera_t *camera, ray_threads_t *threads, fb_fragment_t *fragments);
 void ray_scene_render_fragment(ray_scene_t *scene, ray_camera_t *camera, fb_fragment_t *fragment);
 
 #endif

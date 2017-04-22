@@ -8,7 +8,6 @@
 #include "ray_object.h"
 #include "ray_ray.h"
 #include "ray_scene.h"
-#include "ray_threads.h"
 
 #define MAX_RECURSION_DEPTH	5
 
@@ -167,20 +166,4 @@ void ray_scene_render_fragment(ray_scene_t *scene, ray_camera_t *camera, fb_frag
 
 		buf += stride;
 	} while (ray_camera_frame_y_step(&frame));
-}
-
-/* we expect fragments[threads->n_threads + 1], or fragments[1] when threads == NULL */
-void ray_scene_render_fragments(ray_scene_t *scene, ray_camera_t *camera, ray_threads_t *threads, fb_fragment_t *fragments)
-{
-	unsigned	n_threads = threads ? threads->n_threads + 1 : 1;
-	unsigned	i;
-
-	for (i = 1; i < n_threads; i++)
-		ray_thread_fragment_submit(&threads->threads[i - 1], scene, camera, &fragments[i]);
-
-	/* always render the zero fragment in-line */
-	ray_scene_render_fragment(scene, camera, &fragments[0]);
-
-	for (i = 1; i < n_threads; i++)
-		ray_thread_wait_idle(&threads->threads[i - 1]);
 }

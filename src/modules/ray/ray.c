@@ -9,7 +9,6 @@
 #include "ray_camera.h"
 #include "ray_object.h"
 #include "ray_scene.h"
-#include "ray_threads.h"
 
 /* Copyright (C) 2016-2017 Vito Caputo <vcaputo@pengaru.com> */
 
