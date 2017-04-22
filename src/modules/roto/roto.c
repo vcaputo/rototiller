@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <inttypes.h>
 #include <math.h>
+#include <stdlib.h>
 
 #include "fb.h"
 #include "rototiller.h"
@@ -22,10 +23,24 @@ typedef struct color_t {
 	int	r, g, b;
 } color_t;
 
+typedef struct roto_context_t {
+	unsigned	r, rr;
+} roto_context_t;
+
 static int32_t	costab[FIXED_TRIG_LUT_SIZE], sintab[FIXED_TRIG_LUT_SIZE];
 static uint8_t	texture[256][256];
 static color_t	palette[2];
-static unsigned	r, rr;
+
+static void * roto_create_context(void)
+{
+	return calloc(1, sizeof(roto_context_t));
+}
+
+
+static void roto_destroy_context(void *context)
+{
+	free(context);
+}
 
 
 /* linearly interpolate between two colors, alpha is fixed-point value 0-FIXED_EXP. */
@@ -156,6 +171,7 @@ static void init_roto(uint8_t texture[256][256], int32_t *costab, int32_t *sinta
 /* prepare a frame for concurrent rendering */
 static void roto_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fragment, rototiller_frame_t *res_frame)
 {
+	roto_context_t	*ctxt = context;
 	static int	initialized;
 
 	if (!initialized) {
@@ -168,31 +184,32 @@ static void roto_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fr
 	fb_fragment_divide(fragment, n_cpus, res_frame->fragments);
 
 	// This governs the rotation and color cycle.
-	r += FIXED_TO_INT(FIXED_MULT(FIXED_SIN(rr), FIXED_NEW(16)));
-	rr += 2;
+	ctxt->r += FIXED_TO_INT(FIXED_MULT(FIXED_SIN(ctxt->rr), FIXED_NEW(16)));
+	ctxt->rr += 2;
 }
 
 
 /* Draw a rotating checkered 256x256 texture into fragment. (32-bit version) */
 static void roto32_render_fragment(void *context, fb_fragment_t *fragment)
 {
+	roto_context_t	*ctxt = context;
 	int		y_cos_r, y_sin_r, x_cos_r, x_sin_r, x_cos_r_init, x_sin_r_init, cos_r, sin_r;
 	int		x, y, stride = fragment->stride / 4, frame_width = fragment->frame_width, frame_height = fragment->frame_height;
 	uint32_t	*buf = fragment->buf;
 
 	/* This is all done using fixed-point in the hopes of being faster, and yes assumptions
 	 * are being made WRT the overflow of tx/ty as well, only tested on x86_64. */
-	cos_r = FIXED_COS(r);
-	sin_r = FIXED_SIN(r);
+	cos_r = FIXED_COS(ctxt->r);
+	sin_r = FIXED_SIN(ctxt->r);
 
 	/* Vary the colors, this is just a mashup of sinusoidal rgb values. */
-	palette[0].r = (FIXED_MULT(FIXED_COS(rr), FIXED_NEW(127)) + FIXED_NEW(128));
-	palette[0].g = (FIXED_MULT(FIXED_SIN(rr / 2), FIXED_NEW(127)) + FIXED_NEW(128));
-	palette[0].b = (FIXED_MULT(FIXED_COS(rr / 3), FIXED_NEW(127)) + FIXED_NEW(128));
+	palette[0].r = (FIXED_MULT(FIXED_COS(ctxt->rr), FIXED_NEW(127)) + FIXED_NEW(128));
+	palette[0].g = (FIXED_MULT(FIXED_SIN(ctxt->rr / 2), FIXED_NEW(127)) + FIXED_NEW(128));
+	palette[0].b = (FIXED_MULT(FIXED_COS(ctxt->rr / 3), FIXED_NEW(127)) + FIXED_NEW(128));
 
-	palette[1].r = (FIXED_MULT(FIXED_SIN(rr / 2), FIXED_NEW(127)) + FIXED_NEW(128));
-	palette[1].g = (FIXED_MULT(FIXED_COS(rr / 2), FIXED_NEW(127)) + FIXED_NEW(128));
-	palette[1].b = (FIXED_MULT(FIXED_SIN(rr), FIXED_NEW(127)) + FIXED_NEW(128));
+	palette[1].r = (FIXED_MULT(FIXED_SIN(ctxt->rr / 2), FIXED_NEW(127)) + FIXED_NEW(128));
+	palette[1].g = (FIXED_MULT(FIXED_COS(ctxt->rr / 2), FIXED_NEW(127)) + FIXED_NEW(128));
+	palette[1].b = (FIXED_MULT(FIXED_SIN(ctxt->rr), FIXED_NEW(127)) + FIXED_NEW(128));
 
 	/* The dimensions are cut in half and negated to center the rotation. */
 	/* The [xy]_{sin,cos}_r variables are accumulators to replace multiplication with addition. */
@@ -225,23 +242,24 @@ static void roto32_render_fragment(void *context, fb_fragment_t *fragment)
 /* Draw a rotating checkered 256x256 texture into fragment. (64-bit version) */
 static void roto64_render_fragment(void *context, fb_fragment_t *fragment)
 {
+	roto_context_t	*ctxt = context;
 	int		y_cos_r, y_sin_r, x_cos_r, x_sin_r, x_cos_r_init, x_sin_r_init, cos_r, sin_r;
 	int		x, y, stride = fragment->stride / 8, frame_width = fragment->frame_width, frame_height = fragment->frame_height, width = fragment->width;
 	uint64_t	*buf = (uint64_t *)fragment->buf;
 
 	/* This is all done using fixed-point in the hopes of being faster, and yes assumptions
 	 * are being made WRT the overflow of tx/ty as well, only tested on x86_64. */
-	cos_r = FIXED_COS(r);
-	sin_r = FIXED_SIN(r);
+	cos_r = FIXED_COS(ctxt->r);
+	sin_r = FIXED_SIN(ctxt->r);
 
 	/* Vary the colors, this is just a mashup of sinusoidal rgb values. */
-	palette[0].r = (FIXED_MULT(FIXED_COS(rr), FIXED_NEW(127)) + FIXED_NEW(128));
-	palette[0].g = (FIXED_MULT(FIXED_SIN(rr / 2), FIXED_NEW(127)) + FIXED_NEW(128));
-	palette[0].b = (FIXED_MULT(FIXED_COS(rr / 3), FIXED_NEW(127)) + FIXED_NEW(128));
+	palette[0].r = (FIXED_MULT(FIXED_COS(ctxt->rr), FIXED_NEW(127)) + FIXED_NEW(128));
+	palette[0].g = (FIXED_MULT(FIXED_SIN(ctxt->rr / 2), FIXED_NEW(127)) + FIXED_NEW(128));
+	palette[0].b = (FIXED_MULT(FIXED_COS(ctxt->rr / 3), FIXED_NEW(127)) + FIXED_NEW(128));
 
-	palette[1].r = (FIXED_MULT(FIXED_SIN(rr / 2), FIXED_NEW(127)) + FIXED_NEW(128));
-	palette[1].g = (FIXED_MULT(FIXED_COS(rr / 2), FIXED_NEW(127)) + FIXED_NEW(128));
-	palette[1].b = (FIXED_MULT(FIXED_SIN(rr), FIXED_NEW(127)) + FIXED_NEW(128));
+	palette[1].r = (FIXED_MULT(FIXED_SIN(ctxt->rr / 2), FIXED_NEW(127)) + FIXED_NEW(128));
+	palette[1].g = (FIXED_MULT(FIXED_COS(ctxt->rr / 2), FIXED_NEW(127)) + FIXED_NEW(128));
+	palette[1].b = (FIXED_MULT(FIXED_SIN(ctxt->rr), FIXED_NEW(127)) + FIXED_NEW(128));
 
 	/* The dimensions are cut in half and negated to center the rotation. */
 	/* The [xy]_{sin,cos}_r variables are accumulators to replace multiplication with addition. */
@@ -282,6 +300,8 @@ static void roto64_render_fragment(void *context, fb_fragment_t *fragment)
 
 
 rototiller_module_t	roto32_module = {
+	.create_context = roto_create_context,
+	.destroy_context = roto_destroy_context,
 	.prepare_frame = roto_prepare_frame,
 	.render_fragment = roto32_render_fragment,
 	.name = "roto32",
@@ -292,6 +312,8 @@ rototiller_module_t	roto32_module = {
 
 
 rototiller_module_t	roto64_module = {
+	.create_context = roto_create_context,
+	.destroy_context = roto_destroy_context,
 	.prepare_frame = roto_prepare_frame,
 	.render_fragment = roto64_render_fragment,
 	.name = "roto64",
