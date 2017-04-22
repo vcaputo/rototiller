@@ -24,7 +24,8 @@ typedef struct thread_t {
 	pthread_t	thread;
 	pthread_mutex_t	mutex;
 	pthread_cond_t	cond;
-	void		(*render_fragment_func)(fb_fragment_t *fragment);
+	void		(*render_fragment_func)(void *context, fb_fragment_t *fragment);
+	void		*context;
 	fragment_node_t	*fragments;
 } thread_t;
 
@@ -46,7 +47,7 @@ static void * thread_func(void *_thread)
 			pthread_cond_wait(&thread->cond, &thread->mutex);
 
 		do {
-			thread->render_fragment_func(thread->fragments->fragment);
+			thread->render_fragment_func(thread->context, thread->fragments->fragment);
 			thread->fragments = thread->fragments->next;
 		} while (thread->fragments);
 
@@ -59,13 +60,14 @@ static void * thread_func(void *_thread)
 
 
 /* submit a list of fragments to render using the specified thread and render_fragment_func */
-static void thread_fragments_submit(thread_t *thread, void (*render_fragment_func)(fb_fragment_t *fragment), fragment_node_t *fragments)
+static void thread_fragments_submit(thread_t *thread, void (*render_fragment_func)(void *context, fb_fragment_t *fragment), void *context, fragment_node_t *fragments)
 {
 	pthread_mutex_lock(&thread->mutex);
 	while (thread->fragments != NULL)	/* XXX: never true due to thread_wait_idle() */
 		pthread_cond_wait(&thread->cond, &thread->mutex);
 
 	thread->render_fragment_func = render_fragment_func;
+	thread->context = context;
 	thread->fragments = fragments;
 
 	pthread_mutex_unlock(&thread->mutex);
@@ -84,7 +86,7 @@ static void thread_wait_idle(thread_t *thread)
 
 
 /* submit a frame's fragments to the threads */
-void threads_frame_submit(threads_t *threads, rototiller_frame_t *frame, void (*render_fragment_func)(fb_fragment_t *fragment))
+void threads_frame_submit(threads_t *threads, rototiller_frame_t *frame, void (*render_fragment_func)(void *context, fb_fragment_t *fragment), void *context)
 {
 	unsigned	i, t;
 	fragment_node_t	*lists[threads->n_threads];
@@ -103,7 +105,7 @@ void threads_frame_submit(threads_t *threads, rototiller_frame_t *frame, void (*
 	}
 
 	for (i = 0; i < threads->n_threads; i++)
-		thread_fragments_submit(&threads->threads[i], render_fragment_func, lists[i]);
+		thread_fragments_submit(&threads->threads[i], render_fragment_func, context, lists[i]);
 }
 
 

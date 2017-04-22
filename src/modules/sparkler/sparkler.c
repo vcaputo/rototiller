@@ -20,7 +20,7 @@ extern particle_ops_t	simple_ops;
 
 
 /* Render a 3D particle system */
-static void sparkler_render_fragment(fb_fragment_t *fragment)
+static void sparkler_render_fragment(void *context, fb_fragment_t *fragment)
 {
 	static particles_t	*particles;
 	static int		initialized;

@@ -42,7 +42,7 @@ static inline unsigned julia_iter(float real, float imag, float creal, float cim
 
 
 /* Prepare a frame for concurrent drawing of fragment using multiple fragments */
-static void julia_prepare_frame(unsigned n_cpus, fb_fragment_t *fragment, rototiller_frame_t *res_frame)
+static void julia_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fragment, rototiller_frame_t *res_frame)
 {
 	res_frame->n_fragments = n_cpus;
 	fb_fragment_divide(fragment, n_cpus, res_frame->fragments);
@@ -59,7 +59,7 @@ static void julia_prepare_frame(unsigned n_cpus, fb_fragment_t *fragment, rototi
 
 
 /* Draw a morphing Julia set */
-static void julia_render_fragment(fb_fragment_t *fragment)
+static void julia_render_fragment(void *context, fb_fragment_t *fragment)
 {
 	static uint32_t	colors[] = {
 				/* this palette is just something I slapped together, definitely needs improvement. TODO */

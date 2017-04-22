@@ -154,7 +154,7 @@ static void init_roto(uint8_t texture[256][256], int32_t *costab, int32_t *sinta
 
 
 /* prepare a frame for concurrent rendering */
-static void roto_prepare_frame(unsigned n_cpus, fb_fragment_t *fragment, rototiller_frame_t *res_frame)
+static void roto_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fragment, rototiller_frame_t *res_frame)
 {
 	static int	initialized;
 
@@ -174,7 +174,7 @@ static void roto_prepare_frame(unsigned n_cpus, fb_fragment_t *fragment, rototil
 
 
 /* Draw a rotating checkered 256x256 texture into fragment. (32-bit version) */
-static void roto32_render_fragment(fb_fragment_t *fragment)
+static void roto32_render_fragment(void *context, fb_fragment_t *fragment)
 {
 	int		y_cos_r, y_sin_r, x_cos_r, x_sin_r, x_cos_r_init, x_sin_r_init, cos_r, sin_r;
 	int		x, y, stride = fragment->stride / 4, frame_width = fragment->frame_width, frame_height = fragment->frame_height;
@@ -223,7 +223,7 @@ static void roto32_render_fragment(fb_fragment_t *fragment)
 
 
 /* Draw a rotating checkered 256x256 texture into fragment. (64-bit version) */
-static void roto64_render_fragment(fb_fragment_t *fragment)
+static void roto64_render_fragment(void *context, fb_fragment_t *fragment)
 {
 	int		y_cos_r, y_sin_r, x_cos_r, x_sin_r, x_cos_r_init, x_sin_r_init, cos_r, sin_r;
 	int		x, y, stride = fragment->stride / 8, frame_width = fragment->frame_width, frame_height = fragment->frame_height, width = fragment->width;

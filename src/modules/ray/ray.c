@@ -112,7 +112,7 @@ static float		r;
 
 
 /* prepare a frame for concurrent rendering */
-static void ray_prepare_frame(unsigned n_cpus, fb_fragment_t *fragment, rototiller_frame_t *res_frame)
+static void ray_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fragment, rototiller_frame_t *res_frame)
 {
 	/* TODO experiment with tiled fragments vs. rows */
 	res_frame->n_fragments = n_cpus;
@@ -146,7 +146,7 @@ static void ray_prepare_frame(unsigned n_cpus, fb_fragment_t *fragment, rototill
 
 
 /* ray trace a simple scene into the fragment */
-static void ray_render_fragment(fb_fragment_t *fragment)
+static void ray_render_fragment(void *context, fb_fragment_t *fragment)
 {
 	ray_scene_render_fragment(&scene, &camera, fragment);
 }

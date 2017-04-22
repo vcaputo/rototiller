@@ -12,8 +12,10 @@ typedef struct rototiller_frame_t {
 } rototiller_frame_t;
 
 typedef struct rototiller_module_t {
-	void	(*prepare_frame)(unsigned n_cpus, fb_fragment_t *fragment, rototiller_frame_t *res_frame);
-	void	(*render_fragment)(fb_fragment_t *fragment);
+	void *	(*create_context)(void);
+	void	(*destroy_context)(void *context);
+	void	(*prepare_frame)(void *context, unsigned n_cpus, fb_fragment_t *fragment, rototiller_frame_t *res_frame);
+	void	(*render_fragment)(void *context, fb_fragment_t *fragment);
 	char	*name;
 	char	*description;
 	char	*author;

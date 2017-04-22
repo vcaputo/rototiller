@@ -43,7 +43,7 @@ static void init_plasma(int32_t *costab, int32_t *sintab)
 
 
 /* Prepare a frame for concurrent drawing of fragment using multiple fragments */
-static void plasma_prepare_frame(unsigned n_cpus, fb_fragment_t *fragment, rototiller_frame_t *res_frame)
+static void plasma_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fragment, rototiller_frame_t *res_frame)
 {
 	static int	initialized;
 
@@ -61,7 +61,7 @@ static void plasma_prepare_frame(unsigned n_cpus, fb_fragment_t *fragment, rotot
 
 
 /* Draw a plasma effect */
-static void plasma_render_fragment(fb_fragment_t *fragment)
+static void plasma_render_fragment(void *context, fb_fragment_t *fragment)
 {
 
 	unsigned	stride = fragment->stride / 4, width = fragment->width, height = fragment->height;
