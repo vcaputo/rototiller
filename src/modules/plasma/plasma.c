@@ -21,6 +21,8 @@ typedef struct color_t {
 	int	r, g, b;
 } color_t;
 
+static int32_t	costab[FIXED_TRIG_LUT_SIZE], sintab[FIXED_TRIG_LUT_SIZE];
+static unsigned	rr;
 
 static inline uint32_t color2pixel(color_t *color)
 {
@@ -40,24 +42,34 @@ static void init_plasma(int32_t *costab, int32_t *sintab)
 }
 
 
-/* Draw a plasma effect */
-static void plasma_render_fragment(fb_fragment_t *fragment)
+/* Prepare a frame for concurrent drawing of fragment using multiple fragments */
+static void plasma_prepare_frame(unsigned n_cpus, fb_fragment_t *fragment, rototiller_frame_t *res_frame)
 {
-	static int32_t	costab[FIXED_TRIG_LUT_SIZE], sintab[FIXED_TRIG_LUT_SIZE];
 	static int	initialized;
-	static unsigned	rr, rr2, rr6, rr8, rr16, rr20, rr12;
-
-	unsigned	stride = fragment->stride / 4, width = fragment->width, height = fragment->height;
-	int		fw2 = FIXED_NEW(width / 2), fh2 = FIXED_NEW(height / 2);
-	int		x, y, cx, cy, dx2, dy2;
-	uint32_t	*buf = fragment->buf;
-	color_t		c = { .r = 0, .g = 0, .b = 0 }, cscale;
 
 	if (!initialized) {
 		initialized = 1;
 
 		init_plasma(costab, sintab);
 	}
+
+	res_frame->n_fragments = n_cpus;
+	fb_fragment_divide(fragment, n_cpus, res_frame->fragments);
+
+	rr += 3;
+}
+
+
+/* Draw a plasma effect */
+static void plasma_render_fragment(fb_fragment_t *fragment)
+{
+
+	unsigned	stride = fragment->stride / 4, width = fragment->width, height = fragment->height;
+	int		fw2 = FIXED_NEW(width / 2), fh2 = FIXED_NEW(height / 2);
+	int		x, y, cx, cy, dx2, dy2;
+	uint32_t	*buf = fragment->buf;
+	color_t		c = { .r = 0, .g = 0, .b = 0 }, cscale;
+	unsigned	rr2, rr6, rr8, rr16, rr20, rr12;
 
 	rr2 = rr * 2;
 	rr6 = rr * 6;
@@ -74,14 +86,14 @@ static void plasma_render_fragment(fb_fragment_t *fragment)
 	cx = FIXED_TO_INT(FIXED_MULT(FIXED_COS(rr), fw2) + fw2);
 	cy = FIXED_TO_INT(FIXED_MULT(FIXED_SIN(rr2), fh2) + fh2);
 
-	for (y = 0; y < height; y++) {
+	for (y = fragment->y; y < fragment->y + height; y++) {
 		int	y2 = y << 1;
 		int	y4 = y << 2;
 
 		dy2 = cy - y;
 		dy2 *= dy2;
 
-		for (x = 0; x < width; x++, buf++) {
+		for (x = fragment->x; x < fragment->x + width; x++, buf++) {
 			int	v;
 			int	hyp;
 
@@ -113,14 +125,13 @@ static void plasma_render_fragment(fb_fragment_t *fragment)
 
 		buf += stride;
 	}
-
-	rr += 3;
 }
 
 rototiller_module_t	plasma_module = {
+	.prepare_frame = plasma_prepare_frame,
 	.render_fragment = plasma_render_fragment,
 	.name = "plasma",
-	.description = "Oldskool plasma effect",
+	.description = "Oldskool plasma effect (threaded)",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",
 	.license = "GPLv2",
 };
