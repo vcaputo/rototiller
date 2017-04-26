@@ -48,6 +48,7 @@ static int rocket_init(particles_t *particles, particle_t *p)
 	ctxt->last_velocity = p->props->velocity;
 	p->props->drag = 0.4;
 	p->props->mass = 0.8;
+	p->props->virtual = 0;
 
 	return 1;
 }

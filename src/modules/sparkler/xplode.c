@@ -30,6 +30,7 @@ static int xplode_init(particles_t *particles, particle_t *p)
 
 	p->props->drag = 10.9;
 	p->props->mass = 0.3;
+	p->props->virtual = 0;
 
 	return 1;
 }

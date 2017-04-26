@@ -46,6 +46,7 @@ static int simple_init(particles_t *particles, particle_t *p)
 
 		p->props->drag = 0.03;
 		p->props->mass = 0.3;
+		p->props->virtual = 0;
 		p->props->of_use = 1;
 	} /* else { we've been given properties, manipulate them or run with them? } */
 

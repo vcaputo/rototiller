@@ -24,6 +24,7 @@ static int spark_init(particles_t *particles, particle_t *p)
 
 	p->props->drag = 20.0;
 	p->props->mass = 0.1;
+	p->props->virtual = 0;
 	ctxt->decay_rate = rand_within_range(SPARK_MIN_DECAY_RATE, SPARK_MAX_DECAY_RATE);
 	ctxt->lifetime = ctxt->longevity = rand_within_range(SPARK_MIN_LIFETIME, SPARK_MAX_LIFETIME);
 

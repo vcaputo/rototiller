@@ -12,6 +12,7 @@ typedef struct particle_props_t {
 	float		mass;		/* mass of particle */
 	float		drag;		/* drag of particle */
 	int		of_use:1;	/* are these properties of use/meaningful? */
+	int		virtual:1;	/* is this a virtual particle? (not to be moved or otherwise acted upon) */
 } particle_props_t;
 
 typedef enum particle_status_t {

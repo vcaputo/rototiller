@@ -23,8 +23,7 @@ static int burst_init(particles_t *particles, particle_t *p)
 	burst_ctxt_t	*ctxt = p->ctxt;
 
 	ctxt->longevity = ctxt->lifetime = BURST_MAX_LIFETIME;
-	p->props->velocity = 0; /* burst should be stationary */
-	p->props->mass = 0; /* no mass prevents gravity's effects */
+	p->props->virtual = 1;
 
 	return 1;
 }
@@ -66,8 +65,8 @@ static void burst_cb(bsp_t *bsp, list_head_t *occupants, void *_s)
 		particle_t	*p = container_of(o, particle_t, occupant);
 		float		d_sq;
 		
-		if (p == s->center) {
-			/* leave ourselves alone */
+		if (p->props->virtual) {
+			/* don't move virtual particles (includes ourself) */
 			continue;
 		}
 

@@ -283,7 +283,40 @@ particle_status_t particles_sim(particles_t *particles)
 }
 
 
-static inline void _particles_age(particles_t *particles, list_head_t *list)
+/* "age" the particle by applying its properties for one step */
+static inline void _particle_age(particles_t *particles, _particle_t *p)
+{
+#if 1
+	if (p->props.mass > 0.0f) {
+		/* gravity, TODO: mass isn't applied. */
+		static v3f_t	gravity = v3f_init(0.0f, -0.05f, 0.0f);
+
+		p->props.direction = v3f_add(&p->props.direction, &gravity);
+		p->props.direction = v3f_normalize(&p->props.direction);
+	}
+#endif
+
+#if 1
+	/* some drag/resistance proportional to velocity TODO: integrate mass */
+	if (p->props.velocity > 0.0f) {
+		p->props.velocity -= ((p->props.velocity * p->props.velocity * p->props.drag));
+		if (p->props.velocity < 0.0f) {
+			p->props.velocity = 0;
+		}
+	}
+#endif
+
+	/* regular movement */
+	if (p->props.velocity > 0.0f) {
+		v3f_t	movement = v3f_mult_scalar(&p->props.direction, p->props.velocity);
+
+		p->props.position = v3f_add(&p->props.position, &movement);
+		bsp_move_occupant(particles->bsp, &p->public.occupant, &p->props.position);
+	}
+}
+
+
+static void _particles_age(particles_t *particles, list_head_t *list)
 {
 	_particle_t	*p;
 
@@ -297,32 +330,9 @@ static inline void _particles_age(particles_t *particles, list_head_t *list)
 	 * particularly good for cache utilization.
 	 */
 	list_for_each_entry(p, list, siblings) {
-#if 1
-		if (p->props.mass > 0.0f) {
-			/* gravity, TODO: mass isn't applied. */
-			static v3f_t	gravity = v3f_init(0.0f, -0.05f, 0.0f);
 
-			p->props.direction = v3f_add(&p->props.direction, &gravity);
-			p->props.direction = v3f_normalize(&p->props.direction);
-		}
-#endif
-
-#if 1
-		/* some drag/resistance proportional to velocity TODO: integrate mass */
-		if (p->props.velocity > 0.0f) {
-			p->props.velocity -= ((p->props.velocity * p->props.velocity * p->props.drag));
-			if (p->props.velocity < 0.0f) {
-				p->props.velocity = 0;
-			}
-		}
-#endif
-
-		/* regular movement */
-		if (p->props.velocity > 0.0f) {
-			v3f_t	movement = v3f_mult_scalar(&p->props.direction, p->props.velocity);
-
-			p->props.position = v3f_add(&p->props.position, &movement);
-			bsp_move_occupant(particles->bsp, &p->public.occupant, &p->props.position);
+		if (!p->props.virtual) {
+			_particle_age(particles, p);
 		}
 
 		if (!list_empty(&p->children)) {
