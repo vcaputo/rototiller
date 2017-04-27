@@ -55,7 +55,7 @@ static inline void fb_fragment_put_pixel_unchecked(fb_fragment_t *fragment, int 
 	uint32_t	*pixels = fragment->buf;
 
 	/* FIXME this assumes stride is aligned to 4 */
-	pixels[(y * (fragment->width + (fragment->stride >> 2))) + x] = pixel;
+	pixels[((y - fragment->y) * (fragment->width + (fragment->stride >> 2))) + (x - fragment->x)] = pixel;
 }
 
 
