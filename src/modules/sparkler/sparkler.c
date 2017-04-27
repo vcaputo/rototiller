@@ -58,28 +58,36 @@ static void sparkler_destroy_context(void *context)
 }
 
 
+static void sparkler_prepare_frame(void *context, unsigned ncpus, fb_fragment_t *fragment, rototiller_frame_t *res_frame)
+{
+	sparkler_context_t	*ctxt = context;
+
+	fb_fragment_divide(fragment, ncpus, res_frame->fragments);
+	res_frame->n_fragments = ncpus;
+
+	particles_sim(ctxt->particles);
+	particles_add_particles(ctxt->particles, NULL, &simple_ops, INIT_PARTS / 4);
+	particles_age(ctxt->particles);
+}
+
+
 /* Render a 3D particle system */
 static void sparkler_render_fragment(void *context, fb_fragment_t *fragment)
 {
 	sparkler_context_t	*ctxt = context;
-	uint32_t		*buf = fragment->buf;
-
 
 	fb_fragment_zero(fragment);
-
-	particles_age(ctxt->particles);
 	particles_draw(ctxt->particles, fragment);
-	particles_sim(ctxt->particles);
-	particles_add_particles(ctxt->particles, NULL, &simple_ops, INIT_PARTS / 4);
 }
 
 
 rototiller_module_t	sparkler_module = {
 	.create_context = sparkler_create_context,
 	.destroy_context = sparkler_destroy_context,
+	.prepare_frame = sparkler_prepare_frame,
 	.render_fragment = sparkler_render_fragment,
 	.name = "sparkler",
-	.description = "Particle system with spatial interactions",
+	.description = "Particle system with spatial interactions (threaded (poorly))",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",
 	.license = "GPLv2",
 };
