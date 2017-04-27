@@ -23,9 +23,8 @@ static inline uint32_t makergb(uint32_t r, uint32_t g, uint32_t b, float intensi
 static inline int should_draw_expire_if_oob(particles_t *particles, particle_t *p, int x, int y, fb_fragment_t *f, int *longevity)
 {
 	if (!fb_fragment_contains(f, x, y)) {
-		/* offscreen */
-		if (longevity)
-			*longevity = 0;
+		if (longevity && (x < 0 || x > f->frame_width || y < 0 || y > f->frame_height))
+			*longevity = 0; /* offscreen */
 
 		return 0;
 	}
