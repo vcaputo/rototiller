@@ -41,6 +41,7 @@ AC_CONFIG_FILES([
  src/libs/sig/Makefile
  src/libs/txt/Makefile
  src/modules/Makefile
+ src/modules/blinds/Makefile
  src/modules/compose/Makefile
  src/modules/drizzle/Makefile
  src/modules/flui2d/Makefile

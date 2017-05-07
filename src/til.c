@@ -23,6 +23,7 @@
 
 static til_threads_t	*til_threads;
 
+extern til_module_t	blinds_module;
 extern til_module_t	compose_module;
 extern til_module_t	drizzle_module;
 extern til_module_t	flui2d_module;
@@ -44,6 +45,7 @@ extern til_module_t	swab_module;
 extern til_module_t	swarm_module;
 
 static const til_module_t	*modules[] = {
+	&blinds_module,
 	&compose_module,
 	&drizzle_module,
 	&flui2d_module,
