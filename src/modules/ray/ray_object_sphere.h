@@ -15,14 +15,23 @@ typedef struct ray_object_sphere_t {
 	ray_surface_t		surface;
 	ray_3f_t		center;
 	float			radius;
+	struct {
+		float		r2;
+	} _prepared;
 } ray_object_sphere_t;
+
+
+static void ray_object_sphere_prepare(ray_object_sphere_t *sphere)
+{
+	sphere->_prepared.r2 = sphere->radius * sphere->radius;
+}
 
 
 static inline int ray_object_sphere_intersects_ray(ray_object_sphere_t *sphere, ray_ray_t *ray, float *res_distance)
 {
 	ray_3f_t	v = ray_3f_sub(&ray->origin, &sphere->center);
 	float		b = ray_3f_dot(&v, &ray->direction);
-	float		disc = (sphere->radius * sphere->radius) - (ray_3f_dot(&v, &v) - (b * b));
+	float		disc = sphere->_prepared.r2 - (ray_3f_dot(&v, &v) - (b * b));
 
 	if (disc > 0) {
 		float	i1, i2;

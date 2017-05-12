@@ -15,6 +15,11 @@ typedef struct ray_object_plane_t {
 } ray_object_plane_t;
 
 
+static void ray_object_plane_prepare(ray_object_plane_t *plane)
+{
+}
+
+
 static inline int ray_object_plane_intersects_ray(ray_object_plane_t *plane, ray_ray_t *ray, float *res_distance)
 {
 	float	d = ray_3f_dot(&plane->normal, &ray->direction);

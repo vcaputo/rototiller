@@ -19,6 +19,11 @@ typedef struct ray_object_light_t {
 } ray_object_light_t;
 
 
+static void ray_object_light_prepare(ray_object_light_t *light)
+{
+}
+
+
 /* TODO: point is really the only one I've implemented... */
 static inline int ray_object_light_intersects_ray(ray_object_light_t *light, ray_ray_t *ray, float *res_distance)
 {

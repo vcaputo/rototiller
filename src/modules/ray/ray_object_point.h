@@ -14,6 +14,11 @@ typedef struct ray_object_point_t {
 } ray_object_point_t;
 
 
+static void ray_object_point_prepare(ray_object_point_t *point)
+{
+}
+
+
 static inline int ray_object_point_intersects_ray(ray_object_point_t *point, ray_ray_t *ray, float *res_distance)
 {
 	/* TODO: determine a ray:point intersection */

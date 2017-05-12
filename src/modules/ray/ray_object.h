@@ -17,6 +17,7 @@ typedef union ray_object_t {
 	ray_object_light_t	light;
 } ray_object_t;
 
+void ray_object_prepare(ray_object_t *object);
 int ray_object_intersects_ray(ray_object_t *object, ray_ray_t *ray, float *res_distance);
 ray_3f_t ray_object_normal(ray_object_t *object, ray_3f_t *point);
 ray_surface_t ray_object_surface(ray_object_t *object, ray_3f_t *point);

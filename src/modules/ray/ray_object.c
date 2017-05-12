@@ -9,6 +9,30 @@
 #include "ray_surface.h"
 
 
+/* Prepare an object for rendering.
+ * If the object has any pre-calculating to do, this is where it happens.
+ * The pre-calculated stuff is object-resident under a _prepared struct member.
+ */
+void ray_object_prepare(ray_object_t *object)
+{
+	switch (object->type) {
+	case RAY_OBJECT_TYPE_SPHERE:
+		return ray_object_sphere_prepare(&object->sphere);
+
+	case RAY_OBJECT_TYPE_POINT:
+		return ray_object_point_prepare(&object->point);
+
+	case RAY_OBJECT_TYPE_PLANE:
+		return ray_object_plane_prepare(&object->plane);
+
+	case RAY_OBJECT_TYPE_LIGHT:
+		return ray_object_light_prepare(&object->light);
+	default:
+		assert(0);
+	}
+}
+
+
 /* Determine if a ray intersects object.
  * If the object is intersected, store where along the ray the intersection occurs in res_distance.
  */

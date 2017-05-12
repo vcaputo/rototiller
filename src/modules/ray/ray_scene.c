@@ -167,3 +167,13 @@ void ray_scene_render_fragment(ray_scene_t *scene, ray_camera_t *camera, fb_frag
 		buf += stride;
 	} while (ray_camera_frame_y_step(&frame));
 }
+
+
+/* prepare the scene for rendering, must be called whenever the scene has been changed. */
+void ray_scene_prepare(ray_scene_t *scene)
+{
+	unsigned	i;
+
+	for (i = 0; i < scene->n_objects; i++)
+		ray_object_prepare(&scene->objects[i]);
+}

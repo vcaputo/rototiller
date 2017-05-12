@@ -20,6 +20,7 @@ typedef struct ray_scene_t {
 	float		ambient_brightness;
 } ray_scene_t;
 
+void ray_scene_prepare(ray_scene_t *scene);
 void ray_scene_render_fragment(ray_scene_t *scene, ray_camera_t *camera, fb_fragment_t *fragment);
 
 #endif
