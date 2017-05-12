@@ -17,6 +17,7 @@ typedef struct ray_object_sphere_t {
 	float			radius;
 	struct {
 		float		r2;
+		float		r_inv;
 	} _prepared;
 } ray_object_sphere_t;
 
@@ -24,6 +25,9 @@ typedef struct ray_object_sphere_t {
 static void ray_object_sphere_prepare(ray_object_sphere_t *sphere)
 {
 	sphere->_prepared.r2 = sphere->radius * sphere->radius;
+
+	/* to divide by radius via multiplication in ray_object_sphere_normal() */
+	sphere->_prepared.r_inv = 1.0f / sphere->radius;
 }
 
 
@@ -57,7 +61,7 @@ static inline ray_3f_t ray_object_sphere_normal(ray_object_sphere_t *sphere, ray
 	ray_3f_t	normal;
 	
 	normal = ray_3f_sub(point, &sphere->center);
-	normal = ray_3f_div_scalar(&normal, sphere->radius);	/* normalize without the sqrt() */
+	normal = ray_3f_mult_scalar(&normal, sphere->_prepared.r_inv);	/* normalize without the sqrt() */
 
 	return normal;
 }
