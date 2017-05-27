@@ -103,16 +103,7 @@ static inline float ray_3f_length(ray_3f_t *v)
 /* return the normalized form of the supplied vector */
 static inline ray_3f_t ray_3f_normalize(ray_3f_t *v)
 {
-	ray_3f_t	nv;
-	float		f;
-
-	f = 1.0f / ray_3f_length(v);
-
-	nv.x = f * v->x;
-	nv.y = f * v->y;
-	nv.z = f * v->z;
-
-	return nv;
+	return ray_3f_mult_scalar(v, 1.0f / ray_3f_length(v));
 }
 
 
