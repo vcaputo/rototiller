@@ -81,5 +81,5 @@ void ray_camera_frame_begin(ray_camera_t *camera, fb_fragment_t *fragment, ray_r
 	frame->cur_e = ray_3f_lerp(&frame->ne, &frame->se, frame->y_alpha);
 
 	ray->origin = camera->position;
-	ray->direction = frame->cur_w;
+	ray->direction = ray_3f_normalize(&frame->cur_w);
 }
