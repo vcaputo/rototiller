@@ -36,6 +36,16 @@ static inline int ray_is_obstructed(ray_scene_t *scene, ray_ray_t *ray, float di
 }
 
 
+/* a faster powf() that's good enough for our purposes.
+ * XXX: note there's a faster technique which exploits the IEEE floating point format:
+ * https://github.com/ekmett/approximate/blob/master/cbits/fast.c#L185
+ */
+static inline float approx_powf(float x, float y)
+{
+	return expf(y * logf(x));
+}
+
+
 /* Determine the color @ distance on ray on object viewed from origin */
 static inline ray_color_t shade_ray(ray_scene_t *scene, ray_ray_t *ray, ray_object_t *object, float distance, unsigned depth)
 {
@@ -82,10 +92,12 @@ static inline ray_color_t shade_ray(ray_scene_t *scene, ray_ray_t *ray, ray_obje
 			diffuse = ray_3f_mult_scalar(&diffuse, surface.diffuse);
 			color = ray_3f_add(&color, &diffuse);
 
-			/* FIXME: assumes light is a point for its color */
-			specular = ray_3f_mult_scalar(&scene->lights[i].light.emitter.point.surface.color, powf(rvec_lvec_dot, surface.highlight_exponent));
-			specular = ray_3f_mult_scalar(&specular, surface.specular);
-			color = ray_3f_add(&color, &specular);
+			if (rvec_lvec_dot > 0) {
+				/* FIXME: assumes light is a point for its color */
+				specular = ray_3f_mult_scalar(&scene->lights[i].light.emitter.point.surface.color, approx_powf(rvec_lvec_dot, surface.highlight_exponent));
+				specular = ray_3f_mult_scalar(&specular, surface.specular);
+				color = ray_3f_add(&color, &specular);
+			}
 #else
 			ray_color_t	diffuse;
 
