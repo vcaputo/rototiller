@@ -119,7 +119,9 @@ static inline ray_3f_t ray_3f_normalize(ray_3f_t *v)
 /* return the distance between two arbitrary points */
 static inline float ray_3f_distance(ray_3f_t *a, ray_3f_t *b)
 {
-	return sqrtf(powf(a->x - b->x, 2) + powf(a->y - b->y, 2) + powf(a->z - b->z, 2));
+	ray_3f_t	delta = ray_3f_sub(a, b);
+
+	return ray_3f_length(&delta);
 }
 
 
