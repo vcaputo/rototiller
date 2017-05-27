@@ -77,8 +77,8 @@ void ray_camera_frame_begin(ray_camera_t *camera, fb_fragment_t *fragment, ray_r
 	frame->x_alpha = frame->x_delta * (float)fragment->x;
 	frame->y_alpha = frame->y_delta * (float)fragment->y;
 
-	frame->cur_w = ray_3f_nlerp(&frame->nw, &frame->sw, frame->y_alpha);
-	frame->cur_e = ray_3f_nlerp(&frame->ne, &frame->se, frame->y_alpha);
+	frame->cur_w = ray_3f_lerp(&frame->nw, &frame->sw, frame->y_alpha);
+	frame->cur_e = ray_3f_lerp(&frame->ne, &frame->se, frame->y_alpha);
 
 	ray->origin = camera->position;
 	ray->direction = frame->cur_w;
