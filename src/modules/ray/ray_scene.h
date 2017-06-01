@@ -10,14 +10,18 @@
 typedef union ray_object_t ray_object_t;
 
 typedef struct ray_scene_t {
-	ray_object_t	*objects;
-	unsigned	n_objects;
+	ray_object_t		*objects;
+	unsigned		n_objects;
 
-	ray_object_t	*lights;
-	unsigned	n_lights;
+	ray_object_t		*lights;
+	unsigned		n_lights;
 
-	ray_color_t	ambient_color;
-	float		ambient_brightness;
+	ray_color_t		ambient_color;
+	float			ambient_brightness;
+
+	struct {
+		ray_color_t	ambient_light;
+	} _prepared;
 } ray_scene_t;
 
 void ray_scene_prepare(ray_scene_t *scene);

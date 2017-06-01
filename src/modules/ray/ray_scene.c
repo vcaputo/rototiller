@@ -57,8 +57,7 @@ static inline ray_color_t shade_ray(ray_scene_t *scene, ray_ray_t *ray, ray_obje
 	unsigned	i;
 
 	surface = ray_object_surface(object, &intersection);
-	color = ray_3f_mult_scalar(&scene->ambient_color, scene->ambient_brightness);
-	color = ray_3f_mult(&surface.color, &color);
+	color = ray_3f_mult(&surface.color, &scene->_prepared.ambient_light);
 
 	/* visit lights for shadows and illumination */
 	for (i = 0; i < scene->n_lights; i++) {
@@ -185,6 +184,8 @@ void ray_scene_render_fragment(ray_scene_t *scene, ray_camera_t *camera, fb_frag
 void ray_scene_prepare(ray_scene_t *scene)
 {
 	unsigned	i;
+
+	scene->_prepared.ambient_light = ray_3f_mult_scalar(&scene->ambient_color, scene->ambient_brightness);
 
 	for (i = 0; i < scene->n_objects; i++)
 		ray_object_prepare(&scene->objects[i]);
