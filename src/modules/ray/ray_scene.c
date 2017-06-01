@@ -9,7 +9,7 @@
 #include "ray_ray.h"
 #include "ray_scene.h"
 
-#define MAX_RECURSION_DEPTH	5
+#define MAX_RECURSION_DEPTH	4
 
 
 static ray_color_t trace_ray(ray_scene_t *scene, ray_ray_t *ray, unsigned depth);
@@ -109,16 +109,18 @@ static inline ray_color_t shade_ray(ray_scene_t *scene, ray_ray_t *ray, ray_obje
 
 	/* generate a reflection ray */
 #if 1
-	float		dot = ray_3f_dot(&ray->direction, &normal);
-	ray_ray_t	reflected_ray = { .direction = ray_3f_mult_scalar(&normal, dot * 2.0f) };
-	ray_3f_t	reflection;
+	if (depth < MAX_RECURSION_DEPTH) {
+		float		dot = ray_3f_dot(&ray->direction, &normal);
+		ray_ray_t	reflected_ray = { .direction = ray_3f_mult_scalar(&normal, dot * 2.0f) };
+		ray_3f_t	reflection;
 
-	reflected_ray.origin = intersection;
-	reflected_ray.direction = ray_3f_sub(&ray->direction, &reflected_ray.direction);
+		reflected_ray.origin = intersection;
+		reflected_ray.direction = ray_3f_sub(&ray->direction, &reflected_ray.direction);
 
-	reflection = trace_ray(scene, &reflected_ray, depth);
-	reflection = ray_3f_mult_scalar(&reflection, surface.specular);
-	color = ray_3f_add(&color, &reflection);
+		reflection = trace_ray(scene, &reflected_ray, depth);
+		reflection = ray_3f_mult_scalar(&reflection, surface.specular);
+		color = ray_3f_add(&color, &reflection);
+	}
 #endif
 
 	/* TODO: generate a refraction ray */
@@ -135,8 +137,6 @@ static ray_color_t trace_ray(ray_scene_t *scene, ray_ray_t *ray, unsigned depth)
 	unsigned	i;
 
 	depth++;
-	if (depth > MAX_RECURSION_DEPTH)
-		return color;
 
 	for (i = 0; i < scene->n_objects; i++) {
 		float	distance;
