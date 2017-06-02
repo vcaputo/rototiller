@@ -23,9 +23,6 @@ static inline int ray_is_obstructed(ray_scene_t *scene, ray_ray_t *ray, float di
 	for (i = 0; i < scene->n_objects; i++) {
 		float	ood;
 
-		if (scene->objects[i].type == RAY_OBJECT_TYPE_LIGHT)
-			continue;
-
 		if (ray_object_intersects_ray(&scene->objects[i], ray, &ood) &&
 		    ood < distance) {
 			return 1;
