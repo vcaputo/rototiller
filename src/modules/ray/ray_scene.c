@@ -12,7 +12,7 @@
 #define MAX_RECURSION_DEPTH	4
 
 
-static ray_color_t trace_ray(ray_scene_t *scene, ray_ray_t *ray, unsigned depth);
+static ray_color_t trace_ray(ray_scene_t *scene, ray_object_t *reflector, ray_ray_t *ray, unsigned depth);
 
 
 /* Determine if the ray is obstructed by an object within the supplied distance, for shadows */
@@ -124,7 +124,7 @@ static inline ray_color_t shade_ray(ray_scene_t *scene, ray_ray_t *ray, ray_obje
 		reflected_ray.origin = intersection;
 		reflected_ray.direction = ray_3f_sub(&ray->direction, &reflected_ray.direction);
 
-		reflection = trace_ray(scene, &reflected_ray, depth);
+		reflection = trace_ray(scene, object, &reflected_ray, depth);
 		reflection = ray_3f_mult_scalar(&reflection, surface.specular);
 		color = ray_3f_add(&color, &reflection);
 	}
@@ -136,7 +136,7 @@ static inline ray_color_t shade_ray(ray_scene_t *scene, ray_ray_t *ray, ray_obje
 }
 
 
-static ray_color_t trace_ray(ray_scene_t *scene, ray_ray_t *ray, unsigned depth)
+static ray_color_t trace_ray(ray_scene_t *scene, ray_object_t *reflector, ray_ray_t *ray, unsigned depth)
 {
 	ray_object_t	*nearest_object = NULL;
 	float		nearest_object_distance = INFINITY;
@@ -146,14 +146,20 @@ static ray_color_t trace_ray(ray_scene_t *scene, ray_ray_t *ray, unsigned depth)
 	depth++;
 
 	for (i = 0; i < scene->n_objects; i++) {
-		float	distance;
+		ray_object_t	*object = &scene->objects[i];
+		float		distance;
+
+		/* Don't bother checking if a reflected ray intersects the object reflecting it,
+		 * reflector = NULL for primary rays, which will never compare as true here. */
+		if (object == reflector)
+			continue;
 
 		/* Does this ray intersect object? */
-		if (ray_object_intersects_ray(&scene->objects[i], depth, ray, &distance)) {
+		if (ray_object_intersects_ray(object, depth, ray, &distance)) {
 
 			/* Is it the nearest intersection? */
 			if (distance < nearest_object_distance) {
-				nearest_object = &scene->objects[i];
+				nearest_object = object;
 				nearest_object_distance = distance;
 			}
 		}
@@ -178,7 +184,7 @@ void ray_scene_render_fragment(ray_scene_t *scene, ray_camera_t *camera, fb_frag
 	ray_camera_frame_begin(camera, fragment, &ray, &frame);
 	do {
 		do {
-			*buf = ray_color_to_uint32_rgb(trace_ray(scene, &ray, 0));
+			*buf = ray_color_to_uint32_rgb(trace_ray(scene, NULL, &ray, 0));
 			buf++;
 		} while (ray_camera_frame_x_step(&frame));
 
