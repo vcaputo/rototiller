@@ -17,6 +17,8 @@ typedef struct ray_object_sphere_t {
 	ray_3f_t		center;
 	float			radius;
 	struct {
+		ray_3f_t	primary_v;
+		float		primary_dot_vv;
 		float		r2;
 		float		r_inv;
 	} _prepared;
@@ -25,6 +27,9 @@ typedef struct ray_object_sphere_t {
 
 static void ray_object_sphere_prepare(ray_object_sphere_t *sphere, ray_camera_t *camera)
 {
+	sphere->_prepared.primary_v = ray_3f_sub(&camera->position, &sphere->center);
+	sphere->_prepared.primary_dot_vv = ray_3f_dot(&sphere->_prepared.primary_v, &sphere->_prepared.primary_v);
+
 	sphere->_prepared.r2 = sphere->radius * sphere->radius;
 
 	/* to divide by radius via multiplication in ray_object_sphere_normal() */
@@ -34,10 +39,17 @@ static void ray_object_sphere_prepare(ray_object_sphere_t *sphere, ray_camera_t 
 
 static inline int ray_object_sphere_intersects_ray(ray_object_sphere_t *sphere, unsigned depth, ray_ray_t *ray, float *res_distance)
 {
-	ray_3f_t	v = ray_3f_sub(&ray->origin, &sphere->center);
-	float		b = ray_3f_dot(&v, &ray->direction);
-	float		disc = sphere->_prepared.r2 - (ray_3f_dot(&v, &v) - (b * b));
+	ray_3f_t	v = sphere->_prepared.primary_v;
+	float		dot_vv = sphere->_prepared.primary_dot_vv;
+	float		b, disc;
 
+	if (depth != 1) {
+		v = ray_3f_sub(&ray->origin, &sphere->center);
+		dot_vv = ray_3f_dot(&v, &v);
+	}
+
+	b = ray_3f_dot(&v, &ray->direction);
+	disc = sphere->_prepared.r2 - (dot_vv - (b * b));
 	if (disc > 0) {
 		float	i1, i2;
 
