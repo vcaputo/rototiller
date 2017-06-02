@@ -155,8 +155,7 @@ static ray_color_t trace_ray(ray_scene_t *scene, ray_ray_t *ray, unsigned depth)
 		if (ray_object_intersects_ray(&scene->objects[i], ray, &distance)) {
 
 			/* Is it the nearest intersection? */
-			if (!nearest_object ||
-			    distance < nearest_object_distance) {
+			if (distance < nearest_object_distance) {
 				nearest_object = &scene->objects[i];
 				nearest_object_distance = distance;
 			}
