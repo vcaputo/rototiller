@@ -3,6 +3,7 @@
 
 #include <assert.h>
 
+#include "ray_camera.h"
 #include "ray_light_emitter.h"
 #include "ray_object_light.h"
 #include "ray_object_point.h"
@@ -19,20 +20,20 @@ typedef struct ray_object_light_t {
 } ray_object_light_t;
 
 
-static void ray_object_light_prepare(ray_object_light_t *light)
+static void ray_object_light_prepare(ray_object_light_t *light, ray_camera_t *camera)
 {
 }
 
 
 /* TODO: point is really the only one I've implemented... */
-static inline int ray_object_light_intersects_ray(ray_object_light_t *light, ray_ray_t *ray, float *res_distance)
+static inline int ray_object_light_intersects_ray(ray_object_light_t *light, unsigned depth, ray_ray_t *ray, float *res_distance)
 {
 	switch (light->emitter.type) {
 	case RAY_LIGHT_EMITTER_TYPE_POINT:
-		return ray_object_point_intersects_ray(&light->emitter.point, ray, res_distance);
+		return ray_object_point_intersects_ray(&light->emitter.point, depth, ray, res_distance);
 
 	case RAY_LIGHT_EMITTER_TYPE_SPHERE:
-		return ray_object_sphere_intersects_ray(&light->emitter.sphere, ray, res_distance);
+		return ray_object_sphere_intersects_ray(&light->emitter.sphere, depth, ray, res_distance);
 	default:
 		assert(0);
 	}

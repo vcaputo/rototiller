@@ -146,7 +146,7 @@ static void ray_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fra
 	/* tilt camera pitch in time with up and down movements, phase shifted appreciably */
 	camera.orientation.pitch = sinf((M_PI * 1.5f) + r * 1.3f) * .6f + -.35f;
 #endif
-	ray_scene_prepare(&scene);
+	ray_scene_prepare(&scene, &camera);
 }
 
 

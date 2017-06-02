@@ -16,14 +16,14 @@ static ray_color_t trace_ray(ray_scene_t *scene, ray_ray_t *ray, unsigned depth)
 
 
 /* Determine if the ray is obstructed by an object within the supplied distance, for shadows */
-static inline int ray_is_obstructed(ray_scene_t *scene, ray_ray_t *ray, float distance)
+static inline int ray_is_obstructed(ray_scene_t *scene, unsigned depth, ray_ray_t *ray, float distance)
 {
 	unsigned	i;
 
 	for (i = 0; i < scene->n_objects; i++) {
 		float	ood;
 
-		if (ray_object_intersects_ray(&scene->objects[i], ray, &ood) &&
+		if (ray_object_intersects_ray(&scene->objects[i], depth, ray, &ood) &&
 		    ood < distance) {
 			return 1;
 		}
@@ -34,7 +34,7 @@ static inline int ray_is_obstructed(ray_scene_t *scene, ray_ray_t *ray, float di
 
 
 /* shadow test */
-static inline int point_is_shadowed(ray_scene_t *scene, ray_3f_t *light_direction, float distance, ray_3f_t *point)
+static inline int point_is_shadowed(ray_scene_t *scene, unsigned depth, ray_3f_t *light_direction, float distance, ray_3f_t *point)
 {
 	ray_ray_t	shadow_ray;
 
@@ -46,7 +46,7 @@ static inline int point_is_shadowed(ray_scene_t *scene, ray_3f_t *light_directio
 	shadow_ray.origin = ray_3f_mult_scalar(&shadow_ray.direction, 0.00001f);
 	shadow_ray.origin = ray_3f_add(&shadow_ray.origin, point);
 
-	if (ray_is_obstructed(scene, &shadow_ray, distance))
+	if (ray_is_obstructed(scene, depth + 1, &shadow_ray, distance))
 		return 1;
 
 	return 0;
@@ -84,7 +84,7 @@ static inline ray_color_t shade_ray(ray_scene_t *scene, ray_ray_t *ray, ray_obje
 
 		lvec = ray_3f_mult_scalar(&lvec, (1.0f / ldist)); /* normalize lvec */
 #if 1
-		if (point_is_shadowed(scene, &lvec, ldist, &intersection))
+		if (point_is_shadowed(scene, depth, &lvec, ldist, &intersection))
 			continue;
 #endif
 		lvec_normal_dot = ray_3f_dot(&normal, &lvec);
@@ -149,7 +149,7 @@ static ray_color_t trace_ray(ray_scene_t *scene, ray_ray_t *ray, unsigned depth)
 		float	distance;
 
 		/* Does this ray intersect object? */
-		if (ray_object_intersects_ray(&scene->objects[i], ray, &distance)) {
+		if (ray_object_intersects_ray(&scene->objects[i], depth, ray, &distance)) {
 
 			/* Is it the nearest intersection? */
 			if (distance < nearest_object_distance) {
@@ -187,13 +187,15 @@ void ray_scene_render_fragment(ray_scene_t *scene, ray_camera_t *camera, fb_frag
 }
 
 
-/* prepare the scene for rendering, must be called whenever the scene has been changed. */
-void ray_scene_prepare(ray_scene_t *scene)
+/* prepare the scene for rendering with camera, must be called whenever anything in the scene+camera pair has been changed. */
+/* this is basically a time for the raytracer to precompute whatever it can which otherwise ends up occurring per-ray */
+/* the camera is included so primary rays which all have a common origin may be optimized for */
+void ray_scene_prepare(ray_scene_t *scene, ray_camera_t *camera)
 {
 	unsigned	i;
 
 	scene->_prepared.ambient_light = ray_3f_mult_scalar(&scene->ambient_color, scene->ambient_brightness);
 
 	for (i = 0; i < scene->n_objects; i++)
-		ray_object_prepare(&scene->objects[i]);
+		ray_object_prepare(&scene->objects[i], camera);
 }

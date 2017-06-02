@@ -2,6 +2,7 @@
 #define _RAY_OBJECT_POINT_H
 
 #include "ray_3f.h"
+#include "ray_camera.h"
 #include "ray_object_type.h"
 #include "ray_ray.h"
 #include "ray_surface.h"
@@ -14,12 +15,12 @@ typedef struct ray_object_point_t {
 } ray_object_point_t;
 
 
-static void ray_object_point_prepare(ray_object_point_t *point)
+static void ray_object_point_prepare(ray_object_point_t *point, ray_camera_t *camera)
 {
 }
 
 
-static inline int ray_object_point_intersects_ray(ray_object_point_t *point, ray_ray_t *ray, float *res_distance)
+static inline int ray_object_point_intersects_ray(ray_object_point_t *point, unsigned depth, ray_ray_t *ray, float *res_distance)
 {
 	/* TODO: determine a ray:point intersection */
 	return 0;

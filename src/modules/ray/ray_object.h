@@ -3,6 +3,7 @@
 
 #include <assert.h>
 
+#include "ray_camera.h"
 #include "ray_object_light.h"
 #include "ray_object_plane.h"
 #include "ray_object_point.h"
@@ -25,20 +26,20 @@ typedef union ray_object_t {
  * If the object has any pre-calculating to do, this is where it happens.
  * The pre-calculated stuff is object-resident under a _prepared struct member.
  */
-static inline void ray_object_prepare(ray_object_t *object)
+static inline void ray_object_prepare(ray_object_t *object, ray_camera_t *camera)
 {
 	switch (object->type) {
 	case RAY_OBJECT_TYPE_SPHERE:
-		return ray_object_sphere_prepare(&object->sphere);
+		return ray_object_sphere_prepare(&object->sphere, camera);
 
 	case RAY_OBJECT_TYPE_POINT:
-		return ray_object_point_prepare(&object->point);
+		return ray_object_point_prepare(&object->point, camera);
 
 	case RAY_OBJECT_TYPE_PLANE:
-		return ray_object_plane_prepare(&object->plane);
+		return ray_object_plane_prepare(&object->plane, camera);
 
 	case RAY_OBJECT_TYPE_LIGHT:
-		return ray_object_light_prepare(&object->light);
+		return ray_object_light_prepare(&object->light, camera);
 	default:
 		assert(0);
 	}
@@ -48,20 +49,20 @@ static inline void ray_object_prepare(ray_object_t *object)
 /* Determine if a ray intersects object.
  * If the object is intersected, store where along the ray the intersection occurs in res_distance.
  */
-static inline int ray_object_intersects_ray(ray_object_t *object, ray_ray_t *ray, float *res_distance)
+static inline int ray_object_intersects_ray(ray_object_t *object, unsigned depth, ray_ray_t *ray, float *res_distance)
 {
 	switch (object->type) {
 	case RAY_OBJECT_TYPE_SPHERE:
-		return ray_object_sphere_intersects_ray(&object->sphere, ray, res_distance);
+		return ray_object_sphere_intersects_ray(&object->sphere, depth, ray, res_distance);
 
 	case RAY_OBJECT_TYPE_POINT:
-		return ray_object_point_intersects_ray(&object->point, ray, res_distance);
+		return ray_object_point_intersects_ray(&object->point, depth, ray, res_distance);
 
 	case RAY_OBJECT_TYPE_PLANE:
-		return ray_object_plane_intersects_ray(&object->plane, ray, res_distance);
+		return ray_object_plane_intersects_ray(&object->plane, depth, ray, res_distance);
 
 	case RAY_OBJECT_TYPE_LIGHT:
-		return ray_object_light_intersects_ray(&object->light, ray, res_distance);
+		return ray_object_light_intersects_ray(&object->light, depth, ray, res_distance);
 	default:
 		assert(0);
 	}

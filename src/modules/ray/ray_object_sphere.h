@@ -4,6 +4,7 @@
 #include <math.h>
 
 #include "ray_3f.h"
+#include "ray_camera.h"
 #include "ray_color.h"
 #include "ray_object_type.h"
 #include "ray_ray.h"
@@ -22,7 +23,7 @@ typedef struct ray_object_sphere_t {
 } ray_object_sphere_t;
 
 
-static void ray_object_sphere_prepare(ray_object_sphere_t *sphere)
+static void ray_object_sphere_prepare(ray_object_sphere_t *sphere, ray_camera_t *camera)
 {
 	sphere->_prepared.r2 = sphere->radius * sphere->radius;
 
@@ -31,7 +32,7 @@ static void ray_object_sphere_prepare(ray_object_sphere_t *sphere)
 }
 
 
-static inline int ray_object_sphere_intersects_ray(ray_object_sphere_t *sphere, ray_ray_t *ray, float *res_distance)
+static inline int ray_object_sphere_intersects_ray(ray_object_sphere_t *sphere, unsigned depth, ray_ray_t *ray, float *res_distance)
 {
 	ray_3f_t	v = ray_3f_sub(&ray->origin, &sphere->center);
 	float		b = ray_3f_dot(&v, &ray->direction);
