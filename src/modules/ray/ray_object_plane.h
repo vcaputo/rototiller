@@ -13,11 +13,15 @@ typedef struct ray_object_plane_t {
 	ray_surface_t		surface;
 	ray_3f_t		normal;
 	float			distance;
+	struct {
+		float		primary_dot_plus;
+	} _prepared;
 } ray_object_plane_t;
 
 
 static void ray_object_plane_prepare(ray_object_plane_t *plane, ray_camera_t *camera)
 {
+	plane->_prepared.primary_dot_plus = (ray_3f_dot(&plane->normal, &camera->position) + plane->distance);
 }
 
 
@@ -26,8 +30,12 @@ static inline int ray_object_plane_intersects_ray(ray_object_plane_t *plane, uns
 	float	d = ray_3f_dot(&plane->normal, &ray->direction);
 
 	if (d >= 0.00001f) {
-		float	distance = (ray_3f_dot(&plane->normal, &ray->origin) + plane->distance) / d;
+		float	distance = plane->_prepared.primary_dot_plus;
 
+		if (depth != 1)
+			distance = (ray_3f_dot(&plane->normal, &ray->origin) + plane->distance);
+
+		distance /= d;
 		if (distance > 0) {
 			*res_distance = distance;
 
