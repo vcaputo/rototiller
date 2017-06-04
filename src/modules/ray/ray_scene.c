@@ -12,8 +12,6 @@
 #define MAX_RECURSION_DEPTH	4
 
 
-static ray_color_t trace_ray(ray_scene_t *scene, ray_object_t *reflector, ray_ray_t *ray, unsigned depth);
-
 
 /* Determine if the ray is obstructed by an object within the supplied distance, for shadows */
 static inline int ray_is_obstructed(ray_scene_t *scene, unsigned depth, ray_ray_t *ray, float distance)
@@ -64,30 +62,24 @@ static inline float approx_powf(float x, float y)
 
 
 /* Determine the color @ distance on ray on object viewed from origin */
-static inline ray_color_t shade_ray(ray_scene_t *scene, ray_ray_t *ray, ray_object_t *object, float distance, unsigned depth)
+static inline ray_color_t shade_intersection(ray_scene_t *scene, ray_object_t *object, ray_ray_t *ray, ray_3f_t *intersection, ray_3f_t *normal, unsigned depth, float *res_reflectivity)
 {
-	ray_surface_t	surface;
-	ray_color_t	color;
-	ray_3f_t	rvec = ray_3f_mult_scalar(&ray->direction, distance);
-	ray_3f_t	intersection = ray_3f_sub(&ray->origin, &rvec);
-	ray_3f_t	normal = ray_object_normal(object, &intersection);
+	ray_surface_t	surface = ray_object_surface(object, intersection);
+	ray_color_t	color = ray_3f_mult(&surface.color, &scene->_prepared.ambient_light);
 	unsigned	i;
-
-	surface = ray_object_surface(object, &intersection);
-	color = ray_3f_mult(&surface.color, &scene->_prepared.ambient_light);
 
 	/* visit lights for shadows and illumination */
 	for (i = 0; i < scene->n_lights; i++) {
-		ray_3f_t	lvec = ray_3f_sub(&scene->lights[i].light.emitter.point.center, &intersection);
+		ray_3f_t	lvec = ray_3f_sub(&scene->lights[i].light.emitter.point.center, intersection);
 		float		ldist = ray_3f_length(&lvec);
 		float		lvec_normal_dot;
 
 		lvec = ray_3f_mult_scalar(&lvec, (1.0f / ldist)); /* normalize lvec */
 #if 1
-		if (point_is_shadowed(scene, depth, &lvec, ldist, &intersection))
+		if (point_is_shadowed(scene, depth, &lvec, ldist, intersection))
 			continue;
 #endif
-		lvec_normal_dot = ray_3f_dot(&normal, &lvec);
+		lvec_normal_dot = ray_3f_dot(normal, &lvec);
 
 		if (lvec_normal_dot > 0) {
 #if 1
@@ -114,36 +106,18 @@ static inline ray_color_t shade_ray(ray_scene_t *scene, ray_ray_t *ray, ray_obje
 		}
 	}
 
-	/* generate a reflection ray */
-#if 1
-	if (depth < MAX_RECURSION_DEPTH) {
-		float		dot = ray_3f_dot(&ray->direction, &normal);
-		ray_ray_t	reflected_ray = { .direction = ray_3f_mult_scalar(&normal, dot * 2.0f) };
-		ray_3f_t	reflection;
-
-		reflected_ray.origin = intersection;
-		reflected_ray.direction = ray_3f_sub(&ray->direction, &reflected_ray.direction);
-
-		reflection = trace_ray(scene, object, &reflected_ray, depth);
-		reflection = ray_3f_mult_scalar(&reflection, surface.specular);
-		color = ray_3f_add(&color, &reflection);
-	}
-#endif
-
-	/* TODO: generate a refraction ray */
+	/* for now just treat specular as the reflectivity */
+	*res_reflectivity = surface.specular;
 
 	return color;
 }
 
 
-static ray_color_t trace_ray(ray_scene_t *scene, ray_object_t *reflector, ray_ray_t *ray, unsigned depth)
+static inline ray_object_t * find_nearest_intersection(ray_scene_t *scene, ray_object_t *reflector, ray_ray_t *ray, unsigned depth, float *res_distance)
 {
 	ray_object_t	*nearest_object = NULL;
 	float		nearest_object_distance = INFINITY;
-	ray_color_t	color = { .x = 0.0, .y = 0.0, .z = 0.0 };
 	unsigned	i;
-
-	depth++;
 
 	for (i = 0; i < scene->n_objects; i++) {
 		ray_object_t	*object = &scene->objects[i];
@@ -156,7 +130,6 @@ static ray_color_t trace_ray(ray_scene_t *scene, ray_object_t *reflector, ray_ra
 
 		/* Does this ray intersect object? */
 		if (ray_object_intersects_ray(object, depth, ray, &distance)) {
-
 			/* Is it the nearest intersection? */
 			if (distance < nearest_object_distance) {
 				nearest_object = object;
@@ -166,9 +139,55 @@ static ray_color_t trace_ray(ray_scene_t *scene, ray_object_t *reflector, ray_ra
 	}
 
 	if (nearest_object)
-		color = shade_ray(scene, ray, nearest_object, nearest_object_distance, depth);
+		*res_distance = nearest_object_distance;
 
-	depth--;
+	return nearest_object;
+}
+
+
+static inline ray_color_t trace_ray(ray_scene_t *scene, ray_ray_t *primary_ray)
+{
+	ray_color_t	color = { .x = 0.0f, .y = 0.0f, .z = 0.0f };
+	ray_3f_t	intersection, normal;
+	ray_object_t	*reflector = NULL;
+	float		relevance = 1.0f, reflectivity;
+	unsigned	depth = 0;
+	ray_ray_t	reflected_ray, *ray = primary_ray;
+
+	do {
+		ray_object_t	*nearest_object;
+		float		nearest_distance;
+
+		if (reflector) {
+			float		dot = ray_3f_dot(&ray->direction, &normal);
+			ray_3f_t	new_direction = ray_3f_mult_scalar(&normal, dot * 2.0f);
+
+			new_direction = ray_3f_sub(&ray->direction, &new_direction);
+
+			reflected_ray.origin = intersection;
+			reflected_ray.direction = new_direction;
+
+			ray = &reflected_ray;
+
+			relevance *= reflectivity;
+		}
+
+		nearest_object = find_nearest_intersection(scene, reflector, ray, depth, &nearest_distance);
+		if (nearest_object) {
+			ray_3f_t	more_color;
+			ray_3f_t	rvec;
+
+			rvec = ray_3f_mult_scalar(&ray->direction, nearest_distance);
+			intersection = ray_3f_sub(&ray->origin, &rvec);
+			normal = ray_object_normal(nearest_object, &intersection);
+
+			more_color = shade_intersection(scene, nearest_object, ray, &intersection, &normal, depth, &reflectivity);
+			more_color = ray_3f_mult_scalar(&more_color, relevance);
+			color = ray_3f_add(&color, &more_color);
+		}
+
+		reflector = nearest_object;
+	} while (reflector && (++depth < MAX_RECURSION_DEPTH));
 
 	return color;
 }
@@ -184,7 +203,7 @@ void ray_scene_render_fragment(ray_scene_t *scene, ray_camera_t *camera, fb_frag
 	ray_camera_frame_begin(camera, fragment, &ray, &frame);
 	do {
 		do {
-			*buf = ray_color_to_uint32_rgb(trace_ray(scene, NULL, &ray, 0));
+			*buf = ray_color_to_uint32_rgb(trace_ray(scene, &ray));
 			buf++;
 		} while (ray_camera_frame_x_step(&frame));
 

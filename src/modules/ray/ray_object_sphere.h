@@ -43,7 +43,7 @@ static inline int ray_object_sphere_intersects_ray(ray_object_sphere_t *sphere, 
 	float		dot_vv = sphere->_prepared.primary_dot_vv;
 	float		b, disc;
 
-	if (depth != 1) {
+	if (depth) {
 		v = ray_3f_sub(&ray->origin, &sphere->center);
 		dot_vv = ray_3f_dot(&v, &v);
 	}

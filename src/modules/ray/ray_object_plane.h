@@ -32,7 +32,7 @@ static inline int ray_object_plane_intersects_ray(ray_object_plane_t *plane, uns
 	if (d >= 0.00001f) {
 		float	distance = plane->_prepared.primary_dot_plus;
 
-		if (depth != 1)
+		if (depth)
 			distance = (ray_3f_dot(&plane->normal, &ray->origin) + plane->distance);
 
 		distance /= d;
