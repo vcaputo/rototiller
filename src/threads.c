@@ -7,135 +7,107 @@
 #include "threads.h"
 #include "util.h"
 
-/* This is a very simple/naive implementation, there's certainly room for improvement.
- * Some things to explore:
- *  - switch to a single condition variable and broadcast to wake up the threads?
- *  - use lock-free algorithms?
- */
-
-typedef struct fragment_node_t fragment_node_t;
-
-struct fragment_node_t {
-	fragment_node_t	*next;
-	fb_fragment_t	*fragment;
-};
-
-typedef struct thread_t {
-	pthread_t	thread;
-	pthread_mutex_t	mutex;
-	pthread_cond_t	cond;
-	void		(*render_fragment_func)(void *context, fb_fragment_t *fragment);
-	void		*context;
-	fragment_node_t	*fragments;
-} thread_t;
-
 typedef struct threads_t {
-	unsigned	n_threads;
-	fragment_node_t	fragment_nodes[ROTOTILLER_FRAME_MAX_FRAGMENTS];
-	thread_t	threads[];
+	unsigned		n_threads;
+
+	pthread_mutex_t		idle_mutex;
+	pthread_cond_t		idle_cond;
+	unsigned		n_idle;
+
+	pthread_mutex_t		frame_mutex;
+	pthread_cond_t		frame_cond;
+	void			(*render_fragment_func)(void *context, fb_fragment_t *fragment);
+	void			*context;
+	rototiller_frame_t	*frame;
+
+	unsigned		next_fragment;
+	unsigned		frame_num;
+
+	pthread_t		threads[];
 } threads_t;
 
 
-/* render submitted fragments using the supplied render function */
-static void * thread_func(void *_thread)
+/* render fragments using the supplied render function */
+static void * thread_func(void *_threads)
 {
-	thread_t	*thread = _thread;
+	threads_t		*threads = _threads;
+	unsigned		prev_frame_num = 0;
 
 	for (;;) {
-		pthread_mutex_lock(&thread->mutex);
-		while (!thread->fragments)
-			pthread_cond_wait(&thread->cond, &thread->mutex);
+		unsigned	frag_idx;
 
-		do {
-			thread->render_fragment_func(thread->context, thread->fragments->fragment);
-			thread->fragments = thread->fragments->next;
-		} while (thread->fragments);
+		/* wait for a new frame */
+		pthread_mutex_lock(&threads->frame_mutex);
+		while (threads->frame_num == prev_frame_num)
+			pthread_cond_wait(&threads->frame_cond, &threads->frame_mutex);
+		prev_frame_num = threads->frame_num;
+		pthread_mutex_unlock(&threads->frame_mutex);
 
-		pthread_mutex_unlock(&thread->mutex);
-		pthread_cond_signal(&thread->cond);
+		/* render fragments */
+		for (frag_idx = __sync_fetch_and_add(&threads->next_fragment, 1);
+		     frag_idx < threads->frame->n_fragments;
+		     frag_idx = __sync_fetch_and_add(&threads->next_fragment, 1)) {
+			threads->render_fragment_func(threads->context, &threads->frame->fragments[frag_idx]);
+		}
+
+		/* report as idle */
+		pthread_mutex_lock(&threads->idle_mutex);
+		threads->n_idle++;
+		if (threads->n_idle == threads->n_threads)	/* Frame finished! Notify potential waiter. */
+			pthread_cond_signal(&threads->idle_cond);
+		pthread_mutex_unlock(&threads->idle_mutex);
 	}
 
 	return NULL;
 }
 
 
-/* submit a list of fragments to render using the specified thread and render_fragment_func */
-static void thread_fragments_submit(thread_t *thread, void (*render_fragment_func)(void *context, fb_fragment_t *fragment), void *context, fragment_node_t *fragments)
+/* wait for all threads to be idle */
+void threads_wait_idle(threads_t *threads)
 {
-	pthread_mutex_lock(&thread->mutex);
-	while (thread->fragments != NULL)	/* XXX: never true due to thread_wait_idle() */
-		pthread_cond_wait(&thread->cond, &thread->mutex);
-
-	thread->render_fragment_func = render_fragment_func;
-	thread->context = context;
-	thread->fragments = fragments;
-
-	pthread_mutex_unlock(&thread->mutex);
-	pthread_cond_signal(&thread->cond);
-}
-
-
-/* wait for a thread to be idle */
-static void thread_wait_idle(thread_t *thread)
-{
-	pthread_mutex_lock(&thread->mutex);
-	while (thread->fragments)
-		pthread_cond_wait(&thread->cond, &thread->mutex);
-	pthread_mutex_unlock(&thread->mutex);
+	pthread_mutex_lock(&threads->idle_mutex);
+	while (threads->n_idle < threads->n_threads)
+		pthread_cond_wait(&threads->idle_cond, &threads->idle_mutex);
+	pthread_mutex_unlock(&threads->idle_mutex);
 }
 
 
 /* submit a frame's fragments to the threads */
 void threads_frame_submit(threads_t *threads, rototiller_frame_t *frame, void (*render_fragment_func)(void *context, fb_fragment_t *fragment), void *context)
 {
-	unsigned	i, t;
-	fragment_node_t	*lists[threads->n_threads];
+	threads_wait_idle(threads);	/* XXX: likely non-blocking; already happens pre page flip */
 
-	assert(frame->n_fragments <= ROTOTILLER_FRAME_MAX_FRAGMENTS);
-
-	for (i = 0; i < threads->n_threads; i++)
-		lists[i] = NULL;
-
-	for (i = 0; i < frame->n_fragments;) {
-		for (t = 0; i < frame->n_fragments && t < threads->n_threads; t++, i++) {
-			threads->fragment_nodes[i].next = lists[t];
-			lists[t] = &threads->fragment_nodes[i];
-			lists[t]->fragment = &frame->fragments[i];
-		}
-	}
-
-	for (i = 0; i < threads->n_threads; i++)
-		thread_fragments_submit(&threads->threads[i], render_fragment_func, context, lists[i]);
-}
-
-
-/* wait for all threads to drain their fragments list and become idle */
-void threads_wait_idle(threads_t *threads)
-{
-	unsigned	i;
-
-	for (i = 0; i < threads->n_threads; i++)
-		thread_wait_idle(&threads->threads[i]);
+	pthread_mutex_lock(&threads->frame_mutex);
+	threads->frame = frame;
+	threads->render_fragment_func = render_fragment_func;
+	threads->context = context;
+	threads->frame_num++;
+	threads->n_idle = threads->next_fragment = 0;
+	pthread_cond_broadcast(&threads->frame_cond);
+	pthread_mutex_unlock(&threads->frame_mutex);
 }
 
 
 /* create threads instance, a thread per cpu is created */
 threads_t * threads_create(void)
 {
-	threads_t	*threads;
 	unsigned	i, num = get_ncpus();
+	threads_t	*threads;
 
-	threads = calloc(1, sizeof(threads_t) + sizeof(thread_t) * num);
+	threads = calloc(1, sizeof(threads_t) + sizeof(pthread_t) * num);
 	if (!threads)
 		return NULL;
 
-	for (i = 0; i < num; i++) {
-		pthread_mutex_init(&threads->threads[i].mutex, NULL);
-		pthread_cond_init(&threads->threads[i].cond, NULL);
-		pthread_create(&threads->threads[i].thread, NULL, thread_func, &threads->threads[i]);
-	}
+	threads->n_idle = threads->n_threads = num;
 
-	threads->n_threads = num;
+	pthread_mutex_init(&threads->idle_mutex, NULL);
+	pthread_cond_init(&threads->idle_cond, NULL);
+
+	pthread_mutex_init(&threads->frame_mutex, NULL);
+	pthread_cond_init(&threads->frame_cond, NULL);
+
+	for (i = 0; i < num; i++)
+		pthread_create(&threads->threads[i], NULL, thread_func, threads);
 
 	return threads;
 }
@@ -147,10 +119,16 @@ void threads_destroy(threads_t *threads)
 	unsigned	i;
 
 	for (i = 0; i < threads->n_threads; i++)
-		pthread_cancel(threads->threads[i].thread);
+		pthread_cancel(threads->threads[i]);
 
 	for (i = 0; i < threads->n_threads; i++)
-		pthread_join(threads->threads[i].thread, NULL);
+		pthread_join(threads->threads[i], NULL);
+
+	pthread_mutex_destroy(&threads->idle_mutex);
+	pthread_cond_destroy(&threads->idle_cond);
+
+	pthread_mutex_destroy(&threads->frame_mutex);
+	pthread_cond_destroy(&threads->frame_cond);
 
 	free(threads);
 }
