@@ -119,8 +119,8 @@ static float		r;
 static void ray_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fragment, rototiller_frame_t *res_frame)
 {
 	/* TODO experiment with tiled fragments vs. rows */
-	res_frame->n_fragments = n_cpus;
-	fb_fragment_divide(fragment, n_cpus, res_frame->fragments);
+	res_frame->n_fragments = n_cpus * 64;
+	fb_fragment_divide(fragment, n_cpus * 64, res_frame->fragments);
 
 	/* TODO: the camera doesn't need the width and height anymore, the fragment has the frame_width/frame_height */
 	camera.width = fragment->frame_width,
