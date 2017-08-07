@@ -60,7 +60,6 @@ static void module_select(int *module)
 static void module_render_page_threaded(rototiller_module_t *module, void *context, threads_t *threads, fb_page_t *page)
 {
 	rototiller_frame_t	frame;
-	unsigned		i;
 
 	module->prepare_frame(context, threads_num_threads(threads), &page->fragment, &frame);
 
