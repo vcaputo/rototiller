@@ -11,6 +11,7 @@ typedef struct ray_scene_t {
 
 	ray_color_t	ambient_color;
 	float		ambient_brightness;
+	float		gamma;
 } ray_scene_t;
 
 #endif

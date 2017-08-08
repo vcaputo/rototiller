@@ -112,7 +112,8 @@ static ray_scene_t	scene = {
 	.objects = objects,
 	.lights = lights,
 	.ambient_color = { .x = 1.0f, .y = 1.0f, .z = 1.0f },
-	.ambient_brightness = .04f,
+	.ambient_brightness = .1f,
+	.gamma = .55f,
 };
 
 static float	r;

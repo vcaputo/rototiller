@@ -5,6 +5,7 @@
 
 #include "ray_camera.h"
 #include "ray_color.h"
+#include "ray_gamma.h"
 #include "ray_render_object.h"
 #include "ray_ray.h"
 #include "ray_scene.h"
@@ -18,6 +19,7 @@ typedef struct ray_render_t {
 
 	ray_color_t		ambient_light;
 	ray_camera_frame_t	frame;
+	ray_gamma_t		gamma;
 
 	ray_render_object_t	objects[];
 } ray_render_t;
@@ -207,7 +209,7 @@ void ray_render_trace_fragment(ray_render_t *render, fb_fragment_t *fb_fragment)
 	ray_camera_fragment_begin(&render->frame, fb_fragment, &ray, &fragment);
 	do {
 		do {
-			*buf = ray_color_to_uint32_rgb(trace_ray(render, &ray));
+			*buf = ray_gamma_color_to_uint32_rgb(&render->gamma, trace_ray(render, &ray));
 			buf++;
 		} while (ray_camera_fragment_x_step(&fragment));
 
@@ -236,6 +238,7 @@ ray_render_t * ray_render_new(const ray_scene_t *scene, const ray_camera_t *came
 	render->camera = camera;
 
 	render->ambient_light = ray_3f_mult_scalar(&scene->ambient_color, scene->ambient_brightness);
+	ray_gamma_prepare(scene->gamma, &render->gamma);
 	ray_camera_frame_prepare(camera, &render->frame);
 
 	for (i = 0, object = scene->objects; object->type; object++)
