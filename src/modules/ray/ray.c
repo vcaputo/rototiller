@@ -98,7 +98,7 @@ static ray_camera_t	camera = {
 					.order = RAY_EULER_ORDER_YPR, /* yaw,pitch,roll */
 					.yaw = RAY_EULER_DEGREES(0.0f),
 					.pitch = RAY_EULER_DEGREES(0.0f),
-					.roll = RAY_EULER_DEGREES(180.0f),
+					.roll = RAY_EULER_DEGREES(0.0f),
 				},
 				.focal_length = 700.0f,
 			};
@@ -128,7 +128,7 @@ static void ray_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fra
 #if 1
 	/* animated point light source */
 
-	r += .02;
+	r += -.02;
 
 	scene.lights[0].light.emitter.point.center.x = cosf(r) * 4.5f;
 	scene.lights[0].light.emitter.point.center.z = sinf(r * 3.0f) * 4.5f;
@@ -141,10 +141,11 @@ static void ray_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fra
 	camera.position.y = cosf(r * 1.3f) * 4.0f + 2.08f;
 
 	/* keep camera facing the origin */
-	camera.orientation.yaw = r;
+	camera.orientation.yaw = r + RAY_EULER_DEGREES(180.0f);
+
 
 	/* tilt camera pitch in time with up and down movements, phase shifted appreciably */
-	camera.orientation.pitch = sinf((M_PI * 1.5f) + r * 1.3f) * .6f + -.35f;
+	camera.orientation.pitch = -(sinf((M_PI * 1.5f) + r * 1.3f) * .6f + -.35f);
 #endif
 	ray_scene_prepare(&scene, &camera);
 }

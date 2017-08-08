@@ -29,14 +29,14 @@ static inline int ray_object_plane_intersects_ray(ray_object_plane_t *plane, uns
 {
 	float	d = ray_3f_dot(&plane->normal, &ray->direction);
 
-	if (d >= 0.00001f) {
+	if (d < 0.0f) {
 		float	distance = plane->_prepared.primary_dot_plus;
 
 		if (depth)
 			distance = (ray_3f_dot(&plane->normal, &ray->origin) + plane->distance);
 
-		distance /= d;
-		if (distance > 0) {
+		distance /= -d;
+		if (distance > 0.0f) {
 			*res_distance = distance;
 
 			return 1;

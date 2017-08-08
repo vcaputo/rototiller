@@ -27,7 +27,7 @@ typedef struct ray_object_sphere_t {
 
 static void ray_object_sphere_prepare(ray_object_sphere_t *sphere, ray_camera_t *camera)
 {
-	sphere->_prepared.primary_v = ray_3f_sub(&camera->position, &sphere->center);
+	sphere->_prepared.primary_v = ray_3f_sub(&sphere->center, &camera->position);
 	sphere->_prepared.primary_dot_vv = ray_3f_dot(&sphere->_prepared.primary_v, &sphere->_prepared.primary_v);
 
 	sphere->_prepared.r2 = sphere->radius * sphere->radius;
@@ -44,7 +44,7 @@ static inline int ray_object_sphere_intersects_ray(ray_object_sphere_t *sphere, 
 	float		b, disc;
 
 	if (depth) {
-		v = ray_3f_sub(&ray->origin, &sphere->center);
+		v = ray_3f_sub(&sphere->center, &ray->origin);
 		dot_vv = ray_3f_dot(&v, &v);
 	}
 

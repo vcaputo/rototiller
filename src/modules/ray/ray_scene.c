@@ -36,13 +36,8 @@ static inline int point_is_shadowed(ray_scene_t *scene, unsigned depth, ray_3f_t
 {
 	ray_ray_t	shadow_ray;
 
-	/* negate the light vector so it's pointed at the light rather than from it */
-	shadow_ray.direction = ray_3f_negate(light_direction);
-
-	/* we must shift the origin slightly (epsilon) towards the light to
-	 * prevent spurious self-obstruction at the ray:object intersection */
-	shadow_ray.origin = ray_3f_mult_scalar(&shadow_ray.direction, 0.00001f);
-	shadow_ray.origin = ray_3f_add(&shadow_ray.origin, point);
+	shadow_ray.direction = *light_direction;
+	shadow_ray.origin = *point;
 
 	if (ray_is_obstructed(scene, depth + 1, &shadow_ray, distance))
 		return 1;
@@ -85,13 +80,14 @@ static inline ray_color_t shade_intersection(ray_scene_t *scene, ray_object_t *o
 #if 1
 			float		rvec_lvec_dot = ray_3f_dot(&ray->direction, &lvec);
 			ray_color_t	diffuse;
-			ray_color_t	specular;
 
 			diffuse = ray_3f_mult_scalar(&surface.color, lvec_normal_dot);
 			diffuse = ray_3f_mult_scalar(&diffuse, surface.diffuse);
 			color = ray_3f_add(&color, &diffuse);
 
 			if (rvec_lvec_dot > 0) {
+				ray_color_t	specular;
+
 				/* FIXME: assumes light is a point for its color */
 				specular = ray_3f_mult_scalar(&scene->lights[i].light.emitter.point.surface.color, approx_powf(rvec_lvec_dot, surface.highlight_exponent));
 				specular = ray_3f_mult_scalar(&specular, surface.specular);
@@ -178,7 +174,7 @@ static inline ray_color_t trace_ray(ray_scene_t *scene, ray_ray_t *primary_ray)
 			ray_3f_t	rvec;
 
 			rvec = ray_3f_mult_scalar(&ray->direction, nearest_distance);
-			intersection = ray_3f_sub(&ray->origin, &rvec);
+			intersection = ray_3f_add(&ray->origin, &rvec);
 			normal = ray_object_normal(nearest_object, &intersection);
 
 			more_color = shade_intersection(scene, nearest_object, ray, &intersection, &normal, depth, &reflectivity);
