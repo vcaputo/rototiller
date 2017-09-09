@@ -25,6 +25,7 @@ typedef struct color_t {
 
 typedef struct roto_context_t {
 	unsigned	r, rr;
+	unsigned	n_cpus;
 } roto_context_t;
 
 static int32_t	costab[FIXED_TRIG_LUT_SIZE], sintab[FIXED_TRIG_LUT_SIZE];
@@ -168,8 +169,16 @@ static void init_roto(uint8_t texture[256][256], int32_t *costab, int32_t *sinta
 }
 
 
+static int roto_fragmenter(void *context, const fb_fragment_t *fragment, unsigned num, fb_fragment_t *res_fragment)
+{
+	roto_context_t	*ctxt = context;
+
+	return fb_fragment_divide_single(fragment, ctxt->n_cpus, num, res_fragment);
+}
+
+
 /* prepare a frame for concurrent rendering */
-static void roto_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fragment, rototiller_frame_t *res_frame)
+static void roto_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
 {
 	roto_context_t	*ctxt = context;
 	static int	initialized;
@@ -180,8 +189,8 @@ static void roto_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fr
 		init_roto(texture, costab, sintab);
 	}
 
-	res_frame->n_fragments = n_cpus;
-	fb_fragment_divide(fragment, n_cpus, res_frame->fragments);
+	*res_fragmenter = roto_fragmenter;
+	ctxt->n_cpus = n_cpus;
 
 	// This governs the rotation and color cycle.
 	ctxt->r += FIXED_TO_INT(FIXED_MULT(FIXED_SIN(ctxt->rr), FIXED_NEW(16)));

@@ -319,33 +319,26 @@ fb_t * fb_new(int drm_fd, uint32_t crtc_id, uint32_t *connectors, int n_connecto
 }
 
 
-/* divide a fragment into n_fragments, storing their values into fragments[],
- * which is expected to have n_fragments of space. */
-void fb_fragment_divide(fb_fragment_t *fragment, unsigned n_fragments, fb_fragment_t fragments[])
+/* helpers for fragmenting incrementally */
+int fb_fragment_divide_single(const fb_fragment_t *fragment, unsigned n_fragments, unsigned num, fb_fragment_t *res_fragment)
 {
 	unsigned	slice = fragment->height / n_fragments;
-	unsigned	i;
-	void		*buf = fragment->buf;
-	unsigned	pitch = (fragment->width * 4) + fragment->stride;
-	unsigned	y = fragment->y;
+	unsigned	yoff = slice * num;
+	unsigned	pitch;
 
-	/* This just splits the supplied fragment into even horizontal slices */
-	/* TODO: It probably makes sense to add an fb_fragment_tile() as well, since some rendering
-	 * algorithms benefit from the locality of a tiled fragment.
-	 */
+	if (yoff >= fragment->height)
+		return 0;
 
-	for (i = 0; i < n_fragments; i++) {
-		fragments[i].buf = buf;
-		fragments[i].x = fragment->x;
-		fragments[i].y = y;
-		fragments[i].width = fragment->width;
-		fragments[i].height = slice;
-		fragments[i].frame_width = fragment->frame_width;
-		fragments[i].frame_height = fragment->frame_height;
-		fragments[i].stride = fragment->stride;
+	pitch = (fragment->width * 4) + fragment->stride;
 
-		buf += pitch * slice;
-		y += slice;
-	}
-	/* TODO: handle potential fractional tail slice? */
+	res_fragment->buf = ((void *)fragment->buf) + yoff * pitch;
+	res_fragment->x = fragment->x;
+	res_fragment->y = yoff;
+	res_fragment->width = fragment->width;
+	res_fragment->height = MIN(fragment->height - yoff, slice);
+	res_fragment->frame_width = fragment->frame_width;
+	res_fragment->frame_height = fragment->frame_height;
+	res_fragment->stride = fragment->stride;
+
+	return 1;
 }

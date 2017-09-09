@@ -18,6 +18,7 @@
 
 typedef struct sparkler_context_t {
 	particles_t	*particles;
+	unsigned	n_cpus;
 } sparkler_context_t;
 
 extern particle_ops_t	simple_ops;
@@ -58,12 +59,19 @@ static void sparkler_destroy_context(void *context)
 }
 
 
-static void sparkler_prepare_frame(void *context, unsigned ncpus, fb_fragment_t *fragment, rototiller_frame_t *res_frame)
+static int sparkler_fragmenter(void *context, const fb_fragment_t *fragment, unsigned num, fb_fragment_t *res_fragment)
 {
 	sparkler_context_t	*ctxt = context;
 
-	fb_fragment_divide(fragment, ncpus, res_frame->fragments);
-	res_frame->n_fragments = ncpus;
+	return fb_fragment_divide_single(fragment, ctxt->n_cpus, num, res_fragment);
+}
+
+static void sparkler_prepare_frame(void *context, unsigned ncpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
+{
+	sparkler_context_t	*ctxt = context;
+
+	*res_fragmenter = sparkler_fragmenter;
+	ctxt->n_cpus = ncpus;
 
 	particles_sim(ctxt->particles);
 	particles_add_particles(ctxt->particles, NULL, &simple_ops, INIT_PARTS / 4);

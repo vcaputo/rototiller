@@ -18,7 +18,8 @@ typedef struct threads_t {
 	pthread_cond_t		frame_cond;
 	void			(*render_fragment_func)(void *context, fb_fragment_t *fragment);
 	void			*context;
-	rototiller_frame_t	*frame;
+	fb_fragment_t		*fragment;
+	rototiller_fragmenter_t	fragmenter;
 
 	unsigned		next_fragment;
 	unsigned		frame_num;
@@ -34,7 +35,6 @@ static void * thread_func(void *_threads)
 	unsigned		prev_frame_num = 0;
 
 	for (;;) {
-		unsigned	frag_idx;
 
 		/* wait for a new frame */
 		pthread_mutex_lock(&threads->frame_mutex);
@@ -44,10 +44,16 @@ static void * thread_func(void *_threads)
 		pthread_mutex_unlock(&threads->frame_mutex);
 
 		/* render fragments */
-		for (frag_idx = __sync_fetch_and_add(&threads->next_fragment, 1);
-		     frag_idx < threads->frame->n_fragments;
-		     frag_idx = __sync_fetch_and_add(&threads->next_fragment, 1)) {
-			threads->render_fragment_func(threads->context, &threads->frame->fragments[frag_idx]);
+		for (;;) {
+			unsigned	frag_num;
+			fb_fragment_t	fragment;
+
+			frag_num = __sync_fetch_and_add(&threads->next_fragment, 1);
+
+			if (!threads->fragmenter(threads->context, threads->fragment, frag_num, &fragment))
+				break;
+
+			threads->render_fragment_func(threads->context, &fragment);
 		}
 
 		/* report as idle */
@@ -73,12 +79,13 @@ void threads_wait_idle(threads_t *threads)
 
 
 /* submit a frame's fragments to the threads */
-void threads_frame_submit(threads_t *threads, rototiller_frame_t *frame, void (*render_fragment_func)(void *context, fb_fragment_t *fragment), void *context)
+void threads_frame_submit(threads_t *threads, fb_fragment_t *fragment, rototiller_fragmenter_t fragmenter, void (*render_fragment_func)(void *context, fb_fragment_t *fragment), void *context)
 {
 	threads_wait_idle(threads);	/* XXX: likely non-blocking; already happens pre page flip */
 
 	pthread_mutex_lock(&threads->frame_mutex);
-	threads->frame = frame;
+	threads->fragment = fragment;
+	threads->fragmenter = fragmenter;
 	threads->render_fragment_func = render_fragment_func;
 	threads->context = context;
 	threads->frame_num++;

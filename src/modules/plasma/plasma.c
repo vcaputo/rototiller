@@ -26,6 +26,7 @@ static int32_t	costab[FIXED_TRIG_LUT_SIZE], sintab[FIXED_TRIG_LUT_SIZE];
 
 typedef struct plasma_context_t {
 	unsigned	rr;
+	unsigned	n_cpus;
 } plasma_context_t;
 
 static inline uint32_t color2pixel(color_t *color)
@@ -58,8 +59,16 @@ static void plasma_destroy_context(void *context)
 }
 
 
+static int plasma_fragmenter(void *context, const fb_fragment_t *fragment, unsigned num, fb_fragment_t *res_fragment)
+{
+	plasma_context_t	*ctxt = context;
+
+	return fb_fragment_divide_single(fragment, ctxt->n_cpus, num, res_fragment);
+}
+
+
 /* Prepare a frame for concurrent drawing of fragment using multiple fragments */
-static void plasma_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fragment, rototiller_frame_t *res_frame)
+static void plasma_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
 {
 	plasma_context_t	*ctxt = context;
 	static int		initialized;
@@ -70,9 +79,8 @@ static void plasma_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *
 		init_plasma(costab, sintab);
 	}
 
-	res_frame->n_fragments = n_cpus;
-	fb_fragment_divide(fragment, n_cpus, res_frame->fragments);
-
+	*res_fragmenter = plasma_fragmenter;
+	ctxt->n_cpus = n_cpus;
 	ctxt->rr += 3;
 }
 

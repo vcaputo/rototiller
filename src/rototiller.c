@@ -59,11 +59,11 @@ static void module_select(int *module)
 
 static void module_render_page_threaded(rototiller_module_t *module, void *context, threads_t *threads, fb_page_t *page)
 {
-	rototiller_frame_t	frame;
+	rototiller_fragmenter_t	fragmenter;
 
-	module->prepare_frame(context, threads_num_threads(threads), &page->fragment, &frame);
+	module->prepare_frame(context, threads_num_threads(threads), &page->fragment, &fragmenter);
 
-	threads_frame_submit(threads, &frame, module->render_fragment, context);
+	threads_frame_submit(threads, &page->fragment, fragmenter, module->render_fragment, context);
 	threads_wait_idle(threads);
 }
 

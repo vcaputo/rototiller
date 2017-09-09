@@ -13,11 +13,12 @@
 /* TODO: explore using C99 complex.h and its types? */
 
 typedef struct julia_context_t {
-	float	rr;
-	float	realscale;
-	float	imagscale;
-	float	creal;
-	float	cimag;
+	float		rr;
+	float		realscale;
+	float		imagscale;
+	float		creal;
+	float		cimag;
+	unsigned	n_cpus;
 } julia_context_t;
 
 static uint32_t	colors[] = {
@@ -100,13 +101,21 @@ static inline unsigned julia_iter(float real, float imag, float creal, float cim
 }
 
 
-/* Prepare a frame for concurrent drawing of fragment using multiple fragments */
-static void julia_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fragment, rototiller_frame_t *res_frame)
+static int julia_fragmenter(void *context, const fb_fragment_t *fragment, unsigned num, fb_fragment_t *res_fragment)
 {
 	julia_context_t	*ctxt = context;
 
-	res_frame->n_fragments = n_cpus;
-	fb_fragment_divide(fragment, n_cpus, res_frame->fragments);
+	return fb_fragment_divide_single(fragment, ctxt->n_cpus, num, res_fragment);
+}
+
+
+/* Prepare a frame for concurrent drawing of fragment using multiple fragments */
+static void julia_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
+{
+	julia_context_t	*ctxt = context;
+
+	*res_fragmenter = julia_fragmenter;
+	ctxt->n_cpus = n_cpus;
 
 	ctxt->rr += .01;
 			/* Rather than just sweeping creal,cimag from -2.0-+2.0, I try to keep things confined
