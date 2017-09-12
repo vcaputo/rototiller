@@ -69,7 +69,7 @@ static inline int ray_camera_frame_y_step(ray_camera_frame_t *frame)
 	frame->y_alpha += frame->y_delta;
 	frame->cur_w = ray_3f_lerp(&frame->nw, &frame->sw, frame->y_alpha);
 	frame->cur_e = ray_3f_lerp(&frame->ne, &frame->se, frame->y_alpha);
-	frame->ray->direction = ray_3f_normalize(&frame->cur_w);
+	frame->ray->direction = ray_3f_nlerp(&frame->cur_w, &frame->cur_e, frame->x_alpha);
 
 	return 1;
 }
