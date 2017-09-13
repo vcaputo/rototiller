@@ -105,7 +105,7 @@ static int julia_fragmenter(void *context, const fb_fragment_t *fragment, unsign
 {
 	julia_context_t	*ctxt = context;
 
-	return fb_fragment_divide_single(fragment, ctxt->n_cpus, num, res_fragment);
+	return fb_fragment_slice_single(fragment, ctxt->n_cpus, num, res_fragment);
 }
 
 

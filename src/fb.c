@@ -320,7 +320,7 @@ fb_t * fb_new(int drm_fd, uint32_t crtc_id, uint32_t *connectors, int n_connecto
 
 
 /* helpers for fragmenting incrementally */
-int fb_fragment_divide_single(const fb_fragment_t *fragment, unsigned n_fragments, unsigned num, fb_fragment_t *res_fragment)
+int fb_fragment_slice_single(const fb_fragment_t *fragment, unsigned n_fragments, unsigned num, fb_fragment_t *res_fragment)
 {
 	unsigned	slice = fragment->height / n_fragments;
 	unsigned	yoff = slice * num;
