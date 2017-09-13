@@ -24,62 +24,47 @@ static ray_3f_t project_corner(ray_3f_t *forward, ray_3f_t *left, ray_3f_t *up, 
 static void project_corners(ray_camera_t *camera, ray_camera_frame_t *frame)
 {
 	ray_3f_t	forward, left, up, right, down;
-	float		half_horiz = (float)camera->width / 2.0f;
-	float		half_vert = (float)camera->height / 2.0f;
+	float		half_horiz = (float)camera->width * 0.5f;
+	float		half_vert = (float)camera->height * 0.5f;
 
 	ray_euler_basis(&camera->orientation, &forward, &up, &left);
 	right = ray_3f_negate(&left);
 	down = ray_3f_negate(&up);
 
-	frame->nw = project_corner(&forward, &left, &up, camera->focal_length, half_horiz,  half_vert);
-	frame->ne = project_corner(&forward, &right, &up, camera->focal_length, half_horiz,  half_vert);
-	frame->se = project_corner(&forward, &right, &down, camera->focal_length, half_horiz,  half_vert);
-	frame->sw = project_corner(&forward, &left, &down, camera->focal_length, half_horiz,  half_vert);
+	frame->nw = project_corner(&forward, &left, &up, camera->focal_length, half_horiz, half_vert);
+	frame->ne = project_corner(&forward, &right, &up, camera->focal_length, half_horiz, half_vert);
+	frame->se = project_corner(&forward, &right, &down, camera->focal_length, half_horiz, half_vert);
+	frame->sw = project_corner(&forward, &left, &down, camera->focal_length, half_horiz, half_vert);
 }
 
 
-/* Begin a frame for the fragment of camera projection, initializing frame and ray. */
-void ray_camera_frame_begin(ray_camera_t *camera, fb_fragment_t *fragment, ray_ray_t *ray, ray_camera_frame_t *frame)
+/* Prepare a frame of camera projection, initializing res_frame. */
+void ray_camera_frame_prepare(ray_camera_t *camera, ray_camera_frame_t *res_frame)
 {
-	/* References are kept to the camera, fragment, and ray to be traced.
-	 * The ray is maintained as we step through the frame, that is the
-	 * purpose of this api.
-	 *
-	 * Since the ray direction should be a normalized vector, the obvious
-	 * implementation is a bit costly.  The camera frame api hides this
-	 * detail so we can explore interpolation techniques to potentially
-	 * lessen the per-pixel cost.
-	 */
-	frame->camera = camera;
-	frame->fragment = fragment;
-	frame->ray = ray;
+	res_frame->camera = camera;
 
-	frame->x = frame->y = 0;
+	project_corners(camera, res_frame);
 
-	/* From camera->orientation and camera->focal_length compute the vectors
-	 * through the viewport's corners, and place these normalized vectors
-	 * in frame->(nw,ne,sw,se).
-	 *
-	 * These can than be interpolated between to produce the ray vectors
-	 * throughout the frame's fragment.  The efficient option of linear
-	 * interpolation will not maintain the unit vector length, so to
-	 * produce normalized interpolated directions will require the costly
-	 * normalize function.
-	 *
-	 * I'm hoping a simple length correction table can be used to fixup the
-	 * linearly interpolated vectors to make them unit vectors with just
-	 * scalar multiplication instead of the sqrt of normalize.
-	 */
-	project_corners(camera, frame);
+	res_frame->x_delta = 1.0f / (float)camera->width;
+	res_frame->y_delta = 1.0f / (float)camera->height;
+}
 
-	frame->x_delta = 1.0f / (float)camera->width;
-	frame->y_delta = 1.0f / (float)camera->height;
-	frame->x_alpha = frame->x_delta * (float)fragment->x;
-	frame->y_alpha = frame->y_delta * (float)fragment->y;
 
-	frame->cur_w = ray_3f_lerp(&frame->nw, &frame->sw, frame->y_alpha);
-	frame->cur_e = ray_3f_lerp(&frame->ne, &frame->se, frame->y_alpha);
+/* Begin a frame's fragment, initializing frame and ray. */
+void ray_camera_fragment_begin(ray_camera_frame_t *frame, fb_fragment_t *fb_fragment, ray_ray_t *res_ray, ray_camera_fragment_t *res_fragment)
+{
+	res_fragment->frame = frame;
+	res_fragment->fb_fragment = fb_fragment;
+	res_fragment->ray = res_ray;
 
-	ray->origin = camera->position;
-	ray->direction = ray_3f_nlerp(&frame->cur_w, &frame->cur_e, frame->x_alpha);
+	res_fragment->x = res_fragment->y = 0;
+
+	res_fragment->x_alpha = frame->x_delta * (float)fb_fragment->x;
+	res_fragment->y_alpha = frame->y_delta * (float)fb_fragment->y;
+
+	res_fragment->cur_w = ray_3f_lerp(&frame->nw, &frame->sw, res_fragment->y_alpha);
+	res_fragment->cur_e = ray_3f_lerp(&frame->ne, &frame->se, res_fragment->y_alpha);
+
+	res_ray->origin = frame->camera->position;
+	res_ray->direction = ray_3f_nlerp(&res_fragment->cur_w, &res_fragment->cur_e, res_fragment->x_alpha);
 }

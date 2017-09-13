@@ -189,22 +189,22 @@ static inline ray_color_t trace_ray(ray_scene_t *scene, ray_ray_t *primary_ray)
 }
 
 
-void ray_scene_render_fragment(ray_scene_t *scene, ray_camera_t *camera, fb_fragment_t *fragment)
+void ray_scene_render_fragment(ray_scene_t *scene, fb_fragment_t *fb_fragment)
 {
-	ray_camera_frame_t	frame;
+	unsigned		stride = fb_fragment->stride / 4;
+	uint32_t		*buf = fb_fragment->buf;
+	ray_camera_fragment_t	fragment;
 	ray_ray_t		ray;
-	uint32_t		*buf = fragment->buf;
-	unsigned		stride = fragment->stride / 4;
 
-	ray_camera_frame_begin(camera, fragment, &ray, &frame);
+	ray_camera_fragment_begin(&scene->_prepared.frame, fb_fragment, &ray, &fragment);
 	do {
 		do {
 			*buf = ray_color_to_uint32_rgb(trace_ray(scene, &ray));
 			buf++;
-		} while (ray_camera_frame_x_step(&frame));
+		} while (ray_camera_fragment_x_step(&fragment));
 
 		buf += stride;
-	} while (ray_camera_frame_y_step(&frame));
+	} while (ray_camera_fragment_y_step(&fragment));
 }
 
 
@@ -216,6 +216,7 @@ void ray_scene_prepare(ray_scene_t *scene, ray_camera_t *camera)
 	unsigned	i;
 
 	scene->_prepared.ambient_light = ray_3f_mult_scalar(&scene->ambient_color, scene->ambient_brightness);
+	ray_camera_frame_prepare(camera, &scene->_prepared.frame);
 
 	for (i = 0; i < scene->n_objects; i++)
 		ray_object_prepare(&scene->objects[i], camera);

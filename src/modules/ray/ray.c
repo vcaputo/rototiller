@@ -154,7 +154,7 @@ static void ray_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fra
 /* ray trace a simple scene into the fragment */
 static void ray_render_fragment(void *context, fb_fragment_t *fragment)
 {
-	ray_scene_render_fragment(&scene, &camera, fragment);
+	ray_scene_render_fragment(&scene, fragment);
 }
 
 
