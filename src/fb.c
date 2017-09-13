@@ -16,7 +16,7 @@
 #include "fb.h"
 #include "util.h"
 
-/* Copyright (C) 2016 Vito Caputo <vcaputo@pengaru.com> */
+/* Copyright (C) 2016-2017 Vito Caputo <vcaputo@pengaru.com> */
 
 
 /* I've used a separate thread for page-flipping duties because the libdrm api
