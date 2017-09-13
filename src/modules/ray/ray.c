@@ -117,37 +117,15 @@ static ray_scene_t	scene = {
 static float		r;
 
 
-typedef struct ray_context_t {
-	unsigned	n_cpus;
-} ray_context_t;
-
-static void * ray_create_context(void)
-{
-	return calloc(1, sizeof(ray_context_t));
-}
-
-
-static void ray_destroy_context(void *context)
-{
-	free(context);
-}
-
-
 static int ray_fragmenter(void *context, const fb_fragment_t *fragment, unsigned num, fb_fragment_t *res_fragment)
 {
-	ray_context_t	*ctxt = context;
-
-	return fb_fragment_divide_single(fragment, ctxt->n_cpus * 64, num, res_fragment);
+	return fb_fragment_tile_single(fragment, 64, num, res_fragment);
 }
 
 
 /* prepare a frame for concurrent rendering */
 static void ray_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
 {
-	ray_context_t	*ctxt = context;
-
-	/* TODO experiment with tiled fragments vs. rows */
-	ctxt->n_cpus = n_cpus;
 	*res_fragmenter = ray_fragmenter;
 
 	/* TODO: the camera doesn't need the width and height anymore, the fragment has the frame_width/frame_height */
@@ -187,8 +165,6 @@ static void ray_render_fragment(void *context, fb_fragment_t *fragment)
 
 
 rototiller_module_t	ray_module = {
-	.create_context = ray_create_context,
-	.destroy_context = ray_destroy_context,
 	.prepare_frame = ray_prepare_frame,
 	.render_fragment = ray_render_fragment,
 	.name = "ray",
