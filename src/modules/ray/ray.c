@@ -73,6 +73,8 @@ static ray_object_t	objects[] = {
 			.center = { .x = 0.2, .y = -1.25, .z = 0.0 },
 			.radius = 0.6f,
 		}
+	}, {
+		.type = RAY_OBJECT_TYPE_SENTINEL,
 	}
 };
 
@@ -89,6 +91,8 @@ static ray_object_t	lights[] = {
 				},
 			}
 		}
+	}, {
+		.type = RAY_OBJECT_TYPE_SENTINEL,
 	}
 };
 
@@ -105,9 +109,7 @@ static ray_camera_t	camera = {
 
 static ray_scene_t	scene = {
 				.objects = objects,
-				.n_objects = nelems(objects),
 				.lights = lights,
-				.n_lights = nelems(lights),
 				.ambient_color = { .x = 1.0f, .y = 1.0f, .z = 1.0f },
 				.ambient_brightness = .04f,
 			};

@@ -16,12 +16,12 @@
 /* Determine if the ray is obstructed by an object within the supplied distance, for shadows */
 static inline int ray_is_obstructed(ray_scene_t *scene, unsigned depth, ray_ray_t *ray, float distance)
 {
-	unsigned	i;
+	ray_object_t	*object;
 
-	for (i = 0; i < scene->n_objects; i++) {
+	for (object = scene->objects; object->type; object++) {
 		float	ood;
 
-		if (ray_object_intersects_ray(&scene->objects[i], depth, ray, &ood) &&
+		if (ray_object_intersects_ray(object, depth, ray, &ood) &&
 		    ood < distance) {
 			return 1;
 		}
@@ -61,11 +61,11 @@ static inline ray_color_t shade_intersection(ray_scene_t *scene, ray_object_t *o
 {
 	ray_surface_t	surface = ray_object_surface(object, intersection);
 	ray_color_t	color = ray_3f_mult(&surface.color, &scene->_prepared.ambient_light);
-	unsigned	i;
+	ray_object_t	*light;
 
 	/* visit lights for shadows and illumination */
-	for (i = 0; i < scene->n_lights; i++) {
-		ray_3f_t	lvec = ray_3f_sub(&scene->lights[i].light.emitter.point.center, intersection);
+	for (light = scene->lights; light->type; light++) {
+		ray_3f_t	lvec = ray_3f_sub(&light->light.emitter.point.center, intersection);
 		float		ldist = ray_3f_length(&lvec);
 		float		lvec_normal_dot;
 
@@ -89,7 +89,7 @@ static inline ray_color_t shade_intersection(ray_scene_t *scene, ray_object_t *o
 				ray_color_t	specular;
 
 				/* FIXME: assumes light is a point for its color */
-				specular = ray_3f_mult_scalar(&scene->lights[i].light.emitter.point.surface.color, approx_powf(rvec_lvec_dot, surface.highlight_exponent));
+				specular = ray_3f_mult_scalar(&light->light.emitter.point.surface.color, approx_powf(rvec_lvec_dot, surface.highlight_exponent));
 				specular = ray_3f_mult_scalar(&specular, surface.specular);
 				color = ray_3f_add(&color, &specular);
 			}
@@ -113,10 +113,9 @@ static inline ray_object_t * find_nearest_intersection(ray_scene_t *scene, ray_o
 {
 	ray_object_t	*nearest_object = NULL;
 	float		nearest_object_distance = INFINITY;
-	unsigned	i;
+	ray_object_t	*object;
 
-	for (i = 0; i < scene->n_objects; i++) {
-		ray_object_t	*object = &scene->objects[i];
+	for (object = scene->objects; object->type; object++) {
 		float		distance;
 
 		/* Don't bother checking if a reflected ray intersects the object reflecting it,
@@ -213,11 +212,11 @@ void ray_scene_render_fragment(ray_scene_t *scene, fb_fragment_t *fb_fragment)
 /* the camera is included so primary rays which all have a common origin may be optimized for */
 void ray_scene_prepare(ray_scene_t *scene, ray_camera_t *camera)
 {
-	unsigned	i;
+	ray_object_t	*object;
 
 	scene->_prepared.ambient_light = ray_3f_mult_scalar(&scene->ambient_color, scene->ambient_brightness);
 	ray_camera_frame_prepare(camera, &scene->_prepared.frame);
 
-	for (i = 0; i < scene->n_objects; i++)
-		ray_object_prepare(&scene->objects[i], camera);
+	for (object = scene->objects; object->type; object++)
+		ray_object_prepare(object, camera);
 }
