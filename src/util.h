@@ -21,6 +21,12 @@
 #define cstrlen(_str) \
 	(sizeof(_str) - 1)
 
+#define MIN(_a, _b) \
+	((_a) < (_b) ? (_a) : (_b))
+
+#define MAX(_a, _b) \
+	((_a) > (_b) ? (_a) : (_b))
+
 unsigned get_ncpus(void);
 void ask_string(char *buf, int len, const char *prompt, const char *def);
 void ask_num(int *res, int max, const char *prompt, int def);
