@@ -10,7 +10,7 @@
 #include "ray_scene.h"
 
 #define MAX_RECURSION_DEPTH	4
-
+#define MIN_RELEVANCE		0.05f
 
 
 /* Determine if the ray is obstructed by an object within the supplied distance, for shadows */
@@ -163,8 +163,6 @@ static inline ray_color_t trace_ray(ray_scene_t *scene, ray_ray_t *primary_ray)
 			reflected_ray.direction = new_direction;
 
 			ray = &reflected_ray;
-
-			relevance *= reflectivity;
 		}
 
 		nearest_object = find_nearest_intersection(scene, reflector, ray, depth, &nearest_distance);
@@ -182,7 +180,7 @@ static inline ray_color_t trace_ray(ray_scene_t *scene, ray_ray_t *primary_ray)
 		}
 
 		reflector = nearest_object;
-	} while (reflector && (++depth < MAX_RECURSION_DEPTH));
+	} while (reflector && (++depth < MAX_RECURSION_DEPTH) && (relevance *= reflectivity) >= MIN_RELEVANCE);
 
 	return color;
 }
