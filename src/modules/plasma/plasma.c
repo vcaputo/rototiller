@@ -89,7 +89,7 @@ static void plasma_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *
 static void plasma_render_fragment(void *context, fb_fragment_t *fragment)
 {
 	plasma_context_t	*ctxt = context;
-	unsigned		stride = fragment->stride / 4, width = fragment->width, height = fragment->height;
+	unsigned		width = fragment->width, height = fragment->height;
 	int			fw2 = FIXED_NEW(width / 2), fh2 = FIXED_NEW(height / 2);
 	int			x, y, cx, cy, dx2, dy2;
 	uint32_t		*buf = fragment->buf;
@@ -148,7 +148,7 @@ static void plasma_render_fragment(void *context, fb_fragment_t *fragment)
 			*buf = color2pixel(&c);
 		}
 
-		buf += stride;
+		buf = ((void *)buf) + fragment->stride;
 	}
 }
 

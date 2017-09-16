@@ -133,7 +133,7 @@ static void julia_render_fragment(void *context, fb_fragment_t *fragment)
 {
 	julia_context_t	*ctxt = context;
 	unsigned	x, y;
-	unsigned	stride = fragment->stride / 4, width = fragment->width, height = fragment->height;
+	unsigned	width = fragment->width, height = fragment->height;
 	uint32_t	*buf = fragment->buf;
 	float		real, imag;
 	float		realstep = 3.6f / (float)fragment->frame_width, imagstep = 3.6f / (float)fragment->frame_height;
@@ -145,7 +145,7 @@ static void julia_render_fragment(void *context, fb_fragment_t *fragment)
 			*buf = colors[julia_iter(real, imag, ctxt->creal, ctxt->cimag, sizeof(colors) / sizeof(*colors))];
 		}
 
-		buf += stride;
+		buf = ((void *)buf) + fragment->stride;
 	}
 }
 

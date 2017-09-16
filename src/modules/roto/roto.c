@@ -203,7 +203,7 @@ static void roto32_render_fragment(void *context, fb_fragment_t *fragment)
 {
 	roto_context_t	*ctxt = context;
 	int		y_cos_r, y_sin_r, x_cos_r, x_sin_r, x_cos_r_init, x_sin_r_init, cos_r, sin_r;
-	int		x, y, stride = fragment->stride / 4, frame_width = fragment->frame_width, frame_height = fragment->frame_height;
+	int		x, y, frame_width = fragment->frame_width, frame_height = fragment->frame_height;
 	uint32_t	*buf = fragment->buf;
 
 	/* This is all done using fixed-point in the hopes of being faster, and yes assumptions
@@ -240,7 +240,7 @@ static void roto32_render_fragment(void *context, fb_fragment_t *fragment)
 			x_sin_r += sin_r;
 		}
 
-		buf += stride;
+		buf = ((void *)buf) + fragment->stride;
 		y_cos_r += cos_r;
 		y_sin_r += sin_r;
 	}
@@ -253,7 +253,7 @@ static void roto64_render_fragment(void *context, fb_fragment_t *fragment)
 {
 	roto_context_t	*ctxt = context;
 	int		y_cos_r, y_sin_r, x_cos_r, x_sin_r, x_cos_r_init, x_sin_r_init, cos_r, sin_r;
-	int		x, y, stride = fragment->stride / 8, frame_width = fragment->frame_width, frame_height = fragment->frame_height, width = fragment->width;
+	int		x, y, frame_width = fragment->frame_width, frame_height = fragment->frame_height, width = fragment->width;
 	uint64_t	*buf = (uint64_t *)fragment->buf;
 
 	/* This is all done using fixed-point in the hopes of being faster, and yes assumptions
@@ -301,7 +301,7 @@ static void roto64_render_fragment(void *context, fb_fragment_t *fragment)
 			x_sin_r += sin_r;
 		}
 
-		buf += stride;
+		buf = ((void *)buf) + fragment->stride;
 		y_cos_r += cos_r;
 		y_sin_r += sin_r;
 	}

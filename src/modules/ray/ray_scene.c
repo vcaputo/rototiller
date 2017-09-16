@@ -190,7 +190,6 @@ static inline ray_color_t trace_ray(ray_scene_t *scene, ray_ray_t *primary_ray)
 
 void ray_scene_render_fragment(ray_scene_t *scene, fb_fragment_t *fb_fragment)
 {
-	unsigned		stride = fb_fragment->stride / 4;
 	uint32_t		*buf = fb_fragment->buf;
 	ray_camera_fragment_t	fragment;
 	ray_ray_t		ray;
@@ -202,7 +201,7 @@ void ray_scene_render_fragment(ray_scene_t *scene, fb_fragment_t *fb_fragment)
 			buf++;
 		} while (ray_camera_fragment_x_step(&fragment));
 
-		buf += stride;
+		buf = ((void *)buf) + fb_fragment->stride;
 	} while (ray_camera_fragment_y_step(&fragment));
 }
 
