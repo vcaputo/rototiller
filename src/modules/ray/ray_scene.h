@@ -11,10 +11,7 @@ typedef union ray_object_t ray_object_t;
 
 typedef struct ray_scene_t {
 	ray_object_t		*objects;
-	unsigned		n_objects;
-
 	ray_object_t		*lights;
-	unsigned		n_lights;
 
 	ray_color_t		ambient_color;
 	float			ambient_brightness;
