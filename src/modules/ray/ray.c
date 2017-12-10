@@ -97,24 +97,24 @@ static ray_object_t	lights[] = {
 };
 
 static ray_camera_t	camera = {
-				.position = { .x = 0.0, .y = 0.0, .z = 6.0 },
-				.orientation = {
-					.order = RAY_EULER_ORDER_YPR, /* yaw,pitch,roll */
-					.yaw = RAY_EULER_DEGREES(0.0f),
-					.pitch = RAY_EULER_DEGREES(0.0f),
-					.roll = RAY_EULER_DEGREES(0.0f),
-				},
-				.focal_length = 700.0f,
-			};
+	.position = { .x = 0.0, .y = 0.0, .z = 6.0 },
+	.orientation = {
+		.order = RAY_EULER_ORDER_YPR, /* yaw,pitch,roll */
+		.yaw = RAY_EULER_DEGREES(0.0f),
+		.pitch = RAY_EULER_DEGREES(0.0f),
+		.roll = RAY_EULER_DEGREES(0.0f),
+	},
+	.focal_length = 700.0f,
+};
 
 static ray_scene_t	scene = {
-				.objects = objects,
-				.lights = lights,
-				.ambient_color = { .x = 1.0f, .y = 1.0f, .z = 1.0f },
-				.ambient_brightness = .04f,
-			};
+	.objects = objects,
+	.lights = lights,
+	.ambient_color = { .x = 1.0f, .y = 1.0f, .z = 1.0f },
+	.ambient_brightness = .04f,
+};
 
-static float		r;
+static float	r;
 
 
 static int ray_fragmenter(void *context, const fb_fragment_t *fragment, unsigned num, fb_fragment_t *res_fragment)
