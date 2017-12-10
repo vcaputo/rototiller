@@ -117,6 +117,22 @@ static ray_scene_t	scene = {
 static float	r;
 
 
+typedef struct ray_context_t {
+} ray_context_t;
+
+
+static void * ray_create_context(void)
+{
+	return calloc(1, sizeof(ray_context_t));
+}
+
+
+static void ray_destroy_context(void *context)
+{
+	free(context);
+}
+
+
 static int ray_fragmenter(void *context, const fb_fragment_t *fragment, unsigned num, fb_fragment_t *res_fragment)
 {
 	return fb_fragment_tile_single(fragment, 64, num, res_fragment);
@@ -165,6 +181,8 @@ static void ray_render_fragment(void *context, fb_fragment_t *fragment)
 
 
 rototiller_module_t	ray_module = {
+	.create_context = ray_create_context,
+	.destroy_context = ray_destroy_context,
 	.prepare_frame = ray_prepare_frame,
 	.render_fragment = ray_render_fragment,
 	.name = "ray",
