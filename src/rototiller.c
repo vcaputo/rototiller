@@ -70,10 +70,13 @@ static void module_render_page_threaded(rototiller_module_t *module, void *conte
 
 static void module_render_page(rototiller_module_t *module, void *context, threads_t *threads, fb_page_t *page)
 {
-	if (!module->prepare_frame)
-		return module->render_fragment(context, &page->fragment);
+	if (module->prepare_frame)
+		module_render_page_threaded(module, context, threads, page);
+	else
+		module->render_fragment(context, &page->fragment);
 
-	module_render_page_threaded(module, context, threads, page);
+	if (module->finish_frame)
+		module->finish_frame(context, &page->fragment);
 }
 
 
