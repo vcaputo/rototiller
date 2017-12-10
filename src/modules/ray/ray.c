@@ -8,6 +8,7 @@
 
 #include "ray_camera.h"
 #include "ray_object.h"
+#include "ray_render.h"
 #include "ray_scene.h"
 
 /* Copyright (C) 2016-2017 Vito Caputo <vcaputo@pengaru.com> */
@@ -118,6 +119,7 @@ static float	r;
 
 
 typedef struct ray_context_t {
+	ray_render_t	*render;
 } ray_context_t;
 
 
@@ -142,6 +144,8 @@ static int ray_fragmenter(void *context, const fb_fragment_t *fragment, unsigned
 /* prepare a frame for concurrent rendering */
 static void ray_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
 {
+	ray_context_t	*ctxt = context;
+
 	*res_fragmenter = ray_fragmenter;
 
 	/* TODO: the camera doesn't need the width and height anymore, the fragment has the frame_width/frame_height */
@@ -169,14 +173,24 @@ static void ray_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fra
 	/* tilt camera pitch in time with up and down movements, phase shifted appreciably */
 	camera.orientation.pitch = -(sinf((M_PI * 1.5f) + r * 1.3f) * .6f + -.35f);
 #endif
-	ray_scene_prepare(&scene, &camera);
+	ctxt->render = ray_render_new(&scene, &camera);
 }
 
 
 /* ray trace a simple scene into the fragment */
 static void ray_render_fragment(void *context, fb_fragment_t *fragment)
 {
-	ray_scene_render_fragment(&scene, fragment);
+	ray_context_t	*ctxt = context;
+
+	ray_render_trace_fragment(ctxt->render, fragment);
+}
+
+
+static void ray_finish_frame(void *context, fb_fragment_t *fragment)
+{
+	ray_context_t	*ctxt = context;
+
+	ray_render_free(ctxt->render);
 }
 
 
@@ -185,6 +199,7 @@ rototiller_module_t	ray_module = {
 	.destroy_context = ray_destroy_context,
 	.prepare_frame = ray_prepare_frame,
 	.render_fragment = ray_render_fragment,
+	.finish_frame = ray_finish_frame,
 	.name = "ray",
 	.description = "Ray tracer (threaded)",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",

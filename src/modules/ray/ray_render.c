@@ -12,13 +12,20 @@
 #define MAX_RECURSION_DEPTH	4
 #define MIN_RELEVANCE		0.05f
 
+typedef struct ray_render_t {
+	const ray_scene_t	*scene;		/* scene being rendered */
+	const ray_camera_t	*camera;	/* camera rendering the scene */
+
+	ray_color_t		ambient_light;
+	ray_camera_frame_t	frame;
+} ray_render_t;
 
 /* Determine if the ray is obstructed by an object within the supplied distance, for shadows */
-static inline int ray_is_obstructed(ray_scene_t *scene, unsigned depth, ray_ray_t *ray, float distance)
+static inline int ray_is_obstructed(ray_render_t *render, unsigned depth, ray_ray_t *ray, float distance)
 {
 	ray_object_t	*object;
 
-	for (object = scene->objects; object->type; object++) {
+	for (object = render->scene->objects; object->type; object++) {
 		float	ood;
 
 		if (ray_object_intersects_ray(object, depth, ray, &ood) &&
@@ -32,14 +39,14 @@ static inline int ray_is_obstructed(ray_scene_t *scene, unsigned depth, ray_ray_
 
 
 /* shadow test */
-static inline int point_is_shadowed(ray_scene_t *scene, unsigned depth, ray_3f_t *light_direction, float distance, ray_3f_t *point)
+static inline int point_is_shadowed(ray_render_t *render, unsigned depth, ray_3f_t *light_direction, float distance, ray_3f_t *point)
 {
 	ray_ray_t	shadow_ray;
 
 	shadow_ray.direction = *light_direction;
 	shadow_ray.origin = *point;
 
-	if (ray_is_obstructed(scene, depth + 1, &shadow_ray, distance))
+	if (ray_is_obstructed(render, depth + 1, &shadow_ray, distance))
 		return 1;
 
 	return 0;
@@ -57,21 +64,21 @@ static inline float approx_powf(float x, float y)
 
 
 /* Determine the color @ distance on ray on object viewed from origin */
-static inline ray_color_t shade_intersection(ray_scene_t *scene, ray_object_t *object, ray_ray_t *ray, ray_3f_t *intersection, ray_3f_t *normal, unsigned depth, float *res_reflectivity)
+static inline ray_color_t shade_intersection(ray_render_t *render, ray_object_t *object, ray_ray_t *ray, ray_3f_t *intersection, ray_3f_t *normal, unsigned depth, float *res_reflectivity)
 {
 	ray_surface_t	surface = ray_object_surface(object, intersection);
-	ray_color_t	color = ray_3f_mult(&surface.color, &scene->_prepared.ambient_light);
+	ray_color_t	color = ray_3f_mult(&surface.color, &render->ambient_light);
 	ray_object_t	*light;
 
 	/* visit lights for shadows and illumination */
-	for (light = scene->lights; light->type; light++) {
+	for (light = render->scene->lights; light->type; light++) {
 		ray_3f_t	lvec = ray_3f_sub(&light->light.emitter.point.center, intersection);
 		float		ldist = ray_3f_length(&lvec);
 		float		lvec_normal_dot;
 
 		lvec = ray_3f_mult_scalar(&lvec, (1.0f / ldist)); /* normalize lvec */
 #if 1
-		if (point_is_shadowed(scene, depth, &lvec, ldist, intersection))
+		if (point_is_shadowed(render, depth, &lvec, ldist, intersection))
 			continue;
 #endif
 		lvec_normal_dot = ray_3f_dot(normal, &lvec);
@@ -109,13 +116,13 @@ static inline ray_color_t shade_intersection(ray_scene_t *scene, ray_object_t *o
 }
 
 
-static inline ray_object_t * find_nearest_intersection(ray_scene_t *scene, ray_object_t *reflector, ray_ray_t *ray, unsigned depth, float *res_distance)
+static inline ray_object_t * find_nearest_intersection(ray_render_t *render, ray_object_t *reflector, ray_ray_t *ray, unsigned depth, float *res_distance)
 {
 	ray_object_t	*nearest_object = NULL;
 	float		nearest_object_distance = INFINITY;
 	ray_object_t	*object;
 
-	for (object = scene->objects; object->type; object++) {
+	for (object = render->scene->objects; object->type; object++) {
 		float		distance;
 
 		/* Don't bother checking if a reflected ray intersects the object reflecting it,
@@ -140,7 +147,7 @@ static inline ray_object_t * find_nearest_intersection(ray_scene_t *scene, ray_o
 }
 
 
-static inline ray_color_t trace_ray(ray_scene_t *scene, ray_ray_t *primary_ray)
+static inline ray_color_t trace_ray(ray_render_t *render, ray_ray_t *primary_ray)
 {
 	ray_color_t	color = { .x = 0.0f, .y = 0.0f, .z = 0.0f };
 	ray_3f_t	intersection, normal;
@@ -165,7 +172,7 @@ static inline ray_color_t trace_ray(ray_scene_t *scene, ray_ray_t *primary_ray)
 			ray = &reflected_ray;
 		}
 
-		nearest_object = find_nearest_intersection(scene, reflector, ray, depth, &nearest_distance);
+		nearest_object = find_nearest_intersection(render, reflector, ray, depth, &nearest_distance);
 		if (nearest_object) {
 			ray_3f_t	more_color;
 			ray_3f_t	rvec;
@@ -174,7 +181,7 @@ static inline ray_color_t trace_ray(ray_scene_t *scene, ray_ray_t *primary_ray)
 			intersection = ray_3f_add(&ray->origin, &rvec);
 			normal = ray_object_normal(nearest_object, &intersection);
 
-			more_color = shade_intersection(scene, nearest_object, ray, &intersection, &normal, depth, &reflectivity);
+			more_color = shade_intersection(render, nearest_object, ray, &intersection, &normal, depth, &reflectivity);
 			more_color = ray_3f_mult_scalar(&more_color, relevance);
 			color = ray_3f_add(&color, &more_color);
 		}
@@ -186,16 +193,16 @@ static inline ray_color_t trace_ray(ray_scene_t *scene, ray_ray_t *primary_ray)
 }
 
 
-void ray_scene_render_fragment(ray_scene_t *scene, fb_fragment_t *fb_fragment)
+void ray_render_trace_fragment(ray_render_t *render, fb_fragment_t *fb_fragment)
 {
 	uint32_t		*buf = fb_fragment->buf;
 	ray_camera_fragment_t	fragment;
 	ray_ray_t		ray;
 
-	ray_camera_fragment_begin(&scene->_prepared.frame, fb_fragment, &ray, &fragment);
+	ray_camera_fragment_begin(&render->frame, fb_fragment, &ray, &fragment);
 	do {
 		do {
-			*buf = ray_color_to_uint32_rgb(trace_ray(scene, &ray));
+			*buf = ray_color_to_uint32_rgb(trace_ray(render, &ray));
 			buf++;
 		} while (ray_camera_fragment_x_step(&fragment));
 
@@ -207,13 +214,29 @@ void ray_scene_render_fragment(ray_scene_t *scene, fb_fragment_t *fb_fragment)
 /* prepare the scene for rendering with camera, must be called whenever anything in the scene+camera pair has been changed. */
 /* this is basically a time for the raytracer to precompute whatever it can which otherwise ends up occurring per-ray */
 /* the camera is included so primary rays which all have a common origin may be optimized for */
-void ray_scene_prepare(ray_scene_t *scene, ray_camera_t *camera)
+ray_render_t * ray_render_new(ray_scene_t *scene, ray_camera_t *camera)
 {
+	ray_render_t	*render;
 	ray_object_t	*object;
 
-	scene->_prepared.ambient_light = ray_3f_mult_scalar(&scene->ambient_color, scene->ambient_brightness);
-	ray_camera_frame_prepare(camera, &scene->_prepared.frame);
+	render = malloc(sizeof(ray_render_t));
+	if (!render)
+		return NULL;
+
+	render->scene = scene;
+	render->camera = camera;
+
+	render->ambient_light = ray_3f_mult_scalar(&scene->ambient_color, scene->ambient_brightness);
+	ray_camera_frame_prepare(camera, &render->frame);
 
 	for (object = scene->objects; object->type; object++)
 		ray_object_prepare(object, camera);
+
+	return render;
+}
+
+
+void ray_render_free(ray_render_t *render)
+{
+	free(render);
 }
