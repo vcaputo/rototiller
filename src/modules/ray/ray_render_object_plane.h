@@ -15,7 +15,7 @@ typedef struct ray_render_object_plane_t {
 } ray_render_object_plane_t;
 
 
-static ray_render_object_plane_t ray_render_object_plane_prepare(ray_object_plane_t *plane, ray_camera_t *camera)
+static ray_render_object_plane_t ray_render_object_plane_prepare(const ray_object_plane_t *plane, const ray_camera_t *camera)
 {
 	ray_render_object_plane_t	prepared = { .object = *plane };
 

@@ -25,7 +25,7 @@ typedef union ray_render_object_t {
  * If the object has any pre-calculating to do, this is where it happens.
  * The pre-calculated stuff is object-resident under a _prepared struct member.
  */
-static inline ray_render_object_t ray_render_object_prepare(ray_object_t *object, ray_camera_t *camera)
+static inline ray_render_object_t ray_render_object_prepare(const ray_object_t *object, const ray_camera_t *camera)
 {
 	ray_render_object_t	prepared = { .type = object->type };
 

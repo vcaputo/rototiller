@@ -28,6 +28,6 @@ typedef struct ray_euler_t {
 #define RAY_EULER_DEGREES(_deg) \
 	(_deg * (2 * M_PI / 360.0f))
 
-void ray_euler_basis(ray_euler_t *e, ray_3f_t *forward, ray_3f_t *up, ray_3f_t *left);
+void ray_euler_basis(const ray_euler_t *e, ray_3f_t *forward, ray_3f_t *up, ray_3f_t *left);
 
 #endif

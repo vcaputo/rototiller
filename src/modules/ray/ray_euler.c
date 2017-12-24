@@ -5,7 +5,7 @@
 #include "ray_euler.h"
 
 /* produce orthonormal basis vectors from euler angles, rotated in the specified order */
-void ray_euler_basis(ray_euler_t *e, ray_3f_t *forward, ray_3f_t *up, ray_3f_t *left)
+void ray_euler_basis(const ray_euler_t *e, ray_3f_t *forward, ray_3f_t *up, ray_3f_t *left)
 {
 	float	cos_yaw = cosf(e->yaw);
 	float	sin_yaw = sinf(e->yaw);

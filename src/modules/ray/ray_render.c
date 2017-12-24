@@ -216,7 +216,7 @@ void ray_render_trace_fragment(ray_render_t *render, fb_fragment_t *fb_fragment)
 /* prepare the scene for rendering with camera, must be called whenever anything in the scene+camera pair has been changed. */
 /* this is basically a time for the raytracer to precompute whatever it can which otherwise ends up occurring per-ray */
 /* the camera is included so primary rays which all have a common origin may be optimized for */
-ray_render_t * ray_render_new(ray_scene_t *scene, ray_camera_t *camera)
+ray_render_t * ray_render_new(const ray_scene_t *scene, const ray_camera_t *camera)
 {
 	ray_render_t	*render;
 	ray_object_t	*object;

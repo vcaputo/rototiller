@@ -21,7 +21,7 @@ typedef struct ray_render_object_sphere_t {
 } ray_render_object_sphere_t;
 
 
-static ray_render_object_sphere_t ray_render_object_sphere_prepare(ray_object_sphere_t *sphere, ray_camera_t *camera)
+static ray_render_object_sphere_t ray_render_object_sphere_prepare(const ray_object_sphere_t *sphere, const ray_camera_t *camera)
 {
 	ray_render_object_sphere_t	prepared = { .object = *sphere };
 

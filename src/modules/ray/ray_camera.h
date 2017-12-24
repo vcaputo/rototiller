@@ -20,10 +20,10 @@ typedef struct ray_camera_t {
 
 
 typedef struct ray_camera_frame_t {
-	ray_camera_t	*camera;		/* the camera supplied to frame_begin() */
+	const ray_camera_t	*camera;		/* the camera supplied to frame_begin() */
 
-	ray_3f_t	nw, ne, sw, se;		/* directions pointing through the corners of the frame fragment */
-	float		x_delta, y_delta;	/* interpolation step delta along the x and y axis */
+	ray_3f_t		nw, ne, sw, se;		/* directions pointing through the corners of the frame fragment */
+	float			x_delta, y_delta;	/* interpolation step delta along the x and y axis */
 } ray_camera_frame_t;
 
 
@@ -38,7 +38,7 @@ typedef struct ray_camera_fragment_t {
 } ray_camera_fragment_t;
 
 
-void ray_camera_frame_prepare(ray_camera_t *camera, ray_camera_frame_t *res_frame);
+void ray_camera_frame_prepare(const ray_camera_t *camera, ray_camera_frame_t *res_frame);
 void ray_camera_fragment_begin(ray_camera_frame_t *frame, fb_fragment_t *fb_fragment, ray_ray_t *res_ray, ray_camera_fragment_t *res_fragment);
 
 

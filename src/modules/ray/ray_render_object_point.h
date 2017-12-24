@@ -14,7 +14,7 @@ typedef struct ray_render_object_point_t {
 } ray_render_object_point_t;
 
 
-static ray_render_object_point_t ray_render_object_point_prepare(ray_object_point_t *point, ray_camera_t *camera)
+static ray_render_object_point_t ray_render_object_point_prepare(const ray_object_point_t *point, const ray_camera_t *camera)
 {
 	ray_render_object_point_t	prepared = { .object = *point };
 

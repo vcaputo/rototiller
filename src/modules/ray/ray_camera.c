@@ -21,7 +21,7 @@ static ray_3f_t project_corner(ray_3f_t *forward, ray_3f_t *left, ray_3f_t *up, 
 
 
 /* Produce vectors for the corners of the entire camera frame, used for interpolation. */
-static void project_corners(ray_camera_t *camera, ray_camera_frame_t *frame)
+static void project_corners(const ray_camera_t *camera, ray_camera_frame_t *frame)
 {
 	ray_3f_t	forward, left, up, right, down;
 	float		half_horiz = (float)camera->width * 0.5f;
@@ -39,7 +39,7 @@ static void project_corners(ray_camera_t *camera, ray_camera_frame_t *frame)
 
 
 /* Prepare a frame of camera projection, initializing res_frame. */
-void ray_camera_frame_prepare(ray_camera_t *camera, ray_camera_frame_t *res_frame)
+void ray_camera_frame_prepare(const ray_camera_t *camera, ray_camera_frame_t *res_frame)
 {
 	res_frame->camera = camera;
 
