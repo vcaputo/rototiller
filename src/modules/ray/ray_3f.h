@@ -9,7 +9,7 @@ typedef struct ray_3f_t {
 
 
 /* return the result of (a + b) */
-static inline ray_3f_t ray_3f_add(ray_3f_t *a, ray_3f_t *b)
+static inline ray_3f_t ray_3f_add(const ray_3f_t *a, const ray_3f_t *b)
 {
 	ray_3f_t	res = {
 				.x = a->x + b->x,
@@ -22,7 +22,7 @@ static inline ray_3f_t ray_3f_add(ray_3f_t *a, ray_3f_t *b)
 
 
 /* return the result of (a - b) */
-static inline ray_3f_t ray_3f_sub(ray_3f_t *a, ray_3f_t *b)
+static inline ray_3f_t ray_3f_sub(const ray_3f_t *a, const ray_3f_t *b)
 {
 	ray_3f_t	res = {
 				.x = a->x - b->x,
@@ -35,7 +35,7 @@ static inline ray_3f_t ray_3f_sub(ray_3f_t *a, ray_3f_t *b)
 
 
 /* return the result of (-v) */
-static inline ray_3f_t ray_3f_negate(ray_3f_t *v)
+static inline ray_3f_t ray_3f_negate(const ray_3f_t *v)
 {
 	ray_3f_t	res = {
 				.x = -v->x,
@@ -48,7 +48,7 @@ static inline ray_3f_t ray_3f_negate(ray_3f_t *v)
 
 
 /* return the result of (a * b) */
-static inline ray_3f_t ray_3f_mult(ray_3f_t *a, ray_3f_t *b)
+static inline ray_3f_t ray_3f_mult(const ray_3f_t *a, const ray_3f_t *b)
 {
 	ray_3f_t	res = {
 				.x = a->x * b->x,
@@ -61,7 +61,7 @@ static inline ray_3f_t ray_3f_mult(ray_3f_t *a, ray_3f_t *b)
 
 
 /* return the result of (v * scalar) */
-static inline ray_3f_t ray_3f_mult_scalar(ray_3f_t *v, float scalar)
+static inline ray_3f_t ray_3f_mult_scalar(const ray_3f_t *v, float scalar)
 {
 	ray_3f_t	res = {
 				.x = v->x * scalar,
@@ -74,7 +74,7 @@ static inline ray_3f_t ray_3f_mult_scalar(ray_3f_t *v, float scalar)
 
 
 /* return the result of (uv / scalar) */
-static inline ray_3f_t ray_3f_div_scalar(ray_3f_t *v, float scalar)
+static inline ray_3f_t ray_3f_div_scalar(const ray_3f_t *v, float scalar)
 {
 	ray_3f_t	res = {
 				.x = v->x / scalar,
@@ -87,28 +87,28 @@ static inline ray_3f_t ray_3f_div_scalar(ray_3f_t *v, float scalar)
 
 
 /* return the result of (a . b) */
-static inline float ray_3f_dot(ray_3f_t *a, ray_3f_t *b)
+static inline float ray_3f_dot(const ray_3f_t *a, const ray_3f_t *b)
 {
 	return a->x * b->x + a->y * b->y + a->z * b->z;
 }
 
 
 /* return the length of the supplied vector */
-static inline float ray_3f_length(ray_3f_t *v)
+static inline float ray_3f_length(const ray_3f_t *v)
 {
 	return sqrtf(ray_3f_dot(v, v));
 }
 
 
 /* return the normalized form of the supplied vector */
-static inline ray_3f_t ray_3f_normalize(ray_3f_t *v)
+static inline ray_3f_t ray_3f_normalize(const ray_3f_t *v)
 {
 	return ray_3f_mult_scalar(v, 1.0f / ray_3f_length(v));
 }
 
 
 /* return the distance between two arbitrary points */
-static inline float ray_3f_distance(ray_3f_t *a, ray_3f_t *b)
+static inline float ray_3f_distance(const ray_3f_t *a, const ray_3f_t *b)
 {
 	ray_3f_t	delta = ray_3f_sub(a, b);
 
@@ -117,7 +117,7 @@ static inline float ray_3f_distance(ray_3f_t *a, ray_3f_t *b)
 
 
 /* return the cross product of two unit vectors */
-static inline ray_3f_t ray_3f_cross(ray_3f_t *a, ray_3f_t *b)
+static inline ray_3f_t ray_3f_cross(const ray_3f_t *a, const ray_3f_t *b)
 {
 	ray_3f_t	product;
 
@@ -130,7 +130,7 @@ static inline ray_3f_t ray_3f_cross(ray_3f_t *a, ray_3f_t *b)
 
 
 /* return the linearly interpolated vector between the two vectors at point alpha (0-1.0) */
-static inline ray_3f_t ray_3f_lerp(ray_3f_t *a, ray_3f_t *b, float alpha)
+static inline ray_3f_t ray_3f_lerp(const ray_3f_t *a, const ray_3f_t *b, float alpha)
 {
 	ray_3f_t	lerp_a, lerp_b;
 
@@ -142,7 +142,7 @@ static inline ray_3f_t ray_3f_lerp(ray_3f_t *a, ray_3f_t *b, float alpha)
 
 
 /* return the normalized linearly interpolated vector between the two vectors at point alpha (0-1.0) */
-static inline ray_3f_t ray_3f_nlerp(ray_3f_t *a, ray_3f_t *b, float alpha)
+static inline ray_3f_t ray_3f_nlerp(const ray_3f_t *a, const ray_3f_t *b, float alpha)
 {
 	ray_3f_t	lerp;
 
