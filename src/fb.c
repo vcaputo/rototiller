@@ -86,15 +86,19 @@ typedef struct fb_t {
 #endif
 
 
-/* Synchronize with the page flip by waiting for its event. */
-static inline void fb_drm_flip_wait(fb_t *fb)
+/* Synchronously page flip to page */
+static int fb_flip_page_sync(fb_t *fb, _fb_page_t *page)
 {
 	drmEventContext	drm_ev_ctx = {
 				.version = DRM_EVENT_CONTEXT_VERSION,
 				.vblank_handler = NULL,
 				.page_flip_handler = NULL
 			};
-	drmHandleEvent(fb->drm_fd, &drm_ev_ctx);
+
+	if (drmModePageFlip(fb->drm_fd, fb->drm_crtc_id, page->drm_fb_id, DRM_MODE_PAGE_FLIP_EVENT, NULL) < 0)
+		return -1;
+
+	return drmHandleEvent(fb->drm_fd, &drm_ev_ctx);
 }
 
 
@@ -121,9 +125,8 @@ static void * fb_flipper_thread(void *_fb)
 		pthread_mutex_unlock(&fb->ready_mutex);
 
 		/* submit the next active page for page flip on vsync, and wait for it. */
-		pexit_if(drmModePageFlip(fb->drm_fd, fb->drm_crtc_id, next_active_page->drm_fb_id, DRM_MODE_PAGE_FLIP_EVENT, NULL) < 0,
+		pexit_if(fb_flip_page_sync(fb, next_active_page) < 0,
 			"unable to flip page");
-		fb_drm_flip_wait(fb);
 
 		/* now that we're displaying a new page, make the previously active one inactive so rendering can reuse it */
 		pthread_mutex_lock(&fb->inactive_mutex);
