@@ -28,6 +28,15 @@ typedef struct fb_page_t {
 	fb_fragment_t	fragment;
 } fb_page_t;
 
+/* Supply this struct to fb_new() with the appropriate context */
+typedef struct fb_ops_t {
+	int	(*acquire)(void *context, void *page);
+	void	(*release)(void *context);
+	void *	(*page_alloc)(void *context, fb_page_t *res_page);
+	int	(*page_free)(void *context, void *page);
+	int	(*page_flip)(void *context, void *page);
+} fb_ops_t;
+
 typedef struct fb_t fb_t;
 
 fb_page_t * fb_page_get(fb_t *fb);
