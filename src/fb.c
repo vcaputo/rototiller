@@ -1,17 +1,8 @@
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
+#include <assert.h>
 #include <pthread.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdint.h>
-#include <inttypes.h>
-#include <xf86drm.h>
-#include <xf86drmMode.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <stdint.h>
-#include <sys/ioctl.h>
-#include <sys/mman.h>
 
 #include "fb.h"
 #include "util.h"
@@ -53,18 +44,17 @@
  */
 typedef struct _fb_page_t _fb_page_t;
 struct _fb_page_t {
+	void		*ops_page;
+
 	_fb_page_t	*next;
-	uint32_t	*mmap;
-	size_t		mmap_size;
-	uint32_t	drm_dumb_handle;
-	uint32_t	drm_fb_id;
 	fb_page_t	public_page;
 };
 
 typedef struct fb_t {
+	const fb_ops_t	*ops;
+	void		*ops_context;
+
 	pthread_t	thread;
-	int		drm_fd;
-	uint32_t	drm_crtc_id;
 
 	_fb_page_t	*active_page;		/* page currently displayed */
 
@@ -84,22 +74,6 @@ typedef struct fb_t {
 #define container_of(_ptr, _type, _member) \
 	(_type *)((void *)(_ptr) - offsetof(_type, _member))
 #endif
-
-
-/* Synchronously page flip to page */
-static int fb_flip_page_sync(fb_t *fb, _fb_page_t *page)
-{
-	drmEventContext	drm_ev_ctx = {
-				.version = DRM_EVENT_CONTEXT_VERSION,
-				.vblank_handler = NULL,
-				.page_flip_handler = NULL
-			};
-
-	if (drmModePageFlip(fb->drm_fd, fb->drm_crtc_id, page->drm_fb_id, DRM_MODE_PAGE_FLIP_EVENT, NULL) < 0)
-		return -1;
-
-	return drmHandleEvent(fb->drm_fd, &drm_ev_ctx);
-}
 
 
 /* Consumes ready pages queued via fb_page_put(), submits them to drm to flip
@@ -125,7 +99,7 @@ static void * fb_flipper_thread(void *_fb)
 		pthread_mutex_unlock(&fb->ready_mutex);
 
 		/* submit the next active page for page flip on vsync, and wait for it. */
-		pexit_if(fb_flip_page_sync(fb, next_active_page) < 0,
+		pexit_if(fb->ops->page_flip(fb->ops_context, next_active_page->ops_page) < 0,
 			"unable to flip page");
 
 		/* now that we're displaying a new page, make the previously active one inactive so rendering can reuse it */
@@ -140,60 +114,59 @@ static void * fb_flipper_thread(void *_fb)
 }
 
 
-/* creates a framebuffer page, which is a coupled drm_fb object and mmap region of memory */
-static void fb_page_new(fb_t *fb, drmModeModeInfoPtr mode)
+/* acquire the fb, making page the visible page */
+static int fb_acquire(fb_t *fb, _fb_page_t *page)
 {
-	_fb_page_t			*page;
-	struct drm_mode_create_dumb	create_dumb = {
-						.width = mode->hdisplay,
-						.height = mode->vdisplay,
-						.bpp = 32,
-						.flags = 0, // unused,
-					};
-	struct drm_mode_map_dumb	map_dumb = {
-						.pad = 0, // unused
-					};
-	uint32_t			*map, fb_id;
+	int	ret;
+
+	ret = fb->ops->acquire(fb->ops_context, page->ops_page);
+	if (ret < 0)
+		return ret;
+
+	fb->active_page = page;
+
+	/* start up the page flipper thread */
+	pthread_create(&fb->thread, NULL, fb_flipper_thread, fb);
+
+	return 0;
+}
+
+
+/* release the fb, making the visible page inactive */
+static void fb_release(fb_t *fb)
+{
+	pthread_cancel(fb->thread);
+	pthread_join(fb->thread, NULL);
+
+	fb->ops->release(fb->ops_context);
+	fb->active_page->next = fb->inactive_pages;
+	fb->inactive_pages = fb->active_page;
+	fb->active_page = NULL;
+}
+
+
+/* creates a framebuffer page */
+static void fb_page_new(fb_t *fb)
+{
+	_fb_page_t	*page;
 
 	page = calloc(1, sizeof(_fb_page_t));
+	assert(page);
 
-	pexit_if(ioctl(fb->drm_fd, DRM_IOCTL_MODE_CREATE_DUMB, &create_dumb) < 0,
-		"unable to create dumb buffer");
+	page->ops_page = fb->ops->page_alloc(fb->ops_context, &page->public_page);
 
-	map_dumb.handle = create_dumb.handle;
-	pexit_if(ioctl(fb->drm_fd, DRM_IOCTL_MODE_MAP_DUMB, &map_dumb) < 0,
-		"unable to prepare dumb buffer for mmap");
-	pexit_if(!(map = mmap(NULL, create_dumb.size, PROT_READ|PROT_WRITE, MAP_SHARED, fb->drm_fd, map_dumb.offset)),
-		"unable to mmap dumb buffer");
-	pexit_if(drmModeAddFB(fb->drm_fd, mode->hdisplay, mode->vdisplay, 24, 32, create_dumb.pitch, create_dumb.handle, &fb_id) < 0,
-		"unable to add dumb buffer");
-
-	page->mmap = map;
-	page->mmap_size = create_dumb.size;
-	page->drm_dumb_handle = map_dumb.handle;
-	page->drm_fb_id = fb_id;
-
-	page->public_page.fragment.buf = map;
-	page->public_page.fragment.width = mode->hdisplay;
-	page->public_page.fragment.frame_width = mode->hdisplay;
-	page->public_page.fragment.height = mode->vdisplay;
-	page->public_page.fragment.frame_height = mode->vdisplay;
-	page->public_page.fragment.stride = create_dumb.pitch - (mode->hdisplay * 4);
-
+	pthread_mutex_lock(&fb->inactive_mutex);
 	page->next = fb->inactive_pages;
 	fb->inactive_pages = page;
+	pthread_mutex_unlock(&fb->inactive_mutex);
+
 }
 
 
 static void _fb_page_free(fb_t *fb, _fb_page_t *page)
 {
-	struct drm_mode_destroy_dumb	destroy_dumb = {
-						.handle = page->drm_dumb_handle,
-					};
+	fb->ops->page_free(fb->ops_context, page->ops_page);
 
-	drmModeRmFB(fb->drm_fd, page->drm_fb_id);
-	munmap(page->mmap, page->mmap_size);
-	ioctl(fb->drm_fd, DRM_IOCTL_MODE_DESTROY_DUMB, &destroy_dumb); // XXX: errors?
 	free(page);
 }
 
@@ -262,10 +235,8 @@ void fb_get_put_pages_count(fb_t *fb, unsigned *count)
 /* free the fb and associated resources */
 void fb_free(fb_t *fb)
 {
-	if (fb->active_page) {
-		pthread_cancel(fb->thread);
-		pthread_join(fb->thread, NULL);
-	}
+	if (fb->active_page)
+		fb_release(fb);
 
 	/* TODO: free all the pages */
 
@@ -279,11 +250,17 @@ void fb_free(fb_t *fb)
 
 
 /* create a new fb instance */
-fb_t * fb_new(int drm_fd, uint32_t crtc_id, uint32_t *connectors, int n_connectors, drmModeModeInfoPtr mode, int n_pages)
+fb_t * fb_new(const fb_ops_t *ops, void *context, int n_pages)
 {
-	int		i;
 	_fb_page_t	*page;
 	fb_t		*fb;
+	int		i;
+
+	assert(ops);
+	assert(ops->page_alloc);
+	assert(ops->page_free);
+	assert(ops->page_flip);
+	assert(n_pages > 1);
 
 	/* XXX: page-flipping is the only supported rendering model, requiring 2+ pages. */
 	if (n_pages < 2)
@@ -293,11 +270,11 @@ fb_t * fb_new(int drm_fd, uint32_t crtc_id, uint32_t *connectors, int n_connecto
 	if (!fb)
 		return NULL;
 
-	fb->drm_fd = drm_fd;
-	fb->drm_crtc_id = crtc_id;
+	fb->ops = ops;
+	fb->ops_context = context;
 
 	for (i = 0; i < n_pages; i++)
-		fb_page_new(fb, mode);
+		fb_page_new(fb);
 
 	pthread_mutex_init(&fb->ready_mutex, NULL);
 	pthread_cond_init(&fb->ready_cond, NULL);
@@ -305,20 +282,18 @@ fb_t * fb_new(int drm_fd, uint32_t crtc_id, uint32_t *connectors, int n_connecto
 	pthread_cond_init(&fb->inactive_cond, NULL);
 
 	page = _fb_page_get(fb);
+	if (!page)
+		goto fail;
 
-	/* set the video mode, pinning this page, set it as the active page. */
-	if (drmModeSetCrtc(drm_fd, crtc_id, page->drm_fb_id, 0, 0, connectors, n_connectors, mode) < 0) {
-		_fb_page_free(fb, page);
-		fb_free(fb);
-		return NULL;
-	}
-
-	fb->active_page = page;
-
-	/* start up the page flipper thread */
-	pthread_create(&fb->thread, NULL, fb_flipper_thread, fb);
+	if (fb_acquire(fb, page) < 0)
+		goto fail;
 
 	return fb;
+
+fail:
+	fb_free(fb);
+
+	return NULL;
 }
 
 

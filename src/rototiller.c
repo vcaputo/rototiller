@@ -9,6 +9,7 @@
 #include <xf86drm.h>
 #include <xf86drmMode.h>
 
+#include "drm_fb.h"
 #include "drmsetup.h"
 #include "fb.h"
 #include "fps.h"
@@ -24,6 +25,8 @@
  * another page so we can begin rendering another frame before vsync.  With
  * just two pages we end up twiddling thumbs until the vsync arrives.
  */
+
+extern fb_ops_t			drm_fb_ops;
 
 extern rototiller_module_t	julia_module;
 extern rototiller_module_t	plasma_module;
@@ -90,12 +93,16 @@ int main(int argc, const char *argv[])
 	int			module;
 	fb_t			*fb;
 	void			*context = NULL;
+	drm_fb_t		*drm_fb;
 
 	drm_setup(&drm_fd, &drm_crtc_id, &drm_connector_id, &drm_mode);
 	module_select(&module);
 
-	pexit_if(!(fb = fb_new(drm_fd, drm_crtc_id, &drm_connector_id, 1, drm_mode, NUM_FB_PAGES)),
-		"unable to create fb");
+	pexit_if(!(drm_fb = drm_fb_new(drm_fd, drm_crtc_id, &drm_connector_id, 1, drm_mode)),
+		"unable to create drm fb backend");
+
+	pexit_if(!(fb = fb_new(&drm_fb_ops, drm_fb, NUM_FB_PAGES)),
+		"unable to create fb frontend");
 
 	pexit_if(!fps_setup(),
 		"unable to setup fps counter");
