@@ -11,6 +11,7 @@
 #include <xf86drmMode.h>
 
 #include "drm_fb.h"
+#include "sdl_fb.h"
 #include "settings.h"
 #include "setup.h"
 #include "fb.h"
@@ -31,6 +32,8 @@
 #define DEFAULT_VIDEO	"drm"
 
 extern fb_ops_t			drm_fb_ops;
+extern fb_ops_t			sdl_fb_ops;
+fb_ops_t			*fb_ops;
 
 extern rototiller_module_t	julia_module;
 extern rototiller_module_t	plasma_module;
@@ -151,12 +154,13 @@ static int setup_video(settings_t *settings, setting_desc_t **next_setting)
 		setting_desc_t	*desc;
 		const char	*values[] = {
 					"drm",
+					"sdl",
 					NULL,
 				};
 
 		desc = setting_desc_new("Video Backend",
 					NULL,
-					"drm",
+					"[a-z]+",
 					DEFAULT_VIDEO,
 					values,
 					NULL);
@@ -168,11 +172,18 @@ static int setup_video(settings_t *settings, setting_desc_t **next_setting)
 		return 1;
 	}
 
-	/* XXX: this is temporarily simply restricted to drm */
-	if (strcmp(video, "drm"))
-		return -EINVAL;
+	/* XXX: this is kind of hacky for now */
+	if (!strcmp(video, "drm")) {
+		fb_ops = &drm_fb_ops;
 
-	return drm_fb_ops.setup(settings, next_setting);
+		return drm_fb_ops.setup(settings, next_setting);
+	} else if (!strcmp(video, "sdl")) {
+		fb_ops = &sdl_fb_ops;
+
+		return sdl_fb_ops.setup(settings, next_setting);
+	}
+
+	return -EINVAL;
 }
 
 /* select module if not yet selected, then setup the module. */
@@ -345,7 +356,7 @@ int main(int argc, const char *argv[])
 	exit_if(!(module = module_lookup(settings_get_key(setup.module, 0))),
 		"unable to lookup module from settings \"%s\"", settings_get_key(setup.module, 0));
 
-	exit_if(!(fb = fb_new(&drm_fb_ops, setup.video, NUM_FB_PAGES)),
+	exit_if(!(fb = fb_new(fb_ops, setup.video, NUM_FB_PAGES)),
 		"unable to create fb");
 
 	exit_if(!fps_setup(),
