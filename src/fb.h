@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "settings.h"
+
 /* All renderers should target fb_fragment_t, which may or may not represent
  * a full-screen mmap.  Helpers are provided for subdividing fragments for
  * concurrent renderers.
@@ -28,6 +30,9 @@ typedef struct fb_page_t {
 
 /* Supply this struct to fb_new() with the appropriate context */
 typedef struct fb_ops_t {
+	int	(*setup)(settings_t *settings, setting_desc_t **next);
+	void *	(*init)(settings_t *settings);
+	void	(*shutdown)(void *context);
 	int	(*acquire)(void *context, void *page);
 	void	(*release)(void *context);
 	void *	(*page_alloc)(void *context, fb_page_t *res_page);
@@ -41,7 +46,7 @@ fb_page_t * fb_page_get(fb_t *fb);
 void fb_page_put(fb_t *fb, fb_page_t *page);
 void fb_free(fb_t *fb);
 void fb_get_put_pages_count(fb_t *fb, unsigned *count);
-fb_t * fb_new(const fb_ops_t *ops, void *context, int n_pages);
+fb_t * fb_new(const fb_ops_t *ops, settings_t *settings, int n_pages);
 void fb_fragment_divide(fb_fragment_t *fragment, unsigned n_fragments, fb_fragment_t fragments[]);
 int fb_fragment_slice_single(const fb_fragment_t *fragment, unsigned n_fragments, unsigned num, fb_fragment_t *res_fragment);
 int fb_fragment_tile_single(const fb_fragment_t *fragment, unsigned tile_size, unsigned num, fb_fragment_t *res_fragment);

@@ -11,7 +11,8 @@
 #include <xf86drmMode.h>
 
 #include "drm_fb.h"
-#include "drmsetup.h"
+#include "settings.h"
+#include "setup.h"
 #include "fb.h"
 #include "fps.h"
 #include "rototiller.h"
@@ -26,6 +27,8 @@
  * another page so we can begin rendering another frame before vsync.  With
  * just two pages we end up twiddling thumbs until the vsync arrives.
  */
+#define DEFAULT_MODULE	"roto32"
+#define DEFAULT_VIDEO	"drm"
 
 extern fb_ops_t			drm_fb_ops;
 
@@ -48,16 +51,18 @@ static rototiller_module_t	*modules[] = {
 };
 
 
-static void module_select(int *module)
+rototiller_module_t * module_lookup(const char *name)
 {
-	int	i;
+	unsigned	i;
 
-	printf("\nModules\n");
+	assert(name);
+
 	for (i = 0; i < nelems(modules); i++) {
-		printf(" %i: %s - %s\n", i, modules[i]->name, modules[i]->description);
+		if (!strcasecmp(name, modules[i]->name))
+			return modules[i];
 	}
 
-	ask_num(module, nelems(modules) - 1, "Select module", 0);
+	return NULL;
 }
 
 
@@ -125,33 +130,229 @@ int parse_argv(int argc, const char *argv[], argv_t *res_args)
 	return 0;
 }
 
+typedef struct setup_t {
+	settings_t	*module;
+	settings_t	*video;
+} setup_t;
 
+/* FIXME: this is unnecessarily copy-pasta, i think modules should just be made
+ * more generic to encompass the setting up uniformly, then basically
+ * subclass the video backend vs. renderer stuff.
+ */
+
+/* select video backend if not yet selected, then setup the selected backend. */
+static int setup_video(settings_t *settings, setting_desc_t **next_setting)
+{
+	const char	*video;
+
+	/* XXX: there's only one option currently, so this is simple */
+	video = settings_get_key(settings, 0);
+	if (!video) {
+		setting_desc_t	*desc;
+		const char	*values[] = {
+					"drm",
+					NULL,
+				};
+
+		desc = setting_desc_new("Video Backend",
+					NULL,
+					"drm",
+					DEFAULT_VIDEO,
+					values,
+					NULL);
+		if (!desc)
+			return -ENOMEM;
+
+		*next_setting = desc;
+
+		return 1;
+	}
+
+	/* XXX: this is temporarily simply restricted to drm */
+	if (strcmp(video, "drm"))
+		return -EINVAL;
+
+	return drm_fb_ops.setup(settings, next_setting);
+}
+
+/* select module if not yet selected, then setup the module. */
+static int setup_module(settings_t *settings, setting_desc_t **next_setting)
+{
+	rototiller_module_t	*module;
+	const char		*name;
+
+	name = settings_get_key(settings, 0);
+	if (!name) {
+		const char	*values[nelems(modules) + 1] = {};
+		const char	*annotations[nelems(modules) + 1] = {};
+		setting_desc_t	*desc;
+		unsigned	i;
+
+		for (i = 0; i < nelems(modules); i++) {
+			values[i] = modules[i]->name;
+			annotations[i] = modules[i]->description;
+		}
+
+		desc = setting_desc_new("Renderer Module",
+					NULL,
+					"[a-zA-Z0-9]+",
+					DEFAULT_MODULE,
+					values,
+					annotations);
+		if (!desc)
+			return -ENOMEM;
+
+		*next_setting = desc;
+
+		return 1;
+	}
+
+	module = module_lookup(name);
+	if (!module)
+		return -EINVAL;
+
+	/* TODO: here's where the module-specific settings would get hooked */
+
+	return 0;
+}
+
+/* turn args into settings, automatically applying defaults if appropriate, or interactively if appropriate. */
+/* returns negative value on error, 0 when settings unchanged from args, 1 when changed */
+static int setup_from_args(argv_t *args, int defaults, setup_t *res_setup)
+{
+	int	r, changes = 0;
+	setup_t	setup;
+
+	setup.module = settings_new(args->module);
+	if (!setup.module)
+		return -ENOMEM;
+
+	setup.video = settings_new(args->video);
+	if (!setup.video) {
+		settings_free(setup.module);
+
+		return -ENOMEM;
+	}
+
+	r = setup_interactively(setup.module, setup_module, defaults);
+	if (r < 0) {
+		settings_free(setup.module);
+		settings_free(setup.video);
+
+		return r;
+	}
+
+	if (r)
+		changes = 1;
+
+	r = setup_interactively(setup.video, setup_video, defaults);
+	if (r < 0) {
+		settings_free(setup.module);
+		settings_free(setup.video);
+
+		return r;
+	}
+
+	if (r)
+		changes = 1;
+
+	*res_setup = setup;
+
+	return changes;
+}
+
+
+static int print_setup_as_args(setup_t *setup)
+{
+	char	*module_args, *video_args;
+	char	buf[64];
+	int	r;
+
+	module_args = settings_as_arg(setup->module);
+	if (!module_args) {
+		r = -ENOMEM;
+
+		goto _out;
+	}
+
+	video_args = settings_as_arg(setup->video);
+	if (!video_args) {
+		r = -ENOMEM;
+
+		goto _out_module;
+	}
+
+	r = printf("\nConfigured settings as flags:\n  --module=%s --video=%s\n\nPress enter to continue...\n",
+		module_args,
+		video_args);
+
+	if (r < 0)
+		goto _out_video;
+
+	(void) fgets(buf, sizeof(buf), stdin);
+
+_out_video:
+	free(video_args);
+_out_module:
+	free(module_args);
+_out:
+	return r;
+}
+
+
+static int print_help(void)
+{
+	return printf(
+		"Run without any flags or partial settings for interactive mode.\n"
+		"\n"
+		"Supported flags:\n"
+		"  --defaults	use defaults for unspecified settings\n"
+		"  --help	this help\n"
+		"  --module=	module settings\n"
+		"  --video=	video settings\n"
+		);
+}
+
+
+/* When run with partial/no arguments, if stdin is a tty, enter an interactive setup.
+ * If stdin is not a tty, or if --defaults is supplied in argv, default settings are used.
+ * If any changes to the settings occur in the course of execution, either interactively or
+ * throught --defaults, then print out the explicit CLI invocation usable for reproducing
+ * the invocation.
+ */
 int main(int argc, const char *argv[])
 {
-	int			drm_fd;
-	drmModeModeInfoPtr	drm_mode;
-	uint32_t		drm_crtc_id;
-	uint32_t		drm_connector_id;
-	threads_t		*threads;
-	int			module;
-	fb_t			*fb;
+	argv_t			args = {};
+	setup_t			setup = {};
 	void			*context = NULL;
-	drm_fb_t		*drm_fb;
+	rototiller_module_t	*module;
+	threads_t		*threads;
+	fb_t			*fb;
+	int			r;
 
-	drm_setup(&drm_fd, &drm_crtc_id, &drm_connector_id, &drm_mode);
-	module_select(&module);
+	exit_if(parse_argv(argc, argv, &args) < 0,
+		"unable to process arguments");
 
-	pexit_if(!(drm_fb = drm_fb_new(drm_fd, drm_crtc_id, &drm_connector_id, 1, drm_mode)),
-		"unable to create drm fb backend");
+	if (args.help)
+		return print_help() < 0 ? EXIT_FAILURE : EXIT_SUCCESS;
 
-	pexit_if(!(fb = fb_new(&drm_fb_ops, drm_fb, NUM_FB_PAGES)),
-		"unable to create fb frontend");
+	exit_if((r = setup_from_args(&args, args.defaults, &setup)) < 0,
+		"unable to setup");
 
-	pexit_if(!fps_setup(),
+	exit_if(r && print_setup_as_args(&setup) < 0,
+		"unable to print setup");
+
+	exit_if(!(module = module_lookup(settings_get_key(setup.module, 0))),
+		"unable to lookup module from settings \"%s\"", settings_get_key(setup.module, 0));
+
+	exit_if(!(fb = fb_new(&drm_fb_ops, setup.video, NUM_FB_PAGES)),
+		"unable to create fb");
+
+	exit_if(!fps_setup(),
 		"unable to setup fps counter");
 
-	exit_if(modules[module]->create_context &&
-		!(context = modules[module]->create_context()),
+	exit_if(module->create_context &&
+		!(context = module->create_context()),
 		"unable to create module context");
 
 	pexit_if(!(threads = threads_create()),
@@ -163,17 +364,16 @@ int main(int argc, const char *argv[])
 		fps_print(fb);
 
 		page = fb_page_get(fb);
-		module_render_page(modules[module], context, threads, page);
+		module_render_page(module, context, threads, page);
 		fb_page_put(fb, page);
 	}
 
 	threads_destroy(threads);
 
 	if (context)
-		modules[module]->destroy_context(context);
+		module->destroy_context(context);
 
 	fb_free(fb);
-	close(drm_fd);
 
 	return EXIT_SUCCESS;
 }

@@ -1,25 +1,28 @@
+#define _GNU_SOURCE	/* for asprintf() */
+#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
+#include <unistd.h>
 #include <xf86drm.h>
 #include <xf86drmMode.h>
 
 #include "fb.h"
+#include "settings.h"
 #include "util.h"
-
 
 /* drm fb backend, everything drm-specific in rototiller resides here. */
 
 typedef struct drm_fb_t {
 	int			drm_fd;
-	uint32_t		crtc_id;
-	uint32_t		*connectors;
-	int			n_connectors;
-	drmModeModeInfoPtr	mode;
+	drmModeCrtc		*crtc;
+	drmModeConnector	*connector;
+	drmModeModeInfo		*mode;
 } drm_fb_t;
 
 typedef struct drm_fb_page_t drm_fb_page_t;
@@ -31,28 +34,362 @@ struct drm_fb_page_t {
 	uint32_t		drm_fb_id;
 };
 
+typedef struct drm_fb_setup_t {
+	const char		*dev;
+	const char		*connector;
+	const char		*mode;
+} drm_fb_setup_t;
 
-drm_fb_t * drm_fb_new(int drm_fd, uint32_t crtc_id, uint32_t *connectors, int n_connectors, drmModeModeInfoPtr mode)
-{
-	drm_fb_t	*c;
 
-	c = calloc(1, sizeof(drm_fb_t));
-	if (!c)
-		return NULL;
+static const char * connector_type_name(uint32_t type) {
+	static const char *connector_types[] = {
+		"Unknown",
+		"VGA",
+		"DVII",
+		"DVID",
+		"DVIA",
+		"Composite",
+		"SVIDEO",
+		"LVDS",
+		"Component",
+		"SPinDIN",
+		"DisplayPort",
+		"HDMIA",
+		"HDMIB",
+		"TV",
+		"eDP",
+		"VIRTUAL",
+		"DSI"
+	};
 
-	c->drm_fd = drm_fd;
-	c->crtc_id = crtc_id;
-	c->connectors = connectors;
-	c->n_connectors = n_connectors;
-	c->mode = mode;
+	assert(type < nelems(connector_types));
 
-	return c;
+	return connector_types[type];
 }
 
 
-void drm_fb_free(drm_fb_t *context)
+static setting_desc_t * dev_desc_generator(void *setup_context)
 {
-	free(context);
+	return setting_desc_new("DRM Device Path",
+				"dev",
+				"/dev/dri/card[0-9]",
+				"/dev/dri/card0",
+				NULL,
+				NULL);
+}
+
+
+/* returns a NULL-terminated array of drm connectors */
+static const char ** get_connectors(const char *dev)
+{
+	int		counts[64] = {};	/* assuming this is big enough */
+	char		**connectors;
+	int		i, fd;
+	drmModeRes	*res;
+
+	assert(dev);
+
+	fd = open(dev, O_RDWR);
+	if (fd == -1)
+		return NULL;
+
+	res = drmModeGetResources(fd);
+	if (!res) {
+		close(fd);
+
+		return NULL;
+	}
+
+	connectors = calloc(res->count_connectors + 1, sizeof(*connectors));
+	if (!connectors) {
+		close(fd);
+
+		return NULL;
+	}
+
+	for (i = 0; i < res->count_connectors; i++) {
+		drmModeConnector	*con;
+
+		con = drmModeGetConnector(fd, res->connectors[i]);
+		if (!con) {
+			close(fd);
+
+			return NULL;
+		}
+
+		counts[con->connector_type]++;
+		asprintf(&connectors[i], "%s-%i", connector_type_name(con->connector_type), counts[con->connector_type]); /* TODO: errors */
+
+		drmModeFreeConnector(con);
+	}
+
+	drmModeFreeResources(res);
+	close(fd);
+
+	return (const char **)connectors;
+}
+
+
+static void free_strv(const char **strv)
+{
+	int	i;
+
+	for (i = 0; strv[i]; i++)
+		free((void *)strv[i]);
+
+	free((void *)strv);
+}
+
+
+static setting_desc_t * connector_desc_generator(void *setup_context)
+{
+	drm_fb_setup_t	*s = setup_context;
+	const char	**connectors;
+	setting_desc_t	*desc;
+
+	connectors = get_connectors(s->dev);
+	if (!connectors)
+		return NULL;
+
+	desc = setting_desc_new("DRM Connector",
+				"connector",
+				"[a-zA-Z0-9]+",
+				connectors[0],
+				connectors,
+				NULL);
+
+	free_strv(connectors);
+
+	return desc;
+}
+
+
+static drmModeConnector * lookup_connector(int fd, const char *connector)
+{
+	int			i, counts[64] = {};	/* assuming this is big enough */
+	drmModeConnector	*con = NULL;
+	drmModeRes		*res;
+
+	res = drmModeGetResources(fd);
+	if (!res)
+		goto _out;
+
+	for (i = 0; i < res->count_connectors; i++) {
+		char	*str;
+
+		con = drmModeGetConnector(fd, res->connectors[i]);
+		if (!con)
+			goto _out_res;
+
+		counts[con->connector_type]++;
+		asprintf(&str, "%s-%i", connector_type_name(con->connector_type), counts[con->connector_type]); /* TODO: errors */
+
+		if (!strcasecmp(str, connector)) {
+			free(str);
+
+			break;
+		}
+
+		free(str);
+		drmModeFreeConnector(con);
+		con = NULL;
+	}
+
+_out_res:
+	drmModeFreeResources(res);
+_out:
+	return con;
+}
+
+
+/* returns a NULL-terminated array of drm modes for the supplied device and connector */
+static const char ** get_modes(const char *dev, const char *connector)
+{
+	char			**modes = NULL;
+	int			i, fd;
+	drmModeConnector	*con;
+
+	assert(dev);
+	assert(connector);
+
+	fd = open(dev, O_RDWR);
+	if (fd == -1)
+		goto _out;
+
+	con = lookup_connector(fd, connector);
+	if (!con)
+		goto _out_fd;
+
+	modes = calloc(con->count_modes + 1, sizeof(*modes));
+	if (!modes)
+		goto _out_con;
+
+	for (i = 0; i < con->count_modes; i++)
+		asprintf(&modes[i], "%s@%"PRIu32, con->modes[i].name, con->modes[i].vrefresh);
+
+_out_con:
+	drmModeFreeConnector(con);
+_out_fd:
+	close(fd);
+_out:
+	return (const char **)modes;
+}
+
+
+static setting_desc_t * mode_desc_generator(void *setup_context)
+{
+	drm_fb_setup_t	*s = setup_context;
+	setting_desc_t	*desc;
+	const char	**modes;
+
+	modes = get_modes(s->dev, s->connector);
+	if (!modes)
+		return NULL;
+
+	desc = setting_desc_new("DRM Video Mode",
+				"mode",
+				"[0-9]+[xX][0-9]+@[0-9]+",
+				modes[0],
+				modes,
+				NULL);
+
+	free_strv(modes);
+
+	return desc;
+}
+
+
+/* setup is called repeatedly as settings is constructed, until 0 is returned. */
+/* a negative value is returned on error */
+/* positive value indicates another setting is needed, described in next_setting */
+int drm_fb_setup(settings_t *settings, setting_desc_t **next_setting)
+{
+	drm_fb_setup_t			context = {};
+	setting_desc_generator_t	generators[] = {
+						{
+							.key = "dev",
+							.value_ptr = &context.dev,
+							.func = dev_desc_generator
+						}, {
+							.key = "connector",
+							.value_ptr = &context.connector,
+							.func = connector_desc_generator
+						}, {
+							.key = "mode",
+							.value_ptr = &context.mode,
+							.func = mode_desc_generator
+						},
+					};
+
+	if (!drmAvailable())
+		return -ENOSYS;
+
+	return settings_apply_desc_generators(settings, generators, nelems(generators), &context, next_setting);
+}
+
+
+/* lookup a mode string in the given connector returning its respective modeinfo */
+static drmModeModeInfo * lookup_mode(drmModeConnector *connector, const char *mode)
+{
+	int	i;
+
+	assert(connector);
+	assert(mode);
+
+	for (i = 0; i < connector->count_modes; i++) {
+		char	*str;
+
+		asprintf(&str, "%s@%"PRIu32, connector->modes[i].name, connector->modes[i].vrefresh);
+		if (!strcasecmp(str, mode)) {
+			free(str);
+
+			return &connector->modes[i];
+		}
+
+		free(str);
+	}
+
+	return NULL;
+}
+
+
+/* prepare the drm context for use with the supplied settings */
+void * drm_fb_init(settings_t *settings)
+{
+	drm_fb_t	*c;
+	const char	*dev;
+	const char	*connector;
+	const char	*mode;
+	drmModeEncoder	*enc;
+
+	assert(settings);
+
+	if (!drmAvailable())
+		goto _err;
+
+	dev = settings_get_value(settings, "dev");
+	if (!dev)
+		goto _err;
+
+	connector = settings_get_value(settings, "connector");
+	if (!connector)
+		goto _err;
+
+	mode = settings_get_value(settings, "mode");
+	if (!mode)
+		goto _err;
+
+	c = calloc(1, sizeof(drm_fb_t));
+	if (!c)
+		goto _err;
+
+	c->drm_fd = open(dev, O_RDWR);
+	if (c->drm_fd < 0)
+		goto _err_ctxt;
+
+	c->connector = lookup_connector(c->drm_fd, connector);
+	if (!c->connector)
+		goto _err_fd;
+
+	c->mode = lookup_mode(c->connector, mode);
+	if (!c->mode)
+		goto _err_con;
+
+	enc = drmModeGetEncoder(c->drm_fd, c->connector->encoder_id);
+	if (!enc)
+		goto _err_con;
+
+	c->crtc = drmModeGetCrtc(c->drm_fd, enc->crtc_id);
+	if (!c->crtc)
+		goto _err_enc;
+
+	drmModeFreeEncoder(enc);
+
+	return c;
+
+_err_enc:
+	drmModeFreeEncoder(enc);
+_err_con:
+	drmModeFreeConnector(c->connector);
+_err_fd:
+	close(c->drm_fd);
+_err_ctxt:
+	free(c);
+_err:
+	return NULL;
+}
+
+
+void drm_fb_shutdown(void *context)
+{
+	drm_fb_t	*c = context;
+
+	assert(c);
+
+	close(c->drm_fd);
+	drmModeFreeConnector(c->connector);
+	drmModeFreeCrtc(c->crtc);
+	free(c);
 }
 
 
@@ -61,7 +398,7 @@ static int drm_fb_acquire(void *context, void *page)
 	drm_fb_t	*c = context;
 	drm_fb_page_t	*p = page;
 
-	return drmModeSetCrtc(c->drm_fd, c->crtc_id, p->drm_fb_id, 0, 0, c->connectors, c->n_connectors, c->mode);
+	return drmModeSetCrtc(c->drm_fd, c->crtc->crtc_id, p->drm_fb_id, 0, 0, &c->connector->connector_id, 1, c->mode);
 }
 
 
@@ -141,7 +478,7 @@ static int drm_fb_page_flip(void *context, void *page)
 	drm_fb_t	*c = context;
 	drm_fb_page_t	*p = page;
 
-	if (drmModePageFlip(c->drm_fd, c->crtc_id, p->drm_fb_id, DRM_MODE_PAGE_FLIP_EVENT, NULL) < 0)
+	if (drmModePageFlip(c->drm_fd, c->crtc->crtc_id, p->drm_fb_id, DRM_MODE_PAGE_FLIP_EVENT, NULL) < 0)
 		return -1;
 
 	return drmHandleEvent(c->drm_fd, &drm_ev_ctx);
@@ -149,6 +486,9 @@ static int drm_fb_page_flip(void *context, void *page)
 
 
 fb_ops_t drm_fb_ops = {
+	.setup = drm_fb_setup,
+	.init = drm_fb_init,
+	.shutdown = drm_fb_shutdown,
 	.acquire = drm_fb_acquire,
 	.release = drm_fb_release,
 	.page_alloc = drm_fb_page_alloc,

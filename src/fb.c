@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 #include "fb.h"
+#include "settings.h"
 #include "util.h"
 
 /* Copyright (C) 2016-2017 Vito Caputo <vcaputo@pengaru.com> */
@@ -240,6 +241,9 @@ void fb_free(fb_t *fb)
 
 	/* TODO: free all the pages */
 
+	if (fb->ops->shutdown && fb->ops_context)
+		fb->ops->shutdown(fb->ops_context);
+
 	pthread_mutex_destroy(&fb->ready_mutex);
 	pthread_cond_destroy(&fb->ready_cond);
 	pthread_mutex_destroy(&fb->inactive_mutex);
@@ -250,7 +254,7 @@ void fb_free(fb_t *fb)
 
 
 /* create a new fb instance */
-fb_t * fb_new(const fb_ops_t *ops, void *context, int n_pages)
+fb_t * fb_new(const fb_ops_t *ops, settings_t *settings, int n_pages)
 {
 	_fb_page_t	*page;
 	fb_t		*fb;
@@ -271,7 +275,11 @@ fb_t * fb_new(const fb_ops_t *ops, void *context, int n_pages)
 		return NULL;
 
 	fb->ops = ops;
-	fb->ops_context = context;
+	if (ops->init) {
+		fb->ops_context = ops->init(settings);
+		if (!fb->ops_context)
+			goto fail;
+	}
 
 	for (i = 0; i < n_pages; i++)
 		fb_page_new(fb);
