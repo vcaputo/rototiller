@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -80,6 +81,48 @@ static void module_render_page(rototiller_module_t *module, void *context, threa
 
 	if (module->finish_frame)
 		module->finish_frame(context, &page->fragment);
+}
+
+
+typedef struct argv_t {
+	const char	*module;
+	const char	*video;
+
+	unsigned	defaults:1;
+	unsigned	help:1;
+} argv_t;
+
+/*
+ * ./rototiller --video=drm,dev=/dev/dri/card3,connector=VGA-1,mode=640x480@60
+ * ./rototiller --video=sdl,size=640x480
+ * ./rototiller --module=roto,foo=bar,module=settings
+ * ./rototiller --defaults
+ */
+int parse_argv(int argc, const char *argv[], argv_t *res_args)
+{
+	int	i;
+
+	assert(argc > 0);
+	assert(argv);
+	assert(res_args);
+
+	/* this is intentionally being kept very simple, no new dependencies like getopt. */
+
+	for (i = 1; i < argc; i++) {
+		if (!strncmp("--video=", argv[i], 8)) {
+			res_args->video = &argv[i][8];
+		} else if (!strncmp("--module=", argv[i], 9)) {
+			res_args->module = &argv[i][9];
+		} else if (!strcmp("--defaults", argv[i])) {
+			res_args->defaults = 1;
+		} else if (!strcmp("--help", argv[i])) {
+			res_args->help = 1;
+		} else {
+			return -EINVAL;
+		}
+	}
+
+	return 0;
 }
 
 
