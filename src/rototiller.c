@@ -29,7 +29,7 @@
  * just two pages we end up twiddling thumbs until the vsync arrives.
  */
 #define DEFAULT_MODULE	"roto32"
-#define DEFAULT_VIDEO	"drm"
+#define DEFAULT_VIDEO	"sdl"
 
 extern fb_ops_t			drm_fb_ops;
 extern fb_ops_t			sdl_fb_ops;
