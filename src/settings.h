@@ -24,11 +24,11 @@ typedef struct settings_t settings_t;
 
 settings_t * settings_new(const char *settings);
 void settings_free(settings_t *settings);
-const char * settings_get_value(settings_t *settings, const char *key);
-const char * settings_get_key(settings_t *settings, unsigned pos);
+const char * settings_get_value(const settings_t *settings, const char *key);
+const char * settings_get_key(const settings_t *settings, unsigned pos);
 int settings_add_value(settings_t *settings, const char *key, const char *value);
 char * settings_as_arg(const settings_t *settings);
-int settings_apply_desc_generators(settings_t *settings, const setting_desc_generator_t generators[], unsigned n_generators, void *setup_context, setting_desc_t **next_setting);
+int settings_apply_desc_generators(const settings_t *settings, const setting_desc_generator_t generators[], unsigned n_generators, void *setup_context, setting_desc_t **next_setting);
 
 setting_desc_t * setting_desc_new(const char *name, const char *key, const char *regex, const char *preferred, const char *values[], const char *annotations[]);
 void setting_desc_free(setting_desc_t *desc);

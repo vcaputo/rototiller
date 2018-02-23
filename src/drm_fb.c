@@ -262,7 +262,7 @@ static setting_desc_t * mode_desc_generator(void *setup_context)
 /* setup is called repeatedly as settings is constructed, until 0 is returned. */
 /* a negative value is returned on error */
 /* positive value indicates another setting is needed, described in next_setting */
-int drm_fb_setup(settings_t *settings, setting_desc_t **next_setting)
+int drm_fb_setup(const settings_t *settings, setting_desc_t **next_setting)
 {
 	drm_fb_setup_t			context = {};
 	setting_desc_generator_t	generators[] = {
@@ -314,7 +314,7 @@ static drmModeModeInfo * lookup_mode(drmModeConnector *connector, const char *mo
 
 
 /* prepare the drm context for use with the supplied settings */
-void * drm_fb_init(settings_t *settings)
+void * drm_fb_init(const settings_t *settings)
 {
 	drm_fb_t	*c;
 	const char	*dev;

@@ -30,8 +30,8 @@ typedef struct fb_page_t {
 
 /* Supply this struct to fb_new() with the appropriate context */
 typedef struct fb_ops_t {
-	int	(*setup)(settings_t *settings, setting_desc_t **next);
-	void *	(*init)(settings_t *settings);
+	int	(*setup)(const settings_t *settings, setting_desc_t **next);
+	void *	(*init)(const settings_t *settings);
 	void	(*shutdown)(void *context);
 	int	(*acquire)(void *context, void *page);
 	void	(*release)(void *context);

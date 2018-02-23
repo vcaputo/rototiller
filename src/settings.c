@@ -115,7 +115,7 @@ void settings_free(settings_t *settings)
 
 
 /* find key= in settings, return dup of value side or NULL if missing */
-const char * settings_get_value(settings_t *settings, const char *key)
+const char * settings_get_value(const settings_t *settings, const char *key)
 {
 	int	i;
 
@@ -132,7 +132,7 @@ const char * settings_get_value(settings_t *settings, const char *key)
 
 
 /* return positional key from settings */
-const char * settings_get_key(settings_t *settings, unsigned pos)
+const char * settings_get_key(const settings_t *settings, unsigned pos)
 {
 	assert(settings);
 
@@ -160,7 +160,7 @@ int settings_add_value(settings_t *settings, const char *key, const char *value)
 /* returns 0 when input settings are complete */
 /* returns 1 when input settings are incomplete, storing the next setting's description needed in *next_setting */
 /* returns -errno on error */
-int settings_apply_desc_generators(settings_t *settings, const setting_desc_generator_t generators[], unsigned n_generators, void *setup_context, setting_desc_t **next_setting)
+int settings_apply_desc_generators(const settings_t *settings, const setting_desc_generator_t generators[], unsigned n_generators, void *setup_context, setting_desc_t **next_setting)
 {
 	unsigned	i;
 	setting_desc_t	*next;

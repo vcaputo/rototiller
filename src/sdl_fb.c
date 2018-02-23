@@ -21,14 +21,14 @@ struct sdl_fb_page_t {
 };
 
 
-int sdl_fb_setup(settings_t *settings, setting_desc_t **next_setting)
+int sdl_fb_setup(const settings_t *settings, setting_desc_t **next_setting)
 {
 	/* TODO: window size? fullscreen? vsync? etc. */
 	return 0;
 }
 
 
-void * sdl_fb_init(settings_t *settings)
+void * sdl_fb_init(const settings_t *settings)
 {
 	sdl_fb_t	*c;
 
