@@ -150,7 +150,9 @@ static int setup_video(settings_t *settings, setting_desc_t **next_setting)
 	if (!video) {
 		setting_desc_t	*desc;
 		const char	*values[] = {
+#ifdef HAVE_DRM
 					"drm",
+#endif
 					"sdl",
 					NULL,
 				};
@@ -170,11 +172,14 @@ static int setup_video(settings_t *settings, setting_desc_t **next_setting)
 	}
 
 	/* XXX: this is kind of hacky for now */
+#ifdef HAVE_DRM
 	if (!strcmp(video, "drm")) {
 		fb_ops = &drm_fb_ops;
 
 		return drm_fb_ops.setup(settings, next_setting);
-	} else if (!strcmp(video, "sdl")) {
+	} else
+#endif
+	if (!strcmp(video, "sdl")) {
 		fb_ops = &sdl_fb_ops;
 
 		return sdl_fb_ops.setup(settings, next_setting);
