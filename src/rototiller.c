@@ -7,8 +7,6 @@
 #include <string.h>
 #include <stdint.h>
 #include <unistd.h>
-#include <xf86drm.h>
-#include <xf86drmMode.h>
 
 #include "drm_fb.h"
 #include "sdl_fb.h"
