@@ -8,8 +8,6 @@
 #include <stdint.h>
 #include <unistd.h>
 
-#include "drm_fb.h"
-#include "sdl_fb.h"
 #include "settings.h"
 #include "setup.h"
 #include "fb.h"
