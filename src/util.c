@@ -3,6 +3,10 @@
 #include <string.h>
 #include <unistd.h>
 
+#ifdef __WIN32__
+#include <windows.h>
+#endif
+
 #include "util.h"
 
 #define SYSFS_CPU	"/sys/devices/system/cpu/cpu"
@@ -10,6 +14,13 @@
 
 unsigned get_ncpus(void)
 {
+#ifdef __WIN32__
+	SYSTEM_INFO sysinfo;
+
+	GetSystemInfo(&sysinfo);
+
+	return sysinfo.dwNumberOfProcessors;
+#else
 	char		path[cstrlen(SYSFS_CPU "1024") + 1];
 	unsigned	n;
 
@@ -20,4 +31,5 @@ unsigned get_ncpus(void)
 	}
 
 	return n == 0 ? 1 : n;
+#endif
 }
