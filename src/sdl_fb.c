@@ -1,3 +1,4 @@
+#define SDL_MAIN_HANDLED
 #include <SDL.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -36,6 +37,7 @@ void * sdl_fb_init(const settings_t *settings)
 	if (!c)
 		return NULL;
 
+	SDL_SetMainReady();
 	if (SDL_Init(SDL_INIT_VIDEO) < 0) {
 		free(c);
 		return NULL;
