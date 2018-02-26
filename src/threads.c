@@ -31,17 +31,20 @@ typedef struct threads_t {
 /* render fragments using the supplied render function */
 static void * thread_func(void *_threads)
 {
-	threads_t		*threads = _threads;
-	unsigned		prev_frame_num = 0;
+	threads_t	*threads = _threads;
+	unsigned	prev_frame_num = 0;
+
+	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
 
 	for (;;) {
 
 		/* wait for a new frame */
 		pthread_mutex_lock(&threads->frame_mutex);
+		pthread_cleanup_push((void (*)(void *))pthread_mutex_unlock, &threads->frame_mutex);
 		while (threads->frame_num == prev_frame_num)
 			pthread_cond_wait(&threads->frame_cond, &threads->frame_mutex);
 		prev_frame_num = threads->frame_num;
-		pthread_mutex_unlock(&threads->frame_mutex);
+		pthread_cleanup_pop(1);
 
 		/* render fragments */
 		for (;;) {
@@ -58,10 +61,11 @@ static void * thread_func(void *_threads)
 
 		/* report as idle */
 		pthread_mutex_lock(&threads->idle_mutex);
+		pthread_cleanup_push((void (*)(void *))pthread_mutex_unlock, &threads->idle_mutex);
 		threads->n_idle++;
 		if (threads->n_idle == threads->n_threads)	/* Frame finished! Notify potential waiter. */
 			pthread_cond_signal(&threads->idle_cond);
-		pthread_mutex_unlock(&threads->idle_mutex);
+		pthread_cleanup_pop(1);
 	}
 
 	return NULL;
