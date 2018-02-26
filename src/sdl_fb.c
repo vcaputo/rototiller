@@ -120,10 +120,31 @@ static int sdl_fb_page_free(void *context, void *page)
 }
 
 
+static int sdl_ready()
+{
+	SDL_Event	ev;
+
+	/* It's important on Windows in particular to
+	 * drain the event queue vs. just SDL_QuitRequested()
+	 */
+	while (SDL_PollEvent(&ev)) {
+		if (ev.type == SDL_QUIT)
+			return -EPIPE;
+	}
+
+	return 0;
+}
+
+
 static int sdl_fb_page_flip(void *context, void *page)
 {
 	sdl_fb_t	*c = context;
 	sdl_fb_page_t	*p = page;
+	int		r;
+
+	r = sdl_ready();
+	if (r < 0)
+		return r;
 
 	if (SDL_UpdateTexture(c->texture, NULL, p->surface->pixels, p->surface->pitch) < 0)
 		return -1;
@@ -135,9 +156,6 @@ static int sdl_fb_page_flip(void *context, void *page)
 		return -1;
 
 	SDL_RenderPresent(c->renderer);
-
-	if (SDL_QuitRequested())
-		return -EPIPE;
 
 	return 0;
 }
