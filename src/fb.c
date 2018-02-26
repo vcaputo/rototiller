@@ -37,6 +37,17 @@
  * longer be a flipper thread.
  *
  * Let me know if you're aware of a better way with existing mainline drm!
+ *
+ *
+ * XXX: fb_new() used to create a thread which did the equivalent of fb_flip()
+ * continuously in a loop.  This posed a problem for the sdl_fb backend, due to
+ * the need for event pumping in the page flip hook.  SDL internally uses TLS
+ * and requires that the same thread which initialized SDL call the event
+ * functions.  To satisfy this requirement, the body of the flipper thread loop
+ * has been moved to the fb_flip() function.  Rototiller's main thread is
+ * expected to call this repeatedly, turning it effectively into the flipper
+ * thread.  This required rototiller to move what was previously the main
+ * thread's duties - page rendering dispatch, to a separate thread.
  */
 
 
@@ -54,8 +65,6 @@ struct _fb_page_t {
 typedef struct fb_t {
 	const fb_ops_t	*ops;
 	void		*ops_context;
-
-	pthread_t	thread;
 
 	_fb_page_t	*active_page;		/* page currently displayed */
 
@@ -80,38 +89,39 @@ typedef struct fb_t {
 /* Consumes ready pages queued via fb_page_put(), submits them to drm to flip
  * on vsync.  Produces inactive pages from those replaced, making them
  * available to fb_page_get(). */
-static void * fb_flipper_thread(void *_fb)
+int fb_flip(fb_t *fb)
 {
-	fb_t	*fb = _fb;
+	_fb_page_t	*next_active_page;
+	int		r;
 
-	for (;;) {
-		_fb_page_t	*next_active_page;
-		/* wait for a flip req, submit the req page for flip on vsync, wait for it to flip before making the
-		 * active page inactive/available, repeat.
-		 */
-		pthread_mutex_lock(&fb->ready_mutex);
-		while (!fb->ready_pages_head)
-			pthread_cond_wait(&fb->ready_cond, &fb->ready_mutex);
+	/* wait for a flip req, submit the req page for flip on vsync, wait for it to flip before making the
+	 * active page inactive/available, repeat.
+	 */
+	pthread_mutex_lock(&fb->ready_mutex);
+	while (!fb->ready_pages_head)
+		pthread_cond_wait(&fb->ready_cond, &fb->ready_mutex);
 
-		next_active_page = fb->ready_pages_head;
-		fb->ready_pages_head = next_active_page->next;
-		if (!fb->ready_pages_head)
-			fb->ready_pages_tail = NULL;
-		pthread_mutex_unlock(&fb->ready_mutex);
+	next_active_page = fb->ready_pages_head;
+	fb->ready_pages_head = next_active_page->next;
+	if (!fb->ready_pages_head)
+		fb->ready_pages_tail = NULL;
+	pthread_mutex_unlock(&fb->ready_mutex);
 
-		/* submit the next active page for page flip on vsync, and wait for it. */
-		pexit_if(fb->ops->page_flip(fb->ops_context, next_active_page->ops_page) < 0,
-			"unable to flip page");
+	/* submit the next active page for page flip on vsync, and wait for it. */
+	r = fb->ops->page_flip(fb->ops_context, next_active_page->ops_page);
+	if (r < 0)	/* TODO: vet this: what happens to this page? */
+		return r;
 
-		/* now that we're displaying a new page, make the previously active one inactive so rendering can reuse it */
-		pthread_mutex_lock(&fb->inactive_mutex);
-		fb->active_page->next = fb->inactive_pages;
-		fb->inactive_pages = fb->active_page;
-		pthread_cond_signal(&fb->inactive_cond);
-		pthread_mutex_unlock(&fb->inactive_mutex);
+	/* now that we're displaying a new page, make the previously active one inactive so rendering can reuse it */
+	pthread_mutex_lock(&fb->inactive_mutex);
+	fb->active_page->next = fb->inactive_pages;
+	fb->inactive_pages = fb->active_page;
+	pthread_cond_signal(&fb->inactive_cond);
+	pthread_mutex_unlock(&fb->inactive_mutex);
 
-		fb->active_page = next_active_page;
-	}
+	fb->active_page = next_active_page;
+
+	return 0;
 }
 
 
@@ -126,9 +136,6 @@ static int fb_acquire(fb_t *fb, _fb_page_t *page)
 
 	fb->active_page = page;
 
-	/* start up the page flipper thread */
-	pthread_create(&fb->thread, NULL, fb_flipper_thread, fb);
-
 	return 0;
 }
 
@@ -136,9 +143,6 @@ static int fb_acquire(fb_t *fb, _fb_page_t *page)
 /* release the fb, making the visible page inactive */
 static void fb_release(fb_t *fb)
 {
-	pthread_cancel(fb->thread);
-	pthread_join(fb->thread, NULL);
-
 	fb->ops->release(fb->ops_context);
 	fb->active_page->next = fb->inactive_pages;
 	fb->inactive_pages = fb->active_page;

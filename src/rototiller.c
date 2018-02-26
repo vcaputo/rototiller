@@ -129,6 +129,7 @@ int parse_argv(int argc, const char *argv[], argv_t *res_args)
 	return 0;
 }
 
+
 typedef struct setup_t {
 	settings_t	*module;
 	settings_t	*video;
@@ -182,6 +183,7 @@ static int setup_video(settings_t *settings, setting_desc_t **next_setting)
 	return -EINVAL;
 }
 
+
 /* select module if not yet selected, then setup the module. */
 static int setup_module(settings_t *settings, setting_desc_t **next_setting)
 {
@@ -222,6 +224,7 @@ static int setup_module(settings_t *settings, setting_desc_t **next_setting)
 
 	return 0;
 }
+
 
 /* turn args into settings, automatically applying defaults if appropriate, or interactively if appropriate. */
 /* returns negative value on error, 0 when settings unchanged from args, 1 when changed */
@@ -321,6 +324,30 @@ static int print_help(void)
 }
 
 
+typedef struct rototiller_t {
+	rototiller_module_t	*module;
+	void			*module_context;
+	threads_t		*threads;
+	pthread_t		thread;
+	fb_t			*fb;
+} rototiller_t;
+
+void * rototiller_thread(void *_rt)
+{
+	rototiller_t	*rt = _rt;
+
+	for (;;) {
+		fb_page_t	*page;
+
+		page = fb_page_get(rt->fb);
+		module_render_page(rt->module, rt->module_context, rt->threads, page);
+		fb_page_put(rt->fb, page);
+	}
+
+	return NULL;
+}
+
+
 /* When run with partial/no arguments, if stdin is a tty, enter an interactive setup.
  * If stdin is not a tty, or if --defaults is supplied in argv, default settings are used.
  * If any changes to the settings occur in the course of execution, either interactively or
@@ -329,13 +356,10 @@ static int print_help(void)
  */
 int main(int argc, const char *argv[])
 {
-	argv_t			args = {};
-	setup_t			setup = {};
-	void			*context = NULL;
-	rototiller_module_t	*module;
-	threads_t		*threads;
-	fb_t			*fb;
-	int			r;
+	rototiller_t	rototiller = {};
+	setup_t		setup = {};
+	argv_t		args = {};
+	int		r;
 
 	exit_if(parse_argv(argc, argv, &args) < 0,
 		"unable to process arguments");
@@ -349,38 +373,40 @@ int main(int argc, const char *argv[])
 	exit_if(r && print_setup_as_args(&setup) < 0,
 		"unable to print setup");
 
-	exit_if(!(module = module_lookup(settings_get_key(setup.module, 0))),
+	exit_if(!(rototiller.module = module_lookup(settings_get_key(setup.module, 0))),
 		"unable to lookup module from settings \"%s\"", settings_get_key(setup.module, 0));
 
-	exit_if(!(fb = fb_new(fb_ops, setup.video, NUM_FB_PAGES)),
+	exit_if(!(rototiller.fb = fb_new(fb_ops, setup.video, NUM_FB_PAGES)),
 		"unable to create fb");
 
 	exit_if(!fps_setup(),
 		"unable to setup fps counter");
 
-	exit_if(module->create_context &&
-		!(context = module->create_context()),
+	exit_if(rototiller.module->create_context &&
+		!(rototiller.module_context = rototiller.module->create_context()),
 		"unable to create module context");
 
-	pexit_if(!(threads = threads_create()),
-		"unable to create threads");
+	pexit_if(!(rototiller.threads = threads_create()),
+		"unable to create rendering threads");
+
+	pexit_if(pthread_create(&rototiller.thread, NULL, rototiller_thread, &rototiller) != 0,
+		"unable to create dispatch thread");
 
 	for (;;) {
-		fb_page_t	*page;
+		if (fb_flip(rototiller.fb) < 0)
+			break;
 
-		fps_print(fb);
-
-		page = fb_page_get(fb);
-		module_render_page(module, context, threads, page);
-		fb_page_put(fb, page);
+		fps_print(rototiller.fb);
 	}
 
-	threads_destroy(threads);
+	pthread_cancel(rototiller.thread);
+	pthread_join(rototiller.thread, NULL);
+	threads_destroy(rototiller.threads);
 
-	if (context)
-		module->destroy_context(context);
+	if (rototiller.module_context)
+		rototiller.module->destroy_context(rototiller.module_context);
 
-	fb_free(fb);
+	fb_free(rototiller.fb);
 
 	return EXIT_SUCCESS;
 }
