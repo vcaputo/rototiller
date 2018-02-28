@@ -5,6 +5,24 @@
 #include <string.h>
 
 #include "settings.h"
+#include "util.h"
+
+#ifdef __WIN32__
+char * strndup(const char *s, size_t n)
+{
+	size_t	len;
+	char	*buf;
+
+	len = MIN(strlen(s), n);
+	buf = calloc(len + 1, sizeof(char));
+	if (!buf)
+		return NULL;
+
+	memcpy(buf, s, len);
+
+	return buf;
+}
+#endif
 
 /* Split form of key=value[,key=value...] settings string */
 typedef struct settings_t {

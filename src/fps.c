@@ -17,6 +17,9 @@ static void sigalrm_handler(int signum)
 
 int fps_setup(void)
 {
+#ifdef __WIN32__
+
+#else
 	struct itimerval	interval = { 	
 					.it_interval = { .tv_sec = 1, .tv_usec = 0 },
 					.it_value = { .tv_sec = 1, .tv_usec = 0 },
@@ -29,11 +32,15 @@ int fps_setup(void)
 		return 0;
 
 	return 1;
+#endif
 }
 
 
 void fps_print(fb_t *fb)
 {
+#ifdef __WIN32__
+
+#else
 	unsigned	n;
 
 	if (!print_fps)
@@ -43,4 +50,5 @@ void fps_print(fb_t *fb)
 	printf("FPS: %u\n", n);
 
 	print_fps = 0;
+#endif
 }
