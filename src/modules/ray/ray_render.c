@@ -88,6 +88,7 @@ static inline ray_color_t shade_intersection(ray_render_t *render, ray_render_ob
 		if (lvec_normal_dot > 0) {
 #if 1
 			float		rvec_lvec_dot = ray_3f_dot(&ray->direction, &lvec);
+			float		intensity = light->light.brightness * (1.0 / (ldist * ldist));
 			ray_color_t	diffuse;
 
 			diffuse = ray_3f_mult_scalar(&surface.color, lvec_normal_dot);
@@ -102,6 +103,8 @@ static inline ray_color_t shade_intersection(ray_render_t *render, ray_render_ob
 				specular = ray_3f_mult_scalar(&specular, surface.specular);
 				color = ray_3f_add(&color, &specular);
 			}
+
+			color = ray_3f_mult_scalar(&color, intensity);
 #else
 			ray_color_t	diffuse;
 
