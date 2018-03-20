@@ -6,10 +6,10 @@
 #include "rototiller.h"
 #include "util.h"
 
-#include "ray_camera.h"
-#include "ray_object.h"
-#include "ray_render.h"
-#include "ray_scene.h"
+#include "ray/ray_camera.h"
+#include "ray/ray_object.h"
+#include "ray/ray_render.h"
+#include "ray/ray_scene.h"
 
 /* Copyright (C) 2016-2017 Vito Caputo <vcaputo@pengaru.com> */
 
