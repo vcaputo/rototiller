@@ -34,6 +34,8 @@ LIBS="$LIBS $SDL_LIBS"
 AC_CONFIG_FILES([
  Makefile
  src/Makefile
+ src/libs/Makefile
+ src/libs/ray/Makefile
  src/modules/Makefile
  src/modules/julia/Makefile
  src/modules/plasma/Makefile
