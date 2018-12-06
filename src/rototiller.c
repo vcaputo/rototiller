@@ -50,7 +50,7 @@ static rototiller_module_t	*modules[] = {
 };
 
 
-rototiller_module_t * module_lookup(const char *name)
+static rototiller_module_t * module_lookup(const char *name)
 {
 	unsigned	i;
 
@@ -102,7 +102,7 @@ typedef struct argv_t {
  * ./rototiller --module=roto,foo=bar,module=settings
  * ./rototiller --defaults
  */
-int parse_argv(int argc, const char *argv[], argv_t *res_args)
+static int parse_argv(int argc, const char *argv[], argv_t *res_args)
 {
 	int	i;
 
@@ -337,7 +337,7 @@ typedef struct rototiller_t {
 	fb_t			*fb;
 } rototiller_t;
 
-void * rototiller_thread(void *_rt)
+static void * rototiller_thread(void *_rt)
 {
 	rototiller_t	*rt = _rt;
 
