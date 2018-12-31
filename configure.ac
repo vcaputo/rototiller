@@ -44,5 +44,6 @@ AC_CONFIG_FILES([
  src/modules/roto/Makefile
  src/modules/sparkler/Makefile
  src/modules/stars/Makefile
+ src/modules/submit/Makefile
 ])
 AC_OUTPUT

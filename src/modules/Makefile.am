@@ -1,1 +1,1 @@
-SUBDIRS = julia plasma ray roto sparkler stars
+SUBDIRS = julia plasma ray roto sparkler stars submit

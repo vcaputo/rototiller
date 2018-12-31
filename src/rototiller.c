@@ -38,6 +38,7 @@ extern rototiller_module_t	roto64_module;
 extern rototiller_module_t	ray_module;
 extern rototiller_module_t	sparkler_module;
 extern rototiller_module_t	stars_module;
+extern rototiller_module_t	submit_module;
 
 static rototiller_module_t	*modules[] = {
 	&roto32_module,
@@ -47,6 +48,7 @@ static rototiller_module_t	*modules[] = {
 	&stars_module,
 	&plasma_module,
 	&julia_module,
+	&submit_module,
 };
 
 
