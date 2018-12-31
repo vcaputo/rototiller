@@ -1,1 +1,1 @@
-SUBDIRS = ray
+SUBDIRS = grid ray

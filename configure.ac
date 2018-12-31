@@ -35,6 +35,7 @@ AC_CONFIG_FILES([
  Makefile
  src/Makefile
  src/libs/Makefile
+ src/libs/grid/Makefile
  src/libs/ray/Makefile
  src/modules/Makefile
  src/modules/julia/Makefile
