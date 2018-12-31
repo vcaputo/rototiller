@@ -57,7 +57,7 @@ static void stars_render_fragment(void *context, fb_fragment_t *fragment)
 rototiller_module_t	stars_module = {
 	.render_fragment = stars_render_fragment,
 	.name = "stars",
-	.description = "basic starfield",
+	.description = "Basic starfield",
 	.author = "Philip J Freeman <elektron@halo.nu>",
 	.license = "GPLv2",
 };
