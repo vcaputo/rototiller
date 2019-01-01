@@ -35,7 +35,7 @@ typedef struct grid_ops_t {
 	void	(*planned)(void *ctx, uint32_t move);				/* the specified move has been planned */
 	void	(*executed)(void *ctx, uint32_t move, grid_ops_move_result_t result);/* the specified move has been executed, removed from plan */
 	void	(*canceled)(void *ctx, uint32_t move);				/* the specified move has been canceled, removed from plan */
-	void	(*taken)(void *ctx, uint32_t x, uint32_t y, unsigned player);	/* the specified cell has been taken by the specified player */
+	void	(*taken)(void *ctx, uint32_t x, uint32_t y, uint32_t player);	/* the specified cell has been taken by the specified player */
 	void	(*won)(void *ctx, uint32_t player);				/* the game has been won by the specified player */
 } grid_ops_t;
 

@@ -14,7 +14,6 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
@@ -75,11 +74,9 @@ static void draw_grid(submit_context_t *ctxt, fb_fragment_t *fragment)
 }
 
 
-static void taken(void *ctx, uint32_t x, uint32_t y, unsigned player)
+static void taken(void *ctx, uint32_t x, uint32_t y, uint32_t player)
 {
 	submit_context_t	*c = ctx;
-
-	assert(player);
 
 	c->cells[y * GRID_SIZE + x] = player;
 }
