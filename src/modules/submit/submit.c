@@ -333,7 +333,7 @@ rototiller_module_t	submit_softly_module = {
 	.prepare_frame = submit_prepare_frame,
 	.render_fragment = submit_softly_render_fragment,
 	.name = "submit-softly",
-	.description = "Cellular automata conquest game sim w/bilinear interpolation (threaded (poorly))",
+	.description = "Bilinearly interpolated version of submit (threaded (poorly))",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",
 	.license = "GPLv3",
 };
