@@ -6,6 +6,7 @@ rototiller is, rendered entirely in software:
 	plasma: an oldskool "plasma" effect
 	julia: a morphing Julia set (fractal)
 	submit: a 2D cellular automata game sim
+	submit-softly: bilinearly interpolated version of submit
 
 ---
 
