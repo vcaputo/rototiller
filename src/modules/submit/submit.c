@@ -30,47 +30,180 @@
 #define GRID_SIZE	60
 #define TICKS_PER_FRAME 8000
 
-static uint32_t	colors[NUM_PLAYERS + 1] = {
-	0x00000000,	/* uninitialized cell starts black, becomes winner colors */
-	0xffff5000,	/* orange */
-	0xff1020ff,	/* blue */
-	0xffe00000,	/* red */
-	0xff2ad726,	/* green */
-	0xff00e0d0,	/* cyan */
-	0xffd000ff,	/* purple */
-	0xffe7ef00,	/* yellow */
-	0x00000000,	/* black */
+typedef struct color_t {
+	float	r, g, b;
+} color_t;
+
+static color_t colors[NUM_PLAYERS + 1] = {
+	{},		 	/* uninitialized cell starts black, becomes winner colors */
+	{1.f, .317f, 0.f },	/* orange */
+	{.627f, .125f, 1.f },	/* blue */
+	{.878f, 0.f, 0.f },	/* red */
+	{.165f, .843f, .149f },	/* green */
+	{0.f, .878f, .815f },	/* cyan */
+	{.878f, 0.f, 1.f },	/* purple */
+	{.906f, .937f, 0.f }, 	/* yellow */
+	{}, 			/* black */
 };
+
 
 typedef struct submit_context_t {
 	grid_t		*grid;
 	grid_player_t	*players[NUM_PLAYERS];
 	uint32_t	seq;
 	uint32_t	game_winner;
-	fb_fragment_t	*fragment;
-	uint32_t	cells[GRID_SIZE * GRID_SIZE];
+	uint8_t		cells[GRID_SIZE * GRID_SIZE];
 } submit_context_t;
 
 
-/* TODO: drawing is not optimized at all */
-static void draw_cell(fb_fragment_t *fragment, int x, int y, int w, int h, uint32_t color)
-{
-	for (int yy = 0; yy < h; yy++)
-		for (int xx = 0; xx < w; xx++)
-			fb_fragment_put_pixel_checked(fragment, x + xx, y + yy, color);
+/* convert a color into a packed, 32-bit rgb pixel value (taken from libs/ray/ray_color.h) */
+static inline uint32_t color_to_uint32(color_t color) {
+	uint32_t	pixel;
+
+	if (color.r > 1.0f) color.r = 1.0f;
+	if (color.g > 1.0f) color.g = 1.0f;
+	if (color.b > 1.0f) color.b = 1.0f;
+
+	pixel = (uint32_t)(color.r * 255.0f);
+	pixel <<= 8;
+	pixel |= (uint32_t)(color.g * 255.0f);
+	pixel <<= 8;
+	pixel |= (uint32_t)(color.b * 255.0f);
+
+	return pixel;
 }
 
 
-static void draw_grid(submit_context_t *ctxt, fb_fragment_t *fragment)
-{
-	int	w = fragment->width / GRID_SIZE;
-	int	h = fragment->height / GRID_SIZE;
-	int	xoff = (fragment->width - w * GRID_SIZE) / 2;
-	int	yoff = (fragment->height - h * GRID_SIZE) / 2;
+static inline float clamp(float x, float lowerlimit, float upperlimit) {
+	if (x < lowerlimit)
+		x = lowerlimit;
 
-	for (int y = 0; y < GRID_SIZE; y++)
-		for (int x = 0; x < GRID_SIZE; x++)
-			draw_cell(fragment, xoff + x * w, yoff + y * h, w, h, colors[ctxt->cells[y * GRID_SIZE + x]]);
+	if (x > upperlimit)
+		x = upperlimit;
+
+	return x;
+}
+
+
+/* taken from https://en.wikipedia.org/wiki/Smoothstep#Variations */
+static inline float smootherstep(float edge0, float edge1, float x) {
+	x = clamp((x - edge0) / (edge1 - edge0), 0.f, 1.f);
+
+	return x * x * x * (x * (x * 6.f - 15.f) + 10.f);
+}
+
+
+/* linearly interpolate colors */
+static color_t color_lerp(color_t *a, color_t *b, float t)
+{
+	color_t	res = {
+		.r = a->r * (1.f - t) + b->r * t,
+		.g = a->g * (1.f - t) + b->g * t,
+		.b = a->b * (1.f - t) + b->b * t,
+	};
+
+	return res;
+}
+
+
+/* bilinearly interpolate colors from 4 cells */
+static inline uint32_t sample_grid_bilerp(submit_context_t *ctxt, float x, float y)
+{
+	int		i, ix = x, iy = y;
+	float		x_t, y_t;
+	uint8_t		corners[2][2];
+	color_t		x1, x2;
+
+	/* FIXME TODO: this short-circuit produces unsmoothed cells at the
+	 * periphery, and could be simply avoided by putting the peripheral
+	 * cells off-screen so all the samples are within the boundaries.
+	 * Ignoring for now.
+	 */
+	if (ix < 1 || ix > GRID_SIZE - 2 ||
+	    iy < 1 || iy > GRID_SIZE - 2)
+		return color_to_uint32(colors[ctxt->cells[iy * GRID_SIZE + ix]]);
+
+	i = iy * GRID_SIZE + ix;
+
+	/* ix,iy forms the corner of a 2x2 kernel, determine which corner */
+	if (x > ix + .5f) {
+		x_t = x - ((float)ix + .5f);
+
+		if (y > iy + .5f) {
+			/* NW corner */
+			y_t = y - ((float)iy + .5f);
+
+			corners[0][0] = ctxt->cells[i];
+			corners[0][1] = ctxt->cells[i + 1];
+			corners[1][0] = ctxt->cells[i + GRID_SIZE];
+			corners[1][1] = ctxt->cells[i + GRID_SIZE + 1];
+		} else {
+			/* SW corner */
+			y_t = 1.f - (((float)iy + .5f) - y);
+
+			corners[1][0] = ctxt->cells[i];
+			corners[1][1] = ctxt->cells[i + 1];
+			corners[0][0] = ctxt->cells[i - GRID_SIZE];
+			corners[0][1] = ctxt->cells[i - GRID_SIZE + 1];
+		}
+	} else {
+		x_t = 1.f - (((float)ix + .5f) - x);
+
+		if (y > iy + .5f) {
+			/* NE corner */
+			y_t = y - ((float)iy + .5f);
+
+			corners[0][1] = ctxt->cells[i];
+			corners[0][0] = ctxt->cells[i - 1];
+			corners[1][1] = ctxt->cells[i + GRID_SIZE];
+			corners[1][0] = ctxt->cells[i + GRID_SIZE - 1];
+		} else {
+			/* SE corner */
+			y_t = 1.f - (((float)iy + .5f) - y);
+
+			corners[1][1] = ctxt->cells[i];
+			corners[1][0] = ctxt->cells[i - 1];
+			corners[0][1] = ctxt->cells[i - GRID_SIZE];
+			corners[0][0] = ctxt->cells[i - GRID_SIZE - 1];
+		}
+	}
+
+	/* short-circuit cases where interpolation obviously wouldn't do anything */
+	if (corners[0][0] == corners[0][1] &&
+	    corners[0][1] == corners[1][1] &&
+	    corners[1][1] == corners[1][0])
+		return color_to_uint32(colors[corners[0][0]]);
+
+	x_t = smootherstep(0.f, 1.f, x_t);
+	y_t = smootherstep(0.f, 1.f, y_t);
+
+	x1 = color_lerp(&colors[corners[0][0]], &colors[corners[0][1]], x_t);
+	x2 = color_lerp(&colors[corners[1][0]], &colors[corners[1][1]], x_t);
+
+	return color_to_uint32(color_lerp(&x1, &x2, y_t));
+}
+
+
+static inline uint32_t sample_grid(submit_context_t *ctxt, float x, float y)
+{
+	return color_to_uint32(colors[ctxt->cells[(int)y * GRID_SIZE + (int)x]]);
+}
+
+
+static void draw_grid(submit_context_t *ctxt, fb_fragment_t *fragment, uint32_t (*sampler)(submit_context_t *ctxt, float x, float y))
+{
+	float	xscale = (float)GRID_SIZE / (float)fragment->frame_width;
+	float	yscale = (float)GRID_SIZE / (float)fragment->frame_height;
+
+	for (int y = 0; y < fragment->height; y++) {
+		for (int x = 0; x < fragment->width; x++) {
+			uint32_t	color;
+
+			/* TODO: this could be optimized a bit! i.e. don't recompute the y for every x etc. */
+			color = sampler(ctxt, ((float)(fragment->x + x)) * xscale, ((float)(fragment->y + y)) * yscale);
+			fb_fragment_put_pixel_unchecked(fragment, fragment->x + x, fragment->y + y, color);
+		}
+	}
 }
 
 
@@ -139,11 +272,17 @@ static void submit_destroy_context(void *context)
 }
 
 
-static void submit_render_fragment(void *context, fb_fragment_t *fragment)
+static int submit_fragmenter(void *context, const fb_fragment_t *fragment, unsigned num, fb_fragment_t *res_fragment)
+{
+	return fb_fragment_tile_single(fragment, 32, num, res_fragment);
+}
+
+
+static void submit_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
 {
 	submit_context_t	*ctxt = context;
 
-	ctxt->fragment = fragment;
+	*res_fragmenter = submit_fragmenter;
 
 	if (ctxt->game_winner)
 		setup_grid(ctxt);
@@ -157,17 +296,44 @@ static void submit_render_fragment(void *context, fb_fragment_t *fragment)
 
 	for (int j = 0; j < TICKS_PER_FRAME; j++)
 		grid_tick(ctxt->grid);
+}
 
-	draw_grid(ctxt, fragment);
+
+static void submit_render_fragment(void *context, fb_fragment_t *fragment)
+{
+	submit_context_t	*ctxt = context;
+
+	draw_grid(ctxt, fragment, sample_grid);
+}
+
+
+static void submit_softly_render_fragment(void *context, fb_fragment_t *fragment)
+{
+	submit_context_t	*ctxt = context;
+
+	draw_grid(ctxt, fragment, sample_grid_bilerp);
 }
 
 
 rototiller_module_t	submit_module = {
 	.create_context = submit_create_context,
 	.destroy_context = submit_destroy_context,
+	.prepare_frame = submit_prepare_frame,
 	.render_fragment = submit_render_fragment,
 	.name = "submit",
-	.description = "Cellular automata conquest game sim",
+	.description = "Cellular automata conquest game sim (threaded (poorly))",
+	.author = "Vito Caputo <vcaputo@pengaru.com>",
+	.license = "GPLv3",
+};
+
+
+rototiller_module_t	submit_softly_module = {
+	.create_context = submit_create_context,
+	.destroy_context = submit_destroy_context,
+	.prepare_frame = submit_prepare_frame,
+	.render_fragment = submit_softly_render_fragment,
+	.name = "submit-softly",
+	.description = "Cellular automata conquest game sim w/bilinear interpolation (threaded (poorly))",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",
 	.license = "GPLv3",
 };
