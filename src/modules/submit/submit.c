@@ -114,15 +114,6 @@ static inline uint32_t sample_grid_bilerp(submit_context_t *ctxt, float x, float
 	uint8_t		corners[2][2];
 	color_t		x1, x2;
 
-	/* FIXME TODO: this short-circuit produces unsmoothed cells at the
-	 * periphery, and could be simply avoided by putting the peripheral
-	 * cells off-screen so all the samples are within the boundaries.
-	 * Ignoring for now.
-	 */
-	if (ix < 1 || ix > GRID_SIZE - 2 ||
-	    iy < 1 || iy > GRID_SIZE - 2)
-		return color_to_uint32(colors[ctxt->cells[iy * GRID_SIZE + ix]]);
-
 	i = iy * GRID_SIZE + ix;
 
 	/* ix,iy forms the corner of a 2x2 kernel, determine which corner */
@@ -192,15 +183,15 @@ static inline uint32_t sample_grid(submit_context_t *ctxt, float x, float y)
 
 static void draw_grid(submit_context_t *ctxt, fb_fragment_t *fragment, uint32_t (*sampler)(submit_context_t *ctxt, float x, float y))
 {
-	float	xscale = (float)GRID_SIZE / (float)fragment->frame_width;
-	float	yscale = (float)GRID_SIZE / (float)fragment->frame_height;
+	float	xscale = ((float)GRID_SIZE - 1.f) / (float)fragment->frame_width;
+	float	yscale = ((float)GRID_SIZE - 1.f) / (float)fragment->frame_height;
 
 	for (int y = 0; y < fragment->height; y++) {
 		for (int x = 0; x < fragment->width; x++) {
 			uint32_t	color;
 
 			/* TODO: this could be optimized a bit! i.e. don't recompute the y for every x etc. */
-			color = sampler(ctxt, ((float)(fragment->x + x)) * xscale, ((float)(fragment->y + y)) * yscale);
+			color = sampler(ctxt, .5f + ((float)(fragment->x + x)) * xscale, .5f + ((float)(fragment->y + y)) * yscale);
 			fb_fragment_put_pixel_unchecked(fragment, fragment->x + x, fragment->y + y, color);
 		}
 	}
