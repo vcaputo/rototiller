@@ -228,7 +228,7 @@ ray_render_t * ray_render_new(const ray_scene_t *scene, const ray_camera_t *came
 	for (i = 0, object = scene->objects; object->type; object++)
 		i++;
 
-	render = malloc(sizeof(ray_render_t) + i * sizeof(ray_render_object_t));
+	render = malloc(sizeof(ray_render_t) + (i + 1) * sizeof(ray_render_object_t));
 	if (!render)
 		return NULL;
 
@@ -240,6 +240,8 @@ ray_render_t * ray_render_new(const ray_scene_t *scene, const ray_camera_t *came
 
 	for (i = 0, object = scene->objects; object->type; object++)
 		render->objects[i++] = ray_render_object_prepare(object, camera);
+
+	render->objects[i].type = RAY_OBJECT_TYPE_SENTINEL;
 
 	return render;
 }
