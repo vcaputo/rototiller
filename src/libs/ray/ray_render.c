@@ -163,7 +163,7 @@ static inline ray_color_t trace_ray(ray_render_t *render, ray_ray_t *primary_ray
 
 	do {
 		ray_render_object_t	*nearest_object;
-		float		nearest_distance;
+		float			nearest_distance;
 
 		if (reflector) {
 			float		dot = ray_3f_dot(&ray->direction, &normal);
