@@ -31,6 +31,7 @@ extern fb_ops_t			drm_fb_ops;
 extern fb_ops_t			sdl_fb_ops;
 fb_ops_t			*fb_ops;
 
+extern rototiller_module_t	flui2d_module;
 extern rototiller_module_t	julia_module;
 extern rototiller_module_t	plasma_module;
 extern rototiller_module_t	roto32_module;
@@ -51,6 +52,7 @@ static rototiller_module_t	*modules[] = {
 	&julia_module,
 	&submit_module,
 	&submit_softly_module,
+	&flui2d_module,
 };
 
 

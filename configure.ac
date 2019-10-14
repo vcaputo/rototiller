@@ -38,6 +38,7 @@ AC_CONFIG_FILES([
  src/libs/grid/Makefile
  src/libs/ray/Makefile
  src/modules/Makefile
+ src/modules/flui2d/Makefile
  src/modules/julia/Makefile
  src/modules/plasma/Makefile
  src/modules/ray/Makefile
