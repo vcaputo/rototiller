@@ -9,7 +9,7 @@
 
 /* This code is almost entirely taken from the paper:
  * Real-Time Fluid Dynamics for Games
- * Joe Stam - Alias | Wavefront
+ * Jos Stam - Alias | Wavefront
  *
  * I take zero credit for it, I only wrote the rototiller integration.
  *   - Vito Caputo <vcaputo@pengaru.com> 10/13/2019
