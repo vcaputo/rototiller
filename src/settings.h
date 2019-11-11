@@ -33,4 +33,9 @@ int settings_apply_desc_generators(const settings_t *settings, const setting_des
 int setting_desc_clone(const setting_desc_t *desc, setting_desc_t **res_desc);
 void setting_desc_free(setting_desc_t *desc);
 
+#ifndef SETTINGS_STR
+#define _SETTINGS_STR(s)	#s
+#define SETTINGS_STR(s)		_SETTINGS_STR(s)
+#endif
+
 #endif
