@@ -22,6 +22,7 @@
 
 #include "fb.h"
 #include "rototiller.h"
+#include "settings.h"
 #include "util.h"
 
 #include "grid/grid.h"
@@ -54,6 +55,9 @@ typedef struct submit_context_t {
 	uint32_t	game_winner;
 	uint8_t		cells[GRID_SIZE * GRID_SIZE];
 } submit_context_t;
+
+
+static int	bilerp_setting;
 
 
 /* convert a color into a packed, 32-bit rgb pixel value (taken from libs/ray/ray_color.h) */
@@ -181,7 +185,7 @@ static inline uint32_t sample_grid(submit_context_t *ctxt, float x, float y)
 }
 
 
-static void draw_grid(submit_context_t *ctxt, fb_fragment_t *fragment, uint32_t (*sampler)(submit_context_t *ctxt, float x, float y))
+static void draw_grid(submit_context_t *ctxt, fb_fragment_t *fragment)
 {
 	float	xscale = ((float)GRID_SIZE - 1.f) / (float)fragment->frame_width;
 	float	yscale = ((float)GRID_SIZE - 1.f) / (float)fragment->frame_height;
@@ -191,7 +195,24 @@ static void draw_grid(submit_context_t *ctxt, fb_fragment_t *fragment, uint32_t 
 			uint32_t	color;
 
 			/* TODO: this could be optimized a bit! i.e. don't recompute the y for every x etc. */
-			color = sampler(ctxt, .5f + ((float)(fragment->x + x)) * xscale, .5f + ((float)(fragment->y + y)) * yscale);
+			color = sample_grid(ctxt, .5f + ((float)(fragment->x + x)) * xscale, .5f + ((float)(fragment->y + y)) * yscale);
+			fb_fragment_put_pixel_unchecked(fragment, fragment->x + x, fragment->y + y, color);
+		}
+	}
+}
+
+
+static void draw_grid_bilerp(submit_context_t *ctxt, fb_fragment_t *fragment)
+{
+	float	xscale = ((float)GRID_SIZE - 1.f) / (float)fragment->frame_width;
+	float	yscale = ((float)GRID_SIZE - 1.f) / (float)fragment->frame_height;
+
+	for (int y = 0; y < fragment->height; y++) {
+		for (int x = 0; x < fragment->width; x++) {
+			uint32_t	color;
+
+			/* TODO: this could be optimized a bit! i.e. don't recompute the y for every x etc. */
+			color = sample_grid_bilerp(ctxt, .5f + ((float)(fragment->x + x)) * xscale, .5f + ((float)(fragment->y + y)) * yscale);
 			fb_fragment_put_pixel_unchecked(fragment, fragment->x + x, fragment->y + y, color);
 		}
 	}
@@ -294,15 +315,46 @@ static void submit_render_fragment(void *context, fb_fragment_t *fragment)
 {
 	submit_context_t	*ctxt = context;
 
-	draw_grid(ctxt, fragment, sample_grid);
+	if (!bilerp_setting)
+		draw_grid(ctxt, fragment);
+	else
+		draw_grid_bilerp(ctxt, fragment);
 }
 
 
-static void submit_softly_render_fragment(void *context, fb_fragment_t *fragment)
+static int submit_setup(const settings_t *settings, setting_desc_t **next_setting)
 {
-	submit_context_t	*ctxt = context;
+	const char	*bilerp;
 
-	draw_grid(ctxt, fragment, sample_grid_bilerp);
+	bilerp = settings_get_value(settings, "bilerp");
+	if (!bilerp) {
+		const char	*values[] = {
+					"off",
+					"on",
+					NULL
+				};
+		int		r;
+
+		r = setting_desc_clone(&(setting_desc_t){
+						.name = "Bilinear Interpolation of Cell Colors",
+						.key = "bilerp",
+						.regex = NULL,
+						.preferred = values[0],
+						.values = values,
+						.annotations = NULL
+					}, next_setting);
+		if (r < 0)
+			return r;
+
+		return 1;
+	}
+
+	if (!strcasecmp(bilerp, "on"))
+		bilerp_setting = 1;
+	else
+		bilerp_setting = 0;
+
+	return 0;
 }
 
 
@@ -315,16 +367,5 @@ rototiller_module_t	submit_module = {
 	.description = "Cellular automata conquest game sim (threaded (poorly))",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",
 	.license = "GPLv3",
-};
-
-
-rototiller_module_t	submit_softly_module = {
-	.create_context = submit_create_context,
-	.destroy_context = submit_destroy_context,
-	.prepare_frame = submit_prepare_frame,
-	.render_fragment = submit_softly_render_fragment,
-	.name = "submit-softly",
-	.description = "Bilinearly interpolated version of submit (threaded (poorly))",
-	.author = "Vito Caputo <vcaputo@pengaru.com>",
-	.license = "GPLv3",
+	.setup = submit_setup,
 };
