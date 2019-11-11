@@ -7,6 +7,9 @@
  * return value of 1 means a fragment has been produced, 0 means num is beyond the end of fragments. */
 typedef int (*rototiller_fragmenter_t)(void *context, const fb_fragment_t *fragment, unsigned num, fb_fragment_t *res_fragment);
 
+typedef struct settings_t settings;
+typedef struct setting_desc_t setting_desc_t;
+
 typedef struct rototiller_module_t {
 	void *	(*create_context)(void);
 	void	(*destroy_context)(void *context);
@@ -17,6 +20,7 @@ typedef struct rototiller_module_t {
 	char	*description;
 	char	*author;
 	char	*license;
+	int	(*setup)(const settings_t *settings, setting_desc_t **next_setting);
 } rototiller_module_t;
 
 #endif

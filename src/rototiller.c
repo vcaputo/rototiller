@@ -233,7 +233,8 @@ static int setup_module(settings_t *settings, setting_desc_t **next_setting)
 	if (!module)
 		return -EINVAL;
 
-	/* TODO: here's where the module-specific settings would get hooked */
+	if (module->setup)
+		return module->setup(settings, next_setting);
 
 	return 0;
 }
