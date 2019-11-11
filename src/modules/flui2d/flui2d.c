@@ -5,6 +5,7 @@
 
 #include "fb.h"
 #include "rototiller.h"
+#include "settings.h"
 
 
 /* This code is almost entirely taken from the paper:
@@ -17,17 +18,20 @@
 
 #if 1
 	/* These knobs affect how the simulated fluid behaves */
-#define VISCOSITY	.000000001f
-#define DIFFUSION	.00001f
+#define DEFAULT_VISCOSITY	.000000001f
+#define DEFAULT_DIFFUSION	.00001f
 #else
-#define VISCOSITY	.00001f
-#define DIFFUSION	.000001f
+#define DEFAULT_VISCOSITY	.00001f
+#define DEFAULT_DIFFUSION	.000001f
 #endif
 
 #define ROOT		128	// Change this to vary the density field resolution
 #define SIZE		((ROOT + 2) * (ROOT + 2))
 #define IX(i, j)	((i) + (ROOT + 2) * (j))
 #define SWAP(x0, x)	{float *tmp = x0; x0 = x; x = tmp;}
+
+static float	flui2d_viscosity = DEFAULT_VISCOSITY;
+static float	flui2d_diffusion = DEFAULT_DIFFUSION;
 
 typedef struct flui2d_t {
 	float	u[SIZE], v[SIZE], u_prev[SIZE], v_prev[SIZE];
@@ -191,8 +195,8 @@ static void * flui2d_create_context(void)
 	if (!ctxt)
 		return NULL;
 
-	ctxt->fluid.visc = VISCOSITY;
-	ctxt->fluid.diff = DIFFUSION;
+	ctxt->fluid.visc = flui2d_viscosity;
+	ctxt->fluid.diff = flui2d_diffusion;
 
 	return ctxt;
 }
@@ -279,6 +283,68 @@ static void flui2d_render_fragment(void *context, fb_fragment_t *fragment)
 }
 
 
+/* Settings hooks for configurable variables */
+int flui2d_setup(const settings_t *settings, setting_desc_t **next_setting)
+{
+	const char	*viscosity;
+	const char	*diffusion;
+	const char	*values[] = {
+				".000000000001f",
+				".0000000001f",
+				".000000001f",
+				".00000001f",
+				".0000001f",
+				".000001f",
+				".00001f",
+				".0001f",
+				NULL
+			};
+
+
+	viscosity = settings_get_value(settings, "viscosity");
+	if (!viscosity) {
+		int	r;
+
+		r = setting_desc_clone(&(setting_desc_t){
+						.name = "Fluid Viscosity",
+						.key = "viscosity",
+						.regex = "\\.[0-9]+",
+						.preferred = SETTINGS_STR(DEFAULT_VISCOSITY),
+						.values = values,
+						.annotations = NULL
+					}, next_setting);
+		if (r < 0)
+			return r;
+
+		return 1;
+	}
+
+	diffusion = settings_get_value(settings, "diffusion");
+	if (!diffusion) {
+		int	r;
+
+		r = setting_desc_clone(&(setting_desc_t){
+						.name = "Fluid Diffusion",
+						.key = "diffusion",
+						.regex = "\\.[0-9]+",
+						.preferred = SETTINGS_STR(DEFAULT_DIFFUSION),
+						.values = values,
+						.annotations = NULL
+					}, next_setting);
+		if (r < 0)
+			return r;
+
+		return 1;
+	}
+
+	/* TODO: return -EINVAL on parse errors? */
+	sscanf(viscosity, "%f", &flui2d_viscosity);
+	sscanf(diffusion, "%f", &flui2d_diffusion);
+
+	return 0;
+}
+
+
 rototiller_module_t	flui2d_module = {
 	.create_context = flui2d_create_context,
 	.destroy_context = flui2d_destroy_context,
@@ -288,4 +354,5 @@ rototiller_module_t	flui2d_module = {
 	.description = "Fluid dynamics simulation in 2D (threaded (poorly))",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",
 	.license = "Unknown",
+	.setup = flui2d_setup,
 };
