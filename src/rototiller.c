@@ -162,17 +162,18 @@ static int setup_video(settings_t *settings, setting_desc_t **next_setting)
 					"sdl",
 					NULL,
 				};
+		int		r;
 
-		desc = setting_desc_new("Video Backend",
-					NULL,
-					"[a-z]+",
-					DEFAULT_VIDEO,
-					values,
-					NULL);
-		if (!desc)
-			return -ENOMEM;
-
-		*next_setting = desc;
+		r = setting_desc_clone(&(setting_desc_t){
+						.name = "Video Backend",
+						.key = NULL,
+						.regex = "[a-z]+",
+						.preferred = DEFAULT_VIDEO,
+						.values = values,
+						.annotations = NULL
+					}, next_setting);
+		if (r < 0)
+			return r;
 
 		return 1;
 	}
@@ -207,22 +208,23 @@ static int setup_module(settings_t *settings, setting_desc_t **next_setting)
 		const char	*annotations[nelems(modules) + 1] = {};
 		setting_desc_t	*desc;
 		unsigned	i;
+		int		r;
 
 		for (i = 0; i < nelems(modules); i++) {
 			values[i] = modules[i]->name;
 			annotations[i] = modules[i]->description;
 		}
 
-		desc = setting_desc_new("Renderer Module",
-					NULL,
-					"[a-zA-Z0-9]+",
-					DEFAULT_MODULE,
-					values,
-					annotations);
-		if (!desc)
-			return -ENOMEM;
-
-		*next_setting = desc;
+		r = setting_desc_clone(&(setting_desc_t){
+						.name = "Renderer Module",
+						.key = NULL,
+						.regex = "[a-zA-Z0-9]+",
+						.preferred = DEFAULT_MODULE,
+						.values = values,
+						.annotations = annotations
+					}, next_setting);
+		if (r < 0)
+			return r;
 
 		return 1;
 	}

@@ -214,50 +214,53 @@ int settings_apply_desc_generators(const settings_t *settings, const setting_des
 
 
 /* convenience helper for creating a new setting description */
-/* copies of everything supplied are made in newly allocated memory */
-setting_desc_t * setting_desc_new(const char *name, const char *key, const char *regex, const char *preferred, const char *values[], const char *annotations[])
+/* copies of everything supplied are made in newly allocated memory, stored @ res_desc */
+/* returns < 0 on error */
+int setting_desc_clone(const setting_desc_t *desc, setting_desc_t **res_desc)
 {
-	setting_desc_t	*desc;
+	setting_desc_t	*d;
 
-	assert(name);
-	assert(preferred);	/* XXX: require a preferred default? */
-	assert(!annotations || values);
+	assert(desc);
+	assert(desc->name);
+	assert(desc->preferred);	/* XXX: require a preferred default? */
+	assert(!desc->annotations || desc->values);
 
-	desc = calloc(1, sizeof(setting_desc_t));
-	if (!desc)
-		return NULL;
+	d = calloc(1, sizeof(setting_desc_t));
+	if (!d)
+		return -ENOMEM;
 
-	desc->name = strdup(name);
-	if (key)	/* This is inappropriately subtle, but when key is NULL, the value will be the key, and there will be no value side at all. */
-		desc->key = strdup(key);
-	if (regex)
-		desc->regex = strdup(regex);
+	d->name = strdup(desc->name);
+	if (desc->key)	/* This is inappropriately subtle, but when key is NULL, the value will be the key, and there will be no value side at all. */
+		d->key = strdup(desc->key);
+	if (desc->regex)
+		d->regex = strdup(desc->regex);
 
-	desc->preferred = strdup(preferred);
+	d->preferred = strdup(desc->preferred);
 
-	if (values) {
+	if (desc->values) {
 		unsigned	i;
 
-		for (i = 0; values[i]; i++);
+		for (i = 0; desc->values[i]; i++);
 
-		desc->values = calloc(i + 1, sizeof(*values));
+		d->values = calloc(i + 1, sizeof(*desc->values));
 
-		if (annotations)
-			desc->annotations = calloc(i + 1, sizeof(*annotations));
+		if (desc->annotations)
+			d->annotations = calloc(i + 1, sizeof(*desc->annotations));
 
-		for (i = 0; values[i]; i++) {
-			desc->values[i] = strdup(values[i]);
+		for (i = 0; desc->values[i]; i++) {
+			d->values[i] = strdup(desc->values[i]);
 
-			if (annotations) {
-				assert(annotations[i]);
-				desc->annotations[i] = strdup(annotations[i]);
+			if (desc->annotations) {
+				assert(desc->annotations[i]);
+				d->annotations[i] = strdup(desc->annotations[i]);
 			}
 		}
 	}
 
 	/* TODO: handle allocation errors above... */
+	*res_desc = d;
 
-	return desc;
+	return 0;
 }
 
 

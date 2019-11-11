@@ -36,18 +36,18 @@ int sdl_fb_setup(const settings_t *settings, setting_desc_t **next_setting)
 					"on",
 					NULL
 				};
-		setting_desc_t	*desc;
+		int		r;
 
-		desc = setting_desc_new("SDL Fullscreen Mode",
-					"fullscreen",
-					NULL,
-					values[0],
-					values,
-					NULL);
-		if (!desc)
-			return -ENOMEM;
-
-		*next_setting = desc;
+		r = setting_desc_clone(&(setting_desc_t){
+						.name = "SDL Fullscreen Mode",
+						.key = "fullscreen",
+						.regex = NULL,
+						.preferred = values[0],
+						.values = values,
+						.annotations = NULL
+					}, next_setting);
+		if (r < 0)
+			return r;
 
 		return 1;
 	}
@@ -57,18 +57,19 @@ int sdl_fb_setup(const settings_t *settings, setting_desc_t **next_setting)
 
 		size = settings_get_value(settings, "size");
 		if (!size) {
-			setting_desc_t	*desc;
+			int	r;
 
-			desc = setting_desc_new("SDL Window size",
-						"size",
-						"[1-9][0-9]*[xX][1-9][0-9]*",
-						"640x480",
-						NULL,
-						NULL);
-			if (!desc)
-				return -ENOMEM;
-
-			*next_setting = desc;
+			r = setting_desc_clone(&(setting_desc_t){
+							.name = "SDL Window size",
+							.key = "size",
+							.regex = "[1-9][0-9]*[xX][1-9][0-9]*",
+							.preferred = "640x480",
+							.values = NULL,
+							.annotations = NULL
+						},
+						next_setting);
+			if (r < 0)
+				return r;
 
 			return 1;
 		}

@@ -70,12 +70,18 @@ static const char * connector_type_name(uint32_t type) {
 
 static setting_desc_t * dev_desc_generator(void *setup_context)
 {
-	return setting_desc_new("DRM Device Path",
-				"dev",
-				"/dev/dri/card[0-9]",
-				"/dev/dri/card0",
-				NULL,
-				NULL);
+	setting_desc_t	*desc = NULL;
+
+	(void) setting_desc_clone(&(setting_desc_t){
+					.name = "DRM Device Path",
+					.key = "dev",
+					.regex = "/dev/dri/card[0-9]",
+					.preferred = "/dev/dri/card0",
+					.values = NULL,
+					.annotations = NULL
+				}, &desc);
+
+	return desc;
 }
 
 
@@ -145,18 +151,20 @@ static setting_desc_t * connector_desc_generator(void *setup_context)
 {
 	drm_fb_setup_t	*s = setup_context;
 	const char	**connectors;
-	setting_desc_t	*desc;
+	setting_desc_t	*desc = NULL;
 
 	connectors = get_connectors(s->dev);
 	if (!connectors)
 		return NULL;
 
-	desc = setting_desc_new("DRM Connector",
-				"connector",
-				"[a-zA-Z0-9]+",
-				connectors[0],
-				connectors,
-				NULL);
+	(void) setting_desc_clone(&(setting_desc_t){
+					.name = "DRM Connector",
+					.key = "connector",
+					.regex = "[a-zA-Z0-9]+",
+					.preferred = connectors[0],
+					.values = connectors,
+					.annotations = NULL
+				}, &desc);
 
 	free_strv(connectors);
 
@@ -239,19 +247,21 @@ _out:
 static setting_desc_t * mode_desc_generator(void *setup_context)
 {
 	drm_fb_setup_t	*s = setup_context;
-	setting_desc_t	*desc;
+	setting_desc_t	*desc = NULL;
 	const char	**modes;
 
 	modes = get_modes(s->dev, s->connector);
 	if (!modes)
 		return NULL;
 
-	desc = setting_desc_new("DRM Video Mode",
-				"mode",
-				"[0-9]+[xX][0-9]+@[0-9]+",
-				modes[0],
-				modes,
-				NULL);
+	(void) setting_desc_clone(&(setting_desc_t){
+					.name = "DRM Video Mode",
+					.key = "mode",
+					.regex = "[0-9]+[xX][0-9]+@[0-9]+",
+					.preferred = modes[0],
+					.values = modes,
+					.annotations = NULL
+				}, &desc);
 
 	free_strv(modes);
 
