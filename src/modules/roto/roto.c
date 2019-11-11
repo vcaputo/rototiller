@@ -198,8 +198,8 @@ static void roto_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fr
 }
 
 
-/* Draw a rotating checkered 256x256 texture into fragment. (32-bit version) */
-static void roto32_render_fragment(void *context, fb_fragment_t *fragment)
+/* Draw a rotating checkered 256x256 texture into fragment. */
+static void roto_render_fragment(void *context, fb_fragment_t *fragment)
 {
 	roto_context_t	*ctxt = context;
 	int		y_cos_r, y_sin_r, x_cos_r, x_sin_r, x_cos_r_init, x_sin_r_init, cos_r, sin_r;
@@ -248,85 +248,13 @@ static void roto32_render_fragment(void *context, fb_fragment_t *fragment)
 }
 
 
-/* Draw a rotating checkered 256x256 texture into fragment. (64-bit version) */
-static void roto64_render_fragment(void *context, fb_fragment_t *fragment)
-{
-	roto_context_t	*ctxt = context;
-	int		y_cos_r, y_sin_r, x_cos_r, x_sin_r, x_cos_r_init, x_sin_r_init, cos_r, sin_r;
-	int		x, y, frame_width = fragment->frame_width, frame_height = fragment->frame_height, width = fragment->width;
-	uint64_t	*buf = (uint64_t *)fragment->buf;
-
-	/* This is all done using fixed-point in the hopes of being faster, and yes assumptions
-	 * are being made WRT the overflow of tx/ty as well, only tested on x86_64. */
-	cos_r = FIXED_COS(ctxt->r);
-	sin_r = FIXED_SIN(ctxt->r);
-
-	/* Vary the colors, this is just a mashup of sinusoidal rgb values. */
-	palette[0].r = (FIXED_MULT(FIXED_COS(ctxt->rr), FIXED_NEW(127)) + FIXED_NEW(128));
-	palette[0].g = (FIXED_MULT(FIXED_SIN(ctxt->rr / 2), FIXED_NEW(127)) + FIXED_NEW(128));
-	palette[0].b = (FIXED_MULT(FIXED_COS(ctxt->rr / 3), FIXED_NEW(127)) + FIXED_NEW(128));
-
-	palette[1].r = (FIXED_MULT(FIXED_SIN(ctxt->rr / 2), FIXED_NEW(127)) + FIXED_NEW(128));
-	palette[1].g = (FIXED_MULT(FIXED_COS(ctxt->rr / 2), FIXED_NEW(127)) + FIXED_NEW(128));
-	palette[1].b = (FIXED_MULT(FIXED_SIN(ctxt->rr), FIXED_NEW(127)) + FIXED_NEW(128));
-
-	/* The dimensions are cut in half and negated to center the rotation. */
-	/* The [xy]_{sin,cos}_r variables are accumulators to replace multiplication with addition. */
-	x_cos_r_init = FIXED_MULT(-FIXED_NEW(frame_width / 2) + FIXED_NEW(fragment->x), cos_r);
-	x_sin_r_init = FIXED_MULT(-FIXED_NEW(frame_width / 2) + FIXED_NEW(fragment->x), sin_r);
-
-	y_cos_r = FIXED_MULT(-FIXED_NEW(frame_height / 2) + FIXED_NEW(fragment->y), cos_r);
-	y_sin_r = FIXED_MULT(-FIXED_NEW(frame_height / 2) + FIXED_NEW(fragment->y), sin_r);
-
-	width /= 2;	/* Since we're processing 64-bit words (2 pixels) at a time */
-
-	for (y = fragment->y; y < fragment->y + fragment->height; y++) {
-
-		x_cos_r = x_cos_r_init;
-		x_sin_r = x_sin_r_init;
-
-		for (x = fragment->x; x < fragment->x + width; x++, buf++) {
-			uint64_t	p;
-
-			p = bilerp_color(texture, palette, x_sin_r - y_cos_r, y_sin_r + x_cos_r);
-
-			x_cos_r += cos_r;
-			x_sin_r += sin_r;
-
-			p |= (uint64_t)(bilerp_color(texture, palette, x_sin_r - y_cos_r, y_sin_r + x_cos_r)) << 32;
-
-			*buf = p;
-
-			x_cos_r += cos_r;
-			x_sin_r += sin_r;
-		}
-
-		buf = ((void *)buf) + fragment->stride;
-		y_cos_r += cos_r;
-		y_sin_r += sin_r;
-	}
-}
-
-
-rototiller_module_t	roto32_module = {
+rototiller_module_t	roto_module = {
 	.create_context = roto_create_context,
 	.destroy_context = roto_destroy_context,
 	.prepare_frame = roto_prepare_frame,
-	.render_fragment = roto32_render_fragment,
-	.name = "roto32",
-	.description = "Anti-aliased tiled texture rotation (32-bit, threaded)",
-	.author = "Vito Caputo <vcaputo@pengaru.com>",
-	.license = "GPLv2",
-};
-
-
-rototiller_module_t	roto64_module = {
-	.create_context = roto_create_context,
-	.destroy_context = roto_destroy_context,
-	.prepare_frame = roto_prepare_frame,
-	.render_fragment = roto64_render_fragment,
-	.name = "roto64",
-	.description = "Anti-aliased tiled texture rotation (64-bit, threaded)",
+	.render_fragment = roto_render_fragment,
+	.name = "roto",
+	.description = "Anti-aliased tiled texture rotation (threaded)",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",
 	.license = "GPLv2",
 };

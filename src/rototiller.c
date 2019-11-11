@@ -24,7 +24,7 @@
  * another page so we can begin rendering another frame before vsync.  With
  * just two pages we end up twiddling thumbs until the vsync arrives.
  */
-#define DEFAULT_MODULE	"roto32"
+#define DEFAULT_MODULE	"roto"
 #define DEFAULT_VIDEO	"sdl"
 
 extern fb_ops_t			drm_fb_ops;
@@ -35,16 +35,14 @@ extern rototiller_module_t	flui2d_module;
 extern rototiller_module_t	julia_module;
 extern rototiller_module_t	pixbounce_module;
 extern rototiller_module_t	plasma_module;
-extern rototiller_module_t	roto32_module;
-extern rototiller_module_t	roto64_module;
+extern rototiller_module_t	roto_module;
 extern rototiller_module_t	ray_module;
 extern rototiller_module_t	sparkler_module;
 extern rototiller_module_t	stars_module;
 extern rototiller_module_t	submit_module;
 
 static rototiller_module_t	*modules[] = {
-	&roto32_module,
-	&roto64_module,
+	&roto_module,
 	&ray_module,
 	&sparkler_module,
 	&stars_module,
