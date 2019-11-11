@@ -239,7 +239,7 @@ static int setup_module(settings_t *settings, setting_desc_t **next_setting)
 
 /* turn args into settings, automatically applying defaults if appropriate, or interactively if appropriate. */
 /* returns negative value on error, 0 when settings unchanged from args, 1 when changed */
-static int setup_from_args(argv_t *args, int defaults, setup_t *res_setup)
+static int setup_from_args(argv_t *args, setup_t *res_setup)
 {
 	int	r, changes = 0;
 	setup_t	setup;
@@ -255,7 +255,7 @@ static int setup_from_args(argv_t *args, int defaults, setup_t *res_setup)
 		return -ENOMEM;
 	}
 
-	r = setup_interactively(setup.module, setup_module, defaults);
+	r = setup_interactively(setup.module, setup_module, args->defaults);
 	if (r < 0) {
 		settings_free(setup.module);
 		settings_free(setup.video);
@@ -266,7 +266,7 @@ static int setup_from_args(argv_t *args, int defaults, setup_t *res_setup)
 	if (r)
 		changes = 1;
 
-	r = setup_interactively(setup.video, setup_video, defaults);
+	r = setup_interactively(setup.video, setup_video, args->defaults);
 	if (r < 0) {
 		settings_free(setup.module);
 		settings_free(setup.video);
@@ -378,7 +378,7 @@ int main(int argc, const char *argv[])
 	if (args.help)
 		return print_help() < 0 ? EXIT_FAILURE : EXIT_SUCCESS;
 
-	exit_if((r = setup_from_args(&args, args.defaults, &setup)) < 0,
+	exit_if((r = setup_from_args(&args, &setup)) < 0,
 		"unable to setup");
 
 	exit_if(r && print_setup_as_args(&setup) < 0,
