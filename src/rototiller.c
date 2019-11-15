@@ -124,7 +124,7 @@ typedef struct argv_t {
 	const char	*module;
 	const char	*video;
 
-	unsigned	defaults:1;
+	unsigned	use_defaults:1;
 	unsigned	help:1;
 } argv_t;
 
@@ -150,7 +150,7 @@ static int parse_argv(int argc, const char *argv[], argv_t *res_args)
 		} else if (!strncmp("--module=", argv[i], 9)) {
 			res_args->module = &argv[i][9];
 		} else if (!strcmp("--defaults", argv[i])) {
-			res_args->defaults = 1;
+			res_args->use_defaults = 1;
 		} else if (!strcmp("--help", argv[i])) {
 			res_args->help = 1;
 		} else {
@@ -284,7 +284,7 @@ static int setup_from_args(argv_t *args, setup_t *res_setup)
 		return -ENOMEM;
 	}
 
-	r = setup_interactively(setup.module, setup_module, args->defaults);
+	r = setup_interactively(setup.module, setup_module, args->use_defaults);
 	if (r < 0) {
 		settings_free(setup.module);
 		settings_free(setup.video);
@@ -295,7 +295,7 @@ static int setup_from_args(argv_t *args, setup_t *res_setup)
 	if (r)
 		changes = 1;
 
-	r = setup_interactively(setup.video, setup_video, args->defaults);
+	r = setup_interactively(setup.video, setup_video, args->use_defaults);
 	if (r < 0) {
 		settings_free(setup.module);
 		settings_free(setup.video);
