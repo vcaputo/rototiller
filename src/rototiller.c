@@ -399,7 +399,7 @@ int main(int argc, const char *argv[])
 		return print_help() < 0 ? EXIT_FAILURE : EXIT_SUCCESS;
 
 	exit_if((r = setup_from_args(&args, &setup)) < 0,
-		"unable to setup");
+		"unable to setup: %s", strerror(-r));
 
 	exit_if(r && print_setup_as_args(&setup) < 0,
 		"unable to print setup");
