@@ -289,6 +289,26 @@ void setting_desc_free(setting_desc_t *desc)
 }
 
 
+int setting_desc_check(const setting_desc_t *desc, const char *value)
+{
+	assert(desc);
+
+	if (desc->values) {
+
+		for (int i = 0; desc->values[i]; i++) {
+			if (!strcasecmp(desc->values[i], value))
+				return 0;
+		}
+
+		return -EINVAL;
+	}
+
+	/* TODO: apply regex check */
+
+	return 0;
+}
+
+
 /* wrapper around sprintf for convenient buffer size computation */
 /* supply NULL buf when computing size, size and offset are ignored.
  * supply non-NULL for actual writing into buf of size bytes @ offset.
