@@ -23,4 +23,8 @@ typedef struct rototiller_module_t {
 	int	(*setup)(const settings_t *settings, setting_desc_t **next_setting);
 } rototiller_module_t;
 
+const rototiller_module_t * rototiller_lookup_module(const char *name);
+void rototiller_get_modules(const rototiller_module_t ***res_modules, size_t *res_n_modules);
+void rototiller_module_render(const rototiller_module_t *module, void *context, fb_fragment_t *fragment);
+
 #endif

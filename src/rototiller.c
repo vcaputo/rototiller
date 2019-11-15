@@ -41,7 +41,7 @@ extern rototiller_module_t	sparkler_module;
 extern rototiller_module_t	stars_module;
 extern rototiller_module_t	submit_module;
 
-static rototiller_module_t	*modules[] = {
+static const rototiller_module_t	*modules[] = {
 	&roto_module,
 	&ray_module,
 	&sparkler_module,
@@ -53,14 +53,22 @@ static rototiller_module_t	*modules[] = {
 	&pixbounce_module,
 };
 
+typedef struct rototiller_t {
+	const rototiller_module_t	*module;
+	void				*module_context;
+	threads_t			*threads;
+	pthread_t			thread;
+	fb_t				*fb;
+} rototiller_t;
 
-static rototiller_module_t * module_lookup(const char *name)
+static rototiller_t		rototiller;
+
+
+const rototiller_module_t * rototiller_lookup_module(const char *name)
 {
-	unsigned	i;
-
 	assert(name);
 
-	for (i = 0; i < nelems(modules); i++) {
+	for (size_t i = 0; i < nelems(modules); i++) {
 		if (!strcasecmp(name, modules[i]->name))
 			return modules[i];
 	}
@@ -69,26 +77,42 @@ static rototiller_module_t * module_lookup(const char *name)
 }
 
 
-static void module_render_page_threaded(rototiller_module_t *module, void *context, threads_t *threads, fb_page_t *page)
+void rototiller_get_modules(const rototiller_module_t ***res_modules, size_t *res_n_modules)
 {
-	rototiller_fragmenter_t	fragmenter;
+	assert(res_modules);
+	assert(res_n_modules);
 
-	module->prepare_frame(context, threads_num_threads(threads), &page->fragment, &fragmenter);
-
-	threads_frame_submit(threads, &page->fragment, fragmenter, module->render_fragment, context);
-	threads_wait_idle(threads);
+	*res_modules = modules;
+	*res_n_modules = nelems(modules);
 }
 
 
-static void module_render_page(rototiller_module_t *module, void *context, threads_t *threads, fb_page_t *page)
+static void module_render_fragment(const rototiller_module_t *module, void *context, threads_t *threads, fb_fragment_t *fragment)
 {
-	if (module->prepare_frame)
-		module_render_page_threaded(module, context, threads, page);
-	else
-		module->render_fragment(context, &page->fragment);
+	if (module->prepare_frame) {
+		rototiller_fragmenter_t	fragmenter;
+
+		module->prepare_frame(context, threads_num_threads(threads), fragment, &fragmenter);
+
+		if (module->render_fragment) {
+			threads_frame_submit(threads, fragment, fragmenter, module->render_fragment, context);
+			threads_wait_idle(threads);
+		}
+
+	} else if (module->render_fragment)
+		module->render_fragment(context, fragment);
 
 	if (module->finish_frame)
-		module->finish_frame(context, &page->fragment);
+		module->finish_frame(context, fragment);
+}
+
+
+/* This is a public interface to the threaded module rendering intended for use by
+ * modules that wish to get the output of other modules for their own use.
+ */
+void rototiller_module_render(const rototiller_module_t *module, void *context, fb_fragment_t *fragment)
+{
+	module_render_fragment(module, context, rototiller.threads, fragment);
 }
 
 
@@ -197,8 +221,8 @@ static int setup_video(settings_t *settings, setting_desc_t **next_setting)
 /* select module if not yet selected, then setup the module. */
 static int setup_module(settings_t *settings, setting_desc_t **next_setting)
 {
-	rototiller_module_t	*module;
-	const char		*name;
+	const rototiller_module_t	*module;
+	const char			*name;
 
 	name = settings_get_key(settings, 0);
 	if (!name) {
@@ -227,7 +251,7 @@ static int setup_module(settings_t *settings, setting_desc_t **next_setting)
 		return 1;
 	}
 
-	module = module_lookup(name);
+	module = rototiller_lookup_module(name);
 	if (!module)
 		return -EINVAL;
 
@@ -336,14 +360,6 @@ static int print_help(void)
 }
 
 
-typedef struct rototiller_t {
-	rototiller_module_t	*module;
-	void			*module_context;
-	threads_t		*threads;
-	pthread_t		thread;
-	fb_t			*fb;
-} rototiller_t;
-
 static void * rototiller_thread(void *_rt)
 {
 	rototiller_t	*rt = _rt;
@@ -352,7 +368,7 @@ static void * rototiller_thread(void *_rt)
 		fb_page_t	*page;
 
 		page = fb_page_get(rt->fb);
-		module_render_page(rt->module, rt->module_context, rt->threads, page);
+		module_render_fragment(rt->module, rt->module_context, rt->threads, &page->fragment);
 		fb_page_put(rt->fb, page);
 	}
 
@@ -368,7 +384,6 @@ static void * rototiller_thread(void *_rt)
  */
 int main(int argc, const char *argv[])
 {
-	rototiller_t	rototiller = {};
 	setup_t		setup = {};
 	argv_t		args = {};
 	int		r;
@@ -385,7 +400,7 @@ int main(int argc, const char *argv[])
 	exit_if(r && print_setup_as_args(&setup) < 0,
 		"unable to print setup");
 
-	exit_if(!(rototiller.module = module_lookup(settings_get_key(setup.module, 0))),
+	exit_if(!(rototiller.module = rototiller_lookup_module(settings_get_key(setup.module, 0))),
 		"unable to lookup module from settings \"%s\"", settings_get_key(setup.module, 0));
 
 	exit_if(!(rototiller.fb = fb_new(fb_ops, setup.video, NUM_FB_PAGES)),
