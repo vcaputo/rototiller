@@ -24,15 +24,18 @@
  *   same thing over and over.
  */
 
+#define RTV_SNOW_DURATION_SECS	1
 #define RTV_DURATION_SECS	15
 
 typedef struct rtv_context_t {
 	const rototiller_module_t	**modules;
 	size_t				n_modules;
 
-	time_t				last_switch;
+	time_t				next_switch;
 	const rototiller_module_t	*module;
 	void				*module_ctxt;
+
+	const rototiller_module_t	*snow_module;
 } rtv_context_t;
 
 static void setup_next_module(rtv_context_t *ctxt);
@@ -68,15 +71,22 @@ static void setup_next_module(rtv_context_t *ctxt)
 		ctxt->module_ctxt = NULL;
 	}
 
-	do {
-		i = rand() % ctxt->n_modules;
-	} while (ctxt->modules[i] == &rtv_module || ctxt->modules[i] == ctxt->module);
+	if (ctxt->module != ctxt->snow_module) {
+		ctxt->module = ctxt->snow_module;
+		ctxt->next_switch = time(NULL) + RTV_SNOW_DURATION_SECS;
+	} else {
+		do {
+			i = rand() % ctxt->n_modules;
+		} while (ctxt->modules[i] == &rtv_module ||
+			 ctxt->modules[i] == ctxt->module ||
+			 ctxt->modules[i] == ctxt->snow_module);
 
-	ctxt->module = ctxt->modules[i];
+		ctxt->module = ctxt->modules[i];
+		ctxt->next_switch = time(NULL) + RTV_DURATION_SECS;
+	}
+
 	if (ctxt->module->create_context)
 		ctxt->module_ctxt = ctxt->module->create_context();
-
-	ctxt->last_switch = time(NULL);
 }
 
 
@@ -84,6 +94,7 @@ static void * rtv_create_context(void)
 {
 	rtv_context_t	*ctxt = calloc(1, sizeof(rtv_context_t));
 
+	ctxt->snow_module = rototiller_lookup_module("snow");
 	rototiller_get_modules(&ctxt->modules, &ctxt->n_modules);
 	setup_next_module(ctxt);
 
@@ -101,7 +112,7 @@ static void rtv_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fra
 {
 	rtv_context_t	*ctxt = context;
 
-	if (!ctxt->last_switch || time(NULL) - ctxt->last_switch > RTV_DURATION_SECS)
+	if (time(NULL) >= ctxt->next_switch)
 		setup_next_module(ctxt);
 
 	rototiller_module_render(ctxt->module, ctxt->module_ctxt, fragment);
