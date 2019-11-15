@@ -27,52 +27,60 @@ struct sdl_fb_page_t {
 
 int sdl_fb_setup(const settings_t *settings, setting_desc_t **next_setting)
 {
-	const char	*fullscreen;
-
-	fullscreen = settings_get_value(settings, "fullscreen");
-	if (!fullscreen) {
-		const char	*values[] = {
+	const char		*fullscreen_values[] = {
 					"off",
 					"on",
 					NULL
 				};
-		int		r;
-
-		r = setting_desc_clone(&(setting_desc_t){
+	const setting_desc_t	descs[] = {
+					{
 						.name = "SDL Fullscreen Mode",
 						.key = "fullscreen",
 						.regex = NULL,
-						.preferred = values[0],
-						.values = values,
+						.preferred = fullscreen_values[0],
+						.values = fullscreen_values,
 						.annotations = NULL
-					}, next_setting);
+					}, {
+						.name = "SDL Window size",
+						.key = "size",
+						.regex = "[1-9][0-9]*[xX][1-9][0-9]*",
+						.preferred = "640x480",
+						.values = NULL,
+						.annotations = NULL
+					},
+				};
+	const char		*fullscreen;
+	int			r;
+
+
+	fullscreen = settings_get_value(settings, "fullscreen");
+	if (!fullscreen) {
+		r = setting_desc_clone(&descs[0], next_setting);
 		if (r < 0)
 			return r;
 
 		return 1;
 	}
 
+	r = setting_desc_check(&descs[0], fullscreen);
+	if (r < 0)
+		return r;
+
 	if (!strcasecmp(fullscreen, "off")) {
 		const char	*size;
 
 		size = settings_get_value(settings, "size");
 		if (!size) {
-			int	r;
-
-			r = setting_desc_clone(&(setting_desc_t){
-							.name = "SDL Window size",
-							.key = "size",
-							.regex = "[1-9][0-9]*[xX][1-9][0-9]*",
-							.preferred = "640x480",
-							.values = NULL,
-							.annotations = NULL
-						},
-						next_setting);
+			r = setting_desc_clone(&descs[1], next_setting);
 			if (r < 0)
 				return r;
 
 			return 1;
 		}
+
+		r = setting_desc_check(&descs[1], size);
+		if (r < 0)
+			return r;
 	}
 
 	return 0;
