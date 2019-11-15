@@ -191,20 +191,28 @@ int settings_apply_desc_generators(const settings_t *settings, const setting_des
 	for (i = 0; i < n_generators; i++) {
 		const setting_desc_generator_t	*g = &generators[i];
 		const char			*value;
+		setting_desc_t			*desc;
+
+		desc = g->func(setup_context);
+		if (!desc)
+			return -ENOMEM;
 
 		value = settings_get_value(settings, g->key);
 		if (value) {
+			int	r;
+
+			r = setting_desc_check(desc, value);
+			setting_desc_free(desc);
+			if (r < 0)
+				return r;
+
 			if (g->value_ptr)
 				*g->value_ptr = value;
 
 			continue;
 		}
 
-		next = g->func(setup_context);
-		if (!next)
-			return -ENOMEM;
-
-		*next_setting = next;
+		*next_setting = desc;
 
 		return 1;
 	}
