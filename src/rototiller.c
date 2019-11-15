@@ -38,6 +38,7 @@ extern rototiller_module_t	plasma_module;
 extern rototiller_module_t	roto_module;
 extern rototiller_module_t	ray_module;
 extern rototiller_module_t	rtv_module;
+extern rototiller_module_t	snow_module;
 extern rototiller_module_t	sparkler_module;
 extern rototiller_module_t	stars_module;
 extern rototiller_module_t	submit_module;
@@ -53,6 +54,7 @@ static const rototiller_module_t	*modules[] = {
 	&flui2d_module,
 	&pixbounce_module,
 	&rtv_module,
+	&snow_module,
 };
 
 typedef struct rototiller_t {
