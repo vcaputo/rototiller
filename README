@@ -9,6 +9,7 @@ rototiller is, rendered entirely in software:
 	flui2d: a 2D fluid dynamics simulation
 	pixbounce: a 2D bouncing pixmap demonstration
 	rtv: a "Rototiller TV" slideshow meta-module
+	snow: a "TV snow" / white noise effect
 
 ---
 
