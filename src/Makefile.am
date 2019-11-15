@@ -4,4 +4,4 @@ rototiller_SOURCES = fb.c fb.h fps.c fps.h rototiller.c rototiller.h sdl_fb.c se
 if ENABLE_DRM
 rototiller_SOURCES += drm_fb.c
 endif
-rototiller_LDADD = modules/flui2d/libflui2d.a modules/julia/libjulia.a modules/pixbounce/libpixbounce.a modules/plasma/libplasma.a modules/ray/libray.a modules/roto/libroto.a modules/sparkler/libsparkler.a modules/stars/libstars.a modules/submit/libsubmit.a libs/grid/libgrid.a libs/ray/libray.a -lm
+rototiller_LDADD = modules/flui2d/libflui2d.a modules/julia/libjulia.a modules/pixbounce/libpixbounce.a modules/plasma/libplasma.a modules/ray/libray.a modules/roto/libroto.a modules/rtv/librtv.a modules/sparkler/libsparkler.a modules/stars/libstars.a modules/submit/libsubmit.a libs/grid/libgrid.a libs/ray/libray.a -lm

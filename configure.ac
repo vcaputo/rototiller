@@ -44,6 +44,7 @@ AC_CONFIG_FILES([
  src/modules/plasma/Makefile
  src/modules/ray/Makefile
  src/modules/roto/Makefile
+ src/modules/rtv/Makefile
  src/modules/sparkler/Makefile
  src/modules/stars/Makefile
  src/modules/submit/Makefile
