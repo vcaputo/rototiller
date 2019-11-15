@@ -57,7 +57,7 @@ int setup_interactively(settings_t *settings, int (*setup_func)(settings_t *sett
 
 			for (i = 0; next->values[i]; i++) {
 				if (!defaults)
-					printf(" %u: %*s%s%s\n", i, width, next->values[i],
+					printf("%2u: %*s%s%s\n", i, width, next->values[i],
 						next->annotations ? ": " : "",
 						next->annotations ? next->annotations[i] : "");
 
