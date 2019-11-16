@@ -192,7 +192,13 @@ void chunker_free_chunker(chunker_t *chunker)
 		chunk_unref(chunker->chunk);
 	}
 
+/*
+	It can be useful to police this, but part of the value of the chunker
+	is to be able to perform a bulk cleanup without first performing heaps
+	of granular frees.  Maybe enforcing this should be requestable via a
+	parameter.
 	assert(list_empty(&chunker->pinned_chunks));
+*/
 
 	list_for_each_entry_safe(chunk, _chunk, &chunker->free_chunks, chunks) {
 		free(chunk);
