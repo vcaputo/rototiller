@@ -24,7 +24,7 @@
  * another page so we can begin rendering another frame before vsync.  With
  * just two pages we end up twiddling thumbs until the vsync arrives.
  */
-#define DEFAULT_MODULE	"roto"
+#define DEFAULT_MODULE	"rtv"
 #define DEFAULT_VIDEO	"sdl"
 
 extern fb_ops_t			drm_fb_ops;
@@ -35,8 +35,8 @@ extern rototiller_module_t	flui2d_module;
 extern rototiller_module_t	julia_module;
 extern rototiller_module_t	pixbounce_module;
 extern rototiller_module_t	plasma_module;
-extern rototiller_module_t	roto_module;
 extern rototiller_module_t	ray_module;
+extern rototiller_module_t	roto_module;
 extern rototiller_module_t	rtv_module;
 extern rototiller_module_t	snow_module;
 extern rototiller_module_t	sparkler_module;
@@ -44,17 +44,17 @@ extern rototiller_module_t	stars_module;
 extern rototiller_module_t	submit_module;
 
 static const rototiller_module_t	*modules[] = {
-	&roto_module,
-	&ray_module,
-	&sparkler_module,
-	&stars_module,
-	&plasma_module,
-	&julia_module,
-	&submit_module,
 	&flui2d_module,
+	&julia_module,
 	&pixbounce_module,
+	&plasma_module,
+	&ray_module,
+	&roto_module,
 	&rtv_module,
 	&snow_module,
+	&sparkler_module,
+	&stars_module,
+	&submit_module,
 };
 
 typedef struct rototiller_t {
