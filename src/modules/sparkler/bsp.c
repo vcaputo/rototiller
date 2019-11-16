@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 #include "bsp.h"
+#include "chunker.h"
 
 
 /* octree-based bsp for faster proximity searches */
@@ -62,7 +63,7 @@ typedef struct _bsp_lookup_t {
 
 struct bsp_t {
 	bsp_node_t	root;
-	list_head_t	free;
+	chunker_t	*chunker;
 	bsp_lookup_t	lookup_cache;
 };
 
@@ -131,8 +132,13 @@ bsp_t * bsp_new(void)
 		return NULL;
 	}
 
+	bsp->chunker = chunker_new(sizeof(bsp_node_t) * 8 *  8);
+	if (!bsp->chunker) {
+		free(bsp);
+		return NULL;
+	}
+
 	INIT_LIST_HEAD(&bsp->root.occupants);
-	INIT_LIST_HEAD(&bsp->free);
 	bsp_init_lookup_cache(bsp);
 
 	return bsp;
@@ -142,7 +148,7 @@ bsp_t * bsp_new(void)
 /* Free a bsp octree */
 void bsp_free(bsp_t *bsp)
 {
-	/* TODO: free everything ... */
+	chunker_free_chunker(bsp->chunker);
 	free(bsp);
 }
 
@@ -227,21 +233,7 @@ static inline void _bsp_add_occupant(bsp_t *bsp, bsp_occupant_t *occupant, v3f_t
 		bsp_node_t	*bv = l->bv;
 
 		/* bv is full and shallow enough, subdivide it. */
-
-		/* ensure the free list has something for us */
-		if (list_empty(&bsp->free)) {
-			bsp_node_t	*t;
-
-			/* TODO: does using the chunker instead make sense here? */
-			t = calloc(sizeof(bsp_node_t), 8 * BSP_GROWBY);
-			for (i = 0; i < 8 * BSP_GROWBY; i += 8) {
-				list_add(&t[i].occupants, &bsp->free);
-			}
-		}
-
-		/* take an octrants array from the free list */
-		bv->octrants = list_entry(bsp->free.next, bsp_node_t, occupants);
-		list_del(&bv->octrants[0].occupants);
+		bv->octrants = chunker_alloc(bsp->chunker, sizeof(bsp_node_t) * 8);
 
 		/* initialize the octrants */
 		for (i = 0; i < 8; i++) {
@@ -362,7 +354,7 @@ static inline void _bsp_delete_occupant(bsp_t *bsp, bsp_occupant_t *occupant, bs
 			}
 
 			/* "freeing" really just entails putting the octrants cluster of nodes onto the free list */
-			list_add(&parent_bv->octrants[0].occupants, &bsp->free);
+			chunker_free(parent_bv->octrants);
 			parent_bv->octrants = NULL;
 			bsp_invalidate_lookup_cache(bsp);
 		}
