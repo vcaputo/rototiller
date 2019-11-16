@@ -99,6 +99,9 @@ void particles_free(particles_t *particles)
 	assert(particles);
 
 	_particles_free(particles, &particles->active);
+	bsp_free(particles->bsp);
+	chunker_free_chunker(particles->chunker);
+	free(particles);
 }
 
 
