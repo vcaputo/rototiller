@@ -62,6 +62,7 @@ rototiller_module_t	rtv_module = {
 
 static void setup_next_module(rtv_context_t *ctxt)
 {
+	time_t	now = time(NULL);
 	int	i;
 
 	/* TODO: most of this module stuff should probably be
@@ -78,7 +79,7 @@ static void setup_next_module(rtv_context_t *ctxt)
 	if (ctxt->module != ctxt->snow_module) {
 		ctxt->last_module = ctxt->module;
 		ctxt->module = ctxt->snow_module;
-		ctxt->next_switch = time(NULL) + RTV_SNOW_DURATION_SECS;
+		ctxt->next_switch = now + RTV_SNOW_DURATION_SECS;
 	} else {
 		do {
 			i = rand() % ctxt->n_modules;
@@ -94,8 +95,8 @@ static void setup_next_module(rtv_context_t *ctxt)
 					 ctxt->module->description,
 					 ctxt->module->license);
 
-		ctxt->next_switch = time(NULL) + RTV_DURATION_SECS;
-		ctxt->next_hide_caption = time(NULL) + RTV_CAPTION_DURATION_SECS;
+		ctxt->next_switch = now + RTV_DURATION_SECS;
+		ctxt->next_hide_caption = now + RTV_CAPTION_DURATION_SECS;
 	}
 
 	if (ctxt->module->create_context)
