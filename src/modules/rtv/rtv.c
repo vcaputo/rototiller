@@ -34,7 +34,7 @@ typedef struct rtv_context_t {
 	size_t				n_modules;
 
 	time_t				next_switch, next_hide_caption;
-	const rototiller_module_t	*module;
+	const rototiller_module_t	*module, *last_module;
 	void				*module_ctxt;
 	txt_t				*caption;
 
@@ -76,13 +76,14 @@ static void setup_next_module(rtv_context_t *ctxt)
 	}
 
 	if (ctxt->module != ctxt->snow_module) {
+		ctxt->last_module = ctxt->module;
 		ctxt->module = ctxt->snow_module;
 		ctxt->next_switch = time(NULL) + RTV_SNOW_DURATION_SECS;
 	} else {
 		do {
 			i = rand() % ctxt->n_modules;
 		} while (ctxt->modules[i] == &rtv_module ||
-			 ctxt->modules[i] == ctxt->module ||
+			 ctxt->modules[i] == ctxt->last_module ||
 			 ctxt->modules[i] == ctxt->snow_module);
 
 		ctxt->module = ctxt->modules[i];
