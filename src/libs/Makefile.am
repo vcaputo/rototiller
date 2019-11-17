@@ -1,1 +1,1 @@
-SUBDIRS = grid ray
+SUBDIRS = ascii grid ray
