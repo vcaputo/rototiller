@@ -1,8 +1,6 @@
 #ifndef _THREADS_H
 #define _THREADS_H
 
-#include <pthread.h>
-
 typedef struct fb_fragment_t fb_fragment_t;
 typedef struct rototiller_frame_t rototiller_frame_t;
 typedef struct thread_t thread_t;
