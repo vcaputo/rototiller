@@ -43,6 +43,7 @@ extern rototiller_module_t	snow_module;
 extern rototiller_module_t	sparkler_module;
 extern rototiller_module_t	stars_module;
 extern rototiller_module_t	submit_module;
+extern rototiller_module_t	swab_module;
 
 static const rototiller_module_t	*modules[] = {
 	&flui2d_module,
@@ -56,6 +57,7 @@ static const rototiller_module_t	*modules[] = {
 	&sparkler_module,
 	&stars_module,
 	&submit_module,
+	&swab_module,
 };
 
 typedef struct rototiller_t {

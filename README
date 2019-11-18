@@ -10,6 +10,7 @@ rototiller is, rendered entirely in software:
 	pixbounce: a 2D bouncing pixmap demonstration
 	rtv: a "Rototiller TV" slideshow meta-module
 	snow: a "TV snow" / white noise effect
+	swab: a colorful perlin-noise visualization
 
 ---
 

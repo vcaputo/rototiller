@@ -1,1 +1,1 @@
-SUBDIRS = flui2d julia pixbounce plasma ray roto rtv snow sparkler stars submit
+SUBDIRS = flui2d julia pixbounce plasma ray roto rtv snow sparkler stars submit swab
