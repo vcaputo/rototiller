@@ -37,6 +37,7 @@ AC_CONFIG_FILES([
  src/libs/Makefile
  src/libs/ascii/Makefile
  src/libs/grid/Makefile
+ src/libs/din/Makefile
  src/libs/ray/Makefile
  src/libs/txt/Makefile
  src/modules/Makefile
