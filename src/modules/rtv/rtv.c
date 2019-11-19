@@ -3,6 +3,7 @@
 
 #include "fb.h"
 #include "rototiller.h"
+#include "settings.h"
 #include "txt/txt.h"
 #include "util.h"
 
@@ -14,10 +15,8 @@
  * module starts overlaying the name, author, license, etc.
  *
  * Some TODO items:
- * - show captions (need text rendering)
  * - optionally persist module contexts so they resume rather than restart
  * - runtime-configurable duration
- * - randomize runtime settings of shown modules
  * - redo the next module selection from random to
  *   walking the list and randomizing the list every
  *   time it completes a cycle.   The current dumb
@@ -60,6 +59,45 @@ rototiller_module_t	rtv_module = {
 };
 
 
+static char * randomize_module_setup(const rototiller_module_t *module)
+{
+	settings_t	*settings;
+	setting_desc_t	*desc;
+	char		*arg;
+
+	if (!module->setup)
+		return NULL;
+
+	settings = settings_new(NULL);
+	if (!settings)
+		return NULL;
+
+	while (module->setup(settings, &desc) > 0) {
+		if (desc->values) {
+			int	n;
+
+			for (n = 0; desc->values[n]; n++);
+
+			n = rand() % n;
+
+			settings_add_value(settings, desc->key, desc->values[n]);
+		} else {
+			/* TODO: only randomizing multiple choice currently, so
+			 * here I'm always taking the default for now.
+			 */
+			settings_add_value(settings, desc->key, desc->preferred);
+		}
+
+		setting_desc_free(desc);
+	}
+
+	arg = settings_as_arg(settings);
+	settings_free(settings);
+
+	return arg;
+}
+
+
 static void setup_next_module(rtv_context_t *ctxt)
 {
 	time_t	now = time(NULL);
@@ -81,6 +119,8 @@ static void setup_next_module(rtv_context_t *ctxt)
 		ctxt->module = ctxt->snow_module;
 		ctxt->next_switch = now + RTV_SNOW_DURATION_SECS;
 	} else {
+		char	*setup;
+
 		do {
 			i = rand() % ctxt->n_modules;
 		} while (ctxt->modules[i] == &rtv_module ||
@@ -89,11 +129,17 @@ static void setup_next_module(rtv_context_t *ctxt)
 
 		ctxt->module = ctxt->modules[i];
 
-		ctxt->caption = txt_newf("Title: %s\nAuthor: %s\nDescription: %s\nLicense: %s",
+		setup = randomize_module_setup(ctxt->module);
+
+		ctxt->caption = txt_newf("Title: %s\nAuthor: %s\nDescription: %s\nLicense: %s%s%s",
 					 ctxt->module->name,
 					 ctxt->module->author,
 					 ctxt->module->description,
-					 ctxt->module->license);
+					 ctxt->module->license,
+					 setup ? "\nSettings: " : "",
+					 setup ? setup : "");
+
+		free(setup);
 
 		ctxt->next_switch = now + RTV_DURATION_SECS;
 		ctxt->next_hide_caption = now + RTV_CAPTION_DURATION_SECS;
