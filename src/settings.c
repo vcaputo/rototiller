@@ -265,6 +265,8 @@ int setting_desc_clone(const setting_desc_t *desc, setting_desc_t **res_desc)
 		}
 	}
 
+	d->random = desc->random;
+
 	/* TODO: handle allocation errors above... */
 	*res_desc = d;
 

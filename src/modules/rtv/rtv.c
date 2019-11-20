@@ -73,7 +73,13 @@ static char * randomize_module_setup(const rototiller_module_t *module)
 		return NULL;
 
 	while (module->setup(settings, &desc) > 0) {
-		if (desc->values) {
+		if (desc->random) {
+			char	*value;
+
+			value = desc->random();
+			settings_add_value(settings, desc->key, value);
+			free(value);
+		} else if (desc->values) {
 			int	n;
 
 			for (n = 0; desc->values[n]; n++);
