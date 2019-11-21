@@ -18,6 +18,7 @@ typedef struct julia_context_t {
 	float		imagscale;
 	float		creal;
 	float		cimag;
+	float		threshold;
 	unsigned	n_cpus;
 } julia_context_t;
 
@@ -77,7 +78,7 @@ static void julia_destroy_context(void *context)
 
 }
 
-static inline unsigned julia_iter(float real, float imag, float creal, float cimag, unsigned max_iters)
+static inline unsigned julia_iter(float real, float imag, float creal, float cimag, unsigned max_iters, float threshold)
 {
 	unsigned	i;
 	float		newr, newi;
@@ -90,7 +91,7 @@ static inline unsigned julia_iter(float real, float imag, float creal, float cim
 		newr += creal;
 		newi += cimag;
 
-		if ((newr * newr + newi * newi) > 4.0)
+		if ((newr * newr + newi * newi) > threshold)
 			return i;
 
 		real = newr;
@@ -125,6 +126,15 @@ static void julia_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *f
 	ctxt->imagscale = 0.01f * sinf(ctxt->rr * 3.0f) + 0.01f;
 	ctxt->creal = (1.01f + (ctxt->realscale * cosf(1.5f * M_PI + ctxt->rr) + ctxt->realscale)) * cosf(ctxt->rr * .3f);
 	ctxt->cimag = (1.01f + (ctxt->imagscale * sinf(ctxt->rr * 3.0f) + ctxt->imagscale)) * sinf(ctxt->rr);
+
+	/* Vary the divergent threshold, this has been tuned to dwell around 1 a bit since it's
+	 * quite different looking, then shoot up to a very huge value approaching FLT_MAX which
+	 * is also interesting.
+	 */
+	ctxt->threshold = cosf(M_PI + ctxt->rr * .1f) * .5f + .5f;
+	ctxt->threshold *= ctxt->threshold * ctxt->threshold;
+	ctxt->threshold *= 35.f;
+	ctxt->threshold = powf(10.f, ctxt->threshold);
 }
 
 
@@ -142,7 +152,7 @@ static void julia_render_fragment(void *context, fb_fragment_t *fragment)
 	/* Complex plane confined to {-1.8 - 1.8} on both axis (slightly zoomed), no dynamic zooming is performed. */
 	for (imag = 1.8 + -(imagstep * (float)fragment->y), y = fragment->y; y < fragment->y + height; y++, imag += -imagstep) {
 		for (real = -1.8 + realstep * (float)fragment->x, x = fragment->x; x < fragment->x + width; x++, buf++, real += realstep) {
-			*buf = colors[julia_iter(real, imag, ctxt->creal, ctxt->cimag, sizeof(colors) / sizeof(*colors))];
+			*buf = colors[julia_iter(real, imag, ctxt->creal, ctxt->cimag, sizeof(colors) / sizeof(*colors), ctxt->threshold)];
 		}
 
 		buf = ((void *)buf) + fragment->stride;
