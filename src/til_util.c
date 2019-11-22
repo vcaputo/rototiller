@@ -7,6 +7,11 @@
 #include <windows.h>
 #endif
 
+#ifdef __MACH__
+#include <sys/types.h>
+#include <sys/sysctl.h>
+#endif
+
 #include "til_util.h"
 
 #define TIL_SYSFS_CPU	"/sys/devices/system/cpu/cpu"
@@ -20,6 +25,16 @@ unsigned til_get_ncpus(void)
 	GetSystemInfo(&sysinfo);
 
 	return sysinfo.dwNumberOfProcessors;
+#endif
+
+#ifdef __MACH__
+	int count;
+	size_t count_len = sizeof(count);
+
+	if (sysctlbyname("hw.logicalcpu_max", &count, &count_len, NULL, 0) < 0)
+		return 1;
+
+	return count;
 #else
 	char		path[cstrlen(TIL_SYSFS_CPU "1024") + 1];
 	unsigned	n;
