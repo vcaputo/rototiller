@@ -53,6 +53,7 @@ extern til_module_t	sparkler_module;
 extern til_module_t	spiro_module;
 extern til_module_t	stars_module;
 extern til_module_t	strobe_module;
+extern til_module_t	stub_module;
 extern til_module_t	submit_module;
 extern til_module_t	swab_module;
 extern til_module_t	swarm_module;
@@ -91,6 +92,7 @@ static const til_module_t	*modules[] = {
 	&spiro_module,
 	&stars_module,
 	&strobe_module,
+	&stub_module,
 	&submit_module,
 	&swab_module,
 	&swarm_module,
