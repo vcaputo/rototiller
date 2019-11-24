@@ -120,9 +120,6 @@ static int montage_fragmenter(void *context, const fb_fragment_t *fragment, unsi
 	if (!ret)
 		return 0;
 
-	if (number >= ctxt->n_modules)
-		return 0;
-
 	/* as these tiles are frames of their own rather than subfragments, override these values */
 	res_fragment->x = res_fragment->y = 0;
 	res_fragment->frame_width = res_fragment->width;
@@ -146,8 +143,14 @@ static void montage_render_fragment(void *context, unsigned cpu, fb_fragment_t *
 	montage_context_t		*ctxt = context;
 	const rototiller_module_t	*module = ctxt->modules[fragment->number];
 
-	if (skip_module(ctxt, module))
+	if (skip_module(ctxt,module) ||
+	    fragment->number >= ctxt->n_modules) {
+
+		fb_fragment_zero(fragment);
+
 		return;
+	}
+
 
 	/* since we're *already* in a threaded render of tiles, no further
 	 * threading within the montage tiles is desirable, so the per-module
