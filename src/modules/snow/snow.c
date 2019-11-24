@@ -17,9 +17,9 @@
  */
 static int	snow_seed;
 
-static int snow_fragmenter(void *context, const fb_fragment_t *fragment, unsigned num, fb_fragment_t *res_fragment)
+static int snow_fragmenter(void *context, const fb_fragment_t *fragment, unsigned number, fb_fragment_t *res_fragment)
 {
-	return fb_fragment_slice_single(fragment, 32, num, res_fragment);
+	return fb_fragment_slice_single(fragment, 32, number, res_fragment);
 }
 
 

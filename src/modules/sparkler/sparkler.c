@@ -59,11 +59,11 @@ static void sparkler_destroy_context(void *context)
 }
 
 
-static int sparkler_fragmenter(void *context, const fb_fragment_t *fragment, unsigned num, fb_fragment_t *res_fragment)
+static int sparkler_fragmenter(void *context, const fb_fragment_t *fragment, unsigned number, fb_fragment_t *res_fragment)
 {
 	sparkler_context_t	*ctxt = context;
 
-	return fb_fragment_slice_single(fragment, ctxt->n_cpus, num, res_fragment);
+	return fb_fragment_slice_single(fragment, ctxt->n_cpus, number, res_fragment);
 }
 
 static void sparkler_prepare_frame(void *context, unsigned ncpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)

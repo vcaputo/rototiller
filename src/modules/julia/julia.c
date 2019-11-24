@@ -102,11 +102,11 @@ static inline unsigned julia_iter(float real, float imag, float creal, float cim
 }
 
 
-static int julia_fragmenter(void *context, const fb_fragment_t *fragment, unsigned num, fb_fragment_t *res_fragment)
+static int julia_fragmenter(void *context, const fb_fragment_t *fragment, unsigned number, fb_fragment_t *res_fragment)
 {
 	julia_context_t	*ctxt = context;
 
-	return fb_fragment_slice_single(fragment, ctxt->n_cpus, num, res_fragment);
+	return fb_fragment_slice_single(fragment, ctxt->n_cpus, number, res_fragment);
 }
 
 

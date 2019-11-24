@@ -310,10 +310,10 @@ fail:
 
 
 /* helpers for fragmenting incrementally */
-int fb_fragment_slice_single(const fb_fragment_t *fragment, unsigned n_fragments, unsigned num, fb_fragment_t *res_fragment)
+int fb_fragment_slice_single(const fb_fragment_t *fragment, unsigned n_fragments, unsigned number, fb_fragment_t *res_fragment)
 {
 	unsigned	slice = fragment->height / n_fragments;
-	unsigned	yoff = slice * num;
+	unsigned	yoff = slice * number;
 	unsigned	pitch;
 
 	if (yoff >= fragment->height)
@@ -328,13 +328,13 @@ int fb_fragment_slice_single(const fb_fragment_t *fragment, unsigned n_fragments
 	res_fragment->frame_height = fragment->frame_height;
 	res_fragment->stride = fragment->stride;
 	res_fragment->pitch = fragment->pitch;
-	res_fragment->number = num;
+	res_fragment->number = number;
 
 	return 1;
 }
 
 
-int fb_fragment_tile_single(const fb_fragment_t *fragment, unsigned tile_size, unsigned num, fb_fragment_t *res_fragment)
+int fb_fragment_tile_single(const fb_fragment_t *fragment, unsigned tile_size, unsigned number, fb_fragment_t *res_fragment)
 {
 	unsigned	w = fragment->width / tile_size, h = fragment->height / tile_size;
 	unsigned	x, y, xoff, yoff;
@@ -345,11 +345,11 @@ int fb_fragment_tile_single(const fb_fragment_t *fragment, unsigned tile_size, u
 	if (h * tile_size < fragment->height)
 		h++;
 
-	y = num / w;
+	y = number / w;
 	if (y >= h)
 		return 0;
 
-	x = num - (y * w);
+	x = number - (y * w);
 
 	xoff = x * tile_size;
 	yoff = y * tile_size;
@@ -363,7 +363,7 @@ int fb_fragment_tile_single(const fb_fragment_t *fragment, unsigned tile_size, u
 	res_fragment->frame_height = fragment->frame_height;
 	res_fragment->stride = fragment->stride + ((fragment->width - res_fragment->width) * 4);
 	res_fragment->pitch = fragment->pitch;
-	res_fragment->number = num;
+	res_fragment->number = number;
 
 	return 1;
 }

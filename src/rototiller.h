@@ -5,7 +5,7 @@
 
 /* rototiller_fragmenter produces fragments from an input fragment, num being the desired fragment for the current call.
  * return value of 1 means a fragment has been produced, 0 means num is beyond the end of fragments. */
-typedef int (*rototiller_fragmenter_t)(void *context, const fb_fragment_t *fragment, unsigned num, fb_fragment_t *res_fragment);
+typedef int (*rototiller_fragmenter_t)(void *context, const fb_fragment_t *fragment, unsigned number, fb_fragment_t *res_fragment);
 
 typedef struct settings_t settings;
 typedef struct setting_desc_t setting_desc_t;
