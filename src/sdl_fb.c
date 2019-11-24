@@ -195,6 +195,7 @@ static void * sdl_fb_page_alloc(void *context, fb_page_t *res_page)
 	res_page->fragment.height = c->height;
 	res_page->fragment.frame_height = c->height;
 	res_page->fragment.stride = p->surface->pitch - (c->width * 4);
+	res_page->fragment.pitch = p->surface->pitch;
 
 	return p;
 }

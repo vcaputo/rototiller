@@ -319,9 +319,7 @@ int fb_fragment_slice_single(const fb_fragment_t *fragment, unsigned n_fragments
 	if (yoff >= fragment->height)
 		return 0;
 
-	pitch = (fragment->width * 4) + fragment->stride;
-
-	res_fragment->buf = ((void *)fragment->buf) + yoff * pitch;
+	res_fragment->buf = ((void *)fragment->buf) + yoff * fragment->pitch;
 	res_fragment->x = fragment->x;
 	res_fragment->y = yoff;
 	res_fragment->width = fragment->width;
@@ -329,6 +327,7 @@ int fb_fragment_slice_single(const fb_fragment_t *fragment, unsigned n_fragments
 	res_fragment->frame_width = fragment->frame_width;
 	res_fragment->frame_height = fragment->frame_height;
 	res_fragment->stride = fragment->stride;
+	res_fragment->pitch = fragment->pitch;
 
 	return 1;
 }
@@ -337,7 +336,6 @@ int fb_fragment_slice_single(const fb_fragment_t *fragment, unsigned n_fragments
 int fb_fragment_tile_single(const fb_fragment_t *fragment, unsigned tile_size, unsigned num, fb_fragment_t *res_fragment)
 {
 	unsigned	w = fragment->width / tile_size, h = fragment->height / tile_size;
-	unsigned	pitch = (fragment->width * 4) + fragment->stride;
 	unsigned	x, y, xoff, yoff;
 
 	if (w * tile_size < fragment->width)
@@ -355,7 +353,7 @@ int fb_fragment_tile_single(const fb_fragment_t *fragment, unsigned tile_size, u
 	xoff = x * tile_size;
 	yoff = y * tile_size;
 
-	res_fragment->buf = (void *)fragment->buf + (yoff * pitch) + (xoff * 4);
+	res_fragment->buf = (void *)fragment->buf + (yoff * fragment->pitch) + (xoff * 4);
 	res_fragment->x = fragment->x + xoff;
 	res_fragment->y = fragment->y + yoff;
 	res_fragment->width = MIN(fragment->width - xoff, tile_size);
@@ -363,6 +361,7 @@ int fb_fragment_tile_single(const fb_fragment_t *fragment, unsigned tile_size, u
 	res_fragment->frame_width = fragment->frame_width;
 	res_fragment->frame_height = fragment->frame_height;
 	res_fragment->stride = fragment->stride + ((fragment->width - res_fragment->width) * 4);
+	res_fragment->pitch = fragment->pitch;
 
 	return 1;
 }

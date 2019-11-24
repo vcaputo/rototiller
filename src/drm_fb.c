@@ -455,6 +455,7 @@ static void * drm_fb_page_alloc(void *context, fb_page_t *res_page)
 	res_page->fragment.height = c->mode->vdisplay;
 	res_page->fragment.frame_height = c->mode->vdisplay;
 	res_page->fragment.stride = create_dumb.pitch - (c->mode->hdisplay * 4);
+	res_page->fragment.pitch = create_dumb.pitch;
 
 	return p;
 }

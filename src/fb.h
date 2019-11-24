@@ -17,6 +17,7 @@ typedef struct fb_fragment_t {
 	unsigned	frame_width;	/* width of the frame this fragment is part of */
 	unsigned	frame_height;	/* height of the frame this fragment is part of */
 	unsigned	stride;		/* number of bytes from the end of one row to the start of the next */
+	unsigned	pitch;		/* number of bytes separating y from y + 1, including any padding */
 } fb_fragment_t;
 
 /* This is a page handle object for page flip submission/life-cycle.
@@ -67,10 +68,9 @@ static inline int fb_fragment_contains(fb_fragment_t *fragment, int x, int y)
 /* puts a pixel into the fragment, no bounds checking is performed. */
 static inline void fb_fragment_put_pixel_unchecked(fb_fragment_t *fragment, int x, int y, uint32_t pixel)
 {
-	uint32_t	*pixels = fragment->buf;
+	uint32_t	*pixels = ((void *)fragment->buf) + (y - fragment->y) * fragment->pitch;
 
-	/* FIXME this assumes stride is aligned to 4 */
-	pixels[((y - fragment->y) * (fragment->width + (fragment->stride >> 2))) + (x - fragment->x)] = pixel;
+	pixels[x - fragment->x] = pixel;
 }
 
 
@@ -89,7 +89,11 @@ static inline int fb_fragment_put_pixel_checked(fb_fragment_t *fragment, int x, 
 /* zero a fragment */
 static inline void fb_fragment_zero(fb_fragment_t *fragment)
 {
-	memset(fragment->buf, 0, ((fragment->width << 2) + fragment->stride) * fragment->height);
+	void	*buf = fragment->buf;
+
+	/* TODO: there should be a fast-path for non-divided fragments where there's no stride to skip */
+	for (int y = 0; y < fragment->height; y++, buf += fragment->pitch)
+		memset(buf, 0, fragment->pitch - fragment->stride);
 }
 
 #endif
