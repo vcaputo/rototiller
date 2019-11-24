@@ -12,6 +12,7 @@
 typedef struct montage_context_t {
 	const rototiller_module_t	**modules;
 	const rototiller_module_t	*rtv_module;
+	const rototiller_module_t	*pixbounce_module;
 	void				**contexts;
 	size_t				n_modules;
 	unsigned			n_cpus;
@@ -46,6 +47,10 @@ static int skip_module(montage_context_t *ctxt, const rototiller_module_t *modul
 	if (module == ctxt->rtv_module)
 		return 1;
 
+	/* pixbounce is broken */
+	if (module == ctxt->pixbounce_module)
+		return 1;
+
 	return 0;
 }
 
@@ -65,6 +70,7 @@ static void * montage_create_context(unsigned num_cpus)
 	}
 
 	ctxt->rtv_module = rototiller_lookup_module("rtv");
+	ctxt->pixbounce_module = rototiller_lookup_module("pixbounce");
 
 	for (int i = 0; i < ctxt->n_modules; i++) {
 		const rototiller_module_t	*module = ctxt->modules[i];
