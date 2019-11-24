@@ -328,6 +328,7 @@ int fb_fragment_slice_single(const fb_fragment_t *fragment, unsigned n_fragments
 	res_fragment->frame_height = fragment->frame_height;
 	res_fragment->stride = fragment->stride;
 	res_fragment->pitch = fragment->pitch;
+	res_fragment->number = num;
 
 	return 1;
 }
@@ -362,6 +363,7 @@ int fb_fragment_tile_single(const fb_fragment_t *fragment, unsigned tile_size, u
 	res_fragment->frame_height = fragment->frame_height;
 	res_fragment->stride = fragment->stride + ((fragment->width - res_fragment->width) * 4);
 	res_fragment->pitch = fragment->pitch;
+	res_fragment->number = num;
 
 	return 1;
 }

@@ -18,6 +18,7 @@ typedef struct fb_fragment_t {
 	unsigned	frame_height;	/* height of the frame this fragment is part of */
 	unsigned	stride;		/* number of bytes from the end of one row to the start of the next */
 	unsigned	pitch;		/* number of bytes separating y from y + 1, including any padding */
+	unsigned	number;		/* this fragment's number as produced by fragmenting */
 } fb_fragment_t;
 
 /* This is a page handle object for page flip submission/life-cycle.
