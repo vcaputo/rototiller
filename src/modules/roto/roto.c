@@ -32,7 +32,7 @@ static int32_t	costab[FIXED_TRIG_LUT_SIZE], sintab[FIXED_TRIG_LUT_SIZE];
 static uint8_t	texture[256][256];
 static color_t	palette[2];
 
-static void * roto_create_context(void)
+static void * roto_create_context(unsigned num_cpus)
 {
 	return calloc(1, sizeof(roto_context_t));
 }

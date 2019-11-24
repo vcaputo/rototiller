@@ -47,7 +47,7 @@ static void init_plasma(int32_t *costab, int32_t *sintab)
 }
 
 
-static void * plasma_create_context(void)
+static void * plasma_create_context(unsigned num_cpus)
 {
 	return calloc(1, sizeof(plasma_context_t));
 }

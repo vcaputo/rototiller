@@ -31,6 +31,7 @@
 typedef struct rtv_context_t {
 	const rototiller_module_t	**modules;
 	size_t				n_modules;
+	unsigned			n_cpus;
 
 	time_t				next_switch, next_hide_caption;
 	const rototiller_module_t	*module, *last_module;
@@ -41,7 +42,7 @@ typedef struct rtv_context_t {
 } rtv_context_t;
 
 static void setup_next_module(rtv_context_t *ctxt);
-static void * rtv_create_context(void);
+static void * rtv_create_context(unsigned num_cpus);
 static void rtv_destroy_context(void *context);
 static void rtv_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter);
 static void rtv_finish_frame(void *context, fb_fragment_t *fragment);
@@ -152,14 +153,15 @@ static void setup_next_module(rtv_context_t *ctxt)
 	}
 
 	if (ctxt->module->create_context)
-		ctxt->module_ctxt = ctxt->module->create_context();
+		ctxt->module_ctxt = ctxt->module->create_context(ctxt->n_cpus);
 }
 
 
-static void * rtv_create_context(void)
+static void * rtv_create_context(unsigned num_cpus)
 {
 	rtv_context_t	*ctxt = calloc(1, sizeof(rtv_context_t));
 
+	ctxt->n_cpus = num_cpus;
 	ctxt->snow_module = rototiller_lookup_module("snow");
 	rototiller_get_modules(&ctxt->modules, &ctxt->n_modules);
 	setup_next_module(ctxt);

@@ -24,7 +24,7 @@ typedef struct sparkler_context_t {
 extern particle_ops_t	simple_ops;
 
 
-static void * sparkler_create_context(void)
+static void * sparkler_create_context(unsigned num_cpus)
 {
 	static int		initialized;
 	sparkler_context_t	*ctxt;

@@ -416,12 +416,12 @@ int main(int argc, const char *argv[])
 	exit_if(!fps_setup(),
 		"unable to setup fps counter");
 
-	exit_if(rototiller.module->create_context &&
-		!(rototiller.module_context = rototiller.module->create_context()),
-		"unable to create module context");
-
 	pexit_if(!(rototiller.threads = threads_create()),
 		"unable to create rendering threads");
+
+	exit_if(rototiller.module->create_context &&
+		!(rototiller.module_context = rototiller.module->create_context(threads_num_threads(rototiller.threads))),
+		"unable to create module context");
 
 	pexit_if(pthread_create(&rototiller.thread, NULL, rototiller_thread, &rototiller) != 0,
 		"unable to create dispatch thread");

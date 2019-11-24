@@ -11,7 +11,7 @@ typedef struct settings_t settings;
 typedef struct setting_desc_t setting_desc_t;
 
 typedef struct rototiller_module_t {
-	void *	(*create_context)(void);
+	void *	(*create_context)(unsigned n_cpus);
 	void	(*destroy_context)(void *context);
 	void	(*prepare_frame)(void *context, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter);
 	void	(*render_fragment)(void *context, fb_fragment_t *fragment);

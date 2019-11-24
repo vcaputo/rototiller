@@ -66,7 +66,7 @@ static uint32_t	colors[] = {
 		};
 
 
-static void * julia_create_context(void)
+static void * julia_create_context(unsigned num_cpus)
 {
 	return calloc(1, sizeof(julia_context_t));
 }

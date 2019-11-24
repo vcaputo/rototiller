@@ -187,7 +187,7 @@ typedef struct flui2d_context_t {
 } flui2d_context_t;
 
 
-static void * flui2d_create_context(void)
+static void * flui2d_create_context(unsigned num_cpus)
 {
 	flui2d_context_t	*ctxt;
 
