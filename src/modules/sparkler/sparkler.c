@@ -80,7 +80,7 @@ static void sparkler_prepare_frame(void *context, unsigned ncpus, fb_fragment_t 
 
 
 /* Render a 3D particle system */
-static void sparkler_render_fragment(void *context, fb_fragment_t *fragment)
+static void sparkler_render_fragment(void *context, unsigned cpu, fb_fragment_t *fragment)
 {
 	sparkler_context_t	*ctxt = context;
 

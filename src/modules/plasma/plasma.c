@@ -86,7 +86,7 @@ static void plasma_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *
 
 
 /* Draw a plasma effect */
-static void plasma_render_fragment(void *context, fb_fragment_t *fragment)
+static void plasma_render_fragment(void *context, unsigned cpu, fb_fragment_t *fragment)
 {
 	plasma_context_t	*ctxt = context;
 	unsigned		width = fragment->width, height = fragment->height;

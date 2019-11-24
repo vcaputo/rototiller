@@ -13,7 +13,7 @@
 
 /* Copyright (C) 2017 Philip J. Freeman <elektron@halo.nu> */
 
-static void stars_render_fragment(void *context, fb_fragment_t *fragment)
+static void stars_render_fragment(void *context, unsigned cpu, fb_fragment_t *fragment)
 {
 	static int	initialized, z;
 	static struct	universe* u;

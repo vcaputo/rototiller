@@ -106,7 +106,7 @@ static void swab_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fr
 }
 
 
-static void swab_render_fragment(void *context, fb_fragment_t *fragment)
+static void swab_render_fragment(void *context, unsigned cpu, fb_fragment_t *fragment)
 {
 	swab_context_t	*ctxt = context;
 	float		cos_r = cos(ctxt->r);

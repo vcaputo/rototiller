@@ -7,6 +7,12 @@
 #include "threads.h"
 #include "util.h"
 
+typedef struct thread_t {
+	threads_t	*threads;
+	pthread_t	pthread;
+	unsigned	id;
+} thread_t;
+
 typedef struct threads_t {
 	unsigned		n_threads;
 
@@ -16,7 +22,7 @@ typedef struct threads_t {
 
 	pthread_mutex_t		frame_mutex;
 	pthread_cond_t		frame_cond;
-	void			(*render_fragment_func)(void *context, fb_fragment_t *fragment);
+	void			(*render_fragment_func)(void *context, unsigned cpu, fb_fragment_t *fragment);
 	void			*context;
 	fb_fragment_t		*fragment;
 	rototiller_fragmenter_t	fragmenter;
@@ -24,14 +30,15 @@ typedef struct threads_t {
 	unsigned		next_fragment;
 	unsigned		frame_num;
 
-	pthread_t		threads[];
+	thread_t		threads[];
 } threads_t;
 
 
 /* render fragments using the supplied render function */
-static void * thread_func(void *_threads)
+static void * thread_func(void *_thread)
 {
-	threads_t	*threads = _threads;
+	thread_t	*thread = _thread;
+	threads_t	*threads = thread->threads;
 	unsigned	prev_frame_num = 0;
 
 	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
@@ -56,7 +63,7 @@ static void * thread_func(void *_threads)
 			if (!threads->fragmenter(threads->context, threads->fragment, frag_num, &fragment))
 				break;
 
-			threads->render_fragment_func(threads->context, &fragment);
+			threads->render_fragment_func(threads->context, thread->id, &fragment);
 		}
 
 		/* report as idle */
@@ -83,7 +90,7 @@ void threads_wait_idle(threads_t *threads)
 
 
 /* submit a frame's fragments to the threads */
-void threads_frame_submit(threads_t *threads, fb_fragment_t *fragment, rototiller_fragmenter_t fragmenter, void (*render_fragment_func)(void *context, fb_fragment_t *fragment), void *context)
+void threads_frame_submit(threads_t *threads, fb_fragment_t *fragment, rototiller_fragmenter_t fragmenter, void (*render_fragment_func)(void *context, unsigned cpu, fb_fragment_t *fragment), void *context)
 {
 	threads_wait_idle(threads);	/* XXX: likely non-blocking; already happens pre page flip */
 
@@ -105,7 +112,7 @@ threads_t * threads_create(void)
 	unsigned	i, num = get_ncpus();
 	threads_t	*threads;
 
-	threads = calloc(1, sizeof(threads_t) + sizeof(pthread_t) * num);
+	threads = calloc(1, sizeof(threads_t) + sizeof(thread_t) * num);
 	if (!threads)
 		return NULL;
 
@@ -117,8 +124,13 @@ threads_t * threads_create(void)
 	pthread_mutex_init(&threads->frame_mutex, NULL);
 	pthread_cond_init(&threads->frame_cond, NULL);
 
-	for (i = 0; i < num; i++)
-		pthread_create(&threads->threads[i], NULL, thread_func, threads);
+	for (i = 0; i < num; i++) {
+		thread_t	*thread = &threads->threads[i];
+
+		thread->threads = threads;
+		thread->id = i;
+		pthread_create(&thread->pthread, NULL, thread_func, thread);
+	}
 
 	return threads;
 }
@@ -130,10 +142,10 @@ void threads_destroy(threads_t *threads)
 	unsigned	i;
 
 	for (i = 0; i < threads->n_threads; i++)
-		pthread_cancel(threads->threads[i]);
+		pthread_cancel(threads->threads[i].pthread);
 
 	for (i = 0; i < threads->n_threads; i++)
-		pthread_join(threads->threads[i], NULL);
+		pthread_join(threads->threads[i].pthread, NULL);
 
 	pthread_mutex_destroy(&threads->idle_mutex);
 	pthread_cond_destroy(&threads->idle_cond);

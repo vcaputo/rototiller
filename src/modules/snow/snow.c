@@ -29,7 +29,7 @@ static void snow_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fr
 }
 
 
-static void snow_render_fragment(void *context, fb_fragment_t *fragment)
+static void snow_render_fragment(void *context, unsigned cpu, fb_fragment_t *fragment)
 {
 	for (unsigned y = fragment->y; y < fragment->y + fragment->height; y++) {
 		for (unsigned x = fragment->x; x < fragment->x + fragment->width; x++) {

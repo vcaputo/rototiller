@@ -139,7 +139,7 @@ static void julia_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *f
 
 
 /* Draw a morphing Julia set */
-static void julia_render_fragment(void *context, fb_fragment_t *fragment)
+static void julia_render_fragment(void *context, unsigned cpu, fb_fragment_t *fragment)
 {
 	julia_context_t	*ctxt = context;
 	unsigned	x, y;

@@ -311,7 +311,7 @@ static void submit_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *
 }
 
 
-static void submit_render_fragment(void *context, fb_fragment_t *fragment)
+static void submit_render_fragment(void *context, unsigned cpu, fb_fragment_t *fragment)
 {
 	submit_context_t	*ctxt = context;
 

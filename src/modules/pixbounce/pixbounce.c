@@ -101,7 +101,7 @@ static int pick_pix(int num_pics, int last_pic)
 	return pix_num;
 }
 
-static void pixbounce_render_fragment(void *context, fb_fragment_t *fragment)
+static void pixbounce_render_fragment(void *context, unsigned cpu, fb_fragment_t *fragment)
 {
 	static int	initialized=0;
 	static int	x, y, multiplier;

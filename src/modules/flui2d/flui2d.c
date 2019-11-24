@@ -247,7 +247,7 @@ static void flui2d_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *
 
 
 /* Draw a the flui2d densities */
-static void flui2d_render_fragment(void *context, fb_fragment_t *fragment)
+static void flui2d_render_fragment(void *context, unsigned cpu, fb_fragment_t *fragment)
 {
 	flui2d_context_t	*ctxt = context;
 

@@ -199,7 +199,7 @@ static void roto_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fr
 
 
 /* Draw a rotating checkered 256x256 texture into fragment. */
-static void roto_render_fragment(void *context, fb_fragment_t *fragment)
+static void roto_render_fragment(void *context, unsigned cpu, fb_fragment_t *fragment)
 {
 	roto_context_t	*ctxt = context;
 	int		y_cos_r, y_sin_r, x_cos_r, x_sin_r, x_cos_r_init, x_sin_r_init, cos_r, sin_r;

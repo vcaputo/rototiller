@@ -107,7 +107,7 @@ static void module_render_fragment(const rototiller_module_t *module, void *cont
 		}
 
 	} else if (module->render_fragment)
-		module->render_fragment(context, fragment);
+		module->render_fragment(context, 0, fragment);
 
 	if (module->finish_frame)
 		module->finish_frame(context, fragment);
