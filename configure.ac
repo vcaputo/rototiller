@@ -43,6 +43,7 @@ AC_CONFIG_FILES([
  src/modules/Makefile
  src/modules/flui2d/Makefile
  src/modules/julia/Makefile
+ src/modules/montage/Makefile
  src/modules/pixbounce/Makefile
  src/modules/plasma/Makefile
  src/modules/ray/Makefile

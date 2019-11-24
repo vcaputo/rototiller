@@ -34,6 +34,7 @@ fb_ops_t			*fb_ops;
 
 extern rototiller_module_t	flui2d_module;
 extern rototiller_module_t	julia_module;
+extern rototiller_module_t	montage_module;
 extern rototiller_module_t	pixbounce_module;
 extern rototiller_module_t	plasma_module;
 extern rototiller_module_t	ray_module;
@@ -48,6 +49,7 @@ extern rototiller_module_t	swab_module;
 static const rototiller_module_t	*modules[] = {
 	&flui2d_module,
 	&julia_module,
+	&montage_module,
 	&pixbounce_module,
 	&plasma_module,
 	&ray_module,
