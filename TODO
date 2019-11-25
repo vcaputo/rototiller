@@ -11,8 +11,6 @@
   use some love, I haven't had a chance to test it on anything greater than 2
   cores.
 
-- autotools?  my Makefile is very quick and dirty
-
 - If keeping the stdio drmsetup, fix the bugs in it (input isn't really checked
   properly)
 
