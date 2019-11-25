@@ -9,13 +9,37 @@
 
 /* This implements white noise / snow just using rand() */
 
-/* To avoid the contention around rand() I'm just using rand_r()
- * in an entirely racy fashion with a single seed from the threaded
- * render_fragment().  It should really be per-cpu but the module
- * api doesn't currently send down a cpu identifier to the render
- * function, so TODO in the future add that.
- */
-static int	snow_seed;
+typedef union snow_seed_t {
+	char	__padding[256];		/* prevent seeds sharing a cache-line */
+	int	seed;
+} snow_seed_t;
+
+typedef struct snow_context_t {
+	int		foo;		/* make the compiler happy */
+	snow_seed_t	seeds[];
+} snow_context_t;
+
+
+static void * snow_create_context(unsigned n_cpus)
+{
+	snow_context_t	*ctxt;
+
+	ctxt = calloc(1, sizeof(snow_context_t) + n_cpus * sizeof(snow_seed_t));
+	if (!ctxt)
+		return NULL;
+
+	for (unsigned i = 0; i < n_cpus; i++)
+		ctxt->seeds[i].seed = rand();
+
+	return ctxt;
+}
+
+
+static void snow_destroy_context(void *context)
+{
+	free(context);
+}
+
 
 static int snow_fragmenter(void *context, const fb_fragment_t *fragment, unsigned number, fb_fragment_t *res_fragment)
 {
@@ -31,9 +55,12 @@ static void snow_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fr
 
 static void snow_render_fragment(void *context, unsigned cpu, fb_fragment_t *fragment)
 {
+	snow_context_t	*ctxt = context;
+	int		*seed = &ctxt->seeds[cpu].seed;
+
 	for (unsigned y = fragment->y; y < fragment->y + fragment->height; y++) {
 		for (unsigned x = fragment->x; x < fragment->x + fragment->width; x++) {
-			uint32_t	pixel = rand_r(&snow_seed) % 256;
+			uint32_t	pixel = rand_r(seed) % 256;
 
 			fb_fragment_put_pixel_unchecked(fragment, x, y, pixel << 16 | pixel << 8 | pixel);
 		}
@@ -42,10 +69,12 @@ static void snow_render_fragment(void *context, unsigned cpu, fb_fragment_t *fra
 
 
 rototiller_module_t	snow_module = {
+	.create_context = snow_create_context,
+	.destroy_context = snow_destroy_context,
 	.prepare_frame = snow_prepare_frame,
 	.render_fragment = snow_render_fragment,
 	.name = "snow",
-	.description = "TV snow / white noise",
+	.description = "TV snow / white noise (threaded)",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",
 	.license = "GPLv2",
 };
