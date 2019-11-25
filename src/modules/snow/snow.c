@@ -15,7 +15,7 @@ typedef union snow_seed_t {
 } snow_seed_t;
 
 typedef struct snow_context_t {
-	int		foo;		/* make the compiler happy */
+	unsigned	n_cpus;
 	snow_seed_t	seeds[];
 } snow_context_t;
 
@@ -31,6 +31,8 @@ static void * snow_create_context(unsigned n_cpus)
 	for (unsigned i = 0; i < n_cpus; i++)
 		ctxt->seeds[i].seed = rand();
 
+	ctxt->n_cpus = n_cpus;
+
 	return ctxt;
 }
 
@@ -43,7 +45,9 @@ static void snow_destroy_context(void *context)
 
 static int snow_fragmenter(void *context, const fb_fragment_t *fragment, unsigned number, fb_fragment_t *res_fragment)
 {
-	return fb_fragment_slice_single(fragment, 32, number, res_fragment);
+	snow_context_t	*ctxt = context;
+
+	return fb_fragment_slice_single(fragment, ctxt->n_cpus, number, res_fragment);
 }
 
 
