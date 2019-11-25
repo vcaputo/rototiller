@@ -11,8 +11,6 @@
 
 typedef struct montage_context_t {
 	const rototiller_module_t	**modules;
-	const rototiller_module_t	*rtv_module;
-	const rototiller_module_t	*pixbounce_module;
 	void				**contexts;
 	size_t				n_modules;
 	unsigned			n_cpus;
@@ -37,30 +35,42 @@ rototiller_module_t	montage_module = {
 };
 
 
-static int skip_module(montage_context_t *ctxt, const rototiller_module_t *module)
-{
-	/* prevent recursion */
-	if (module == &montage_module)
-		return 1;
-
-	/* also prevents recursion, as rtv could run montage... */
-	if (module == ctxt->rtv_module)
-		return 1;
-
-	/* pixbounce is broken */
-	if (module == ctxt->pixbounce_module)
-		return 1;
-
-	return 0;
-}
-
-
 static void * montage_create_context(unsigned num_cpus)
 {
-	montage_context_t	*ctxt = calloc(1, sizeof(montage_context_t));
+	const rototiller_module_t	**modules, *rtv_module, *pixbounce_module, *stars_module;
+	size_t				n_modules;
+	montage_context_t		*ctxt;
+
+	ctxt = calloc(1, sizeof(montage_context_t));
+	if (!ctxt)
+		return NULL;
+
+	rototiller_get_modules(&modules, &n_modules);
+
+	ctxt->modules = calloc(n_modules, sizeof(rototiller_module_t *));
+	if (!ctxt->modules) {
+		free(ctxt);
+
+		return NULL;
+	}
+
+	rtv_module = rototiller_lookup_module("rtv");
+	pixbounce_module = rototiller_lookup_module("pixbounce");
+	stars_module = rototiller_lookup_module("stars");
+
+	for (size_t i = 0; i < n_modules; i++) {
+		const rototiller_module_t	*module = modules[i];
+
+		if (module == &montage_module ||	/* prevents recursion */
+		    module == rtv_module ||		/* also prevents recursion, rtv can run montage */
+		    module == pixbounce_module ||	/* temporarily broken in montage */
+		    module == stars_module)		/* temporarily broken in montage */
+			continue;
+
+		ctxt->modules[ctxt->n_modules++] = module;
+	}
 
 	ctxt->n_cpus = num_cpus;
-	rototiller_get_modules(&ctxt->modules, &ctxt->n_modules);
 
 	ctxt->contexts = calloc(ctxt->n_modules, sizeof(void *));
 	if (!ctxt->contexts) {
@@ -69,14 +79,8 @@ static void * montage_create_context(unsigned num_cpus)
 		return NULL;
 	}
 
-	ctxt->rtv_module = rototiller_lookup_module("rtv");
-	ctxt->pixbounce_module = rototiller_lookup_module("pixbounce");
-
-	for (int i = 0; i < ctxt->n_modules; i++) {
+	for (size_t i = 0; i < ctxt->n_modules; i++) {
 		const rototiller_module_t	*module = ctxt->modules[i];
-
-		if (skip_module(ctxt, module))
-			continue;
 
 		if (module->create_context)	/* FIXME errors */
 			ctxt->contexts[i] = module->create_context(num_cpus);
@@ -93,16 +97,15 @@ static void montage_destroy_context(void *context)
 	for (int i = 0; i < ctxt->n_modules; i++) {
 		const rototiller_module_t	*module = ctxt->modules[i];
 
-		if (skip_module(ctxt, module))
-			continue;
-
 		if (!ctxt->contexts[i])
 			continue;
 
 		 module->destroy_context(ctxt->contexts[i]);
 	}
 
-	free(context);
+	free(ctxt->contexts);
+	free(ctxt->modules);
+	free(ctxt);
 }
 
 
@@ -143,8 +146,7 @@ static void montage_render_fragment(void *context, unsigned cpu, fb_fragment_t *
 	montage_context_t		*ctxt = context;
 	const rototiller_module_t	*module = ctxt->modules[fragment->number];
 
-	if (skip_module(ctxt,module) ||
-	    fragment->number >= ctxt->n_modules) {
+	if (fragment->number >= ctxt->n_modules) {
 
 		fb_fragment_zero(fragment);
 
