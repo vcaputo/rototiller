@@ -109,6 +109,50 @@ static void montage_destroy_context(void *context)
 }
 
 
+
+/* this is a hacked up derivative of fb_fragment_tile_single() */
+static int montage_fragment_tile(const fb_fragment_t *fragment, unsigned tile_width, unsigned tile_height, unsigned number, fb_fragment_t *res_fragment)
+{
+	unsigned	w = fragment->width / tile_width, h = fragment->height / tile_height;
+	unsigned	x, y, xoff, yoff;
+
+#if 0
+	/* total coverage isn't important in montage, leave blank gaps */
+	/* I'm keeping this here for posterity though and to record a TODO:
+	 * it might be desirable to try center the montage when there must be gaps,
+	 * rather than letting the gaps always fall on the far side.
+	 */
+	if (w * tile_width < fragment->width)
+		w++;
+
+	if (h * tile_height < fragment->height)
+		h++;
+#endif
+
+	y = number / w;
+	if (y >= h)
+		return 0;
+
+	x = number - (y * w);
+
+	xoff = x * tile_width;
+	yoff = y * tile_height;
+
+	res_fragment->buf = (void *)fragment->buf + (yoff * fragment->pitch) + (xoff * 4);
+	res_fragment->x = 0;					/* fragment is a new frame */
+	res_fragment->y = 0;					/* fragment is a new frame */
+	res_fragment->width = MIN(fragment->width - xoff, tile_width);
+	res_fragment->height = MIN(fragment->height - yoff, tile_height);
+	res_fragment->frame_width = res_fragment->width;	/* fragment is a new frame */
+	res_fragment->frame_height = res_fragment->height;	/* fragment is a new frame */
+	res_fragment->stride = fragment->stride + ((fragment->width - res_fragment->width) * 4);
+	res_fragment->pitch = fragment->pitch;
+	res_fragment->number = number;
+
+	return 1;
+}
+
+
 /* The fragmenter in montage is serving double-duty:
  * 1. it divides the frame into subfragments for threaded rendering
  * 2. it determines which modules will be rendered where via fragment->number
@@ -116,17 +160,17 @@ static void montage_destroy_context(void *context)
 static int montage_fragmenter(void *context, const fb_fragment_t *fragment, unsigned number, fb_fragment_t *res_fragment)
 {
 	montage_context_t	*ctxt = context;
-	float			root = sqrtf((float)ctxt->n_modules);
+	float			root = sqrtf(ctxt->n_modules);
+	unsigned		tile_width = fragment->frame_width / ceilf(root);	/* screens are wide, give excess to the width */
+	unsigned		tile_height = fragment->frame_height / floorf(root);	/* take from the height */
 	int			ret;
 
-	ret = fb_fragment_tile_single(fragment, fragment->frame_height / root, number, res_fragment);
+	/* XXX: this could all be more clever and make some tiles bigger than others to deal with fractional square roots,
+	 * but this is good enough for now considering the simplicity.
+	 */
+	ret = montage_fragment_tile(fragment, tile_width, tile_height, number, res_fragment);
 	if (!ret)
 		return 0;
-
-	/* as these tiles are frames of their own rather than subfragments, override these values */
-	res_fragment->x = res_fragment->y = 0;
-	res_fragment->frame_width = res_fragment->width;
-	res_fragment->frame_height = res_fragment->height;
 
 	return ret;
 }
@@ -147,7 +191,6 @@ static void montage_render_fragment(void *context, unsigned cpu, fb_fragment_t *
 	const rototiller_module_t	*module = ctxt->modules[fragment->number];
 
 	if (fragment->number >= ctxt->n_modules) {
-
 		fb_fragment_zero(fragment);
 
 		return;
