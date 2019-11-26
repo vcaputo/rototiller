@@ -143,5 +143,5 @@ float din(din_t *din, v3f_t *coordinate)
 
 	tz = smootherstep(0.f, 1.f, tz);
 
-	return lerp(ii1, ii2, tz);
+	return lerp(ii1, ii2, tz) * 1.1547005383792515290182975610039f;
 }
