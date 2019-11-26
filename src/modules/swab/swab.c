@@ -14,6 +14,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
@@ -36,6 +37,10 @@ typedef struct swab_context_t {
 typedef struct color_t {
 	float	r,g,b;
 } color_t;
+
+typedef struct v3f_t {
+	float	x, y, z;
+} v3f_t;
 
 
 /* convert a color into a packed, 32-bit rgb pixel value (taken from libs/ray/ray_color.h) */
@@ -122,11 +127,11 @@ static void swab_render_fragment(void *context, unsigned cpu, fb_fragment_t *fra
 			uint32_t	pixel;
 			float		t;
 
-			t = din(ctxt->din, (v3f_t){ .x = (float)x * xscale * .5f, .y = (float)y * yscale * .5f, .z = -z2 }) * 33.f;
+			t = din(ctxt->din, &(v3f_t){ .x = (float)x * xscale * .5f, .y = (float)y * yscale * .5f, .z = -z2 }) * 33.f;
 
-			color.r = din(ctxt->din, (v3f_t){ .x = (float)x * xscale * .7f, .y = (float)y * yscale * .7f, .z = z1 }) * t;
-			color.g = din(ctxt->din, (v3f_t){ .x = (float)x * xscale * .93f, .y = (float)y * yscale * .93f, .z = -z1 }) * t;
-			color.b = din(ctxt->din, (v3f_t){ .x = (float)x * xscale * .81f, .y = (float)y * yscale * .81f, .z = z2 }) * t;
+			color.r = din(ctxt->din, &(v3f_t){ .x = (float)x * xscale * .7f, .y = (float)y * yscale * .7f, .z = z1 }) * t;
+			color.g = din(ctxt->din, &(v3f_t){ .x = (float)x * xscale * .93f, .y = (float)y * yscale * .93f, .z = -z1 }) * t;
+			color.b = din(ctxt->din, &(v3f_t){ .x = (float)x * xscale * .81f, .y = (float)y * yscale * .81f, .z = z2 }) * t;
 
 			pixel = color_to_uint32(color);
 			fb_fragment_put_pixel_unchecked(fragment, x, y, pixel);
