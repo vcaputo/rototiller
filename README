@@ -1,6 +1,7 @@
 rototiller is, rendered entirely in software:
 	flui2d: a 2D fluid dynamics simulation
 	julia: a morphing Julia set (fractal)
+	meta2d: a 2D metaballs effect
 	montage: a montage of modules meta-module
 	pixbounce: a 2D bouncing pixmap demonstration
 	plasma: an oldskool "plasma" effect
