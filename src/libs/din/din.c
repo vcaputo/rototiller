@@ -111,9 +111,9 @@ float din(din_t *din, v3f_t *coordinate)
 	y0 = floorf(coordinate->y);
 	z0 = floorf(coordinate->z);
 
-	x1 = x0 + 1.f;
-	y1 = y0 + 1.f;
-	z1 = z0 + 1.f;
+	x1 = x0 + 1;
+	y1 = y0 + 1;
+	z1 = z0 + 1;
 
 	tx = coordinate->x - (float)x0;
 	ty = coordinate->y - (float)y0;
