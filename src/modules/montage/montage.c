@@ -29,7 +29,7 @@ rototiller_module_t	montage_module = {
 	.prepare_frame = montage_prepare_frame,
 	.render_fragment = montage_render_fragment,
 	.name = "montage",
-	.description = "Rototiller montage",
+	.description = "Rototiller montage (threaded)",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",
 	.license = "GPLv2",
 };
