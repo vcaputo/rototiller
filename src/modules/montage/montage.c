@@ -62,9 +62,7 @@ static void * montage_create_context(unsigned num_cpus)
 		const rototiller_module_t	*module = modules[i];
 
 		if (module == &montage_module ||	/* prevents recursion */
-		    module == rtv_module ||		/* also prevents recursion, rtv can run montage */
-		    module == pixbounce_module ||	/* temporarily broken in montage */
-		    module == stars_module)		/* temporarily broken in montage */
+		    module == rtv_module )		/* also prevents recursion, rtv can run montage */
 			continue;
 
 		ctxt->modules[ctxt->n_modules++] = module;
