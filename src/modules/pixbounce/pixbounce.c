@@ -5,7 +5,7 @@
 #include "draw.h"
 #include "rototiller.h"
 
-/* Copyright (C) 2018 Philip J. Freeman <elektron@halo.nu> */
+/* Copyright (C) 2018-19 Philip J. Freeman <elektron@halo.nu> */
 
 int pix_width = 16;
 int pix_height = 16;
@@ -90,6 +90,14 @@ char pix_map[][16*16] = {
 	},
 };
 
+typedef struct pixbounce_context_t {
+	unsigned	n_cpus;
+	int		x, y;
+	int		x_dir, y_dir;
+	int		pix_num;
+
+} pixbounce_context_t;
+
 /* randomly pick another pixmap from the list, excluding the current one. */
 static int pick_pix(int num_pics, int last_pic)
 {
@@ -101,69 +109,92 @@ static int pick_pix(int num_pics, int last_pic)
 	return pix_num;
 }
 
+static void * pixbounce_create_context(unsigned num_cpus)
+{
+	pixbounce_context_t *ctxt;
+
+	ctxt = malloc(sizeof(pixbounce_context_t));
+	if (!ctxt)
+		return NULL;
+
+	srand(time(NULL) + getpid());
+
+	ctxt->n_cpus = num_cpus;
+	ctxt->x = 0;
+	ctxt->y = 8;
+	ctxt->x_dir = 1;
+	ctxt->y_dir = 1;
+	ctxt->pix_num = rand() % num_pix;
+
+	return ctxt;
+}
+
+static void pixbounce_destroy_context(void *context)
+{
+	pixbounce_context_t *ctxt = context;
+	free(context);
+}
+
 static void pixbounce_render_fragment(void *context, unsigned cpu, fb_fragment_t *fragment)
 {
-	static int	initialized=0;
-	static int	x, y, multiplier;
-	static int	x_dir, y_dir;
-	static int	pix_num;
+	pixbounce_context_t *ctxt = context;
 
-	int		width = fragment->width, height = fragment->height;
-
-	if(!initialized) {
-		srand(time(NULL) + getpid());
-		int multiplier_x = width / pix_width;
-		int multiplier_y = height / pix_height;
-		if(multiplier_x>multiplier_y) {
-			multiplier = multiplier_y * 77 / 100;
-		} else if(multiplier_y>multiplier_x) {
-			multiplier = multiplier_x * 77 / 100;
-		}
-		x = rand()%(width - (pix_width * multiplier));
-		y = rand()%(height - (pix_height * multiplier));
-		pix_num = rand() % num_pix;
-		x_dir = 1;
-		y_dir = 1;
-		initialized = 1;
-	}
+	int	multiplier_x, multiplier_y, multiplier;
+	int	width = fragment->width, height = fragment->height;
 
 	/* blank the frame */
 	fb_fragment_zero(fragment);
+
+	/* check for very small fragment */
+	if(pix_width*2>width||pix_height*2>height)
+		return;
+
+	/* calculate multiplyer for the pixmap */
+	multiplier_x = width / pix_width;
+	multiplier_y = height / pix_height;
+
+	if(multiplier_x>=multiplier_y) {
+		multiplier = multiplier_y * 77 / 100;
+	} else if(multiplier_y>multiplier_x) {
+		multiplier = multiplier_x * 77 / 100;
+	}
 
 	/* translate pixmap to multiplier size and draw it to the fragment */
 	for(int cursor_y=0; cursor_y < pix_height*multiplier; cursor_y++) {
 		for(int cursor_x=0; cursor_x < pix_width*multiplier; cursor_x++) {
 			int pix_offset = ((cursor_y/multiplier)*pix_width) + (cursor_x/multiplier);
-			if(pix_map[pix_num][pix_offset] == 0) continue;
+			if(pix_map[ctxt->pix_num][pix_offset] == 0) continue;
 			fb_fragment_put_pixel_unchecked(
-					fragment, x+cursor_x, y+cursor_y,
+					fragment, ctxt->x+cursor_x, ctxt->y+cursor_y,
 					makergb(0xFF, 0xFF, 0xFF, 1)
 				);
 		}
 	}
 
 	/* update pixmap location */
-	if(x+x_dir < 0) {
-		x_dir = 1;
-		pix_num = pick_pix(num_pix, pix_num);
+	if(ctxt->x+ctxt->x_dir < 0) {
+		ctxt->x_dir = 1;
+		ctxt->pix_num = pick_pix(num_pix, ctxt->pix_num);
 	}
-	if((x+(pix_width*multiplier))+x_dir > width) {
-		x_dir = -1;
-		pix_num = pick_pix(num_pix, pix_num);
+	if((ctxt->x+(pix_width*multiplier))+ctxt->x_dir > width) {
+		ctxt->x_dir = -1;
+		ctxt->pix_num = pick_pix(num_pix, ctxt->pix_num);
 	}
-	if(y+y_dir < 0) {
-		y_dir = 1;
-		pix_num = pick_pix(num_pix, pix_num);
+	if(ctxt->y+ctxt->y_dir < 0) {
+		ctxt->y_dir = 1;
+		ctxt->pix_num = pick_pix(num_pix, ctxt->pix_num);
 	}
-	if((y+(pix_height*multiplier))+y_dir > height) {
-		y_dir = -1;
-		pix_num = pick_pix(num_pix, pix_num);
+	if((ctxt->y+(pix_height*multiplier))+ctxt->y_dir > height) {
+		ctxt->y_dir = -1;
+		ctxt->pix_num = pick_pix(num_pix, ctxt->pix_num);
 	}
-	x = x+x_dir;
-	y = y+y_dir;
+	ctxt->x = ctxt->x+ctxt->x_dir;
+	ctxt->y = ctxt->y+ctxt->y_dir;
 }
 
 rototiller_module_t	pixbounce_module = {
+	.create_context  = pixbounce_create_context,
+	.destroy_context = pixbounce_destroy_context,
 	.render_fragment = pixbounce_render_fragment,
 	.name = "pixbounce",
 	.description = "pixmap bounce",
