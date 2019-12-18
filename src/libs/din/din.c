@@ -1,6 +1,7 @@
 /* implements a classical perlin noise function */
 /* https://en.wikipedia.org/wiki/Perlin_noise */
 
+#include <assert.h>
 #include <stdlib.h>
 
 #include "din.h"
@@ -43,6 +44,10 @@ din_t * din_new(int width, int height, int depth)
 {
 	din_t	*din;
 
+	assert(width > 1);
+	assert(height > 1);
+	assert(depth > 1);
+
 	din = calloc(1, sizeof(din_t) + (sizeof(v3f_t) * (width * height * depth)));
 	if (!din)
 		return NULL;
@@ -66,6 +71,10 @@ void din_free(din_t *din)
 static inline float dotgradient(const din_t *din, int x, int y, int z, const v3f_t *coordinate)
 {
 	v3f_t	distance = v3f_sub(coordinate, &(v3f_t){.x = x, .y = y, .z = z});
+
+	assert(x < din->width);
+	assert(y < din->height);
+	assert(z < din->depth);
 
 	return v3f_dot(&din->grid[z * din->width * din->height + y * din->width + x], &distance);
 }
@@ -103,9 +112,15 @@ float din(din_t *din, v3f_t *coordinate)
 	float	tx, ty, tz;
 	float	n0, n1;
 
-	coordinate->x = 1.f + (coordinate->x * .5f + .5f) * (float)(din->width - 2);
-	coordinate->y = 1.f + (coordinate->y * .5f + .5f) * (float)(din->height - 2);
-	coordinate->z = 1.f + (coordinate->z * .5f + .5f) * (float)(din->depth - 2);
+	assert(din);
+	assert(coordinate);
+	assert(coordinate->x >= -1.f && coordinate->x <= 1.f);
+	assert(coordinate->y >= -1.f && coordinate->y <= 1.f);
+	assert(coordinate->z >= -1.f && coordinate->z <= 1.f);
+
+	coordinate->x = .5f + (coordinate->x * .5f + .5f) * (float)(din->width - 2);
+	coordinate->y = .5f + (coordinate->y * .5f + .5f) * (float)(din->height - 2);
+	coordinate->z = .5f + (coordinate->z * .5f + .5f) * (float)(din->depth - 2);
 
 	x0 = floorf(coordinate->x);
 	y0 = floorf(coordinate->y);
