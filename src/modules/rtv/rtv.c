@@ -89,9 +89,6 @@ static char * randomize_module_setup(const rototiller_module_t *module)
 
 			settings_add_value(settings, desc->key, desc->values[n]);
 		} else {
-			/* TODO: only randomizing multiple choice currently, so
-			 * here I'm always taking the default for now.
-			 */
 			settings_add_value(settings, desc->key, desc->preferred);
 		}
 
