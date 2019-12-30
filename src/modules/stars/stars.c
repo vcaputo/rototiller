@@ -88,6 +88,8 @@ static void stars_render_fragment(void *context, unsigned cpu, fb_fragment_t *fr
 	int		width = fragment->width, height = fragment->height;
 
 
+	float max_radius=1.f+((width+height)*.001f);
+
 	fb_fragment_zero(fragment);
 
 	iterator=ctxt->points;
@@ -113,13 +115,28 @@ static void stars_render_fragment(void *context, unsigned cpu, fb_fragment_t *fr
 		pos_x = ((x+1.f)*.5f)*(float)width;
 		pos_y = ((y+1.f)*.5f)*(float)height;
 
-		if (pos_x>0 && pos_x<width && pos_y >0 && pos_y < height) {
-			if(iterator->z<0.1)
-				opacity = iterator->z*10;
-			else
-				opacity = 1;
+		if(iterator->z<0.1)
+			opacity = iterator->z*10;
+		else
+			opacity = 1;
 
+		if (pos_x>0 && pos_x<width && pos_y>0 && pos_y<height)
 			fb_fragment_put_pixel_unchecked(fragment, pos_x, pos_y,
+				makergb(0xFF, 0xFF, 0xFF, opacity));
+
+		for(int my_y=floorf(pos_y-max_radius); my_y<=ceilf(pos_y+max_radius); my_y++)
+		for(int my_x=floorf(pos_x-max_radius); my_x<=ceilf(pos_x+max_radius); my_x++) {
+
+			//Is the point within our viewing window?
+			if (!(my_x>0 && my_x<width && my_y>0 && my_y<height))
+				continue;
+
+			//Is the point within the circle?
+			if(powf(my_x-pos_x, 2)+powf(my_y-pos_y, 2) > powf((iterator->z*max_radius), 2))
+				continue;
+
+
+			fb_fragment_put_pixel_unchecked(fragment, my_x, my_y,
 				makergb(0xFF, 0xFF, 0xFF, opacity));
 
 		}
