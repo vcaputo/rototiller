@@ -52,6 +52,7 @@ AC_CONFIG_FILES([
  src/modules/rtv/Makefile
  src/modules/snow/Makefile
  src/modules/sparkler/Makefile
+ src/modules/spiro/Makefile
  src/modules/stars/Makefile
  src/modules/submit/Makefile
  src/modules/swab/Makefile
