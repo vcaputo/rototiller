@@ -159,8 +159,8 @@ static int montage_fragmenter(void *context, const fb_fragment_t *fragment, unsi
 {
 	montage_context_t	*ctxt = context;
 	float			root = sqrtf(ctxt->n_modules);
-	unsigned		tile_width = fragment->frame_width / ceilf(root);	/* screens are wide, give excess to the width */
-	unsigned		tile_height = fragment->frame_height / floorf(root);	/* take from the height */
+	unsigned		tile_width = fragment->frame_width / ceilf(root);	/* screens are wide, always give excess to the width */
+	unsigned		tile_height = fragment->frame_height / rintf(root);	/* only give to the height when fraction is >= .5f */
 	int			ret;
 
 	/* XXX: this could all be more clever and make some tiles bigger than others to deal with fractional square roots,
