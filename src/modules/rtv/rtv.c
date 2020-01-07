@@ -17,20 +17,18 @@
  * Some TODO items:
  * - optionally persist module contexts so they resume rather than restart
  * - runtime-configurable duration
- * - redo the next module selection from random to
- *   walking the list and randomizing the list every
- *   time it completes a cycle.   The current dumb
- *   random technique will happily keep showing you the
- *   same thing over and over.
  */
 
 #define RTV_SNOW_DURATION_SECS		1
 #define RTV_DURATION_SECS		15
 #define RTV_CAPTION_DURATION_SECS	5
 
+typedef struct rtv_module_t {
+	const rototiller_module_t	*module;
+	unsigned			ticket;
+} rtv_module_t;
+
 typedef struct rtv_context_t {
-	const rototiller_module_t	**modules;
-	size_t				n_modules;
 	unsigned			n_cpus;
 
 	time_t				next_switch, next_hide_caption;
@@ -39,6 +37,9 @@ typedef struct rtv_context_t {
 	txt_t				*caption;
 
 	const rototiller_module_t	*snow_module;
+
+	size_t				n_modules;
+	rtv_module_t			modules[];
 } rtv_context_t;
 
 static void setup_next_module(rtv_context_t *ctxt);
@@ -58,6 +59,29 @@ rototiller_module_t	rtv_module = {
 	.author = "Vito Caputo <vcaputo@pengaru.com>",
 	.license = "GPLv2",
 };
+
+
+static int cmp_modules(const void *p1, const void *p2)
+{
+	const rtv_module_t	*m1 = p1, *m2 = p2;
+
+	if (m1->ticket < m2->ticket)
+		return -1;
+
+	if (m1->ticket > m2->ticket)
+		return 1;
+
+	return 0;
+}
+
+
+static void randomize_modules(rtv_context_t *ctxt)
+{
+	for (size_t i = 0; i < ctxt->n_modules; i++)
+		ctxt->modules[i].ticket = rand();
+
+	qsort(ctxt->modules, ctxt->n_modules, sizeof(rtv_module_t), cmp_modules);
+}
 
 
 static char * randomize_module_setup(const rototiller_module_t *module)
@@ -105,7 +129,6 @@ static char * randomize_module_setup(const rototiller_module_t *module)
 static void setup_next_module(rtv_context_t *ctxt)
 {
 	time_t	now = time(NULL);
-	int	i;
 
 	/* TODO: most of this module stuff should probably be
 	 * in rototiller.c helpers, but it's harmless for now.
@@ -124,14 +147,22 @@ static void setup_next_module(rtv_context_t *ctxt)
 		ctxt->next_switch = now + RTV_SNOW_DURATION_SECS;
 	} else {
 		char	*setup;
+		size_t	i;
 
-		do {
-			i = rand() % ctxt->n_modules;
-		} while (ctxt->modules[i] == &rtv_module ||
-			 ctxt->modules[i] == ctxt->last_module ||
-			 ctxt->modules[i] == ctxt->snow_module);
+		for (i = 0; i < ctxt->n_modules; i++) {
+			if (ctxt->modules[i].module == ctxt->last_module) {
+				i++;
+				break;
+			}
+		}
 
-		ctxt->module = ctxt->modules[i];
+		if (i >= ctxt->n_modules) {
+			randomize_modules(ctxt);
+			ctxt->last_module = NULL;
+			i = 0;
+		}
+
+		ctxt->module = ctxt->modules[i].module;
 
 		setup = randomize_module_setup(ctxt->module);
 
@@ -156,11 +187,27 @@ static void setup_next_module(rtv_context_t *ctxt)
 
 static void * rtv_create_context(unsigned num_cpus)
 {
-	rtv_context_t	*ctxt = calloc(1, sizeof(rtv_context_t));
+	rtv_context_t			*ctxt;
+	const rototiller_module_t	**modules;
+	size_t				n_modules;
+
+	rototiller_get_modules(&modules, &n_modules);
+
+	ctxt = calloc(1, sizeof(rtv_context_t) + n_modules * sizeof(rtv_module_t));
+	if (!ctxt)
+		return NULL;
 
 	ctxt->n_cpus = num_cpus;
 	ctxt->snow_module = rototiller_lookup_module("snow");
-	rototiller_get_modules(&ctxt->modules, &ctxt->n_modules);
+
+	for (size_t i = 0; i < n_modules; i++) {
+		if (modules[i] == &rtv_module ||
+		    modules[i] == ctxt->snow_module)
+			continue;
+
+		ctxt->modules[ctxt->n_modules++].module = modules[i];
+	}
+
 	setup_next_module(ctxt);
 
 	return ctxt;
