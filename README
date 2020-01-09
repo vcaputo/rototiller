@@ -1,4 +1,5 @@
 rototiller is, rendered entirely in software:
+	drizzle: a 2D raindrops visualization
 	flui2d: a 2D fluid dynamics simulation
 	julia: a morphing Julia set (fractal)
 	meta2d: a 2D metaballs effect
