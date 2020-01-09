@@ -42,6 +42,7 @@ AC_CONFIG_FILES([
  src/libs/ray/Makefile
  src/libs/txt/Makefile
  src/modules/Makefile
+ src/modules/drizzle/Makefile
  src/modules/flui2d/Makefile
  src/modules/julia/Makefile
  src/modules/meta2d/Makefile
