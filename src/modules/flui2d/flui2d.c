@@ -284,7 +284,7 @@ static void flui2d_render_fragment(void *context, unsigned cpu, fb_fragment_t *f
 
 
 /* Settings hooks for configurable variables */
-int flui2d_setup(const settings_t *settings, setting_desc_t **next_setting)
+static int flui2d_setup(const settings_t *settings, setting_desc_t **next_setting)
 {
 	const char	*viscosity;
 	const char	*diffusion;
