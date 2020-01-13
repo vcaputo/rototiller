@@ -221,7 +221,7 @@ void ray_render_trace_fragment(ray_render_t *render, fb_fragment_t *fb_fragment)
 /* prepare the scene for rendering with camera, must be called whenever anything in the scene+camera pair has been changed. */
 /* this is basically a time for the raytracer to precompute whatever it can which otherwise ends up occurring per-ray */
 /* the camera is included so primary rays which all have a common origin may be optimized for */
-ray_render_t * ray_render_new(const ray_scene_t *scene, const ray_camera_t *camera)
+ray_render_t * ray_render_new(const ray_scene_t *scene, const ray_camera_t *camera, unsigned frame_width, unsigned frame_height)
 {
 	ray_render_t	*render;
 	ray_object_t	*object;
@@ -239,7 +239,7 @@ ray_render_t * ray_render_new(const ray_scene_t *scene, const ray_camera_t *came
 
 	render->ambient_light = ray_3f_mult_scalar(&scene->ambient_color, scene->ambient_brightness);
 	ray_gamma_prepare(scene->gamma, &render->gamma);
-	ray_camera_frame_prepare(camera, &render->frame);
+	ray_camera_frame_prepare(camera, frame_width, frame_height, &render->frame);
 
 	for (i = 0, object = scene->objects; object->type; object++)
 		render->objects[i++] = ray_render_object_prepare(object, camera);

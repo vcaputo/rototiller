@@ -24,8 +24,8 @@ static ray_3f_t project_corner(ray_3f_t *forward, ray_3f_t *left, ray_3f_t *up, 
 static void project_corners(const ray_camera_t *camera, ray_camera_frame_t *frame)
 {
 	ray_3f_t	forward, left, up, right, down;
-	float		half_horiz = (float)camera->width * 0.5f;
-	float		half_vert = (float)camera->height * 0.5f;
+	float		half_horiz = camera->film_width * 0.5f;
+	float		half_vert = camera->film_height * 0.5f;
 
 	ray_euler_basis(&camera->orientation, &forward, &up, &left);
 	right = ray_3f_negate(&left);
@@ -39,14 +39,14 @@ static void project_corners(const ray_camera_t *camera, ray_camera_frame_t *fram
 
 
 /* Prepare a frame of camera projection, initializing res_frame. */
-void ray_camera_frame_prepare(const ray_camera_t *camera, ray_camera_frame_t *res_frame)
+void ray_camera_frame_prepare(const ray_camera_t *camera, unsigned frame_width, unsigned frame_height, ray_camera_frame_t *res_frame)
 {
 	res_frame->camera = camera;
 
 	project_corners(camera, res_frame);
 
-	res_frame->x_delta = 1.0f / (float)camera->width;
-	res_frame->y_delta = 1.0f / (float)camera->height;
+	res_frame->x_delta = 1.0f / (float)frame_width;
+	res_frame->y_delta = 1.0f / (float)frame_height;
 }
 
 

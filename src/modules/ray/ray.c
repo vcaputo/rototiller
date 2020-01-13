@@ -106,6 +106,12 @@ static ray_camera_t	camera = {
 		.roll = RAY_EULER_DEGREES(0.0f),
 	},
 	.focal_length = 700.0f,
+
+	/* TODO: these should probably be adjusted @ runtime to at least fit the aspect ratio
+	 * of the frame being rendered.
+	 */
+	.film_width = 1000.f,
+	.film_height = 900.f,
 };
 
 static ray_scene_t	scene = {
@@ -148,10 +154,6 @@ static void ray_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fra
 	ray_context_t	*ctxt = context;
 
 	*res_fragmenter = ray_fragmenter;
-
-	/* TODO: the camera doesn't need the width and height anymore, the fragment has the frame_width/frame_height */
-	camera.width = fragment->frame_width,
-	camera.height = fragment->frame_height,
 #if 1
 	/* animated point light source */
 
@@ -174,7 +176,7 @@ static void ray_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fra
 	/* tilt camera pitch in time with up and down movements, phase shifted appreciably */
 	camera.orientation.pitch = -(sinf((M_PI * 1.5f) + r * 1.3f) * .6f + -.35f);
 #endif
-	ctxt->render = ray_render_new(&scene, &camera);
+	ctxt->render = ray_render_new(&scene, &camera, fragment->frame_width, fragment->frame_height);
 }
 
 

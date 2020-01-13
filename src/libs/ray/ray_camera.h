@@ -13,9 +13,19 @@
 typedef struct ray_camera_t {
 	ray_3f_t	position;		/* position of camera, the origin of all its rays */
 	ray_euler_t	orientation;		/* orientation of the camera */
+
+	/* Units for focal_length, width, and height, are undefined in absolute terms or any
+	 * kind of SI unit - they're the same units of the virtual scene shared
+	 * with the objects.
+	 */
 	float		focal_length;		/* controls the field of view */
-	unsigned	width;			/* width of camera viewport in pixels */
-	unsigned	height;			/* height of camera viewport in pixels */
+
+	/* XXX: Note these are not the same as the rendered frame width and height in pixels,
+	 * these influence the frustum size and shape in the 3D world by controlling the 2D
+	 * plane size and shape that frustum intersects.
+	 */
+	float		film_width;		/* width of camera's virtual "film" */
+	float		film_height;		/* height of camera's virtual "film" */
 } ray_camera_t;
 
 
@@ -38,7 +48,7 @@ typedef struct ray_camera_fragment_t {
 } ray_camera_fragment_t;
 
 
-void ray_camera_frame_prepare(const ray_camera_t *camera, ray_camera_frame_t *res_frame);
+void ray_camera_frame_prepare(const ray_camera_t *camera, unsigned frame_width, unsigned frame_height, ray_camera_frame_t *res_frame);
 void ray_camera_fragment_begin(ray_camera_frame_t *frame, fb_fragment_t *fb_fragment, ray_ray_t *res_ray, ray_camera_fragment_t *res_fragment);
 
 
