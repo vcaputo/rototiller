@@ -76,7 +76,7 @@ typedef struct rototiller_t {
 	pthread_t			thread;
 	fb_t				*fb;
 	struct timeval			start_tv;
-	unsigned			t_offset;
+	unsigned			ticks_offset;
 } rototiller_t;
 
 static rototiller_t		rototiller;
@@ -396,7 +396,7 @@ static void * rototiller_thread(void *_rt)
 		page = fb_page_get(rt->fb);
 
 		gettimeofday(&now, NULL);
-		ticks = get_ticks(&rt->start_tv, &now, rt->t_offset);
+		ticks = get_ticks(&rt->start_tv, &now, rt->ticks_offset);
 
 		module_render_fragment(rt->module, rt->module_context, rt->threads, ticks, &page->fragment);
 
@@ -447,7 +447,7 @@ int main(int argc, const char *argv[])
 		!(rototiller.module_context = rototiller.module->create_context(
 							get_ticks(&rototiller.start_tv,
 								&rototiller.start_tv,
-								rototiller.t_offset),
+								rototiller.ticks_offset),
 							threads_num_threads(rototiller.threads))),
 		"unable to create module context");
 
