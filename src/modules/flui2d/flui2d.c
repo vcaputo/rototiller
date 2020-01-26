@@ -218,8 +218,8 @@ static int flui2d_fragmenter(void *context, const fb_fragment_t *fragment, unsig
 static void flui2d_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
 {
 	flui2d_context_t	*ctxt = context;
-	static float		r;
-	int			x = (cos(r += .01f) * .4f + .5f) * (float)ROOT;	/* figure eight pattern for the added densities */
+	float			r = (ticks % (unsigned)(2 * M_PI * 1000)) * .001f;
+	int			x = (cos(r) * .4f + .5f) * (float)ROOT;	/* figure eight pattern for the added densities */
 	int			y = (sin(r * 2.f) * .4f + .5f) * (float)ROOT;
 
 	*res_fragmenter = flui2d_fragmenter;
