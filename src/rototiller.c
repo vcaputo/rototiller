@@ -443,6 +443,7 @@ int main(int argc, const char *argv[])
 	pexit_if(!(rototiller.threads = threads_create()),
 		"unable to create rendering threads");
 
+	gettimeofday(&rototiller.start_tv, NULL);
 	exit_if(rototiller.module->create_context &&
 		!(rototiller.module_context = rototiller.module->create_context(
 							get_ticks(&rototiller.start_tv,
