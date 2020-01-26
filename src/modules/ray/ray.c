@@ -130,7 +130,7 @@ typedef struct ray_context_t {
 } ray_context_t;
 
 
-static void * ray_create_context(unsigned num_cpus)
+static void * ray_create_context(unsigned ticks, unsigned num_cpus)
 {
 	return calloc(1, sizeof(ray_context_t));
 }
@@ -149,7 +149,7 @@ static int ray_fragmenter(void *context, const fb_fragment_t *fragment, unsigned
 
 
 /* prepare a frame for concurrent rendering */
-static void ray_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
+static void ray_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
 {
 	ray_context_t	*ctxt = context;
 
@@ -181,7 +181,7 @@ static void ray_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fra
 
 
 /* ray trace a simple scene into the fragment */
-static void ray_render_fragment(void *context, unsigned cpu, fb_fragment_t *fragment)
+static void ray_render_fragment(void *context, unsigned ticks, unsigned cpu, fb_fragment_t *fragment)
 {
 	ray_context_t	*ctxt = context;
 
@@ -189,7 +189,7 @@ static void ray_render_fragment(void *context, unsigned cpu, fb_fragment_t *frag
 }
 
 
-static void ray_finish_frame(void *context, fb_fragment_t *fragment)
+static void ray_finish_frame(void *context, unsigned ticks, fb_fragment_t *fragment)
 {
 	ray_context_t	*ctxt = context;
 

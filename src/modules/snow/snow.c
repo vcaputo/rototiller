@@ -20,7 +20,7 @@ typedef struct snow_context_t {
 } snow_context_t;
 
 
-static void * snow_create_context(unsigned n_cpus)
+static void * snow_create_context(unsigned ticks, unsigned n_cpus)
 {
 	snow_context_t	*ctxt;
 
@@ -51,13 +51,13 @@ static int snow_fragmenter(void *context, const fb_fragment_t *fragment, unsigne
 }
 
 
-static void snow_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
+static void snow_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
 {
 	*res_fragmenter = snow_fragmenter;
 }
 
 
-static void snow_render_fragment(void *context, unsigned cpu, fb_fragment_t *fragment)
+static void snow_render_fragment(void *context, unsigned ticks, unsigned cpu, fb_fragment_t *fragment)
 {
 	snow_context_t	*ctxt = context;
 	int		*seed = &ctxt->seeds[cpu].seed;

@@ -24,7 +24,7 @@ typedef struct sparkler_context_t {
 extern particle_ops_t	simple_ops;
 
 
-static void * sparkler_create_context(unsigned num_cpus)
+static void * sparkler_create_context(unsigned ticks, unsigned num_cpus)
 {
 	static int		initialized;
 	sparkler_context_t	*ctxt;
@@ -66,7 +66,7 @@ static int sparkler_fragmenter(void *context, const fb_fragment_t *fragment, uns
 	return fb_fragment_slice_single(fragment, ctxt->n_cpus, number, res_fragment);
 }
 
-static void sparkler_prepare_frame(void *context, unsigned ncpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
+static void sparkler_prepare_frame(void *context, unsigned ticks, unsigned ncpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
 {
 	sparkler_context_t	*ctxt = context;
 
@@ -80,7 +80,7 @@ static void sparkler_prepare_frame(void *context, unsigned ncpus, fb_fragment_t 
 
 
 /* Render a 3D particle system */
-static void sparkler_render_fragment(void *context, unsigned cpu, fb_fragment_t *fragment)
+static void sparkler_render_fragment(void *context, unsigned ticks, unsigned cpu, fb_fragment_t *fragment)
 {
 	sparkler_context_t	*ctxt = context;
 

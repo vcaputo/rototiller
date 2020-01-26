@@ -261,7 +261,7 @@ static void setup_grid(submit_context_t *ctxt)
 }
 
 
-static void * submit_create_context(unsigned num_cpus)
+static void * submit_create_context(unsigned ticks, unsigned num_cpus)
 {
 	submit_context_t	*ctxt;
 
@@ -290,7 +290,7 @@ static int submit_fragmenter(void *context, const fb_fragment_t *fragment, unsig
 }
 
 
-static void submit_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
+static void submit_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
 {
 	submit_context_t	*ctxt = context;
 
@@ -311,7 +311,7 @@ static void submit_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *
 }
 
 
-static void submit_render_fragment(void *context, unsigned cpu, fb_fragment_t *fragment)
+static void submit_render_fragment(void *context, unsigned ticks, unsigned cpu, fb_fragment_t *fragment)
 {
 	submit_context_t	*ctxt = context;
 

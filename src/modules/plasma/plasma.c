@@ -47,7 +47,7 @@ static void init_plasma(int32_t *costab, int32_t *sintab)
 }
 
 
-static void * plasma_create_context(unsigned num_cpus)
+static void * plasma_create_context(unsigned ticks, unsigned num_cpus)
 {
 	return calloc(1, sizeof(plasma_context_t));
 }
@@ -68,7 +68,7 @@ static int plasma_fragmenter(void *context, const fb_fragment_t *fragment, unsig
 
 
 /* Prepare a frame for concurrent drawing of fragment using multiple fragments */
-static void plasma_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
+static void plasma_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
 {
 	plasma_context_t	*ctxt = context;
 	static int		initialized;
@@ -86,7 +86,7 @@ static void plasma_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *
 
 
 /* Draw a plasma effect */
-static void plasma_render_fragment(void *context, unsigned cpu, fb_fragment_t *fragment)
+static void plasma_render_fragment(void *context, unsigned ticks, unsigned cpu, fb_fragment_t *fragment)
 {
 	plasma_context_t	*ctxt = context;
 	unsigned		width = fragment->width, height = fragment->height;

@@ -42,11 +42,11 @@ typedef struct rtv_context_t {
 	rtv_module_t			modules[];
 } rtv_context_t;
 
-static void setup_next_module(rtv_context_t *ctxt);
-static void * rtv_create_context(unsigned num_cpus);
+static void setup_next_module(rtv_context_t *ctxt, unsigned ticks);
+static void * rtv_create_context(unsigned ticks, unsigned num_cpus);
 static void rtv_destroy_context(void *context);
-static void rtv_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter);
-static void rtv_finish_frame(void *context, fb_fragment_t *fragment);
+static void rtv_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter);
+static void rtv_finish_frame(void *context, unsigned ticks, fb_fragment_t *fragment);
 
 
 rototiller_module_t	rtv_module = {
@@ -126,7 +126,7 @@ static char * randomize_module_setup(const rototiller_module_t *module)
 }
 
 
-static void setup_next_module(rtv_context_t *ctxt)
+static void setup_next_module(rtv_context_t *ctxt, unsigned ticks)
 {
 	time_t	now = time(NULL);
 
@@ -181,11 +181,11 @@ static void setup_next_module(rtv_context_t *ctxt)
 	}
 
 	if (ctxt->module->create_context)
-		ctxt->module_ctxt = ctxt->module->create_context(ctxt->n_cpus);
+		ctxt->module_ctxt = ctxt->module->create_context(ticks, ctxt->n_cpus);
 }
 
 
-static void * rtv_create_context(unsigned num_cpus)
+static void * rtv_create_context(unsigned ticks, unsigned num_cpus)
 {
 	rtv_context_t			*ctxt;
 	const rototiller_module_t	**modules;
@@ -208,7 +208,7 @@ static void * rtv_create_context(unsigned num_cpus)
 		ctxt->modules[ctxt->n_modules++].module = modules[i];
 	}
 
-	setup_next_module(ctxt);
+	setup_next_module(ctxt, ticks);
 
 	return ctxt;
 }
@@ -220,22 +220,22 @@ static void rtv_destroy_context(void *context)
 }
 
 
-static void rtv_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
+static void rtv_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
 {
 	rtv_context_t	*ctxt = context;
 	time_t		now = time(NULL);
 
 	if (now >= ctxt->next_switch)
-		setup_next_module(ctxt);
+		setup_next_module(ctxt, ticks);
 
 	if (now >= ctxt->next_hide_caption)
 		ctxt->caption = txt_free(ctxt->caption);
 
-	rototiller_module_render(ctxt->module, ctxt->module_ctxt, fragment);
+	rototiller_module_render(ctxt->module, ctxt->module_ctxt, ticks, fragment);
 }
 
 
-static void rtv_finish_frame(void *context, fb_fragment_t *fragment)
+static void rtv_finish_frame(void *context, unsigned ticks, fb_fragment_t *fragment)
 {
 	rtv_context_t	*ctxt = context;
 

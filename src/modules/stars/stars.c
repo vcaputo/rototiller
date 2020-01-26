@@ -40,7 +40,7 @@ float get_random_unit_coord() {
 }
 
 
-static void * stars_create_context(unsigned num_cpus)
+static void * stars_create_context(unsigned ticks, unsigned num_cpus)
 {
 	stars_context_t *ctxt;
 	float		z;
@@ -94,7 +94,7 @@ static void stars_destroy_context(void *context)
 }
 
 
-static void stars_render_fragment(void *context, unsigned cpu, fb_fragment_t *fragment)
+static void stars_render_fragment(void *context, unsigned ticks, unsigned cpu, fb_fragment_t *fragment)
 {
 	stars_context_t	*ctxt = context;
 	struct points* iterator;

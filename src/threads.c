@@ -22,10 +22,11 @@ typedef struct threads_t {
 
 	pthread_mutex_t		frame_mutex;
 	pthread_cond_t		frame_cond;
-	void			(*render_fragment_func)(void *context, unsigned cpu, fb_fragment_t *fragment);
+	void			(*render_fragment_func)(void *context, unsigned ticks, unsigned cpu, fb_fragment_t *fragment);
 	void			*context;
 	fb_fragment_t		*fragment;
 	rototiller_fragmenter_t	fragmenter;
+	unsigned		ticks;
 
 	unsigned		next_fragment;
 	unsigned		frame_num;
@@ -63,7 +64,7 @@ static void * thread_func(void *_thread)
 			if (!threads->fragmenter(threads->context, threads->fragment, frag_num, &fragment))
 				break;
 
-			threads->render_fragment_func(threads->context, thread->id, &fragment);
+			threads->render_fragment_func(threads->context, threads->ticks, thread->id, &fragment);
 		}
 
 		/* report as idle */
@@ -90,7 +91,7 @@ void threads_wait_idle(threads_t *threads)
 
 
 /* submit a frame's fragments to the threads */
-void threads_frame_submit(threads_t *threads, fb_fragment_t *fragment, rototiller_fragmenter_t fragmenter, void (*render_fragment_func)(void *context, unsigned cpu, fb_fragment_t *fragment), void *context)
+void threads_frame_submit(threads_t *threads, fb_fragment_t *fragment, rototiller_fragmenter_t fragmenter, void (*render_fragment_func)(void *context, unsigned ticks, unsigned cpu, fb_fragment_t *fragment), void *context, unsigned ticks)
 {
 	threads_wait_idle(threads);	/* XXX: likely non-blocking; already happens pre page flip */
 
@@ -99,6 +100,7 @@ void threads_frame_submit(threads_t *threads, fb_fragment_t *fragment, rototille
 	threads->fragmenter = fragmenter;
 	threads->render_fragment_func = render_fragment_func;
 	threads->context = context;
+	threads->ticks = ticks;
 	threads->frame_num++;
 	threads->n_idle = threads->next_fragment = 0;
 	pthread_cond_broadcast(&threads->frame_cond);

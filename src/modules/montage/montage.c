@@ -17,10 +17,10 @@ typedef struct montage_context_t {
 } montage_context_t;
 
 static void setup_next_module(montage_context_t *ctxt);
-static void * montage_create_context(unsigned num_cpus);
+static void * montage_create_context(unsigned ticks, unsigned num_cpus);
 static void montage_destroy_context(void *context);
-static void montage_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter);
-static void montage_render_fragment(void *context, unsigned cpu, fb_fragment_t *fragment);
+static void montage_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter);
+static void montage_render_fragment(void *context, unsigned ticks, unsigned cpu, fb_fragment_t *fragment);
 
 
 rototiller_module_t	montage_module = {
@@ -35,7 +35,7 @@ rototiller_module_t	montage_module = {
 };
 
 
-static void * montage_create_context(unsigned num_cpus)
+static void * montage_create_context(unsigned ticks, unsigned num_cpus)
 {
 	const rototiller_module_t	**modules, *rtv_module, *pixbounce_module, *stars_module;
 	size_t				n_modules;
@@ -81,7 +81,7 @@ static void * montage_create_context(unsigned num_cpus)
 		const rototiller_module_t	*module = ctxt->modules[i];
 
 		if (module->create_context)	/* FIXME errors */
-			ctxt->contexts[i] = module->create_context(num_cpus);
+			ctxt->contexts[i] = module->create_context(ticks, num_cpus);
 	}
 
 	return ctxt;
@@ -175,7 +175,7 @@ static int montage_fragmenter(void *context, const fb_fragment_t *fragment, unsi
 
 
 
-static void montage_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
+static void montage_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
 {
 	montage_context_t	*ctxt = context;
 
@@ -183,7 +183,7 @@ static void montage_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t 
 }
 
 
-static void montage_render_fragment(void *context, unsigned cpu, fb_fragment_t *fragment)
+static void montage_render_fragment(void *context, unsigned ticks, unsigned cpu, fb_fragment_t *fragment)
 {
 	montage_context_t		*ctxt = context;
 	const rototiller_module_t	*module = ctxt->modules[fragment->number];
@@ -211,10 +211,10 @@ static void montage_render_fragment(void *context, unsigned cpu, fb_fragment_t *
 		 * sensitive to this aspect of the API and it skips itself.
 		 */
 
-		module->prepare_frame(ctxt->contexts[fragment->number], 1, fragment, &unused);
+		module->prepare_frame(ctxt->contexts[fragment->number], ticks, 1, fragment, &unused);
 	}
 
 	if (module->render_fragment)
-		module->render_fragment(ctxt->contexts[fragment->number], 0, fragment);
+		module->render_fragment(ctxt->contexts[fragment->number], ticks, 0, fragment);
 }
 

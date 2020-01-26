@@ -187,7 +187,7 @@ typedef struct flui2d_context_t {
 } flui2d_context_t;
 
 
-static void * flui2d_create_context(unsigned num_cpus)
+static void * flui2d_create_context(unsigned ticks, unsigned num_cpus)
 {
 	flui2d_context_t	*ctxt;
 
@@ -215,7 +215,7 @@ static int flui2d_fragmenter(void *context, const fb_fragment_t *fragment, unsig
 
 
 /* Prepare a frame for concurrent drawing of fragment using multiple fragments */
-static void flui2d_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
+static void flui2d_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
 {
 	flui2d_context_t	*ctxt = context;
 	static float		r;
@@ -247,7 +247,7 @@ static void flui2d_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *
 
 
 /* Draw a the flui2d densities */
-static void flui2d_render_fragment(void *context, unsigned cpu, fb_fragment_t *fragment)
+static void flui2d_render_fragment(void *context, unsigned ticks, unsigned cpu, fb_fragment_t *fragment)
 {
 	flui2d_context_t	*ctxt = context;
 

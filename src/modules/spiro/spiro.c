@@ -28,7 +28,7 @@ typedef struct spiro_context_t {
 } spiro_context_t;
 
 
-static void * spiro_create_context(unsigned num_cpus)
+static void * spiro_create_context(unsigned ticks, unsigned num_cpus)
 {
 	spiro_context_t *ctxt;
 	float		z;
@@ -60,7 +60,7 @@ static void spiro_destroy_context(void *context)
 }
 
 
-static void spiro_render_fragment(void *context, unsigned cpu, fb_fragment_t *fragment)
+static void spiro_render_fragment(void *context, unsigned ticks, unsigned cpu, fb_fragment_t *fragment)
 {
 	spiro_context_t	*ctxt = context;
 

@@ -11,11 +11,11 @@ typedef struct settings_t settings;
 typedef struct setting_desc_t setting_desc_t;
 
 typedef struct rototiller_module_t {
-	void *	(*create_context)(unsigned n_cpus);
+	void *	(*create_context)(unsigned ticks, unsigned n_cpus);
 	void	(*destroy_context)(void *context);
-	void	(*prepare_frame)(void *context, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter);
-	void	(*render_fragment)(void *context, unsigned cpu, fb_fragment_t *fragment);
-	void	(*finish_frame)(void *context, fb_fragment_t *fragment);
+	void	(*prepare_frame)(void *context, unsigned ticks, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter);
+	void	(*render_fragment)(void *context, unsigned ticks, unsigned cpu, fb_fragment_t *fragment);
+	void	(*finish_frame)(void *context, unsigned ticks, fb_fragment_t *fragment);
 	char	*name;
 	char	*description;
 	char	*author;
@@ -25,6 +25,6 @@ typedef struct rototiller_module_t {
 
 const rototiller_module_t * rototiller_lookup_module(const char *name);
 void rototiller_get_modules(const rototiller_module_t ***res_modules, size_t *res_n_modules);
-void rototiller_module_render(const rototiller_module_t *module, void *context, fb_fragment_t *fragment);
+void rototiller_module_render(const rototiller_module_t *module, void *context, unsigned ticks, fb_fragment_t *fragment);
 
 #endif

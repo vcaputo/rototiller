@@ -63,7 +63,7 @@ static inline uint32_t color_to_uint32(v3f_t color) {
 }
 
 
-static void * drizzle_create_context(unsigned num_cpus)
+static void * drizzle_create_context(unsigned ticks, unsigned num_cpus)
 {
 	drizzle_context_t	*ctxt;
 
@@ -100,7 +100,7 @@ static int drizzle_fragmenter(void *context, const fb_fragment_t *fragment, unsi
 }
 
 
-static void drizzle_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
+static void drizzle_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
 {
 	drizzle_context_t	*ctxt = context;
 
@@ -124,7 +124,7 @@ static void drizzle_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t 
 }
 
 
-static void drizzle_render_fragment(void *context, unsigned cpu, fb_fragment_t *fragment)
+static void drizzle_render_fragment(void *context, unsigned ticks, unsigned cpu, fb_fragment_t *fragment)
 {
 	drizzle_context_t	*ctxt = context;
 	float			xf = 2.f / (float)fragment->frame_width;

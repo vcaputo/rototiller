@@ -66,7 +66,7 @@ static uint32_t	colors[] = {
 		};
 
 
-static void * julia_create_context(unsigned num_cpus)
+static void * julia_create_context(unsigned ticks, unsigned num_cpus)
 {
 	return calloc(1, sizeof(julia_context_t));
 }
@@ -111,7 +111,7 @@ static int julia_fragmenter(void *context, const fb_fragment_t *fragment, unsign
 
 
 /* Prepare a frame for concurrent drawing of fragment using multiple fragments */
-static void julia_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
+static void julia_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
 {
 	julia_context_t	*ctxt = context;
 
@@ -139,7 +139,7 @@ static void julia_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *f
 
 
 /* Draw a morphing Julia set */
-static void julia_render_fragment(void *context, unsigned cpu, fb_fragment_t *fragment)
+static void julia_render_fragment(void *context, unsigned ticks, unsigned cpu, fb_fragment_t *fragment)
 {
 	julia_context_t	*ctxt = context;
 	unsigned	x, y;

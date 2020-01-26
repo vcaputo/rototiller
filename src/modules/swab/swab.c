@@ -65,7 +65,7 @@ static inline uint32_t color_to_uint32(color_t color) {
 }
 
 
-static void * swab_create_context(unsigned num_cpus)
+static void * swab_create_context(unsigned ticks, unsigned num_cpus)
 {
 	swab_context_t	*ctxt;
 
@@ -100,7 +100,7 @@ static int swab_fragmenter(void *context, const fb_fragment_t *fragment, unsigne
 }
 
 
-static void swab_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
+static void swab_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
 {
 	swab_context_t	*ctxt = context;
 
@@ -111,7 +111,7 @@ static void swab_prepare_frame(void *context, unsigned n_cpus, fb_fragment_t *fr
 }
 
 
-static void swab_render_fragment(void *context, unsigned cpu, fb_fragment_t *fragment)
+static void swab_render_fragment(void *context, unsigned ticks, unsigned cpu, fb_fragment_t *fragment)
 {
 	swab_context_t	*ctxt = context;
 	float		cos_r = cos(ctxt->r);

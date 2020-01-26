@@ -109,7 +109,7 @@ static int pick_pix(int num_pics, int last_pic)
 	return pix_num;
 }
 
-static void * pixbounce_create_context(unsigned num_cpus)
+static void * pixbounce_create_context(unsigned ticks, unsigned num_cpus)
 {
 	pixbounce_context_t *ctxt;
 
@@ -135,7 +135,7 @@ static void pixbounce_destroy_context(void *context)
 	free(context);
 }
 
-static void pixbounce_render_fragment(void *context, unsigned cpu, fb_fragment_t *fragment)
+static void pixbounce_render_fragment(void *context, unsigned ticks, unsigned cpu, fb_fragment_t *fragment)
 {
 	pixbounce_context_t *ctxt = context;
 

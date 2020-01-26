@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <sys/time.h>
 #include <unistd.h>
 
 #include "settings.h"
@@ -74,6 +75,8 @@ typedef struct rototiller_t {
 	threads_t			*threads;
 	pthread_t			thread;
 	fb_t				*fb;
+	struct timeval			start_tv;
+	unsigned			t_offset;
 } rototiller_t;
 
 static rototiller_t		rototiller;
@@ -102,32 +105,32 @@ void rototiller_get_modules(const rototiller_module_t ***res_modules, size_t *re
 }
 
 
-static void module_render_fragment(const rototiller_module_t *module, void *context, threads_t *threads, fb_fragment_t *fragment)
+static void module_render_fragment(const rototiller_module_t *module, void *context, threads_t *threads, unsigned ticks, fb_fragment_t *fragment)
 {
 	if (module->prepare_frame) {
 		rototiller_fragmenter_t	fragmenter;
 
-		module->prepare_frame(context, threads_num_threads(threads), fragment, &fragmenter);
+		module->prepare_frame(context, ticks, threads_num_threads(threads), fragment, &fragmenter);
 
 		if (module->render_fragment) {
-			threads_frame_submit(threads, fragment, fragmenter, module->render_fragment, context);
+			threads_frame_submit(threads, fragment, fragmenter, module->render_fragment, context, ticks);
 			threads_wait_idle(threads);
 		}
 
 	} else if (module->render_fragment)
-		module->render_fragment(context, 0, fragment);
+		module->render_fragment(context, ticks, 0, fragment);
 
 	if (module->finish_frame)
-		module->finish_frame(context, fragment);
+		module->finish_frame(context, ticks, fragment);
 }
 
 
 /* This is a public interface to the threaded module rendering intended for use by
  * modules that wish to get the output of other modules for their own use.
  */
-void rototiller_module_render(const rototiller_module_t *module, void *context, fb_fragment_t *fragment)
+void rototiller_module_render(const rototiller_module_t *module, void *context, unsigned ticks, fb_fragment_t *fragment)
 {
-	module_render_fragment(module, context, rototiller.threads, fragment);
+	module_render_fragment(module, context, rototiller.threads, ticks, fragment);
 }
 
 
@@ -375,15 +378,28 @@ static int print_help(void)
 }
 
 
+static unsigned get_ticks(const struct timeval *start, const struct timeval *now, unsigned offset)
+{
+	return (unsigned)((now->tv_sec - start->tv_sec) * 1000 + (now->tv_usec - start->tv_usec) / 1000) + offset;
+}
+
+
 static void * rototiller_thread(void *_rt)
 {
 	rototiller_t	*rt = _rt;
+	struct timeval	now;
 
 	for (;;) {
 		fb_page_t	*page;
+		unsigned	ticks;
 
 		page = fb_page_get(rt->fb);
-		module_render_fragment(rt->module, rt->module_context, rt->threads, &page->fragment);
+
+		gettimeofday(&now, NULL);
+		ticks = get_ticks(&rt->start_tv, &now, rt->t_offset);
+
+		module_render_fragment(rt->module, rt->module_context, rt->threads, ticks, &page->fragment);
+
 		fb_page_put(rt->fb, page);
 	}
 
@@ -428,7 +444,11 @@ int main(int argc, const char *argv[])
 		"unable to create rendering threads");
 
 	exit_if(rototiller.module->create_context &&
-		!(rototiller.module_context = rototiller.module->create_context(threads_num_threads(rototiller.threads))),
+		!(rototiller.module_context = rototiller.module->create_context(
+							get_ticks(&rototiller.start_tv,
+								&rototiller.start_tv,
+								rototiller.t_offset),
+							threads_num_threads(rototiller.threads))),
 		"unable to create module context");
 
 	pexit_if(pthread_create(&rototiller.thread, NULL, rototiller_thread, &rototiller) != 0,
