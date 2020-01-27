@@ -9,6 +9,7 @@ typedef int (*rototiller_fragmenter_t)(void *context, const fb_fragment_t *fragm
 
 typedef struct settings_t settings;
 typedef struct setting_desc_t setting_desc_t;
+typedef struct knob_t knob_t;
 
 typedef struct rototiller_module_t {
 	void *	(*create_context)(unsigned ticks, unsigned n_cpus);
@@ -16,11 +17,12 @@ typedef struct rototiller_module_t {
 	void	(*prepare_frame)(void *context, unsigned ticks, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter);
 	void	(*render_fragment)(void *context, unsigned ticks, unsigned cpu, fb_fragment_t *fragment);
 	void	(*finish_frame)(void *context, unsigned ticks, fb_fragment_t *fragment);
+	int	(*setup)(const settings_t *settings, setting_desc_t **next_setting);
+	knob_t *(*knobs)(void *context);	/* when present, returns NULL-terminated array knobs for the supplied context, not to be freed - likely context-resident. */
 	char	*name;
 	char	*description;
 	char	*author;
 	char	*license;
-	int	(*setup)(const settings_t *settings, setting_desc_t **next_setting);
 } rototiller_module_t;
 
 const rototiller_module_t * rototiller_lookup_module(const char *name);
