@@ -18,7 +18,7 @@ typedef struct rototiller_module_t {
 	void	(*render_fragment)(void *context, unsigned ticks, unsigned cpu, fb_fragment_t *fragment);
 	void	(*finish_frame)(void *context, unsigned ticks, fb_fragment_t *fragment);
 	int	(*setup)(const settings_t *settings, setting_desc_t **next_setting);
-	knob_t *(*knobs)(void *context);	/* when present, returns NULL-terminated array knobs for the supplied context, not to be freed - likely context-resident. */
+	size_t	(*knobs)(void *context, knob_t **res_knobs);
 	char	*name;
 	char	*description;
 	char	*author;
