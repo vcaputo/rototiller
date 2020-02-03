@@ -132,6 +132,19 @@ int main(int argc, char *argv[])
 	for (unsigned i = 0; i < 1000; i++)
 		printf("sin 10hz ^ (sin 1hz * 50) output %i=%f\n", i, sig_output(sig, i));
 	sig = sig_free(sig);
+
+	sig =	sig_new(&sig_ops_scale,								/* scale a */
+			sig_new(&sig_ops_lerp,							/* linear interpolation */
+				sig_new(&sig_ops_sin, sig_new(&sig_ops_const, 10.f)),		/* between one 10hz oscillator */
+				sig_new(&sig_ops_sin, sig_new(&sig_ops_const, 33.f)),		/* and another 33hz oscillator */
+				sig_new(&sig_ops_sin, sig_new(&sig_ops_const, 2.f))		/* weighted by a 2hz oscillator */
+			),
+			sig_new(&sig_ops_const, -100.f), sig_new(&sig_ops_const, 100.f)		/* to the range -100 .. +100 */
+		);
+	for (unsigned i = 0; i < 1000; i++)
+		printf("scale(lerp(sin(10hz), sin(33hz), sin(2hz)), -100, +100)  output %i=%f\n", i, sig_output(sig, i));
+	sig = sig_free(sig);
+
 }
 
 #endif

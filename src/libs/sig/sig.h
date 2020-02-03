@@ -38,5 +38,6 @@ extern sig_ops_t	sig_ops_min;
 extern sig_ops_t	sig_ops_mult;
 extern sig_ops_t	sig_ops_pow;
 extern sig_ops_t	sig_ops_round;
+extern sig_ops_t	sig_ops_scale;
 
 #endif
