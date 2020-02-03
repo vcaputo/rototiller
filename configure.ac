@@ -40,6 +40,7 @@ AC_CONFIG_FILES([
  src/libs/din/Makefile
  src/libs/puddle/Makefile
  src/libs/ray/Makefile
+ src/libs/sig/Makefile
  src/libs/txt/Makefile
  src/modules/Makefile
  src/modules/drizzle/Makefile

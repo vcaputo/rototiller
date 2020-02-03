@@ -1,1 +1,1 @@
-SUBDIRS = ascii grid din puddle ray txt
+SUBDIRS = ascii grid din puddle ray sig txt
