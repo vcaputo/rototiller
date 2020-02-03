@@ -4,10 +4,28 @@
 
 #include "sig.h"
 
+/* This is to try ensure ctxt's alignment accomodates all the base type sizes,
+ * it may waste some space in sig_t but since the caller supplies just a size
+ * via the supplied sig_ops_t.size(), we know nothing of the alignment reqs.
+ *
+ * XXX: If callers start using other types like xmmintrinsics __m128, this
+ * struct will have to get those added.
+ */
+typedef union sig_context_t {
+	float		f;
+	double		d;
+	long double	ld;
+	char		c;
+	short		s;
+	int		i;
+	long		l;
+	long long	ll;
+	void		*p;
+} sig_context_t;
 
 typedef struct sig_t {
 	const sig_ops_t	*ops;
-	void		*ctxt[];
+	sig_context_t	ctxt[];
 } sig_t;
 
 
