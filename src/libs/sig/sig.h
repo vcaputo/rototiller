@@ -26,6 +26,7 @@ extern sig_ops_t	sig_ops_saw;
 extern sig_ops_t	sig_ops_sqr;
 */
 
+extern sig_ops_t	sig_ops_lerp;
 extern sig_ops_t	sig_ops_mult;
 
 #endif
