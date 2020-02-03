@@ -29,16 +29,6 @@ static void ops_mult_init(void *context, va_list ap)
 }
 
 
-static float ops_mult_output(void *context, unsigned ticks_ms)
-{
-	ops_mult_ctxt_t	*ctxt = context;
-
-	assert(ctxt);
-
-	return sig_output(ctxt->a, ticks_ms) * sig_output(ctxt->b, ticks_ms);
-}
-
-
 static void ops_mult_destroy(void *context)
 {
 	ops_mult_ctxt_t	*ctxt = context;
@@ -47,6 +37,16 @@ static void ops_mult_destroy(void *context)
 
 	sig_free(ctxt->a);
 	sig_free(ctxt->b);
+}
+
+
+static float ops_mult_output(void *context, unsigned ticks_ms)
+{
+	ops_mult_ctxt_t	*ctxt = context;
+
+	assert(ctxt);
+
+	return sig_output(ctxt->a, ticks_ms) * sig_output(ctxt->b, ticks_ms);
 }
 
 
