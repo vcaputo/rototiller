@@ -14,9 +14,9 @@ static size_t ops_lerp_size(va_list ap)
 }
 
 
-/* supply two sig_t's to be multiplied, this sig_t takes
- * ownership of them so they'll be freed by the multiplier
- * on destroy when that sig_t is freed.
+/* Supply two sig_t's to be interpolated and another for the t, this sig_t
+ * takes ownership of them so they'll be freed on destroy when the ops_lerp
+ * sig_t is freed.
  */
 static void ops_lerp_init(void *context, va_list ap)
 {
