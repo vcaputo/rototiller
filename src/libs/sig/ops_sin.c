@@ -5,7 +5,7 @@
 
 
 typedef struct ops_sin_ctxt_t {
-	float	hz;
+	sig_t	*hz;
 } ops_sin_ctxt_t;
 
 
@@ -21,21 +21,35 @@ static void ops_sin_init(void *context, va_list ap)
 
 	assert(ctxt);
 
-	ctxt->hz = va_arg(ap, double);
-	assert(ctxt->hz >= .0001f);
+	ctxt->hz = va_arg(ap, sig_t *);
+}
+
+
+static void ops_sin_destroy(void *context)
+{
+	ops_sin_ctxt_t	*ctxt = context;
+
+	assert(ctxt);
+
+	sig_free(ctxt->hz);
 }
 
 
 static float ops_sin_output(void *context, unsigned ticks_ms)
 {
 	ops_sin_ctxt_t	*ctxt = context;
-	float		rads_per_ms, rads;
+	float		rads_per_ms, rads, hz;
 	unsigned	ms_per_cycle;
 
 	assert(ctxt);
+	assert(ctxt->hz);
 
-	ms_per_cycle = ctxt->hz * 1000.f;
-	rads_per_ms = (M_PI * 2.f) * ctxt->hz * .001f;
+	hz = sig_output(ctxt->hz, ticks_ms);
+	if (hz < .0001f)
+		return 0.f;
+
+	ms_per_cycle = hz * 1000.f;
+	rads_per_ms = (M_PI * 2.f) * hz * .001f;
 	rads = (float)(ticks_ms % ms_per_cycle) * rads_per_ms;
 
 	return sinf(rads);
@@ -45,5 +59,6 @@ static float ops_sin_output(void *context, unsigned ticks_ms)
 sig_ops_t	sig_ops_sin = {
 	.size = ops_sin_size,
 	.init = ops_sin_init,
+	.destroy = ops_sin_destroy,
 	.output = ops_sin_output,
 };

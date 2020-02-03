@@ -83,14 +83,14 @@ int main(int argc, char *argv[])
 	printf("null output=%f\n", sig_output(sig, 0));
 	sig = sig_free(sig);
 
-	sig = sig_new(&sig_ops_sin, 2.f);
+	sig = sig_new(&sig_ops_sin, sig_new(&sig_ops_const, 2.f));
 	for (unsigned i = 0; i < 1000; i++)
 		printf("sin 2hz output %i=%f\n", i, sig_output(sig, i));
 	sig = sig_free(sig);
 
 	sig = sig_new(&sig_ops_mult,
-		      sig_new(&sig_ops_sin, 1.f),	/* LFO @ 1hz */
-		      sig_new(&sig_ops_sin, 100.f)	/* oscillator @ 100hz */
+		      sig_new(&sig_ops_sin, sig_new(&sig_ops_const, 1.f)),	/* LFO @ 1hz */
+		      sig_new(&sig_ops_sin, sig_new(&sig_ops_const, 100.f))	/* oscillator @ 100hz */
 		);
 	for (unsigned i = 0; i < 1000; i++)
 		printf("sin 100hz * 1hz output %i=%f\n", i, sig_output(sig, i));
