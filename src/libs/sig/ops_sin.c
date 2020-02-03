@@ -52,7 +52,7 @@ static float ops_sin_output(void *context, unsigned ticks_ms)
 	rads_per_ms = (M_PI * 2.f) * hz * .001f;
 	rads = (float)(ticks_ms % ms_per_cycle) * rads_per_ms;
 
-	return sinf(rads);
+	return sinf(rads) * .5f + .5f;
 }
 
 
