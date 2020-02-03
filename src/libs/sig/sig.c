@@ -83,6 +83,12 @@ int main(int argc, char *argv[])
 	printf("null output=%f\n", sig_output(sig, 0));
 	sig = sig_free(sig);
 
+	sig = sig_new(&sig_ops_rand);
+	for (unsigned j = 0; j < 2; j++) {
+		for (unsigned i = 0; i < 10; i++)
+			printf("rand j=%u i=%u output=%f\n", j, i, sig_output(sig, i));
+	}
+
 	sig = sig_new(&sig_ops_sin, sig_new(&sig_ops_const, 2.f));
 	for (unsigned i = 0; i < 1000; i++)
 		printf("sin 2hz output %i=%f\n", i, sig_output(sig, i));
