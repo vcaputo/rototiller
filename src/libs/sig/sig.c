@@ -119,6 +119,19 @@ int main(int argc, char *argv[])
 	for (unsigned i = 0; i < 1000; i++)
 		printf("sin 100hz * 1hz output %i=%f\n", i, sig_output(sig, i));
 	sig = sig_free(sig);
+
+	sig =	sig_new(&sig_ops_pow,								/* raise an ... */
+			sig_new(&sig_ops_sin,							/* oscillator ... */
+				sig_new(&sig_ops_const, 10.f)),					/* @ 10hz, */
+			sig_new(&sig_ops_round,							/* to a rounded .. */
+				sig_new(&sig_ops_mult, sig_new(&sig_ops_const, 50.f),		/* 50 X ... */
+					sig_new(&sig_ops_sin, sig_new(&sig_ops_const, 1.f))	/* 1hz oscillator */
+				)
+			)
+		);
+	for (unsigned i = 0; i < 1000; i++)
+		printf("sin 10hz ^ (sin 1hz * 50) output %i=%f\n", i, sig_output(sig, i));
+	sig = sig_free(sig);
 }
 
 #endif
