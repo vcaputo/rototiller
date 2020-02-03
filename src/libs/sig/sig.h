@@ -17,6 +17,7 @@ sig_t * sig_new(const sig_ops_t *ops, ...);
 sig_t * sig_free(sig_t *sig);
 float sig_output(sig_t *sig, unsigned ticks_ms);
 
+extern sig_ops_t	sig_ops_const;
 extern sig_ops_t	sig_ops_sin;
 
 /* TODO:
