@@ -32,6 +32,8 @@ extern sig_ops_t	sig_ops_ceil;
 extern sig_ops_t	sig_ops_clamp;
 extern sig_ops_t	sig_ops_floor;
 extern sig_ops_t	sig_ops_lerp;
+extern sig_ops_t	sig_ops_max;
+extern sig_ops_t	sig_ops_min;
 extern sig_ops_t	sig_ops_mult;
 extern sig_ops_t	sig_ops_pow;
 extern sig_ops_t	sig_ops_round;
