@@ -31,6 +31,7 @@ extern sig_ops_t	sig_ops_abs;
 extern sig_ops_t	sig_ops_add;
 extern sig_ops_t	sig_ops_ceil;
 extern sig_ops_t	sig_ops_clamp;
+extern sig_ops_t	sig_ops_div;
 extern sig_ops_t	sig_ops_expand;
 extern sig_ops_t	sig_ops_floor;
 extern sig_ops_t	sig_ops_inv;
