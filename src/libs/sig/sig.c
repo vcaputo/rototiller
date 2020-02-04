@@ -25,6 +25,7 @@ typedef union sig_context_t {
 
 typedef struct sig_t {
 	const sig_ops_t	*ops;
+	unsigned	refcount;
 	sig_context_t	ctxt[];
 } sig_t;
 
@@ -55,15 +56,37 @@ sig_t * sig_new(const sig_ops_t *ops, ...)
 	va_end(ap);
 
 	sig->ops = ops;
+	sig->refcount = 1;
 
 	return sig;
 }
 
 
-/* free a signal generator, always returns NULL */
+/* add a reference to an existing signal generator,
+ * free/unref using sig_free() just like it had been returned by sig_new()
+ */
+sig_t * sig_ref(sig_t *sig)
+{
+	assert(sig);
+
+	sig->refcount++;
+
+	return sig;
+}
+
+
+/* free a signal generator, returns sig if sig still has references,
+ * otherwise returns NULL
+ */
 sig_t * sig_free(sig_t *sig)
 {
 	if (sig) {
+		assert(sig->refcount > 0);
+
+		sig->refcount--;
+		if (sig->refcount)
+			return sig;
+
 		if (sig->ops->destroy)
 			sig->ops->destroy(&sig->ctxt);
 
