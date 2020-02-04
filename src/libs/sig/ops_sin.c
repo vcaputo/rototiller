@@ -45,7 +45,7 @@ static float ops_sin_output(void *context, unsigned ticks_ms)
 	assert(ctxt->hz);
 
 	hz = sig_output(ctxt->hz, ticks_ms);
-	if (hz < .0001f)
+	if (hz < .001f)
 		return 0.f;
 
 	ms_per_cycle = hz * 1000.f;
