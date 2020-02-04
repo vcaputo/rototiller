@@ -18,6 +18,27 @@ sig_t * sig_ref(sig_t *sig);
 sig_t * sig_free(sig_t *sig);
 float sig_output(sig_t *sig, unsigned ticks_ms);
 
+sig_t * sig_new_abs(sig_t *x);
+sig_t * sig_new_add(sig_t *a, sig_t *b);
+sig_t * sig_new_ceil(sig_t *x);
+sig_t * sig_new_clamp(sig_t *x, sig_t *min, sig_t *max);
+sig_t * sig_new_const(float x);
+sig_t * sig_new_div(sig_t *a, sig_t *b);
+sig_t * sig_new_expand(sig_t *x);
+sig_t * sig_new_floor(sig_t *x);
+sig_t * sig_new_inv(sig_t *x);
+sig_t * sig_new_lerp(sig_t *a, sig_t *b, sig_t *t);
+sig_t * sig_new_max(sig_t *a, sig_t *b);
+sig_t * sig_new_min(sig_t *a, sig_t *b);
+sig_t * sig_new_mult(sig_t *a, sig_t *b);
+sig_t * sig_new_neg(sig_t *x);
+sig_t * sig_new_pow(sig_t *x, sig_t *y);
+sig_t * sig_new_rand(void);
+sig_t * sig_new_round(sig_t *x);
+sig_t * sig_new_scale(sig_t *x, sig_t *min, sig_t *max);
+sig_t * sig_new_sin(sig_t *hz);
+sig_t * sig_new_sub(sig_t *a, sig_t *b);
+
 extern sig_ops_t	sig_ops_const;
 extern sig_ops_t	sig_ops_rand;
 extern sig_ops_t	sig_ops_sin;

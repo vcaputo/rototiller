@@ -112,6 +112,134 @@ float sig_output(sig_t *sig, unsigned ticks_ms)
 }
 
 
+/* What follows is a bunch of convenience wrappers around the bundled
+ * sig_ops implementations.  One may call sig_new() directly supplying
+ * the sig_ops_$op and appropriate va_args, which is important for
+ * supporting custom caller-implemented sig_ops in particular.
+ * However, it's desirable to use these helpers when possible, as
+ * they offer type checking of the arguments, as well less verbosity.
+ */
+
+sig_t * sig_new_abs(sig_t *x)
+{
+	return sig_new(&sig_ops_abs, x);
+}
+
+
+sig_t * sig_new_add(sig_t *a, sig_t *b)
+{
+	return sig_new(&sig_ops_add, a, b);
+}
+
+
+sig_t * sig_new_ceil(sig_t *x)
+{
+	return sig_new(&sig_ops_ceil, x);
+}
+
+
+sig_t * sig_new_clamp(sig_t *x, sig_t *min, sig_t *max)
+{
+	return sig_new(&sig_ops_clamp, x, min, max);
+}
+
+
+sig_t * sig_new_const(float x)
+{
+	return sig_new(&sig_ops_const, x);
+}
+
+
+sig_t * sig_new_div(sig_t *a, sig_t *b)
+{
+	return sig_new(&sig_ops_div, a, b);
+}
+
+
+sig_t * sig_new_expand(sig_t *x)
+{
+	return sig_new(&sig_ops_expand, x);
+}
+
+
+sig_t * sig_new_floor(sig_t *x)
+{
+	return sig_new(&sig_ops_floor, x);
+}
+
+
+sig_t * sig_new_inv(sig_t *x)
+{
+	return sig_new(&sig_ops_inv, x);
+}
+
+
+sig_t * sig_new_lerp(sig_t *a, sig_t *b, sig_t *t)
+{
+	return sig_new(&sig_ops_lerp, a, b, t);
+}
+
+
+sig_t * sig_new_max(sig_t *a, sig_t *b)
+{
+	return sig_new(&sig_ops_max, a, b);
+}
+
+
+sig_t * sig_new_min(sig_t *a, sig_t *b)
+{
+	return sig_new(&sig_ops_min, a, b);
+}
+
+
+sig_t * sig_new_mult(sig_t *a, sig_t *b)
+{
+	return sig_new(&sig_ops_mult, a, b);
+}
+
+
+sig_t * sig_new_neg(sig_t *x)
+{
+	return sig_new(&sig_ops_neg, x);
+}
+
+
+sig_t * sig_new_pow(sig_t *x, sig_t *y)
+{
+	return sig_new(&sig_ops_pow, x, y);
+}
+
+
+sig_t * sig_new_rand(void)
+{
+	return sig_new(&sig_ops_rand);
+}
+
+
+sig_t * sig_new_round(sig_t *x)
+{
+	return sig_new(&sig_ops_round, x);
+}
+
+
+sig_t * sig_new_scale(sig_t *x, sig_t *min, sig_t *max)
+{
+	return sig_new(&sig_ops_scale, x, min, max);
+}
+
+
+sig_t * sig_new_sin(sig_t *hz)
+{
+	return sig_new(&sig_ops_sin, hz);
+}
+
+
+sig_t * sig_new_sub(sig_t *a, sig_t *b)
+{
+	return sig_new(&sig_ops_sub, a, b);
+}
+
+
 #ifdef TESTING
 
 #include <stdio.h>
