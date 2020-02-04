@@ -28,6 +28,7 @@ extern sig_ops_t	sig_ops_sqr;
 */
 
 extern sig_ops_t	sig_ops_abs;
+extern sig_ops_t	sig_ops_add;
 extern sig_ops_t	sig_ops_ceil;
 extern sig_ops_t	sig_ops_clamp;
 extern sig_ops_t	sig_ops_expand;
@@ -40,5 +41,6 @@ extern sig_ops_t	sig_ops_mult;
 extern sig_ops_t	sig_ops_pow;
 extern sig_ops_t	sig_ops_round;
 extern sig_ops_t	sig_ops_scale;
+extern sig_ops_t	sig_ops_sub;
 
 #endif
