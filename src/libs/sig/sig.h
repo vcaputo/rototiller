@@ -37,16 +37,17 @@ sig_t * sig_new_rand(void);
 sig_t * sig_new_round(sig_t *x);
 sig_t * sig_new_scale(sig_t *x, sig_t *min, sig_t *max);
 sig_t * sig_new_sin(sig_t *hz);
+sig_t * sig_new_sqr(sig_t *hz);
 sig_t * sig_new_sub(sig_t *a, sig_t *b);
 
 extern sig_ops_t	sig_ops_const;
 extern sig_ops_t	sig_ops_rand;
 extern sig_ops_t	sig_ops_sin;
+extern sig_ops_t	sig_ops_sqr;
 
 /* TODO:
 extern sig_ops_t	sig_ops_tri;
 extern sig_ops_t	sig_ops_saw;
-extern sig_ops_t	sig_ops_sqr;
 */
 
 extern sig_ops_t	sig_ops_abs;

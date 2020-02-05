@@ -35,7 +35,22 @@ static void ops_sin_destroy(void *context)
 }
 
 
-static float ops_sin_output(void *context, unsigned ticks_ms)
+static float output_sin(float rads)
+{
+	return sinf(rads) * .5f + .5f;
+}
+
+
+static float output_sqr(float rads)
+{
+	if (sinf(rads) < 0.f)
+		return 0.f;
+
+	return 1.f;
+}
+
+
+static float output(void *context, unsigned ticks_ms, float (*output_fn)(float rads))
 {
 	ops_sin_ctxt_t	*ctxt = context;
 	float		rads_per_ms, rads, hz;
@@ -56,7 +71,19 @@ static float ops_sin_output(void *context, unsigned ticks_ms)
 	rads_per_ms = (M_PI * 2.f) * hz * .001f;
 	rads = (float)ticks_ms * rads_per_ms;
 
-	return sinf(rads) * .5f + .5f;
+	return output_fn(rads);
+}
+
+
+static float ops_sin_output(void *context, unsigned ticks_ms)
+{
+	return output(context, ticks_ms, output_sin);
+}
+
+
+static float ops_sqr_output(void *context, unsigned ticks_ms)
+{
+	return output(context, ticks_ms, output_sqr);
 }
 
 
@@ -65,4 +92,12 @@ sig_ops_t	sig_ops_sin = {
 	.init = ops_sin_init,
 	.destroy = ops_sin_destroy,
 	.output = ops_sin_output,
+};
+
+
+sig_ops_t	sig_ops_sqr = {
+	.size = ops_sin_size,
+	.init = ops_sin_init,
+	.destroy = ops_sin_destroy,
+	.output = ops_sqr_output,
 };
