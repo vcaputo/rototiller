@@ -50,6 +50,15 @@ static float output_sqr(float rads)
 }
 
 
+static float output_tri(float rads)
+{
+	/* This approximation comes from:
+	 * https://calculushowto.com/triangle-wave-function/
+	 */
+	return M_2_PI * asinf(fabsf(sinf(M_PI * rads)));
+}
+
+
 static float output(void *context, unsigned ticks_ms, float (*output_fn)(float rads))
 {
 	ops_sin_ctxt_t	*ctxt = context;
@@ -87,6 +96,12 @@ static float ops_sqr_output(void *context, unsigned ticks_ms)
 }
 
 
+static float ops_tri_output(void *context, unsigned ticks_ms)
+{
+	return output(context, ticks_ms, output_tri);
+}
+
+
 sig_ops_t	sig_ops_sin = {
 	.size = ops_sin_size,
 	.init = ops_sin_init,
@@ -100,4 +115,12 @@ sig_ops_t	sig_ops_sqr = {
 	.init = ops_sin_init,
 	.destroy = ops_sin_destroy,
 	.output = ops_sqr_output,
+};
+
+
+sig_ops_t	sig_ops_tri = {
+	.size = ops_sin_size,
+	.init = ops_sin_init,
+	.destroy = ops_sin_destroy,
+	.output = ops_tri_output,
 };

@@ -240,6 +240,12 @@ sig_t * sig_new_sqr(sig_t *hz)
 }
 
 
+sig_t * sig_new_tri(sig_t *hz)
+{
+	return sig_new(&sig_ops_tri, hz);
+}
+
+
 sig_t * sig_new_sub(sig_t *a, sig_t *b)
 {
 	return sig_new(&sig_ops_sub, a, b);
