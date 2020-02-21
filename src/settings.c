@@ -13,7 +13,11 @@ char * strndup(const char *s, size_t n)
 	size_t	len;
 	char	*buf;
 
-	len = MIN(strlen(s), n);
+	for (len = 0; len < n; len++) {
+		if (!s[len])
+			break;
+	}
+
 	buf = calloc(len + 1, sizeof(char));
 	if (!buf)
 		return NULL;
