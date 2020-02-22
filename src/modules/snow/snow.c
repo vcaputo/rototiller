@@ -64,7 +64,11 @@ static void snow_render_fragment(void *context, unsigned ticks, unsigned cpu, fb
 
 	for (unsigned y = fragment->y; y < fragment->y + fragment->height; y++) {
 		for (unsigned x = fragment->x; x < fragment->x + fragment->width; x++) {
+#ifdef __WIN32__
+			uint32_t	pixel = rand();
+#else
 			uint32_t	pixel = rand_r(seed) % 256;
+#endif
 
 			fb_fragment_put_pixel_unchecked(fragment, x, y, pixel << 16 | pixel << 8 | pixel);
 		}
