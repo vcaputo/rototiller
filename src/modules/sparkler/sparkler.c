@@ -23,6 +23,7 @@ typedef struct sparkler_context_t {
 
 extern particle_ops_t	simple_ops;
 
+static particles_conf_t	sparkler_conf;
 
 static void * sparkler_create_context(unsigned ticks, unsigned num_cpus)
 {
@@ -38,7 +39,7 @@ static void * sparkler_create_context(unsigned ticks, unsigned num_cpus)
 	if (!ctxt)
 		return NULL;
 
-	ctxt->particles = particles_new(NULL);
+	ctxt->particles = particles_new(&sparkler_conf);
 	if (!ctxt->particles) {
 		free(ctxt);
 		return NULL;
@@ -89,11 +90,70 @@ static void sparkler_render_fragment(void *context, unsigned ticks, unsigned cpu
 }
 
 
+/* Settings hooks for configurable variables */
+static int sparkler_setup(const settings_t *settings, setting_desc_t **next_setting)
+{
+	const char	*show_bsp_leafs;
+	const char	*show_bsp_matches;
+	const char	*values[] = {
+				"on",
+				"off",
+				NULL
+			};
+
+	show_bsp_leafs = settings_get_value(settings, "show_bsp_leafs");
+	if (!show_bsp_leafs) {
+		int	r;
+
+		r = setting_desc_clone(&(setting_desc_t){
+						.name = "Show BSP Leaf Node Bounding Boxes",
+						.key = "show_bsp_leafs",
+						.preferred = "off",
+						.values = values,
+					}, next_setting);
+		if (r < 0)
+			return r;
+
+		return 1;
+	}
+
+	show_bsp_matches = settings_get_value(settings, "show_bsp_matches");
+	if (!show_bsp_matches) {
+		int	r;
+
+		r = setting_desc_clone(&(setting_desc_t){
+						.name = "Show BSP Search Matches",
+						.key = "show_bsp_matches",
+						.preferred = "off",
+						.values = values,
+					}, next_setting);
+		if (r < 0)
+			return r;
+
+		return 1;
+	}
+
+	/* TODO: return -EINVAL on parse errors? */
+	if (!strcasecmp(show_bsp_leafs, "on"))
+		sparkler_conf.show_bsp_leafs = 1;
+	else
+		sparkler_conf.show_bsp_leafs = 0;
+
+	if (!strcasecmp(show_bsp_matches, "on"))
+		sparkler_conf.show_bsp_matches = 1;
+	else
+		sparkler_conf.show_bsp_matches = 0;
+
+	return 0;
+}
+
+
 rototiller_module_t	sparkler_module = {
 	.create_context = sparkler_create_context,
 	.destroy_context = sparkler_destroy_context,
 	.prepare_frame = sparkler_prepare_frame,
 	.render_fragment = sparkler_render_fragment,
+	.setup = sparkler_setup,
 	.name = "sparkler",
 	.description = "Particle system with spatial interactions (threaded (poorly))",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",
