@@ -6,9 +6,14 @@
 #include "list.h"
 #include "particle.h"
 
+typedef struct particles_conf_t {
+	unsigned	show_bsp_leafs:1;
+	unsigned	show_bsp_matches:1;
+} particles_conf_t;
+
 typedef struct particles_t particles_t;
 
-particles_t * particles_new(void);
+particles_t * particles_new(const particles_conf_t *conf);
 void particles_draw(particles_t *particles, fb_fragment_t *fragment);
 particle_status_t particles_sim(particles_t *particles);
 void particles_age(particles_t *particles);

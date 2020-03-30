@@ -38,7 +38,7 @@ static void * sparkler_create_context(unsigned ticks, unsigned num_cpus)
 	if (!ctxt)
 		return NULL;
 
-	ctxt->particles = particles_new();
+	ctxt->particles = particles_new(NULL);
 	if (!ctxt->particles) {
 		free(ctxt);
 		return NULL;

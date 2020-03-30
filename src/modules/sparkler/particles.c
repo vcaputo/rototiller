@@ -40,11 +40,12 @@ struct particles_t {
 	chunker_t		*chunker;	/* chunker for variably-sized particle allocation (includes context) */
 	list_head_t		active;		/* top-level active list of particles heirarchy */
 	bsp_t			*bsp;		/* bsp spatial index of the particles */
+	particles_conf_t	conf;
 };
 
 
 /* create a new particle system */
-particles_t * particles_new(void)
+particles_t * particles_new(const particles_conf_t *conf)
 {
 	particles_t	*particles;
 
@@ -64,6 +65,9 @@ particles_t * particles_new(void)
 	}
 
 	INIT_LIST_HEAD(&particles->active);
+
+	if (conf)
+		particles->conf = *conf;
 
 	return particles;
 }
