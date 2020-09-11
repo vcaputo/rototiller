@@ -23,7 +23,7 @@ typedef struct _simple_ctxt_t {
 } simple_ctxt_t;
 
 
-static int simple_init(particles_t *particles, particle_t *p)
+static int simple_init(particles_t *particles, const particles_conf_t *conf, particle_t *p)
 {
 	simple_ctxt_t	*ctxt = p->ctxt;
 
@@ -54,7 +54,7 @@ static int simple_init(particles_t *particles, particle_t *p)
 }
 
 
-static particle_status_t simple_sim(particles_t *particles, particle_t *p)
+static particle_status_t simple_sim(particles_t *particles, const particles_conf_t *conf, particle_t *p, fb_fragment_t *f)
 {
 	simple_ctxt_t	*ctxt = p->ctxt;
 
@@ -95,7 +95,7 @@ static particle_status_t simple_sim(particles_t *particles, particle_t *p)
 }
 
 
-static void simple_draw(particles_t *particles, particle_t *p, int x, int y, fb_fragment_t *f)
+static void simple_draw(particles_t *particles, const particles_conf_t *conf, particle_t *p, int x, int y, fb_fragment_t *f)
 {
 	simple_ctxt_t	*ctxt = p->ctxt;
 

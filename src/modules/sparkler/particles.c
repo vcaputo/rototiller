@@ -78,7 +78,7 @@ static inline void _particles_free_particle(particles_t *particles, _particle_t 
 {
 	assert(p);
 
-	particle_cleanup(particles, &p->public);
+	particle_cleanup(particles, &particles->conf, &p->public);
 	chunker_free(p);
 }
 
@@ -157,7 +157,7 @@ static inline int _particles_add_particle(particles_t *particles, list_head_t *l
 		p->public.ctxt = p->context;
 	}
 
-	if (!particle_init(particles, &p->public)) {
+	if (!particle_init(particles, &particles->conf, &p->public)) {
 		/* XXX FIXME this shouldn't be normal, we don't want to allocate
 		 * particles that cannot be initialized.  the rockets today set a cap
 		 * by failing initialization, that's silly. */
@@ -237,7 +237,7 @@ static inline void _particles_draw(particles_t *particles, list_head_t *list, fb
 		x = (p->props.position.x / (p->props.position.z - ZCONST) * w2) + w2;
 		y = (p->props.position.y / (p->props.position.z - ZCONST) * h2) + h2;
 
-		particle_draw(particles, &p->public, x, y, fragment);
+		particle_draw(particles, &particles->conf, &p->public, x, y, fragment);
 
 		if (!list_empty(&p->children)) {
 			_particles_draw(particles, &p->children, fragment);
@@ -246,16 +246,134 @@ static inline void _particles_draw(particles_t *particles, list_head_t *list, fb
 }
 
 
-/* draw all of the particles, currently called in heirarchical order */
-void particles_draw(particles_t *particles, fb_fragment_t *fragment)
+/* TODO: maybe polish up and move into fb.c? */
+static void draw_line(fb_fragment_t *fragment, int x1, int y1, int x2, int y2)
 {
-	assert(particles);
+	int	x_delta = x2 - x1;
+	int	y_delta = y2 - y1;
+	int	sdx = x_delta < 0 ? -1 : 1;
+	int	sdy = y_delta < 0 ? -1 : 1;
 
-	_particles_draw(particles, &particles->active, fragment);
+	x_delta = abs(x_delta);
+	y_delta = abs(y_delta);
+
+	if (x_delta >= y_delta) {
+		/* X-major */
+		for (int minor = 0, x = 0; x <= x_delta; x++, x1 += sdx, minor += y_delta) {
+			if (minor >= x_delta) {
+				y1 += sdy;
+				minor -= x_delta;
+			}
+
+			fb_fragment_put_pixel_checked(fragment, x1, y1, 0xffffffff);
+		}
+	} else {
+		/* Y-major */
+		for (int minor = 0, y = 0; y <= y_delta; y++, y1 += sdy, minor += x_delta) {
+			if (minor >= y_delta) {
+				x1 += sdx;
+				minor -= y_delta;
+			}
+
+			fb_fragment_put_pixel_checked(fragment, x1, y1, 0xffffffff);
+		}
+	}
 }
 
 
-static inline particle_status_t _particles_sim(particles_t *particles, list_head_t *list)
+static void draw_edge(fb_fragment_t *fragment, const v3f_t *a, const v3f_t *b)
+{
+	float	w2 = fragment->frame_width * .5f, h2 = fragment->frame_height * .5f;
+	int	x1, y1, x2, y2;
+
+	/* project the 3d coordinates onto the 2d plane */
+	x1 = (a->x / (a->z - ZCONST) * w2) + w2;
+	y1 = (a->y / (a->z - ZCONST) * h2) + h2;
+	x2 = (b->x / (b->z - ZCONST) * w2) + w2;
+	y2 = (b->y / (b->z - ZCONST) * h2) + h2;
+
+	draw_line(fragment, x1, y1, x2, y2);
+}
+
+
+static void draw_bv(fb_fragment_t *fragment, const v3f_t *bv_min, const v3f_t *bv_max)
+{
+	draw_edge(fragment,
+		&(v3f_t){bv_min->x, bv_max->y, bv_min->z},
+		&(v3f_t){bv_max->x, bv_max->y, bv_min->z});
+	draw_edge(fragment,
+		&(v3f_t){bv_min->x, bv_max->y, bv_min->z},
+		&(v3f_t){bv_min->x, bv_max->y, bv_max->z});
+	draw_edge(fragment,
+		&(v3f_t){bv_min->x, bv_max->y, bv_min->z},
+		&(v3f_t){bv_min->x, bv_min->y, bv_min->z});
+	draw_edge(fragment,
+		&(v3f_t){bv_max->x, bv_min->y, bv_min->z},
+		&(v3f_t){bv_max->x, bv_min->y, bv_max->z});
+	draw_edge(fragment,
+		&(v3f_t){bv_max->x, bv_min->y, bv_min->z},
+		&(v3f_t){bv_min->x, bv_min->y, bv_min->z});
+	draw_edge(fragment,
+		&(v3f_t){bv_max->x, bv_min->y, bv_min->z},
+		&(v3f_t){bv_max->x, bv_max->y, bv_min->z});
+	draw_edge(fragment,
+		&(v3f_t){bv_max->x, bv_max->y, bv_max->z},
+		&(v3f_t){bv_min->x, bv_max->y, bv_max->z});
+	draw_edge(fragment,
+		&(v3f_t){bv_max->x, bv_max->y, bv_max->z},
+		&(v3f_t){bv_max->x, bv_max->y, bv_min->z});
+	draw_edge(fragment,
+		&(v3f_t){bv_max->x, bv_max->y, bv_max->z},
+		&(v3f_t){bv_max->x, bv_min->y, bv_max->z});
+	draw_edge(fragment,
+		&(v3f_t){bv_min->x, bv_min->y, bv_max->z},
+		&(v3f_t){bv_min->x, bv_min->y, bv_min->z});
+	draw_edge(fragment,
+		&(v3f_t){bv_min->x, bv_min->y, bv_max->z},
+		&(v3f_t){bv_min->x, bv_max->y, bv_max->z});
+	draw_edge(fragment,
+		&(v3f_t){bv_min->x, bv_min->y, bv_max->z},
+		&(v3f_t){bv_max->x, bv_min->y, bv_max->z});
+}
+
+
+/* something to encapsulate these pointers for passing through as one to draw_leaf() */
+typedef struct draw_leafs_t {
+	particles_t	*particles;
+	fb_fragment_t	*fragment;
+} draw_leafs_t;
+
+
+/* callback for bsp_walk_leaves() when show_bsp_leafs is enabled */
+static void draw_leaf(const bsp_t *bsp, const list_head_t *occupants, unsigned depth, const v3f_t *bv_min, const v3f_t *bv_max, void *cb_data)
+{
+	draw_leafs_t	*draw = cb_data;
+
+	if (list_empty(occupants))
+		return;
+
+	if (depth < draw->particles->conf.show_bsp_leafs_min_depth)
+		return;
+
+	draw_bv(draw->fragment, bv_min, bv_max);
+}
+
+
+/* draw all of the particles, currently called in heirarchical order */
+void particles_draw(particles_t *particles, fb_fragment_t *fragment)
+{
+	draw_leafs_t	draw = { .particles = particles, .fragment = fragment };
+
+	assert(particles);
+
+	_particles_draw(particles, &particles->active, fragment);
+
+	if (particles->conf.show_bsp_leafs)
+		bsp_walk_leaves(particles->bsp, draw_leaf, &draw);
+}
+
+
+static inline particle_status_t _particles_sim(particles_t *particles, list_head_t *list, fb_fragment_t *fragment)
 {
 	particle_status_t	ret = PARTICLE_DEAD, s;
 	_particle_t		*p, *_p;
@@ -264,11 +382,11 @@ static inline particle_status_t _particles_sim(particles_t *particles, list_head
 	assert(list);
 
 	list_for_each_entry_safe(p, _p, list, siblings) {
-		if ((s = particle_sim(particles, &p->public)) == PARTICLE_ALIVE) {
+		if ((s = particle_sim(particles, &particles->conf, &p->public, fragment)) == PARTICLE_ALIVE) {
 			ret = PARTICLE_ALIVE;
 
 			if (!list_empty(&p->children) &&
-			    _particles_sim(particles, &p->children) == PARTICLE_ALIVE) {
+			    _particles_sim(particles, &p->children, fragment) == PARTICLE_ALIVE) {
 				ret = PARTICLE_ALIVE;
 			}
 		} else {
@@ -282,11 +400,11 @@ static inline particle_status_t _particles_sim(particles_t *particles, list_head
 
 /* simulate the particles, call the sim method of every particle in the heirarchy, this is what makes the particles dynamic */
 /* if any paticle is still living, we return PARTICLE_ALIVE, to inform the caller when everything's dead */
-particle_status_t particles_sim(particles_t *particles)
+particle_status_t particles_sim(particles_t *particles, fb_fragment_t *fragment)
 {
 	assert(particles);
 
-	return _particles_sim(particles, &particles->active);
+	return _particles_sim(particles, &particles->active, fragment);
 }
 
 
@@ -356,4 +474,22 @@ void particles_age(particles_t *particles)
 	assert(particles);
 
 	_particles_age(particles, &particles->active);
+}
+
+
+/* draw a line expressed in world-space positions a to b into fragment, this is intended for
+ * instrumentation/overlay debugging type purposes...
+ */
+void particles_draw_line(particles_t *particles, const v3f_t *a, const v3f_t *b, fb_fragment_t *fragment)
+{
+	float	w2 = fragment->frame_width * .5f, h2 = fragment->frame_height * .5f;
+	int	x1, y1, x2, y2;
+
+	/* project the 3d coordinates onto the 2d plane */
+	x1 = (a->x / (a->z - ZCONST) * w2) + w2;
+	y1 = (a->y / (a->z - ZCONST) * h2) + h2;
+	x2 = (b->x / (b->z - ZCONST) * w2) + w2;
+	y2 = (b->y / (b->z - ZCONST) * h2) + h2;
+
+	draw_line(fragment, x1, y1, x2, y2);
 }

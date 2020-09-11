@@ -25,4 +25,6 @@ void bsp_delete_occupant(bsp_t *bsp, bsp_occupant_t *occupant);
 void bsp_move_occupant(bsp_t *bsp, bsp_occupant_t *occupant, v3f_t *position);
 void bsp_search_sphere(bsp_t *bsp, v3f_t *center, float radius_min, float radius_max, void (*cb)(bsp_t *, list_head_t *, void *), void *cb_data);
 
+void bsp_walk_leaves(const bsp_t *bsp, void (*cb)(const bsp_t *bsp, const list_head_t *occupants, unsigned depth, const v3f_t *bv_min, const v3f_t *bv_max, void *cb_data), void *cb_data);
+
 #endif

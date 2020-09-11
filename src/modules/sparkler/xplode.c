@@ -21,7 +21,7 @@ typedef struct _xplode_ctxt_t {
 } xplode_ctxt_t;
 
 
-static int xplode_init(particles_t *particles, particle_t *p)
+static int xplode_init(particles_t *particles, const particles_conf_t *conf, particle_t *p)
 {
 	xplode_ctxt_t	*ctxt = p->ctxt;
 
@@ -36,7 +36,7 @@ static int xplode_init(particles_t *particles, particle_t *p)
 }
 
 
-static particle_status_t xplode_sim(particles_t *particles, particle_t *p)
+static particle_status_t xplode_sim(particles_t *particles, const particles_conf_t *conf, particle_t *p, fb_fragment_t *f)
 {
 	xplode_ctxt_t	*ctxt = p->ctxt;
 
@@ -57,7 +57,7 @@ static particle_status_t xplode_sim(particles_t *particles, particle_t *p)
 }
 
 
-static void xplode_draw(particles_t *particles, particle_t *p, int x, int y, fb_fragment_t *f)
+static void xplode_draw(particles_t *particles, const particles_conf_t *conf, particle_t *p, int x, int y, fb_fragment_t *f)
 {
 	xplode_ctxt_t	*ctxt = p->ctxt;
 	uint32_t	color;

@@ -74,7 +74,10 @@ static void sparkler_prepare_frame(void *context, unsigned ticks, unsigned ncpus
 	*res_fragmenter = sparkler_fragmenter;
 	ctxt->n_cpus = ncpus;
 
-	particles_sim(ctxt->particles);
+	if (sparkler_conf.show_bsp_matches)
+		fb_fragment_zero(fragment);
+
+	particles_sim(ctxt->particles, fragment);
 	particles_add_particles(ctxt->particles, NULL, &simple_ops, INIT_PARTS / 4);
 	particles_age(ctxt->particles);
 }
@@ -85,7 +88,9 @@ static void sparkler_render_fragment(void *context, unsigned ticks, unsigned cpu
 {
 	sparkler_context_t	*ctxt = context;
 
-	fb_fragment_zero(fragment);
+	if (!sparkler_conf.show_bsp_matches)
+		fb_fragment_zero(fragment);
+
 	particles_draw(ctxt->particles, fragment);
 }
 
@@ -96,10 +101,12 @@ static int sparkler_setup(const settings_t *settings, setting_desc_t **next_sett
 	const char	*show_bsp_leafs;
 	const char	*show_bsp_matches;
 	const char	*values[] = {
-				"on",
 				"off",
+				"on",
 				NULL
 			};
+
+	/* TODO: return -EINVAL on parse errors? */
 
 	show_bsp_leafs = settings_get_value(settings, "show_bsp_leafs");
 	if (!show_bsp_leafs) {
@@ -115,6 +122,40 @@ static int sparkler_setup(const settings_t *settings, setting_desc_t **next_sett
 			return r;
 
 		return 1;
+	}
+
+	if (!strcasecmp(show_bsp_leafs, "on")) {
+		const char	*show_bsp_leafs_min_depth;
+
+		sparkler_conf.show_bsp_leafs = 1;
+
+		show_bsp_leafs_min_depth = settings_get_value(settings, "show_bsp_leafs_min_depth");
+		if (!show_bsp_leafs_min_depth) {
+			const char	*depth_values[] = {
+						"0",
+						"4",
+						"6",
+						"8",
+						"10",
+						NULL
+					};
+			int	r;
+
+			r = setting_desc_clone(&(setting_desc_t){
+							.name = "Show BSP Leaf Node Bounding Boxes Minimum Depth",
+							.key = "show_bsp_leafs_min_depth",
+							.preferred = "8",
+							.values = depth_values,
+						}, next_setting);
+			if (r < 0)
+				return r;
+
+			return 1;
+		}
+
+		sscanf(show_bsp_leafs_min_depth, "%u", &sparkler_conf.show_bsp_leafs_min_depth);
+	} else {
+		sparkler_conf.show_bsp_leafs = 0;
 	}
 
 	show_bsp_matches = settings_get_value(settings, "show_bsp_matches");
@@ -133,16 +174,35 @@ static int sparkler_setup(const settings_t *settings, setting_desc_t **next_sett
 		return 1;
 	}
 
-	/* TODO: return -EINVAL on parse errors? */
-	if (!strcasecmp(show_bsp_leafs, "on"))
-		sparkler_conf.show_bsp_leafs = 1;
-	else
-		sparkler_conf.show_bsp_leafs = 0;
-
 	if (!strcasecmp(show_bsp_matches, "on"))
 		sparkler_conf.show_bsp_matches = 1;
 	else
 		sparkler_conf.show_bsp_matches = 0;
+
+	if (!strcasecmp(show_bsp_matches, "on")) {
+		const char	*show_bsp_matches_affected_only;
+
+		show_bsp_matches_affected_only = settings_get_value(settings, "show_bsp_matches_affected_only");
+		if (!show_bsp_matches_affected_only) {
+			int	r;
+
+			r = setting_desc_clone(&(setting_desc_t){
+							.name = "Show Only Affected BSP Search Matches",
+							.key = "show_bsp_matches_affected_only",
+							.preferred = "off",
+							.values = values,
+						}, next_setting);
+			if (r < 0)
+				return r;
+
+			return 1;
+		}
+
+		if (!strcasecmp(show_bsp_matches_affected_only, "on"))
+			sparkler_conf.show_bsp_matches_affected_only = 1;
+		else
+			sparkler_conf.show_bsp_matches_affected_only = 0;
+	}
 
 	return 0;
 }

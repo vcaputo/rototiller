@@ -574,3 +574,59 @@ void bsp_search_sphere(bsp_t *bsp, v3f_t *center, float radius_min, float radius
 
 	_bsp_search_sphere(bsp, &bsp->root, &search, &aabb_min, &aabb_max);
 }
+
+
+static void _bsp_walk_leaves(const bsp_t *bsp, const bsp_node_t *node, unsigned depth, const v3f_t *aabb_min, const v3f_t *aabb_max, void (*cb)(const bsp_t *bsp, const list_head_t *occupants, unsigned depth, const v3f_t *bv_min, const v3f_t *bv_max, void *cb_data), void *cb_data)
+{
+	v3f_t	oaabb_min, oaabb_max;
+
+	/* if node is a leaf, call cb with the occupants, then return. */
+	if (!node->octrants)
+		return cb(bsp, &node->occupants, depth, aabb_min, aabb_max, cb_data);
+
+	/* node is a parent, recur on each octrant with appropriately adjusted aabb_min:aabb_max values */
+	/* if any of the octrants absolutely overlaps the search sphere, skip the others by returning. */
+#define walk_octrant(_oid, _aabb_min, _aabb_max)					\
+	_bsp_walk_leaves(bsp, &node->octrants[_oid], depth + 1, _aabb_min, _aabb_max, cb, cb_data);
+
+	/* OCT_XL_YL_ZL and OCT_XR_YR_ZR AABBs don't require tedious composition */
+	walk_octrant(OCT_XL_YL_ZL, aabb_min, &node->center);
+	walk_octrant(OCT_XR_YR_ZR, &node->center, aabb_max);
+
+	/* the rest are stitched together requiring temp storage and tedium */
+	v3f_set(&oaabb_min, node->center.x, aabb_min->y, aabb_min->z);
+	v3f_set(&oaabb_max, aabb_max->x, node->center.y, node->center.z);
+	walk_octrant(OCT_XR_YL_ZL, &oaabb_min, &oaabb_max);
+
+	v3f_set(&oaabb_min, aabb_min->x, node->center.y, aabb_min->z);
+	v3f_set(&oaabb_max, node->center.x, aabb_max->y, node->center.z);
+	walk_octrant(OCT_XL_YR_ZL, &oaabb_min, &oaabb_max);
+
+	v3f_set(&oaabb_min, node->center.x, node->center.y, aabb_min->z);
+	v3f_set(&oaabb_max, aabb_max->x, aabb_max->y, node->center.z);
+	walk_octrant(OCT_XR_YR_ZL, &oaabb_min, &oaabb_max);
+
+	v3f_set(&oaabb_min, aabb_min->x, aabb_min->y, node->center.z);
+	v3f_set(&oaabb_max, node->center.x, node->center.y, aabb_max->z);
+	walk_octrant(OCT_XL_YL_ZR, &oaabb_min, &oaabb_max);
+
+	v3f_set(&oaabb_min, node->center.x, aabb_min->y, node->center.z);
+	v3f_set(&oaabb_max, aabb_max->x, node->center.y, aabb_max->z);
+	walk_octrant(OCT_XR_YL_ZR, &oaabb_min, &oaabb_max);
+
+	v3f_set(&oaabb_min, aabb_min->x, node->center.y, node->center.z);
+	v3f_set(&oaabb_max, node->center.x, aabb_max->y, aabb_max->z);
+	walk_octrant(OCT_XL_YR_ZR, &oaabb_min, &oaabb_max);
+
+#undef walk_octrant
+}
+
+
+/* traverse the bsp tree calling cb for every leaf node, no discriminating of positions */
+void bsp_walk_leaves(const bsp_t *bsp, void (*cb)(const bsp_t *bsp, const list_head_t *occupants, unsigned depth, const v3f_t *bv_min, const v3f_t *bv_max, void *cb_data), void *cb_data)
+{
+	v3f_t	aabb_min = v3f_init(-1.0f, -1.0f, -1.0f);
+	v3f_t	aabb_max = v3f_init(1.0f, 1.0f, 1.0f);
+
+	_bsp_walk_leaves(bsp, &bsp->root, 0, &aabb_min, &aabb_max, cb, cb_data);
+}

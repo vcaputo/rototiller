@@ -28,7 +28,7 @@ typedef struct rocket_ctxt_t {
 } rocket_ctxt_t;
 
 
-static int rocket_init(particles_t *particles, particle_t *p)
+static int rocket_init(particles_t *particles, const particles_conf_t *conf, particle_t *p)
 {
 	rocket_ctxt_t	*ctxt = p->ctxt;
 
@@ -54,7 +54,7 @@ static int rocket_init(particles_t *particles, particle_t *p)
 }
 
 
-static particle_status_t rocket_sim(particles_t *particles, particle_t *p)
+static particle_status_t rocket_sim(particles_t *particles, const particles_conf_t *conf, particle_t *p, fb_fragment_t *f)
 {
 	rocket_ctxt_t	*ctxt = p->ctxt;
 	int		i, n_sparks;
@@ -120,7 +120,7 @@ static particle_status_t rocket_sim(particles_t *particles, particle_t *p)
 }
 
 
-static void rocket_draw(particles_t *particles, particle_t *p, int x, int y, fb_fragment_t *f)
+static void rocket_draw(particles_t *particles, const particles_conf_t *conf, particle_t *p, int x, int y, fb_fragment_t *f)
 {
 	rocket_ctxt_t	*ctxt = p->ctxt;
 
@@ -132,7 +132,7 @@ static void rocket_draw(particles_t *particles, particle_t *p, int x, int y, fb_
 }
 
 
-static void rocket_cleanup(particles_t *particles, particle_t *p)
+static void rocket_cleanup(particles_t *particles, const particles_conf_t *conf, particle_t *p)
 {
 	rockets_cnt--;
 }

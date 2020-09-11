@@ -18,7 +18,7 @@ typedef struct _spark_ctxt_t {
 } spark_ctxt_t;
 
 
-static int spark_init(particles_t *particles, particle_t *p)
+static int spark_init(particles_t *particles, const particles_conf_t *conf, particle_t *p)
 {
 	spark_ctxt_t	*ctxt = p->ctxt;
 
@@ -32,7 +32,7 @@ static int spark_init(particles_t *particles, particle_t *p)
 }
 
 
-static particle_status_t spark_sim(particles_t *particles, particle_t *p)
+static particle_status_t spark_sim(particles_t *particles, const particles_conf_t *conf, particle_t *p, fb_fragment_t *f)
 {
 	spark_ctxt_t	*ctxt = p->ctxt;
 
@@ -45,7 +45,7 @@ static particle_status_t spark_sim(particles_t *particles, particle_t *p)
 }
 
 
-static void spark_draw(particles_t *particles, particle_t *p, int x, int y, fb_fragment_t *f)
+static void spark_draw(particles_t *particles, const particles_conf_t *conf, particle_t *p, int x, int y, fb_fragment_t *f)
 {
 	spark_ctxt_t	*ctxt = p->ctxt;
 
