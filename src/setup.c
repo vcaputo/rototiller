@@ -53,7 +53,7 @@ int setup_interactively(settings_t *settings, int (*setup_func)(settings_t *sett
 
 			/* multiple choice */
 			if (!defaults)
-				printf("Select %s:\n", next->name);
+				printf("%s:\n", next->name);
 
 			for (i = 0; next->values[i]; i++) {
 				if (!defaults)
