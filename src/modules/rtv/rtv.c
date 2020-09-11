@@ -48,6 +48,7 @@ static int rtv_setup(const settings_t *settings, setting_desc_t **next_setting);
 static unsigned rtv_duration = RTV_DURATION_SECS;
 static unsigned rtv_snow_duration = RTV_SNOW_DURATION_SECS;
 static unsigned rtv_caption_duration = RTV_CAPTION_DURATION_SECS;
+static char **rtv_channels;
 
 
 rototiller_module_t	rtv_module = {
@@ -143,7 +144,7 @@ static void setup_next_module(rtv_context_t *ctxt, unsigned ticks)
 		ctxt->caption = txt_free(ctxt->caption);
 	}
 
-	if (ctxt->module != ctxt->snow_module) {
+	if (!ctxt->n_modules || ctxt->module != ctxt->snow_module) {
 		ctxt->last_module = ctxt->module;
 		ctxt->module = ctxt->snow_module;
 		ctxt->next_switch = now + rtv_snow_duration;
@@ -187,6 +188,24 @@ static void setup_next_module(rtv_context_t *ctxt, unsigned ticks)
 }
 
 
+static int rtv_skip_module(const rtv_context_t *ctxt, const rototiller_module_t *module)
+{
+	if (module == &rtv_module ||
+	    module == ctxt->snow_module)
+		return 1;
+
+	if (!rtv_channels)
+		return 0;
+
+	for (char **channel = rtv_channels; *channel; channel++) {
+		if (!strcmp(module->name, *channel))
+			return 0;
+	}
+
+	return 1;
+}
+
+
 static void * rtv_create_context(unsigned ticks, unsigned num_cpus)
 {
 	rtv_context_t			*ctxt;
@@ -203,8 +222,7 @@ static void * rtv_create_context(unsigned ticks, unsigned num_cpus)
 	ctxt->snow_module = rototiller_lookup_module("snow");
 
 	for (size_t i = 0; i < n_modules; i++) {
-		if (modules[i] == &rtv_module ||
-		    modules[i] == ctxt->snow_module)
+		if (rtv_skip_module(ctxt, modules[i]))
 			continue;
 
 		ctxt->modules[ctxt->n_modules++].module = modules[i];
@@ -264,6 +282,23 @@ static int rtv_setup(const settings_t *settings, setting_desc_t **next_setting)
 	const char	*duration;
 	const char	*caption_duration;
 	const char	*snow_duration;
+	const char	*channels;
+
+	channels = settings_get_value(settings, "channels");
+	if (!channels) {
+		int	r;
+
+		r = setting_desc_clone(&(setting_desc_t){
+						.name = "Colon-Separated List Of Channel Modules",
+						.key = "channels",
+						.preferred = "all",
+						.annotations = NULL
+					}, next_setting);
+		if (r < 0)
+			return r;
+
+		return 1;
+	}
 
 	duration = settings_get_value(settings, "duration");
 	if (!duration) {
@@ -314,6 +349,44 @@ static int rtv_setup(const settings_t *settings, setting_desc_t **next_setting)
 			return r;
 
 		return 1;
+	}
+
+	/* turn channels colon-separated list into a null-terminated array of strings */
+	if (strcmp(channels, "all")) {
+		const rototiller_module_t	**modules;
+		size_t				n_modules;
+		char				*tokchannels, *channel;
+		int				n = 2;
+
+		rototiller_get_modules(&modules, &n_modules);
+
+		tokchannels = strdup(channels);
+		if (!tokchannels)
+			return -ENOMEM;
+
+		channel = strtok(tokchannels, ":");
+		do {
+			char	**new;
+			size_t	i;
+
+			for (i = 0; i < n_modules; i++) {
+				if (!strcmp(channel, modules[i]->name))
+					break;
+			}
+
+			if (i >= n_modules)
+				return -EINVAL;
+
+			new = realloc(rtv_channels, n * sizeof(*rtv_channels));
+			if (!new)
+				return -ENOMEM;
+
+			new[n - 2] = channel;
+			new[n - 1] = NULL;
+			n++;
+
+			rtv_channels = new;
+		} while (channel = strtok(NULL, ":"));
 	}
 
 	/* TODO FIXME: parse errors */
