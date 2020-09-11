@@ -11,12 +11,8 @@
 
 /* This implements an MTV-inspired random slideshow of rototiller modules.
  *
- * Eventually it'd be nice to have it show a caption every time a new
- * module starts overlaying the name, author, license, etc.
- *
  * Some TODO items:
  * - optionally persist module contexts so they resume rather than restart
- * - runtime-configurable duration
  */
 
 #define RTV_SNOW_DURATION_SECS		1
@@ -47,6 +43,11 @@ static void * rtv_create_context(unsigned ticks, unsigned num_cpus);
 static void rtv_destroy_context(void *context);
 static void rtv_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter);
 static void rtv_finish_frame(void *context, unsigned ticks, fb_fragment_t *fragment);
+static int rtv_setup(const settings_t *settings, setting_desc_t **next_setting);
+
+static unsigned rtv_duration = RTV_DURATION_SECS;
+static unsigned rtv_snow_duration = RTV_SNOW_DURATION_SECS;
+static unsigned rtv_caption_duration = RTV_CAPTION_DURATION_SECS;
 
 
 rototiller_module_t	rtv_module = {
@@ -58,6 +59,7 @@ rototiller_module_t	rtv_module = {
 	.description = "Rototiller TV",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",
 	.license = "GPLv2",
+	.setup = rtv_setup,
 };
 
 
@@ -144,7 +146,7 @@ static void setup_next_module(rtv_context_t *ctxt, unsigned ticks)
 	if (ctxt->module != ctxt->snow_module) {
 		ctxt->last_module = ctxt->module;
 		ctxt->module = ctxt->snow_module;
-		ctxt->next_switch = now + RTV_SNOW_DURATION_SECS;
+		ctxt->next_switch = now + rtv_snow_duration;
 	} else {
 		char	*setup;
 		size_t	i;
@@ -176,8 +178,8 @@ static void setup_next_module(rtv_context_t *ctxt, unsigned ticks)
 
 		free(setup);
 
-		ctxt->next_switch = now + RTV_DURATION_SECS;
-		ctxt->next_hide_caption = now + RTV_CAPTION_DURATION_SECS;
+		ctxt->next_switch = now + rtv_duration;
+		ctxt->next_hide_caption = now + rtv_caption_duration;
 	}
 
 	if (ctxt->module->create_context)
@@ -254,4 +256,70 @@ static void rtv_finish_frame(void *context, unsigned ticks, fb_fragment_t *fragm
 				.horiz = TXT_HALIGN_LEFT,
 				.vert = TXT_VALIGN_BOTTOM
 			    });
+}
+
+
+static int rtv_setup(const settings_t *settings, setting_desc_t **next_setting)
+{
+	const char	*duration;
+	const char	*caption_duration;
+	const char	*snow_duration;
+
+	duration = settings_get_value(settings, "duration");
+	if (!duration) {
+		int	r;
+
+		r = setting_desc_clone(&(setting_desc_t){
+						.name = "Channel Duration In Seconds",
+						.key = "duration",
+						.regex = "\\.[0-9]+",
+						.preferred = SETTINGS_STR(RTV_DURATION_SECS),
+						.annotations = NULL
+					}, next_setting);
+		if (r < 0)
+			return r;
+
+		return 1;
+	}
+
+	caption_duration = settings_get_value(settings, "caption_duration");
+	if (!caption_duration) {
+		int	r;
+
+		r = setting_desc_clone(&(setting_desc_t){
+						.name = "Caption Duration In Seconds",
+						.key = "caption_duration",
+						.regex = "\\.[0-9]+",
+						.preferred = SETTINGS_STR(RTV_CAPTION_DURATION_SECS),
+						.annotations = NULL
+					}, next_setting);
+		if (r < 0)
+			return r;
+
+		return 1;
+	}
+
+	snow_duration = settings_get_value(settings, "snow_duration");
+	if (!snow_duration) {
+		int	r;
+
+		r = setting_desc_clone(&(setting_desc_t){
+						.name = "Snow On Channel Switch Duration In Seconds",
+						.key = "snow_duration",
+						.regex = "\\.[0-9]+",
+						.preferred = SETTINGS_STR(RTV_SNOW_DURATION_SECS),
+						.annotations = NULL
+					}, next_setting);
+		if (r < 0)
+			return r;
+
+		return 1;
+	}
+
+	/* TODO FIXME: parse errors */
+	sscanf(duration, "%u", &rtv_duration);
+	sscanf(caption_duration, "%u", &rtv_caption_duration);
+	sscanf(snow_duration, "%u", &rtv_snow_duration);
+
+	return 0;
 }
