@@ -37,7 +37,7 @@ static void * spiro_create_context(unsigned ticks, unsigned num_cpus)
 	if (!ctxt)
 		return NULL;
 
-	srand(time(NULL) + getpid());
+	srand(ticks + getpid());
 
 	ctxt->r=.25f+(rand()/(float)RAND_MAX)*.5f;
 	if(ctxt->r>.5f)
