@@ -188,7 +188,7 @@ static void setup_next_module(rtv_context_t *ctxt, unsigned ticks)
 }
 
 
-static int rtv_skip_module(const rtv_context_t *ctxt, const rototiller_module_t *module)
+static int rtv_should_skip_module(const rtv_context_t *ctxt, const rototiller_module_t *module)
 {
 	if (module == &rtv_module ||
 	    module == ctxt->snow_module)
@@ -222,7 +222,7 @@ static void * rtv_create_context(unsigned ticks, unsigned num_cpus)
 	ctxt->snow_module = rototiller_lookup_module("snow");
 
 	for (size_t i = 0; i < n_modules; i++) {
-		if (rtv_skip_module(ctxt, modules[i]))
+		if (rtv_should_skip_module(ctxt, modules[i]))
 			continue;
 
 		ctxt->modules[ctxt->n_modules++].module = modules[i];
