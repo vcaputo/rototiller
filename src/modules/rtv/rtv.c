@@ -21,7 +21,7 @@
 
 typedef struct rtv_module_t {
 	const rototiller_module_t	*module;
-	unsigned			ticket;
+	unsigned			order;
 } rtv_module_t;
 
 typedef struct rtv_context_t {
@@ -68,10 +68,10 @@ static int cmp_modules(const void *p1, const void *p2)
 {
 	const rtv_module_t	*m1 = p1, *m2 = p2;
 
-	if (m1->ticket < m2->ticket)
+	if (m1->order < m2->order)
 		return -1;
 
-	if (m1->ticket > m2->ticket)
+	if (m1->order > m2->order)
 		return 1;
 
 	return 0;
@@ -81,7 +81,7 @@ static int cmp_modules(const void *p1, const void *p2)
 static void randomize_modules(rtv_context_t *ctxt)
 {
 	for (size_t i = 0; i < ctxt->n_modules; i++)
-		ctxt->modules[i].ticket = rand();
+		ctxt->modules[i].order = rand();
 
 	qsort(ctxt->modules, ctxt->n_modules, sizeof(rtv_module_t), cmp_modules);
 }
