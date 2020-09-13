@@ -53,7 +53,8 @@ static unsigned rtv_duration = RTV_DURATION_SECS;
 static unsigned rtv_context_duration = RTV_CONTEXT_DURATION_SECS;
 static unsigned rtv_snow_duration = RTV_SNOW_DURATION_SECS;
 static unsigned rtv_caption_duration = RTV_CAPTION_DURATION_SECS;
-static char **rtv_channels;
+static char	**rtv_channels;
+static char 	*rtv_snow_module;
 
 
 rototiller_module_t	rtv_module = {
@@ -231,6 +232,7 @@ static void * rtv_create_context(unsigned ticks, unsigned num_cpus)
 	rtv_context_t			*ctxt;
 	const rototiller_module_t	**modules;
 	size_t				n_modules;
+	static rototiller_module_t	none_module = {};
 
 	rototiller_get_modules(&modules, &n_modules);
 
@@ -240,9 +242,12 @@ static void * rtv_create_context(unsigned ticks, unsigned num_cpus)
 
 	ctxt->n_cpus = num_cpus;
 
-	ctxt->snow_channel.module = rototiller_lookup_module("snow");
-	if (ctxt->snow_channel.module->create_context)
-		ctxt->snow_channel.module_ctxt = ctxt->snow_channel.module->create_context(ticks, ctxt->n_cpus);
+	ctxt->snow_channel.module = &none_module;
+	if (rtv_snow_module) {
+		ctxt->snow_channel.module = rototiller_lookup_module(rtv_snow_module);
+		if (ctxt->snow_channel.module->create_context)
+			ctxt->snow_channel.module_ctxt = ctxt->snow_channel.module->create_context(ticks, ctxt->n_cpus);
+	}
 
 	for (size_t i = 0; i < n_modules; i++) {
 		if (rtv_should_skip_module(ctxt, modules[i]))
@@ -307,6 +312,7 @@ static int rtv_setup(const settings_t *settings, setting_desc_t **next_setting)
 	const char	*caption_duration;
 	const char	*snow_duration;
 	const char	*channels;
+	const char	*snow_module;
 
 	channels = settings_get_value(settings, "channels");
 	if (!channels) {
@@ -392,6 +398,22 @@ static int rtv_setup(const settings_t *settings, setting_desc_t **next_setting)
 		return 1;
 	}
 
+	snow_module = settings_get_value(settings, "snow_module");
+	if (!snow_module) {
+		int	r;
+
+		r = setting_desc_clone(&(setting_desc_t){
+						.name = "Module To Use For Snow (\"none\" To Blank)",
+						.key = "snow_module",
+						.preferred = "snow",
+						.annotations = NULL
+					}, next_setting);
+		if (r < 0)
+			return r;
+
+		return 1;
+	}
+
 	/* turn channels colon-separated list into a null-terminated array of strings */
 	if (strcmp(channels, "all")) {
 		const rototiller_module_t	**modules;
@@ -429,6 +451,9 @@ static int rtv_setup(const settings_t *settings, setting_desc_t **next_setting)
 			rtv_channels = new;
 		} while (channel = strtok(NULL, ":"));
 	}
+
+	if (strcmp(snow_module, "none"))
+		rtv_snow_module = strdup(snow_module);
 
 	/* TODO FIXME: parse errors */
 	sscanf(duration, "%u", &rtv_duration);
