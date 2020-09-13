@@ -18,27 +18,31 @@
 #define RTV_SNOW_DURATION_SECS		1
 #define RTV_DURATION_SECS		15
 #define RTV_CAPTION_DURATION_SECS	5
+#define RTV_CONTEXT_DURATION_SECS	60
 
-typedef struct rtv_module_t {
+typedef struct rtv_channel_t {
 	const rototiller_module_t	*module;
+	void				*module_ctxt;
+	time_t				last_on_time, cumulative_time;
+	char				*settings;
+	txt_t				*caption;
 	unsigned			order;
-} rtv_module_t;
+} rtv_channel_t;
 
 typedef struct rtv_context_t {
 	unsigned			n_cpus;
 
 	time_t				next_switch, next_hide_caption;
-	const rototiller_module_t	*module, *last_module;
-	void				*module_ctxt;
+	rtv_channel_t			*channel, *last_channel;
 	txt_t				*caption;
 
-	const rototiller_module_t	*snow_module;
+	rtv_channel_t			snow_channel;
 
-	size_t				n_modules;
-	rtv_module_t			modules[];
+	size_t				n_channels;
+	rtv_channel_t			channels[];
 } rtv_context_t;
 
-static void setup_next_module(rtv_context_t *ctxt, unsigned ticks);
+static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks);
 static void * rtv_create_context(unsigned ticks, unsigned num_cpus);
 static void rtv_destroy_context(void *context);
 static void rtv_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter);
@@ -46,6 +50,7 @@ static void rtv_finish_frame(void *context, unsigned ticks, fb_fragment_t *fragm
 static int rtv_setup(const settings_t *settings, setting_desc_t **next_setting);
 
 static unsigned rtv_duration = RTV_DURATION_SECS;
+static unsigned rtv_context_duration = RTV_CONTEXT_DURATION_SECS;
 static unsigned rtv_snow_duration = RTV_SNOW_DURATION_SECS;
 static unsigned rtv_caption_duration = RTV_CAPTION_DURATION_SECS;
 static char **rtv_channels;
@@ -64,26 +69,26 @@ rototiller_module_t	rtv_module = {
 };
 
 
-static int cmp_modules(const void *p1, const void *p2)
+static int cmp_channels(const void *p1, const void *p2)
 {
-	const rtv_module_t	*m1 = p1, *m2 = p2;
+	const rtv_channel_t	*c1 = p1, *c2 = p2;
 
-	if (m1->order < m2->order)
+	if (c1->order < c2->order)
 		return -1;
 
-	if (m1->order > m2->order)
+	if (c1->order > c2->order)
 		return 1;
 
 	return 0;
 }
 
 
-static void randomize_modules(rtv_context_t *ctxt)
+static void randomize_channels(rtv_context_t *ctxt)
 {
-	for (size_t i = 0; i < ctxt->n_modules; i++)
-		ctxt->modules[i].order = rand();
+	for (size_t i = 0; i < ctxt->n_channels; i++)
+		ctxt->channels[i].order = rand();
 
-	qsort(ctxt->modules, ctxt->n_modules, sizeof(rtv_module_t), cmp_modules);
+	qsort(ctxt->channels, ctxt->n_channels, sizeof(rtv_channel_t), cmp_channels);
 }
 
 
@@ -129,69 +134,84 @@ static char * randomize_module_setup(const rototiller_module_t *module)
 }
 
 
-static void setup_next_module(rtv_context_t *ctxt, unsigned ticks)
+static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks)
 {
 	time_t	now = time(NULL);
 
 	/* TODO: most of this module stuff should probably be
 	 * in rototiller.c helpers, but it's harmless for now.
 	 */
-	if (ctxt->module) {
-		if (ctxt->module->destroy_context)
-			ctxt->module->destroy_context(ctxt->module_ctxt);
+	if (ctxt->channel) {
+		ctxt->channel->cumulative_time += now - ctxt->channel->last_on_time;
+		if (ctxt->channel->cumulative_time >= rtv_context_duration) {
+			ctxt->channel->cumulative_time = 0;
 
-		ctxt->module_ctxt = NULL;
-		ctxt->caption = txt_free(ctxt->caption);
+			if (ctxt->channel->module->destroy_context)
+				ctxt->channel->module->destroy_context(ctxt->channel->module_ctxt);
+			ctxt->channel->module_ctxt = NULL;
+
+			free(ctxt->channel->settings);
+			ctxt->channel->settings = NULL;
+
+			ctxt->caption = ctxt->channel->caption = txt_free(ctxt->channel->caption);
+		}
 	}
 
-	if (!ctxt->n_modules || ctxt->module != ctxt->snow_module) {
-		ctxt->last_module = ctxt->module;
-		ctxt->module = ctxt->snow_module;
+	if (!ctxt->n_channels || ctxt->channel != &ctxt->snow_channel) {
+		ctxt->last_channel = ctxt->channel;
+		ctxt->channel = &ctxt->snow_channel;
+		ctxt->caption = NULL;
 		ctxt->next_switch = now + rtv_snow_duration;
 	} else {
-		char	*setup;
 		size_t	i;
 
-		for (i = 0; i < ctxt->n_modules; i++) {
-			if (ctxt->modules[i].module == ctxt->last_module) {
+		for (i = 0; i < ctxt->n_channels; i++) {
+			if (&ctxt->channels[i] == ctxt->last_channel) {
 				i++;
 				break;
 			}
 		}
 
-		if (i >= ctxt->n_modules) {
-			randomize_modules(ctxt);
-			ctxt->last_module = NULL;
+		if (i >= ctxt->n_channels) {
+			randomize_channels(ctxt);
+			ctxt->last_channel = NULL;
 			i = 0;
 		}
 
-		ctxt->module = ctxt->modules[i].module;
+		ctxt->channel = &ctxt->channels[i];
 
-		setup = randomize_module_setup(ctxt->module);
+		if (!ctxt->channel->settings) {
+			char	*settings;
+			txt_t	*caption;
 
-		ctxt->caption = txt_newf("Title: %s\nAuthor: %s\nDescription: %s\nLicense: %s%s%s",
-					 ctxt->module->name,
-					 ctxt->module->author,
-					 ctxt->module->description,
-					 ctxt->module->license,
-					 setup ? "\nSettings: " : "",
-					 setup ? setup : "");
+			settings = randomize_module_setup(ctxt->channel->module);
+			caption = txt_newf("Title: %s\nAuthor: %s\nDescription: %s\nLicense: %s%s%s",
+						 ctxt->channel->module->name,
+						 ctxt->channel->module->author,
+						 ctxt->channel->module->description,
+						 ctxt->channel->module->license,
+						 settings ? "\nSettings: " : "",
+						 settings ? settings : "");
 
-		free(setup);
+			ctxt->caption = ctxt->channel->caption = caption;
+			ctxt->channel->settings = settings ? settings : strdup("");
+		}
 
 		ctxt->next_switch = now + rtv_duration;
 		ctxt->next_hide_caption = now + rtv_caption_duration;
 	}
 
-	if (ctxt->module->create_context)
-		ctxt->module_ctxt = ctxt->module->create_context(ticks, ctxt->n_cpus);
+	if (!ctxt->channel->module_ctxt && ctxt->channel->module->create_context)
+		ctxt->channel->module_ctxt = ctxt->channel->module->create_context(ticks, ctxt->n_cpus);
+
+	ctxt->channel->last_on_time = now;
 }
 
 
 static int rtv_should_skip_module(const rtv_context_t *ctxt, const rototiller_module_t *module)
 {
 	if (module == &rtv_module ||
-	    module == ctxt->snow_module)
+	    module == ctxt->snow_channel.module)
 		return 1;
 
 	if (!rtv_channels)
@@ -214,21 +234,24 @@ static void * rtv_create_context(unsigned ticks, unsigned num_cpus)
 
 	rototiller_get_modules(&modules, &n_modules);
 
-	ctxt = calloc(1, sizeof(rtv_context_t) + n_modules * sizeof(rtv_module_t));
+	ctxt = calloc(1, sizeof(rtv_context_t) + n_modules * sizeof(rtv_channel_t));
 	if (!ctxt)
 		return NULL;
 
 	ctxt->n_cpus = num_cpus;
-	ctxt->snow_module = rototiller_lookup_module("snow");
+
+	ctxt->snow_channel.module = rototiller_lookup_module("snow");
+	if (ctxt->snow_channel.module->create_context)
+		ctxt->snow_channel.module_ctxt = ctxt->snow_channel.module->create_context(ticks, ctxt->n_cpus);
 
 	for (size_t i = 0; i < n_modules; i++) {
 		if (rtv_should_skip_module(ctxt, modules[i]))
 			continue;
 
-		ctxt->modules[ctxt->n_modules++].module = modules[i];
+		ctxt->channels[ctxt->n_channels++].module = modules[i];
 	}
 
-	setup_next_module(ctxt, ticks);
+	setup_next_channel(ctxt, ticks);
 
 	return ctxt;
 }
@@ -246,12 +269,12 @@ static void rtv_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, fb
 	time_t		now = time(NULL);
 
 	if (now >= ctxt->next_switch)
-		setup_next_module(ctxt, ticks);
+		setup_next_channel(ctxt, ticks);
 
 	if (now >= ctxt->next_hide_caption)
-		ctxt->caption = txt_free(ctxt->caption);
+		ctxt->caption = NULL;
 
-	rototiller_module_render(ctxt->module, ctxt->module_ctxt, ticks, fragment);
+	rototiller_module_render(ctxt->channel->module, ctxt->channel->module_ctxt, ticks, fragment);
 }
 
 
@@ -280,6 +303,7 @@ static void rtv_finish_frame(void *context, unsigned ticks, fb_fragment_t *fragm
 static int rtv_setup(const settings_t *settings, setting_desc_t **next_setting)
 {
 	const char	*duration;
+	const char	*context_duration;
 	const char	*caption_duration;
 	const char	*snow_duration;
 	const char	*channels;
@@ -309,6 +333,23 @@ static int rtv_setup(const settings_t *settings, setting_desc_t **next_setting)
 						.key = "duration",
 						.regex = "\\.[0-9]+",
 						.preferred = SETTINGS_STR(RTV_DURATION_SECS),
+						.annotations = NULL
+					}, next_setting);
+		if (r < 0)
+			return r;
+
+		return 1;
+	}
+
+	context_duration = settings_get_value(settings, "context_duration");
+	if (!context_duration) {
+		int	r;
+
+		r = setting_desc_clone(&(setting_desc_t){
+						.name = "Context Duration In Seconds",
+						.key = "context_duration",
+						.regex = "\\.[0-9]+",
+						.preferred = SETTINGS_STR(RTV_CONTEXT_DURATION_SECS),
 						.annotations = NULL
 					}, next_setting);
 		if (r < 0)
@@ -391,6 +432,7 @@ static int rtv_setup(const settings_t *settings, setting_desc_t **next_setting)
 
 	/* TODO FIXME: parse errors */
 	sscanf(duration, "%u", &rtv_duration);
+	sscanf(context_duration, "%u", &rtv_context_duration);
 	sscanf(caption_duration, "%u", &rtv_caption_duration);
 	sscanf(snow_duration, "%u", &rtv_snow_duration);
 
