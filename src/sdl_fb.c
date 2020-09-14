@@ -187,7 +187,7 @@ static void * sdl_fb_page_alloc(void *context, fb_page_t *res_page)
 	if (!p)
 		return NULL;
 
-	p->surface = SDL_CreateRGBSurfaceWithFormat(0, c->width, c->height, 32, SDL_PIXELFORMAT_RGB888);
+	p->surface = SDL_CreateRGBSurface(0, c->width, c->height, 32, 0, 0, 0, 0);
 
 	res_page->fragment.buf = p->surface->pixels;
 	res_page->fragment.width = c->width;
