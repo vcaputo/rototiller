@@ -6,6 +6,7 @@ rototiller is, rendered entirely in software:
 	montage: a montage of modules meta-module
 	pixbounce: a 2D bouncing pixmap demonstration
 	plasma: an oldskool "plasma" effect
+	plato: a basic 3D Platonic solids display
 	ray: a multi-threaded ray tracer
 	roto: a simple fixed-point tiled texture rotation
 	rtv: a "Rototiller TV" slideshow meta-module

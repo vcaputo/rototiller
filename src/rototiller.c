@@ -41,6 +41,7 @@ extern rototiller_module_t	meta2d_module;
 extern rototiller_module_t	montage_module;
 extern rototiller_module_t	pixbounce_module;
 extern rototiller_module_t	plasma_module;
+extern rototiller_module_t	plato_module;
 extern rototiller_module_t	ray_module;
 extern rototiller_module_t	roto_module;
 extern rototiller_module_t	rtv_module;
@@ -60,6 +61,7 @@ static const rototiller_module_t	*modules[] = {
 	&montage_module,
 	&pixbounce_module,
 	&plasma_module,
+	&plato_module,
 	&ray_module,
 	&roto_module,
 	&rtv_module,
