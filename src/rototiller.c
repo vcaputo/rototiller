@@ -33,6 +33,7 @@ extern fb_ops_t			drm_fb_ops;
 extern fb_ops_t			sdl_fb_ops;
 fb_ops_t			*fb_ops;
 
+extern rototiller_module_t	compose_module;
 extern rototiller_module_t	drizzle_module;
 extern rototiller_module_t	flui2d_module;
 extern rototiller_module_t	julia_module;
@@ -51,6 +52,7 @@ extern rototiller_module_t	submit_module;
 extern rototiller_module_t	swab_module;
 
 static const rototiller_module_t	*modules[] = {
+	&compose_module,
 	&drizzle_module,
 	&flui2d_module,
 	&julia_module,
