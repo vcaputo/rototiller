@@ -146,6 +146,7 @@ static int montage_fragment_tile(const fb_fragment_t *fragment, unsigned tile_wi
 	res_fragment->stride = fragment->stride + ((fragment->width - res_fragment->width) * 4);
 	res_fragment->pitch = fragment->pitch;
 	res_fragment->number = number;
+	res_fragment->zeroed = fragment->zeroed;
 
 	return 1;
 }

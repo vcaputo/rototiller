@@ -191,6 +191,7 @@ static inline _fb_page_t * _fb_page_get(fb_t *fb)
 	pthread_mutex_unlock(&fb->inactive_mutex);
 
 	page->next = NULL;
+	page->public_page.fragment.zeroed = 0;
 
 	return page;
 }
@@ -329,6 +330,7 @@ int fb_fragment_slice_single(const fb_fragment_t *fragment, unsigned n_fragments
 	res_fragment->stride = fragment->stride;
 	res_fragment->pitch = fragment->pitch;
 	res_fragment->number = number;
+	res_fragment->zeroed = fragment->zeroed;
 
 	return 1;
 }

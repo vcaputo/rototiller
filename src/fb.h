@@ -19,6 +19,7 @@ typedef struct fb_fragment_t {
 	unsigned	stride;		/* number of bytes from the end of one row to the start of the next */
 	unsigned	pitch;		/* number of bytes separating y from y + 1, including any padding */
 	unsigned	number;		/* this fragment's number as produced by fragmenting */
+	unsigned	zeroed:1;	/* if this fragment has been zeroed since last flip */
 } fb_fragment_t;
 
 /* This is a page handle object for page flip submission/life-cycle.
@@ -92,9 +93,14 @@ static inline void fb_fragment_zero(fb_fragment_t *fragment)
 {
 	void	*buf = fragment->buf;
 
+	if (fragment->zeroed)
+		return;
+
 	/* TODO: there should be a fast-path for non-divided fragments where there's no stride to skip */
 	for (int y = 0; y < fragment->height; y++, buf += fragment->pitch)
 		memset(buf, 0, fragment->pitch - fragment->stride);
+
+	fragment->zeroed = 1;
 }
 
 #endif
