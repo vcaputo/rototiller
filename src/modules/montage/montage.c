@@ -37,7 +37,7 @@ rototiller_module_t	montage_module = {
 
 static void * montage_create_context(unsigned ticks, unsigned num_cpus)
 {
-	const rototiller_module_t	**modules, *rtv_module, *pixbounce_module, *stars_module;
+	const rototiller_module_t	**modules, *rtv_module;
 	size_t				n_modules;
 	montage_context_t		*ctxt;
 
@@ -55,8 +55,6 @@ static void * montage_create_context(unsigned ticks, unsigned num_cpus)
 	}
 
 	rtv_module = rototiller_lookup_module("rtv");
-	pixbounce_module = rototiller_lookup_module("pixbounce");
-	stars_module = rototiller_lookup_module("stars");
 
 	for (size_t i = 0; i < n_modules; i++) {
 		const rototiller_module_t	*module = modules[i];
