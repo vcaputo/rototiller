@@ -81,7 +81,7 @@ static void * montage_create_context(unsigned ticks, unsigned num_cpus)
 		const rototiller_module_t	*module = ctxt->modules[i];
 
 		if (module->create_context)	/* FIXME errors */
-			ctxt->contexts[i] = module->create_context(ticks, num_cpus);
+			ctxt->contexts[i] = module->create_context(ticks, 1);
 	}
 
 	return ctxt;
