@@ -37,7 +37,7 @@ rototiller_module_t	montage_module = {
 
 static void * montage_create_context(unsigned ticks, unsigned num_cpus)
 {
-	const rototiller_module_t	**modules, *rtv_module;
+	const rototiller_module_t	**modules, *rtv_module, *compose_module;
 	size_t				n_modules;
 	montage_context_t		*ctxt;
 
@@ -55,13 +55,27 @@ static void * montage_create_context(unsigned ticks, unsigned num_cpus)
 	}
 
 	rtv_module = rototiller_lookup_module("rtv");
+	compose_module = rototiller_lookup_module("compose");
 
 	for (size_t i = 0; i < n_modules; i++) {
 		const rototiller_module_t	*module = modules[i];
 
 		if (module == &montage_module ||	/* prevents recursion */
-		    module == rtv_module )		/* also prevents recursion, rtv can run montage */
+		    module == rtv_module ||		/* also prevents recursion, rtv can run montage */
+		    module == compose_module)		/* also prevents recursion, compose can run montage */
 			continue;
+
+							/* XXX FIXME: there's another recursive problem WRT threaded
+							 * rendering; even if rtv or compose don't run montage, they
+							 * render threaded modules in a threaded fashion, while montage
+							 * is already performing a threaded render, and the threaded
+							 * rendering api isn't reentrant like that so things get hung
+							 * when montage runs e.g. compose with a layer using a threaded
+							 * module.  It's something to fix eventually, maybe just make
+							 * the rototiler_module_render() function detect nested renders
+							 * and turn nested threaded renders into synchronous renders.
+							 * For now montage will just skip nested rendering modules.
+							 */
 
 		ctxt->modules[ctxt->n_modules++] = module;
 	}
