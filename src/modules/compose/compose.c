@@ -40,6 +40,7 @@ static void compose_destroy_context(void *context);
 static void compose_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter);
 static int compose_setup(const settings_t *settings, setting_desc_t **next_setting);
 
+static char	*compose_default_layers[] = { "drizzle", "stars", "spiro", NULL };
 static char	**compose_layers;
 
 
@@ -57,10 +58,14 @@ rototiller_module_t	compose_module = {
 
 static void * compose_create_context(unsigned ticks, unsigned num_cpus)
 {
+	char			**layers = compose_default_layers;
 	compose_context_t	*ctxt;
 	int			n;
 
-	for (n = 0; compose_layers[n]; n++);
+	if (compose_layers)
+		layers = compose_layers;
+
+	for (n = 0; layers[n]; n++);
 
 	ctxt = calloc(1, sizeof(compose_context_t) + n * sizeof(compose_layer_t));
 	if (!ctxt)
@@ -71,7 +76,7 @@ static void * compose_create_context(unsigned ticks, unsigned num_cpus)
 	for (int i = 0; i < n; i++) {
 		const rototiller_module_t	*module;
 
-		module = rototiller_lookup_module(compose_layers[i]);
+		module = rototiller_lookup_module(layers[i]);
 
 		ctxt->layers[i].module = module;
 		if (module->create_context)
@@ -146,7 +151,7 @@ static int compose_setup(const settings_t *settings, setting_desc_t **next_setti
 			size_t	i;
 
 			/* other meta-modules like montage and rtv may need to
-			 * have some consideration here, but for now I'm just 
+			 * have some consideration here, but for now I'm just
 			 * going to let the user potentially compose with montage
 			 * or rtv as one of the layers.
 			 */
