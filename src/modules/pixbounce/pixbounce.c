@@ -95,6 +95,7 @@ typedef struct pixbounce_context_t {
 	int		x, y;
 	int		x_dir, y_dir;
 	int		pix_num;
+	uint32_t	color;
 
 } pixbounce_context_t;
 
@@ -107,6 +108,11 @@ static int pick_pix(int num_pics, int last_pic)
 		pix_num = rand() % num_pics;
 
 	return pix_num;
+}
+
+static uint32_t pick_color()
+{
+	return makergb(rand()%256, rand()%256, rand()%256, 1);
 }
 
 static void * pixbounce_create_context(unsigned ticks, unsigned num_cpus, til_setup_t *setup)
@@ -123,6 +129,7 @@ static void * pixbounce_create_context(unsigned ticks, unsigned num_cpus, til_se
 	ctxt->x_dir = 0;
 	ctxt->y_dir = 0;
 	ctxt->pix_num = rand() % num_pix;
+	ctxt->color = pick_color();
 
 	return ctxt;
 }
@@ -172,7 +179,7 @@ static void pixbounce_render_fragment(void *context, unsigned ticks, unsigned cp
 			if(pix_map[ctxt->pix_num][pix_offset] == 0) continue;
 			til_fb_fragment_put_pixel_unchecked(
 					fragment, ctxt->x+cursor_x, ctxt->y+cursor_y,
-					makergb(0xFF, 0xFF, 0xFF, 1)
+					ctxt->color
 				);
 		}
 	}
@@ -181,18 +188,22 @@ static void pixbounce_render_fragment(void *context, unsigned ticks, unsigned cp
 	if(ctxt->x+ctxt->x_dir < 0) {
 		ctxt->x_dir = 1;
 		ctxt->pix_num = pick_pix(num_pix, ctxt->pix_num);
+		ctxt->color = pick_color();
 	}
 	if((ctxt->x+(pix_width*multiplier))+ctxt->x_dir > width) {
 		ctxt->x_dir = -1;
 		ctxt->pix_num = pick_pix(num_pix, ctxt->pix_num);
+		ctxt->color = pick_color();
 	}
 	if(ctxt->y+ctxt->y_dir < 0) {
 		ctxt->y_dir = 1;
 		ctxt->pix_num = pick_pix(num_pix, ctxt->pix_num);
+		ctxt->color = pick_color();
 	}
 	if((ctxt->y+(pix_height*multiplier))+ctxt->y_dir > height) {
 		ctxt->y_dir = -1;
 		ctxt->pix_num = pick_pix(num_pix, ctxt->pix_num);
+		ctxt->color = pick_color();
 	}
 	ctxt->x = ctxt->x+ctxt->x_dir;
 	ctxt->y = ctxt->y+ctxt->y_dir;
