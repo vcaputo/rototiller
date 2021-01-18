@@ -40,7 +40,7 @@ static void compose_destroy_context(void *context);
 static void compose_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter);
 static int compose_setup(const settings_t *settings, setting_desc_t **next_setting);
 
-static char	*compose_default_layers[] = { "drizzle", "stars", "spiro", NULL };
+static char	*compose_default_layers[] = { "drizzle", "stars", "spiro", "plato", NULL };
 static char	**compose_layers;
 
 
@@ -123,7 +123,7 @@ static int compose_setup(const settings_t *settings, setting_desc_t **next_setti
 		r = setting_desc_clone(&(setting_desc_t){
 						.name = "Colon-Separated List Of Module Layers, In Draw Order",
 						.key = "layers",
-						.preferred = "drizzle:stars:spiro",
+						.preferred = "drizzle:stars:spiro:plato",
 						.annotations = NULL
 					}, next_setting);
 		if (r < 0)
