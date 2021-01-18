@@ -127,24 +127,27 @@ static void drizzle_prepare_frame(void *context, unsigned ticks, unsigned n_cpus
 static void drizzle_render_fragment(void *context, unsigned ticks, unsigned cpu, fb_fragment_t *fragment)
 {
 	drizzle_context_t	*ctxt = context;
-	float			xf = 2.f / (float)fragment->frame_width;
-	float			yf = 2.f / (float)fragment->frame_height;
+	float			xf = 1.f / (float)fragment->frame_width;
+	float			yf = 1.f / (float)fragment->frame_height;
 	v2f_t			coord;
 
+	coord.y = yf * (float)fragment->y;
 	for (int y = fragment->y; y < fragment->y + fragment->height; y++) {
-		coord.y = yf * (float)y - 1.f;
 
+		coord.x = xf * (float)fragment->x;
 		for (int x = fragment->x; x < fragment->x + fragment->width; x++) {
 			v3f_t		color = {};
 			uint32_t	pixel;
-
-			coord.x = xf * (float)x - 1.f;
 
 			color.z = puddle_sample(ctxt->puddle, &coord);
 
 			pixel = color_to_uint32(color);
 			fb_fragment_put_pixel_unchecked(fragment, x, y, pixel);
+
+			coord.x += xf;
 		}
+
+		coord.y += yf;
 	}
 }
 

@@ -106,9 +106,9 @@ static inline float lerp(float a, float b, float t)
 
 /* Sample the supplied puddle field at the specified coordinate.
  *
- * The puddle field is treated as a unit square mapped to the specified
- * dimensions @ create time.  the sampled value is linearly interpolated from
- * the data.
+ * The puddle field is treated as an unsigned unit square mapped to the
+ * specified dimensions @ create time.  the sampled value is linearly
+ * interpolated from the data. (coordinates range 0..1)
  */
 float puddle_sample(const puddle_t *puddle, const v2f_t *coordinate)
 {
@@ -118,8 +118,8 @@ float puddle_sample(const puddle_t *puddle, const v2f_t *coordinate)
 	assert(puddle);
 	assert(coordinate);
 
-	x = .5f + (coordinate->x * .5f + .5f) * (puddle->w - 2);
-	y = .5f + (coordinate->y * .5f + .5f) * (puddle->h - 2);
+	x = .5f + coordinate->x * (puddle->w - 2);
+	y = .5f + coordinate->y * (puddle->h - 2);
 
 	x0 = floorf(x);
 	y0 = floorf(y);
@@ -130,7 +130,10 @@ float puddle_sample(const puddle_t *puddle, const v2f_t *coordinate)
 	tx = x - (float)x0;
 	ty = y - (float)y0;
 
-	return lerp(lerp(puddle->a[y0 * puddle->w + x0], puddle->a[y0 * puddle->w + x1], tx),
-		    lerp(puddle->a[y1 * puddle->w + x0], puddle->a[y1 * puddle->w + x1], tx),
+	y0 *= puddle->w;
+	y1 *= puddle->w;
+
+	return lerp(lerp(puddle->a[y0 + x0], puddle->a[y0 + x1], tx),
+		    lerp(puddle->a[y1 + x0], puddle->a[y1 + x1], tx),
 		    ty);
 }
