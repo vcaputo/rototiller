@@ -1,6 +1,6 @@
-#include <stdint.h>
 #include <inttypes.h>
 #include <math.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 #include "fb.h"
@@ -29,6 +29,7 @@ typedef struct plasma_context_t {
 	unsigned	n_cpus;
 } plasma_context_t;
 
+
 static inline uint32_t color2pixel(color_t *color)
 {
 	return (FIXED_TO_INT(color->r) << 16) | (FIXED_TO_INT(color->g) << 8) | FIXED_TO_INT(color->b);
@@ -37,10 +38,8 @@ static inline uint32_t color2pixel(color_t *color)
 
 static void init_plasma(int32_t *costab, int32_t *sintab)
 {
-	int	i;
-
 	/* Generate fixed-point cos & sin LUTs. */
-	for (i = 0; i < FIXED_TRIG_LUT_SIZE; i++) {
+	for (int i = 0; i < FIXED_TRIG_LUT_SIZE; i++) {
 		costab[i] = ((cos((double)2*M_PI*i/FIXED_TRIG_LUT_SIZE))*FIXED_EXP);
 		sintab[i] = ((sin((double)2*M_PI*i/FIXED_TRIG_LUT_SIZE))*FIXED_EXP);
 	}
@@ -49,6 +48,14 @@ static void init_plasma(int32_t *costab, int32_t *sintab)
 
 static void * plasma_create_context(unsigned ticks, unsigned num_cpus)
 {
+	static int	initialized;
+
+	if (!initialized) {
+		initialized = 1;
+
+		init_plasma(costab, sintab);
+	}
+
 	return calloc(1, sizeof(plasma_context_t));
 }
 
@@ -71,13 +78,6 @@ static int plasma_fragmenter(void *context, const fb_fragment_t *fragment, unsig
 static void plasma_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
 {
 	plasma_context_t	*ctxt = context;
-	static int		initialized;
-
-	if (!initialized) {
-		initialized = 1;
-
-		init_plasma(costab, sintab);
-	}
 
 	*res_fragmenter = plasma_fragmenter;
 	ctxt->n_cpus = n_cpus;
@@ -151,6 +151,7 @@ static void plasma_render_fragment(void *context, unsigned ticks, unsigned cpu, 
 		buf = ((void *)buf) + fragment->stride;
 	}
 }
+
 
 rototiller_module_t	plasma_module = {
 	.create_context = plasma_create_context,
