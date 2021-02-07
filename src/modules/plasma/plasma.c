@@ -8,8 +8,14 @@
 
 /* Copyright (C) 2017 Vito Caputo <vcaputo@pengaru.com> */
 
+/* Normalize plasma size at 2*8K resolution, simply assume it's always being sampled
+ * smaller than this and ignore handling <1 fractional scaling factors.
+ */
+#define PLASMA_WIDTH		15360
+#define PLASMA_HEIGHT		8640
+
 #define FIXED_TRIG_LUT_SIZE	4096			/* size of the cos/sin look-up tables */
-#define FIXED_BITS		10			/* fractional bits */
+#define FIXED_BITS		9			/* fractional bits */
 #define FIXED_EXP		(1 << FIXED_BITS)	/* 2^FIXED_BITS */
 #define FIXED_MASK		(FIXED_EXP - 1)		/* fractional part mask */
 #define FIXED_COS(_rad)		costab[(_rad) & (FIXED_TRIG_LUT_SIZE-1)]
@@ -89,7 +95,9 @@ static void plasma_prepare_frame(void *context, unsigned ticks, unsigned n_cpus,
 static void plasma_render_fragment(void *context, unsigned ticks, unsigned cpu, fb_fragment_t *fragment)
 {
 	plasma_context_t	*ctxt = context;
-	unsigned		width = fragment->width, height = fragment->height;
+	int			xstep = PLASMA_WIDTH / fragment->frame_width;
+	int			ystep = PLASMA_HEIGHT / fragment->frame_height;
+	unsigned		width = fragment->width * xstep, height = fragment->height * ystep;
 	int			fw2 = FIXED_NEW(width / 2), fh2 = FIXED_NEW(height / 2);
 	int			x, y, cx, cy, dx2, dy2;
 	uint32_t		*buf = fragment->buf;
@@ -111,37 +119,37 @@ static void plasma_render_fragment(void *context, unsigned ticks, unsigned cpu, 
 	cx = FIXED_TO_INT(FIXED_MULT(FIXED_COS(ctxt->rr), fw2) + fw2);
 	cy = FIXED_TO_INT(FIXED_MULT(FIXED_SIN(rr2), fh2) + fh2);
 
-	for (y = fragment->y; y < fragment->y + height; y++) {
+	for (y = fragment->y * ystep; y < fragment->y * ystep + height; y += ystep) {
 		int	y2 = y << 1;
 		int	y4 = y << 2;
 
 		dy2 = cy - y;
 		dy2 *= dy2;
 
-		for (x = fragment->x; x < fragment->x + width; x++, buf++) {
+		for (x = fragment->x * xstep; x < fragment->x * xstep + width; x += xstep, buf++) {
 			int	v;
 			int	hyp;
 
 			dx2 = cx - x;
 			dx2 *= dx2;
 
-			hyp = (dx2 + dy2) >> 10;	/* XXX: technically this should be a sqrt(), but >> 10 is a whole lot faster. */
-
-			v = FIXED_MULT(	((FIXED_COS(rr8 + hyp * 5)) +
-					(FIXED_SIN(-rr16 + (x << 2))) +
-					(FIXED_COS(rr20 + y4))),
+			hyp = (dx2 + dy2) >> 13;	/* XXX: technically this should be a sqrt(), but >> 10 is a whole lot faster. */
+#define S	4
+			v = FIXED_MULT(	((FIXED_COS(rr8 + ((hyp * 5) >> S))) +
+					(FIXED_SIN(-rr16 + ((x << 2) >> S))) +
+					(FIXED_COS(rr20 + (y4 >> S)))),
 					FIXED_EXP / 3);	/* XXX: note these '/ 3' get optimized out. */
 			c.r = FIXED_MULT(v, cscale.r) + cscale.r;
 
-			v = FIXED_MULT(	((FIXED_COS(rr12 + (hyp << 2))) +
-					(FIXED_COS(rr6 + (x << 1))) +
-					(FIXED_SIN(rr16 + y2))),
+			v = FIXED_MULT(	((FIXED_COS(rr12 + ((hyp << 2) >> S))) +
+					(FIXED_COS(rr6 + ((x << 1) >> S))) +
+					(FIXED_SIN(rr16 + (y2 >> S)))),
 					FIXED_EXP / 3);
 			c.g = FIXED_MULT(v, cscale.g) + cscale.g;
 
-			v = FIXED_MULT(	((FIXED_SIN(rr6 + hyp * 6)) +
-					(FIXED_COS(-rr12 + x * 5)) +
-					(FIXED_SIN(-rr6 + y2))),
+			v = FIXED_MULT(	((FIXED_SIN(rr6 + ((hyp * 6) >> S))) +
+					(FIXED_COS(-rr12 + ((x * 5) >> S))) +
+					(FIXED_SIN(-rr6 + (y2 >> S)))),
 					FIXED_EXP / 3);
 			c.b = FIXED_MULT(v, cscale.b) + cscale.b;
 
