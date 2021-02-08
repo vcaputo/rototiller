@@ -61,5 +61,6 @@ AC_CONFIG_FILES([
  src/modules/stars/Makefile
  src/modules/submit/Makefile
  src/modules/swab/Makefile
+ src/modules/swarm/Makefile
 ])
 AC_OUTPUT

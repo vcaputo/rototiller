@@ -51,6 +51,7 @@ extern rototiller_module_t	spiro_module;
 extern rototiller_module_t	stars_module;
 extern rototiller_module_t	submit_module;
 extern rototiller_module_t	swab_module;
+extern rototiller_module_t	swarm_module;
 
 static const rototiller_module_t	*modules[] = {
 	&compose_module,
@@ -71,6 +72,7 @@ static const rototiller_module_t	*modules[] = {
 	&stars_module,
 	&submit_module,
 	&swab_module,
+	&swarm_module,
 };
 
 typedef struct rototiller_t {
