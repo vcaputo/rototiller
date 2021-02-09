@@ -149,7 +149,7 @@ rototiller_module_t	spiro_module = {
 	.destroy_context = spiro_destroy_context,
 	.render_fragment = spiro_render_fragment,
 	.name = "spiro",
-	.description = "Spirograph Emulator",
+	.description = "Spirograph emulator",
 	.author = "Philip J Freeman <elektron@halo.nu>",
 	.license = "GPLv2",
 };

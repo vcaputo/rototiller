@@ -197,7 +197,7 @@ rototiller_module_t	pixbounce_module = {
 	.destroy_context = pixbounce_destroy_context,
 	.render_fragment = pixbounce_render_fragment,
 	.name = "pixbounce",
-	.description = "pixmap bounce",
+	.description = "Pixmap bounce",
 	.author = "Philip J Freeman <elektron@halo.nu>",
 	.license = "GPLv2",
 };
