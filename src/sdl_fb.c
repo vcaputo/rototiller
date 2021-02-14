@@ -25,7 +25,7 @@ struct sdl_fb_page_t {
 };
 
 
-int sdl_fb_setup(const settings_t *settings, setting_desc_t **next_setting)
+static int sdl_fb_setup(const settings_t *settings, setting_desc_t **next_setting)
 {
 	const char		*fullscreen_values[] = {
 					"off",
@@ -87,7 +87,7 @@ int sdl_fb_setup(const settings_t *settings, setting_desc_t **next_setting)
 }
 
 
-void * sdl_fb_init(const settings_t *settings)
+static void * sdl_fb_init(const settings_t *settings)
 {
 	const char	*fullscreen;
 	const char	*size;
@@ -138,7 +138,7 @@ void * sdl_fb_init(const settings_t *settings)
 }
 
 
-void sdl_fb_shutdown(void *context)
+static void sdl_fb_shutdown(void *context)
 {
 	sdl_fb_t	*c = context;
 
