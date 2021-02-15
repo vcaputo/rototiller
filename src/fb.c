@@ -259,34 +259,35 @@ void fb_free(fb_t *fb)
 
 
 /* create a new fb instance */
-fb_t * fb_new(const fb_ops_t *ops, settings_t *settings, int n_pages)
+int fb_new(const fb_ops_t *ops, settings_t *settings, int n_pages, fb_t **res_fb)
 {
 	_fb_page_t	*page;
 	fb_t		*fb;
-	int		i;
+	int		r;
 
 	assert(ops);
 	assert(ops->page_alloc);
 	assert(ops->page_free);
 	assert(ops->page_flip);
 	assert(n_pages > 1);
+	assert(res_fb);
 
 	/* XXX: page-flipping is the only supported rendering model, requiring 2+ pages. */
 	if (n_pages < 2)
-		return NULL;
+		return -EINVAL;
 
 	fb = calloc(1, sizeof(fb_t));
 	if (!fb)
-		return NULL;
+		return -ENOMEM;
 
 	fb->ops = ops;
 	if (ops->init) {
-		fb->ops_context = ops->init(settings);
-		if (!fb->ops_context)
+		r = ops->init(settings, &fb->ops_context);
+		if (r < 0)
 			goto fail;
 	}
 
-	for (i = 0; i < n_pages; i++)
+	for (int i = 0; i < n_pages; i++)
 		fb_page_new(fb);
 
 	pthread_mutex_init(&fb->ready_mutex, NULL);
@@ -295,18 +296,23 @@ fb_t * fb_new(const fb_ops_t *ops, settings_t *settings, int n_pages)
 	pthread_cond_init(&fb->inactive_cond, NULL);
 
 	page = _fb_page_get(fb);
-	if (!page)
+	if (!page) {
+		r = -ENOMEM;
+		goto fail;
+	}
+
+	r = fb_acquire(fb, page);
+	if (r < 0)
 		goto fail;
 
-	if (fb_acquire(fb, page) < 0)
-		goto fail;
+	*res_fb = fb;
 
-	return fb;
+	return r;
 
 fail:
 	fb_free(fb);
 
-	return NULL;
+	return r;
 }
 
 

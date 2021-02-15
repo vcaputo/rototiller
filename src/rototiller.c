@@ -440,8 +440,8 @@ int main(int argc, const char *argv[])
 	exit_if(!(rototiller.module = rototiller_lookup_module(settings_get_key(setup.module, 0))),
 		"unable to lookup module from settings \"%s\"", settings_get_key(setup.module, 0));
 
-	exit_if(!(rototiller.fb = fb_new(fb_ops, setup.video, NUM_FB_PAGES)),
-		"unable to create fb");
+	exit_if((r = fb_new(fb_ops, setup.video, NUM_FB_PAGES, &rototiller.fb)) < 0,
+		"unable to create fb: %s", strerror(-r));
 
 	exit_if(!fps_setup(),
 		"unable to setup fps counter");

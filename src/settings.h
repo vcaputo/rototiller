@@ -18,7 +18,7 @@ typedef struct setting_desc_t {
 typedef struct setting_desc_generator_t {
 	const char	*key;		/* key this generator applies to */
 	const char	**value_ptr;	/* where to put the value */
-	setting_desc_t *(*func)(void *setup_context);
+	int		(*func)(void *setup_context, setting_desc_t **res_desc);
 } setting_desc_generator_t;
 
 typedef struct settings_t settings_t;

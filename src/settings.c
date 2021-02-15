@@ -196,10 +196,13 @@ int settings_apply_desc_generators(const settings_t *settings, const setting_des
 		const setting_desc_generator_t	*g = &generators[i];
 		const char			*value;
 		setting_desc_t			*desc;
+		int				r;
 
-		desc = g->func(setup_context);
-		if (!desc)
-			return -ENOMEM;
+		r = g->func(setup_context, &desc);
+		if (r < 0)
+			return r;
+
+		assert(desc);
 
 		value = settings_get_value(settings, g->key);
 		if (value) {
@@ -236,6 +239,7 @@ int setting_desc_clone(const setting_desc_t *desc, setting_desc_t **res_desc)
 	assert(desc->name);
 	assert(desc->preferred);	/* XXX: require a preferred default? */
 	assert(!desc->annotations || desc->values);
+	assert(res_desc);
 
 	d = calloc(1, sizeof(setting_desc_t));
 	if (!d)

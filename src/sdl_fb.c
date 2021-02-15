@@ -1,4 +1,5 @@
 #define SDL_MAIN_HANDLED
+#include <assert.h>
 #include <SDL.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -86,24 +87,43 @@ static int sdl_fb_setup(const settings_t *settings, setting_desc_t **next_settin
 	return 0;
 }
 
+static int sdl_err_to_errno(int err)
+{
+	switch (err) {
+	case SDL_ENOMEM:
+		return ENOMEM;
+	case SDL_EFREAD:
+	case SDL_EFWRITE:
+	case SDL_EFSEEK:
+		return EIO;
+	case SDL_UNSUPPORTED:
+		return ENOTSUP;
+	default:
+		return EINVAL;
+	}
+}
 
-static void * sdl_fb_init(const settings_t *settings)
+static int sdl_fb_init(const settings_t *settings, void **res_context)
 {
 	const char	*fullscreen;
 	const char	*size;
 	sdl_fb_t	*c;
+	int		r;
+
+	assert(settings);
+	assert(res_context);
 
 	fullscreen = settings_get_value(settings, "fullscreen");
 	if (!fullscreen)
-		return NULL;
+		return -EINVAL;
 
 	size = settings_get_value(settings, "size");
 	if (!size && !strcasecmp(fullscreen, "off"))
-		return NULL;
+		return -EINVAL;
 
 	c = calloc(1, sizeof(sdl_fb_t));
 	if (!c)
-		return NULL;
+		return -ENOMEM;
 
 	if (!strcasecmp(fullscreen, "on")) {
 		if (!size)
@@ -116,25 +136,29 @@ static void * sdl_fb_init(const settings_t *settings)
 		sscanf(size, "%u%*[xX]%u", &c->width, &c->height);
 
 	SDL_SetMainReady();
-	if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+	r = SDL_Init(SDL_INIT_VIDEO);
+	if (r < 0) {
 		free(c);
-		return NULL;
+		return -sdl_err_to_errno(r);
 	}
 
 	if (c->flags == SDL_WINDOW_FULLSCREEN_DESKTOP) {
 		SDL_DisplayMode	mode;
 
-		if (SDL_GetDesktopDisplayMode(0, &mode) != 0) {
+		r = SDL_GetDesktopDisplayMode(0, &mode);
+		if (r != 0) {
 			SDL_Quit();
 			free(c);
-			return NULL;
+			return -sdl_err_to_errno(r);
 		}
 
 		c->width = mode.w;
 		c->height = mode.h;
 	}
 
-	return c;
+	*res_context = c;
+
+	return 0;
 }
 
 
