@@ -64,8 +64,6 @@ rototiller_module_t	rtv_module = {
 	.finish_frame = rtv_finish_frame,
 	.name = "rtv",
 	.description = "Rototiller TV",
-	.author = "Vito Caputo <vcaputo@pengaru.com>",
-	.license = "GPLv2",
 	.setup = rtv_setup,
 };
 
@@ -186,11 +184,13 @@ static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks)
 			txt_t	*caption;
 
 			settings = randomize_module_setup(ctxt->channel->module);
-			caption = txt_newf("Title: %s\nAuthor: %s\nDescription: %s\nLicense: %s%s%s",
+			caption = txt_newf("Title: %s%s%s\nDescription: %s%s%s%s%s",
 						 ctxt->channel->module->name,
-						 ctxt->channel->module->author,
+						 ctxt->channel->module->author ? "\nAuthor: " : "",
+						 ctxt->channel->module->author ? : "",
 						 ctxt->channel->module->description,
-						 ctxt->channel->module->license,
+						 ctxt->channel->module->license ? "\nLicense: " : "",
+						 ctxt->channel->module->license ? : "",
 						 settings ? "\nSettings: " : "",
 						 settings ? settings : "");
 

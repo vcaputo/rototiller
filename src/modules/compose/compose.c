@@ -50,8 +50,6 @@ rototiller_module_t	compose_module = {
 	.prepare_frame = compose_prepare_frame,
 	.name = "compose",
 	.description = "Layered modules compositor",
-	.author = "Vito Caputo <vcaputo@pengaru.com>",
-	.license = "GPLv2",
 	.setup = compose_setup,
 };
 
