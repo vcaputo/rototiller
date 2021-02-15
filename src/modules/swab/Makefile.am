@@ -1,3 +1,3 @@
-noinst_LIBRARIES = libswab.a
-libswab_a_SOURCES = swab.c
-libswab_a_CPPFLAGS = -I@top_srcdir@/src -I@top_srcdir@/src/libs
+noinst_LTLIBRARIES = libswab.la
+libswab_la_SOURCES = swab.c
+libswab_la_CPPFLAGS = -I@top_srcdir@/src -I@top_srcdir@/src/libs

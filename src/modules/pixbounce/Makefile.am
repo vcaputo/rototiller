@@ -1,3 +1,3 @@
-noinst_LIBRARIES = libpixbounce.a
-libpixbounce_a_SOURCES = draw.h pixbounce.c
-libpixbounce_a_CPPFLAGS = -I@top_srcdir@/src
+noinst_LTLIBRARIES = libpixbounce.la
+libpixbounce_la_SOURCES = draw.h pixbounce.c
+libpixbounce_la_CPPFLAGS = -I@top_srcdir@/src

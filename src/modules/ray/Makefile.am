@@ -1,4 +1,4 @@
-noinst_LIBRARIES = libray.a
-libray_a_SOURCES = ray.c
-libray_a_CFLAGS = -ffast-math
-libray_a_CPPFLAGS = -I@top_srcdir@/src -I@top_srcdir@/src/libs
+noinst_LTLIBRARIES = libray.la
+libray_la_SOURCES = ray.c
+libray_la_CFLAGS = -ffast-math
+libray_la_CPPFLAGS = -I@top_srcdir@/src -I@top_srcdir@/src/libs

@@ -1,3 +1,3 @@
-noinst_LIBRARIES = libpuddle.a
-libpuddle_a_SOURCES = puddle.c puddle.h
-libpuddle_a_CPPFLAGS = -I@top_srcdir@/src
+noinst_LTLIBRARIES = libpuddle.la
+libpuddle_la_SOURCES = puddle.c puddle.h
+libpuddle_la_CPPFLAGS = -I@top_srcdir@/src

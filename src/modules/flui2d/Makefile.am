@@ -1,3 +1,3 @@
-noinst_LIBRARIES = libflui2d.a
-libflui2d_a_SOURCES = flui2d.c
-libflui2d_a_CPPFLAGS = -I@top_srcdir@/src
+noinst_LTLIBRARIES = libflui2d.la
+libflui2d_la_SOURCES = flui2d.c
+libflui2d_la_CPPFLAGS = -I@top_srcdir@/src

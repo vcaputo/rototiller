@@ -1,3 +1,3 @@
-noinst_LIBRARIES = libspiro.a
-libspiro_a_SOURCES = draw.h spiro.c
-libspiro_a_CPPFLAGS = -I@top_srcdir@/src
+noinst_LTLIBRARIES = libspiro.la
+libspiro_la_SOURCES = draw.h spiro.c
+libspiro_la_CPPFLAGS = -I@top_srcdir@/src

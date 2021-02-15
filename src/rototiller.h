@@ -25,8 +25,12 @@ typedef struct rototiller_module_t {
 	char	*license;
 } rototiller_module_t;
 
+int rototiller_init(void);
+void rototiller_shutdown(void);
 const rototiller_module_t * rototiller_lookup_module(const char *name);
 void rototiller_get_modules(const rototiller_module_t ***res_modules, size_t *res_n_modules);
 void rototiller_module_render(const rototiller_module_t *module, void *context, unsigned ticks, fb_fragment_t *fragment);
+int rototiller_module_create_context(const rototiller_module_t *module, unsigned ticks, void **res_context);
+int rototiller_module_setup(settings_t *settings, setting_desc_t **next_setting);
 
 #endif

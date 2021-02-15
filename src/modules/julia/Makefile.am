@@ -1,3 +1,3 @@
-noinst_LIBRARIES = libjulia.a
-libjulia_a_SOURCES = julia.c
-libjulia_a_CPPFLAGS = -I@top_srcdir@/src
+noinst_LTLIBRARIES = libjulia.la
+libjulia_la_SOURCES = julia.c
+libjulia_la_CPPFLAGS = -I@top_srcdir@/src

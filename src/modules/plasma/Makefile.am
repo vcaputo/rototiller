@@ -1,3 +1,3 @@
-noinst_LIBRARIES = libplasma.a
-libplasma_a_SOURCES = plasma.c
-libplasma_a_CPPFLAGS = -I@top_srcdir@/src
+noinst_LTLIBRARIES = libplasma.la
+libplasma_la_SOURCES = plasma.c
+libplasma_la_CPPFLAGS = -I@top_srcdir@/src

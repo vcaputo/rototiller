@@ -1,3 +1,3 @@
-noinst_LIBRARIES = libroto.a
-libroto_a_SOURCES = roto.c
-libroto_a_CPPFLAGS = -I@top_srcdir@/src
+noinst_LTLIBRARIES = libroto.la
+libroto_la_SOURCES = roto.c
+libroto_la_CPPFLAGS = -I@top_srcdir@/src
