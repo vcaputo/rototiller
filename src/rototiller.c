@@ -75,6 +75,13 @@ int rototiller_init(void)
 }
 
 
+/* wait for all threads to be idle */
+void rototiller_quiesce(void)
+{
+	threads_wait_idle(rototiller_threads);
+}
+
+
 void rototiller_shutdown(void)
 {
 	threads_destroy(rototiller_threads);

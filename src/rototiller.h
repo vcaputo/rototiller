@@ -26,6 +26,7 @@ typedef struct rototiller_module_t {
 } rototiller_module_t;
 
 int rototiller_init(void);
+void rototiller_quiesce(void);
 void rototiller_shutdown(void);
 const rototiller_module_t * rototiller_lookup_module(const char *name);
 void rototiller_get_modules(const rototiller_module_t ***res_modules, size_t *res_n_modules);
