@@ -239,22 +239,26 @@ void fb_get_put_pages_count(fb_t *fb, unsigned *count)
 
 
 /* free the fb and associated resources */
-void fb_free(fb_t *fb)
+fb_t * fb_free(fb_t *fb)
 {
-	if (fb->active_page)
-		fb_release(fb);
+	if (fb) {
+		if (fb->active_page)
+			fb_release(fb);
 
-	/* TODO: free all the pages */
+		/* TODO: free all the pages */
 
-	if (fb->ops->shutdown && fb->ops_context)
-		fb->ops->shutdown(fb, fb->ops_context);
+		if (fb->ops->shutdown && fb->ops_context)
+			fb->ops->shutdown(fb, fb->ops_context);
 
-	pthread_mutex_destroy(&fb->ready_mutex);
-	pthread_cond_destroy(&fb->ready_cond);
-	pthread_mutex_destroy(&fb->inactive_mutex);
-	pthread_cond_destroy(&fb->inactive_cond);
+		pthread_mutex_destroy(&fb->ready_mutex);
+		pthread_cond_destroy(&fb->ready_cond);
+		pthread_mutex_destroy(&fb->inactive_mutex);
+		pthread_cond_destroy(&fb->inactive_cond);
 
-	free(fb);
+		free(fb);
+	}
+
+	return NULL;
 }
 
 

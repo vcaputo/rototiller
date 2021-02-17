@@ -119,20 +119,21 @@ settings_t * settings_new(const char *settings_string)
 
 
 /* free structure attained via settings_new() */
-void settings_free(settings_t *settings)
+settings_t * settings_free(settings_t *settings)
 {
-	unsigned	i;
 
-	assert(settings);
+	if (settings) {
+		for (unsigned i = 0; i < settings->num; i++) {
+			free((void *)settings->keys[i]);
+			free((void *)settings->values[i]);
+		}
 
-	for (i = 0; i < settings->num; i++) {
-		free((void *)settings->keys[i]);
-		free((void *)settings->values[i]);
+		free((void *)settings->keys);
+		free((void *)settings->values);
+		free(settings);
 	}
 
-	free((void *)settings->keys);
-	free((void *)settings->values);
-	free(settings);
+	return NULL;
 }
 
 
@@ -282,28 +283,30 @@ int setting_desc_clone(const setting_desc_t *desc, setting_desc_t **res_desc)
 }
 
 
-void setting_desc_free(setting_desc_t *desc)
+setting_desc_t * setting_desc_free(setting_desc_t *desc)
 {
-	free((void *)desc->name);
-	free((void *)desc->key);
-	free((void *)desc->regex);
-	free((void *)desc->preferred);
+	if (desc) {
+		free((void *)desc->name);
+		free((void *)desc->key);
+		free((void *)desc->regex);
+		free((void *)desc->preferred);
 
-	if (desc->values) {
-		unsigned	i;
+		if (desc->values) {
+			for (unsigned i = 0; desc->values[i]; i++) {
+				free((void *)desc->values[i]);
 
-		for (i = 0; desc->values[i]; i++) {
-			free((void *)desc->values[i]);
+				if (desc->annotations)
+					free((void *)desc->annotations[i]);
+			}
 
-			if (desc->annotations)
-				free((void *)desc->annotations[i]);
+			free((void *)desc->values);
+			free((void *)desc->annotations);
 		}
 
-		free((void *)desc->values);
-		free((void *)desc->annotations);
+		free(desc);
 	}
 
-	free(desc);
+	return NULL;
 }
 
 

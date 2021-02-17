@@ -24,7 +24,7 @@ typedef struct setting_desc_generator_t {
 typedef struct settings_t settings_t;
 
 settings_t * settings_new(const char *settings);
-void settings_free(settings_t *settings);
+settings_t * settings_free(settings_t *settings);
 const char * settings_get_value(const settings_t *settings, const char *key);
 const char * settings_get_key(const settings_t *settings, unsigned pos);
 int settings_add_value(settings_t *settings, const char *key, const char *value);
@@ -32,7 +32,7 @@ char * settings_as_arg(const settings_t *settings);
 int settings_apply_desc_generators(const settings_t *settings, const setting_desc_generator_t generators[], unsigned n_generators, void *setup_context, setting_desc_t **next_setting);
 
 int setting_desc_clone(const setting_desc_t *desc, setting_desc_t **res_desc);
-void setting_desc_free(setting_desc_t *desc);
+setting_desc_t * setting_desc_free(setting_desc_t *desc);
 int setting_desc_check(const setting_desc_t *desc, const char *value);
 
 #ifndef SETTINGS_STR

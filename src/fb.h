@@ -47,7 +47,7 @@ typedef struct fb_ops_t {
 
 fb_page_t * fb_page_get(fb_t *fb);
 void fb_page_put(fb_t *fb, fb_page_t *page);
-void fb_free(fb_t *fb);
+fb_t * fb_free(fb_t *fb);
 void fb_get_put_pages_count(fb_t *fb, unsigned *count);
 int fb_new(const fb_ops_t *ops, settings_t *settings, int n_pages, fb_t **res_fb);
 void * fb_context(fb_t *fb);
