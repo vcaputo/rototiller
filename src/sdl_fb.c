@@ -162,7 +162,7 @@ static int sdl_fb_init(const settings_t *settings, void **res_context)
 }
 
 
-static void sdl_fb_shutdown(void *context)
+static void sdl_fb_shutdown(fb_t *fb, void *context)
 {
 	sdl_fb_t	*c = context;
 
@@ -171,7 +171,7 @@ static void sdl_fb_shutdown(void *context)
 }
 
 
-static int sdl_fb_acquire(void *context, void *page)
+static int sdl_fb_acquire(fb_t *fb, void *context, void *page)
 {
 	sdl_fb_t	*c = context;
 	sdl_fb_page_t	*p = page;
@@ -192,7 +192,7 @@ static int sdl_fb_acquire(void *context, void *page)
 }
 
 
-static void sdl_fb_release(void *context)
+static void sdl_fb_release(fb_t *fb, void *context)
 {
 	sdl_fb_t	*c = context;
 
@@ -202,7 +202,7 @@ static void sdl_fb_release(void *context)
 }
 
 
-static void * sdl_fb_page_alloc(void *context, fb_page_t *res_page)
+static void * sdl_fb_page_alloc(fb_t *fb, void *context, fb_page_t *res_page)
 {
 	sdl_fb_t	*c = context;
 	sdl_fb_page_t	*p;
@@ -225,7 +225,7 @@ static void * sdl_fb_page_alloc(void *context, fb_page_t *res_page)
 }
 
 
-static int sdl_fb_page_free(void *context, void *page)
+static int sdl_fb_page_free(fb_t *fb, void *context, void *page)
 {
 	sdl_fb_t	*c = context;
 	sdl_fb_page_t	*p = page;
@@ -253,7 +253,7 @@ static int sdl_ready()
 }
 
 
-static int sdl_fb_page_flip(void *context, void *page)
+static int sdl_fb_page_flip(fb_t *fb, void *context, void *page)
 {
 	sdl_fb_t	*c = context;
 	sdl_fb_page_t	*p = page;

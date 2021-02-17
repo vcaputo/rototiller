@@ -108,7 +108,7 @@ int fb_flip(fb_t *fb)
 	pthread_mutex_unlock(&fb->ready_mutex);
 
 	/* submit the next active page for page flip on vsync, and wait for it. */
-	r = fb->ops->page_flip(fb->ops_context, next_active_page->ops_page);
+	r = fb->ops->page_flip(fb, fb->ops_context, next_active_page->ops_page);
 	if (r < 0)	/* TODO: vet this: what happens to this page? */
 		return r;
 
@@ -130,7 +130,7 @@ static int fb_acquire(fb_t *fb, _fb_page_t *page)
 {
 	int	ret;
 
-	ret = fb->ops->acquire(fb->ops_context, page->ops_page);
+	ret = fb->ops->acquire(fb, fb->ops_context, page->ops_page);
 	if (ret < 0)
 		return ret;
 
@@ -143,7 +143,7 @@ static int fb_acquire(fb_t *fb, _fb_page_t *page)
 /* release the fb, making the visible page inactive */
 static void fb_release(fb_t *fb)
 {
-	fb->ops->release(fb->ops_context);
+	fb->ops->release(fb, fb->ops_context);
 	fb->active_page->next = fb->inactive_pages;
 	fb->inactive_pages = fb->active_page;
 	fb->active_page = NULL;
@@ -158,7 +158,7 @@ static void fb_page_new(fb_t *fb)
 	page = calloc(1, sizeof(_fb_page_t));
 	assert(page);
 
-	page->ops_page = fb->ops->page_alloc(fb->ops_context, &page->public_page);
+	page->ops_page = fb->ops->page_alloc(fb, fb->ops_context, &page->public_page);
 
 	pthread_mutex_lock(&fb->inactive_mutex);
 	page->next = fb->inactive_pages;
@@ -170,7 +170,7 @@ static void fb_page_new(fb_t *fb)
 
 static void _fb_page_free(fb_t *fb, _fb_page_t *page)
 {
-	fb->ops->page_free(fb->ops_context, page->ops_page);
+	fb->ops->page_free(fb, fb->ops_context, page->ops_page);
 
 	free(page);
 }
@@ -247,7 +247,7 @@ void fb_free(fb_t *fb)
 	/* TODO: free all the pages */
 
 	if (fb->ops->shutdown && fb->ops_context)
-		fb->ops->shutdown(fb->ops_context);
+		fb->ops->shutdown(fb, fb->ops_context);
 
 	pthread_mutex_destroy(&fb->ready_mutex);
 	pthread_cond_destroy(&fb->ready_cond);

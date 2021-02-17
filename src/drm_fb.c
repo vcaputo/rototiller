@@ -422,7 +422,7 @@ _err:
 }
 
 
-static void drm_fb_shutdown(void *context)
+static void drm_fb_shutdown(fb_t *fb, void *context)
 {
 	drm_fb_t	*c = context;
 
@@ -435,7 +435,7 @@ static void drm_fb_shutdown(void *context)
 }
 
 
-static int drm_fb_acquire(void *context, void *page)
+static int drm_fb_acquire(fb_t *fb, void *context, void *page)
 {
 	drm_fb_t	*c = context;
 	drm_fb_page_t	*p = page;
@@ -444,13 +444,13 @@ static int drm_fb_acquire(void *context, void *page)
 }
 
 
-static void drm_fb_release(void *context)
+static void drm_fb_release(fb_t *fb, void *context)
 {
 	/* TODO restore the existing mode @ last acquire? */
 }
 
 
-static void * drm_fb_page_alloc(void *context, fb_page_t *res_page)
+static void * drm_fb_page_alloc(fb_t *fb, void *context, fb_page_t *res_page)
 {
 	struct drm_mode_create_dumb	create_dumb = { .bpp = 32 };
 	struct drm_mode_map_dumb	map_dumb = {};
@@ -493,7 +493,7 @@ static void * drm_fb_page_alloc(void *context, fb_page_t *res_page)
 }
 
 
-static int drm_fb_page_free(void *context, void *page)
+static int drm_fb_page_free(fb_t *fb, void *context, void *page)
 {
 	struct drm_mode_destroy_dumb	destroy_dumb = {};
 	drm_fb_t			*c = context;
@@ -511,7 +511,7 @@ static int drm_fb_page_free(void *context, void *page)
 }
 
 
-static int drm_fb_page_flip(void *context, void *page)
+static int drm_fb_page_flip(fb_t *fb, void *context, void *page)
 {
 	drmEventContext	drm_ev_ctx = {
 				.version = DRM_EVENT_CONTEXT_VERSION,

@@ -31,25 +31,26 @@ typedef struct fb_page_t {
 	fb_fragment_t	fragment;
 } fb_page_t;
 
+typedef struct fb_t fb_t;
+
 /* Supply this struct to fb_new() with the appropriate context */
 typedef struct fb_ops_t {
 	int	(*setup)(const settings_t *settings, setting_desc_t **next);
 	int	(*init)(const settings_t *settings, void **res_context);
-	void	(*shutdown)(void *context);
-	int	(*acquire)(void *context, void *page);
-	void	(*release)(void *context);
-	void *	(*page_alloc)(void *context, fb_page_t *res_page);
-	int	(*page_free)(void *context, void *page);
-	int	(*page_flip)(void *context, void *page);
+	void	(*shutdown)(fb_t *fb, void *context);
+	int	(*acquire)(fb_t *fb, void *context, void *page);
+	void	(*release)(fb_t *fb, void *context);
+	void *	(*page_alloc)(fb_t *fb, void *context, fb_page_t *res_page);
+	int	(*page_free)(fb_t *fb, void *context, void *page);
+	int	(*page_flip)(fb_t *fb, void *context, void *page);
 } fb_ops_t;
-
-typedef struct fb_t fb_t;
 
 fb_page_t * fb_page_get(fb_t *fb);
 void fb_page_put(fb_t *fb, fb_page_t *page);
 void fb_free(fb_t *fb);
 void fb_get_put_pages_count(fb_t *fb, unsigned *count);
 int fb_new(const fb_ops_t *ops, settings_t *settings, int n_pages, fb_t **res_fb);
+void * fb_context(fb_t *fb);
 int fb_flip(fb_t *fb);
 void fb_fragment_divide(fb_fragment_t *fragment, unsigned n_fragments, fb_fragment_t fragments[]);
 int fb_fragment_slice_single(const fb_fragment_t *fragment, unsigned n_fragments, unsigned num, fb_fragment_t *res_fragment);
