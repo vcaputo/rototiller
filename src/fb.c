@@ -365,7 +365,7 @@ fail:
 }
 
 
-/* This informs the fb to reconstruct its pages as they become invalid,
+/* This informs the fb to reconstruct its pages as they become inactive,
  * giving the backend an opportunity to reconfigure them before they get
  * rendered to again.  It's intended to be used in response to window
  * resizes.
