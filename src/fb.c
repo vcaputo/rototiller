@@ -65,6 +65,7 @@ struct _fb_page_t {
 typedef struct fb_t {
 	const fb_ops_t	*ops;
 	void		*ops_context;
+	int		n_pages;
 
 	_fb_page_t	*active_page;		/* page currently displayed */
 
@@ -317,6 +318,8 @@ int fb_new(const fb_ops_t *ops, settings_t *settings, int n_pages, fb_t **res_fb
 
 	for (int i = 0; i < n_pages; i++)
 		fb_page_new(fb);
+
+	fb->n_pages = n_pages;
 
 	pthread_mutex_init(&fb->ready_mutex, NULL);
 	pthread_cond_init(&fb->ready_cond, NULL);
