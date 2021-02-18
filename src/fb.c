@@ -58,7 +58,7 @@ typedef struct _fb_page_t _fb_page_t;
 struct _fb_page_t {
 	void		*ops_page;
 
-	_fb_page_t	*next;
+	_fb_page_t	*next, *previous;
 	fb_page_t	public_page;
 };
 
@@ -75,7 +75,8 @@ typedef struct fb_t {
 
 	pthread_mutex_t	inactive_mutex;
 	pthread_cond_t	inactive_cond;
-	_fb_page_t	*inactive_pages;	/* finished pages available for (re)use */
+	_fb_page_t	*inactive_pages_head;	/* finished pages available for (re)use */
+	_fb_page_t	*inactive_pages_tail;
 
 	unsigned	put_pages_count;
 } fb_t;
@@ -114,8 +115,13 @@ int fb_flip(fb_t *fb)
 
 	/* now that we're displaying a new page, make the previously active one inactive so rendering can reuse it */
 	pthread_mutex_lock(&fb->inactive_mutex);
-	fb->active_page->next = fb->inactive_pages;
-	fb->inactive_pages = fb->active_page;
+	fb->active_page->next = fb->inactive_pages_head;
+	fb->inactive_pages_head = fb->active_page;
+	fb->inactive_pages_head->previous = NULL;
+	if (fb->inactive_pages_head->next)
+		fb->inactive_pages_head->next->previous = fb->inactive_pages_head;
+	else
+		fb->inactive_pages_tail = fb->inactive_pages_head;
 	pthread_cond_signal(&fb->inactive_cond);
 	pthread_mutex_unlock(&fb->inactive_mutex);
 
@@ -144,8 +150,18 @@ static int fb_acquire(fb_t *fb, _fb_page_t *page)
 static void fb_release(fb_t *fb)
 {
 	fb->ops->release(fb, fb->ops_context);
-	fb->active_page->next = fb->inactive_pages;
-	fb->inactive_pages = fb->active_page;
+
+	/* XXX: this is getting silly, either add a doubly linked list header or
+	 * at least use some functions for this local to this file.
+	 */
+	fb->active_page->next = fb->inactive_pages_head;
+	fb->inactive_pages_head = fb->active_page;
+	fb->inactive_pages_head->previous = NULL;
+	if (fb->inactive_pages_head->next)
+		fb->inactive_pages_head->next->previous = fb->inactive_pages_head;
+	else
+		fb->inactive_pages_tail = fb->inactive_pages_head;
+
 	fb->active_page = NULL;
 }
 
@@ -161,8 +177,12 @@ static void fb_page_new(fb_t *fb)
 	page->ops_page = fb->ops->page_alloc(fb, fb->ops_context, &page->public_page);
 
 	pthread_mutex_lock(&fb->inactive_mutex);
-	page->next = fb->inactive_pages;
-	fb->inactive_pages = page;
+	page->next = fb->inactive_pages_head;
+	fb->inactive_pages_head = page;
+	if (fb->inactive_pages_head->next)
+		fb->inactive_pages_head->next->previous = fb->inactive_pages_head;
+	else
+		fb->inactive_pages_tail = fb->inactive_pages_head;
 	pthread_mutex_unlock(&fb->inactive_mutex);
 
 }
@@ -185,12 +205,16 @@ static inline _fb_page_t * _fb_page_get(fb_t *fb)
 	 * pages faster than vhz.
 	 */
 	pthread_mutex_lock(&fb->inactive_mutex);
-	while (!(page = fb->inactive_pages))
+	while (!(page = fb->inactive_pages_tail))
 		pthread_cond_wait(&fb->inactive_cond, &fb->inactive_mutex);
-	fb->inactive_pages = page->next;
+	fb->inactive_pages_tail = page->previous;
+	if (fb->inactive_pages_tail)
+		fb->inactive_pages_tail->next = NULL;
+	else
+		fb->inactive_pages_head = NULL;
 	pthread_mutex_unlock(&fb->inactive_mutex);
 
-	page->next = NULL;
+	page->next = page->previous = NULL;
 	page->public_page.fragment.zeroed = 0;
 
 	return page;
