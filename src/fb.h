@@ -50,6 +50,7 @@ void fb_page_put(fb_t *fb, fb_page_t *page);
 fb_t * fb_free(fb_t *fb);
 void fb_get_put_pages_count(fb_t *fb, unsigned *count);
 int fb_new(const fb_ops_t *ops, settings_t *settings, int n_pages, fb_t **res_fb);
+void fb_rebuild(fb_t *fb);
 void * fb_context(fb_t *fb);
 int fb_flip(fb_t *fb);
 void fb_fragment_divide(fb_fragment_t *fragment, unsigned n_fragments, fb_fragment_t fragments[]);

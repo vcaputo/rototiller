@@ -67,6 +67,9 @@ typedef struct fb_t {
 	void		*ops_context;
 	int		n_pages;
 
+	pthread_mutex_t	rebuild_mutex;
+	int		rebuild_pages;		/* counter of pages needing a rebuild */
+
 	_fb_page_t	*active_page;		/* page currently displayed */
 
 	pthread_mutex_t	ready_mutex;
@@ -123,6 +126,20 @@ int fb_flip(fb_t *fb)
 		fb->inactive_pages_head->next->previous = fb->inactive_pages_head;
 	else
 		fb->inactive_pages_tail = fb->inactive_pages_head;
+
+	/* before setting the renderer loose, check if there's more page rebuilding needed,
+	 * and if there is do as much as possible here in the inactive set.  Note it's important
+	 * that the renderer take pages from the tail, and we always replenish inactive at the
+	 * head, as well as rebuild pages from the head.
+	 */
+	pthread_mutex_lock(&fb->rebuild_mutex);
+	for (_fb_page_t *p = fb->inactive_pages_head; p && fb->rebuild_pages > 0; p = p->next) {
+		fb->ops->page_free(fb, fb->ops_context, p->ops_page);
+		p->ops_page = fb->ops->page_alloc(fb, fb->ops_context, &p->public_page);
+		fb->rebuild_pages--;
+	}
+	pthread_mutex_unlock(&fb->rebuild_mutex);
+
 	pthread_cond_signal(&fb->inactive_cond);
 	pthread_mutex_unlock(&fb->inactive_mutex);
 
@@ -325,6 +342,7 @@ int fb_new(const fb_ops_t *ops, settings_t *settings, int n_pages, fb_t **res_fb
 	pthread_cond_init(&fb->ready_cond, NULL);
 	pthread_mutex_init(&fb->inactive_mutex, NULL);
 	pthread_cond_init(&fb->inactive_cond, NULL);
+	pthread_mutex_init(&fb->rebuild_mutex, NULL);
 
 	page = _fb_page_get(fb);
 	if (!page) {
@@ -344,6 +362,22 @@ fail:
 	fb_free(fb);
 
 	return r;
+}
+
+
+/* This informs the fb to reconstruct its pages as they become invalid,
+ * giving the backend an opportunity to reconfigure them before they get
+ * rendered to again.  It's intended to be used in response to window
+ * resizes.
+ */
+void fb_rebuild(fb_t *fb)
+{
+	assert(fb);
+
+	/* TODO: this could easily be an atomic counter since we have no need for waiting */
+	pthread_mutex_lock(&fb->rebuild_mutex);
+	fb->rebuild_pages = fb->n_pages;
+	pthread_mutex_unlock(&fb->rebuild_mutex);
 }
 
 
