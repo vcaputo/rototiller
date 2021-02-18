@@ -84,9 +84,10 @@ static void * thread_func(void *_thread)
 void threads_wait_idle(threads_t *threads)
 {
 	pthread_mutex_lock(&threads->idle_mutex);
+	pthread_cleanup_push((void (*)(void *))pthread_mutex_unlock, &threads->idle_mutex);
 	while (threads->n_idle < threads->n_threads)
 		pthread_cond_wait(&threads->idle_cond, &threads->idle_mutex);
-	pthread_mutex_unlock(&threads->idle_mutex);
+	pthread_cleanup_pop(1);
 }
 
 
@@ -96,6 +97,7 @@ void threads_frame_submit(threads_t *threads, fb_fragment_t *fragment, rototille
 	threads_wait_idle(threads);	/* XXX: likely non-blocking; already happens pre page flip */
 
 	pthread_mutex_lock(&threads->frame_mutex);
+	pthread_cleanup_push((void (*)(void *))pthread_mutex_unlock, &threads->frame_mutex);
 	threads->fragment = fragment;
 	threads->fragmenter = fragmenter;
 	threads->render_fragment_func = render_fragment_func;
@@ -104,7 +106,7 @@ void threads_frame_submit(threads_t *threads, fb_fragment_t *fragment, rototille
 	threads->frame_num++;
 	threads->n_idle = threads->next_fragment = 0;
 	pthread_cond_broadcast(&threads->frame_cond);
-	pthread_mutex_unlock(&threads->frame_mutex);
+	pthread_cleanup_pop(1);
 }
 
 
