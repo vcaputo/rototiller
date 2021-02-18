@@ -279,7 +279,14 @@ static void rtv_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, fb
 	if (now >= ctxt->next_hide_caption)
 		ctxt->caption = NULL;
 
-	rototiller_module_render(ctxt->channel->module, ctxt->channel->module_ctxt, ticks, fragment);
+	/* there's a special-case "none" (or unconfigured) snow module, that just blanks,
+	 * it's a nil module so just implement it here.
+	 */
+	if (!ctxt->channel->module->render_fragment &&
+	    !ctxt->channel->module->prepare_frame)
+		fb_fragment_zero(fragment);
+	else
+		rototiller_module_render(ctxt->channel->module, ctxt->channel->module_ctxt, ticks, fragment);
 }
 
 
