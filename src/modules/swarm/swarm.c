@@ -183,7 +183,7 @@ static void swarm_update(swarm_context_t *ctxt, unsigned ticks)
 	float	wleader, wcenter, wdirection;
 
 	{ /* [0] = leader */
-		float	r = (float)ticks * ((cosf((float)ticks * .0001f) * .5f + .5f) * .1f);
+		float	r = M_PI * 2 * ((cosf((float)ticks * .001f) * .5f + .5f));
 
 		ctxt->boids[0].position.x = cosf(r);
 		ctxt->boids[0].position.y = sinf(r);
