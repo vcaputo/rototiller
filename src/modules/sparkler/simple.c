@@ -1,6 +1,7 @@
 #include <stdlib.h>
 
-#include "fb.h"
+#include "til_fb.h"
+
 #include "helpers.h"
 #include "particle.h"
 #include "particles.h"
@@ -54,7 +55,7 @@ static int simple_init(particles_t *particles, const particles_conf_t *conf, par
 }
 
 
-static particle_status_t simple_sim(particles_t *particles, const particles_conf_t *conf, particle_t *p, fb_fragment_t *f)
+static particle_status_t simple_sim(particles_t *particles, const particles_conf_t *conf, particle_t *p, til_fb_fragment_t *f)
 {
 	simple_ctxt_t	*ctxt = p->ctxt;
 
@@ -95,7 +96,7 @@ static particle_status_t simple_sim(particles_t *particles, const particles_conf
 }
 
 
-static void simple_draw(particles_t *particles, const particles_conf_t *conf, particle_t *p, int x, int y, fb_fragment_t *f)
+static void simple_draw(particles_t *particles, const particles_conf_t *conf, particle_t *p, int x, int y, til_fb_fragment_t *f)
 {
 	simple_ctxt_t	*ctxt = p->ctxt;
 
@@ -103,7 +104,7 @@ static void simple_draw(particles_t *particles, const particles_conf_t *conf, pa
 		/* immediately kill off stars that wander off screen */
 		return;
 
-	fb_fragment_put_pixel_unchecked(f, x, y, makergb(0xff, 0xff, 0xff, ((float)ctxt->longevity / ctxt->lifetime)));
+	til_fb_fragment_put_pixel_unchecked(f, x, y, makergb(0xff, 0xff, 0xff, ((float)ctxt->longevity / ctxt->lifetime)));
 }
 
 

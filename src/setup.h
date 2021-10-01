@@ -1,8 +1,8 @@
 #ifndef _SETUP_H
 #define _SETUP_H
 
-#include "settings.h"
+#include "til_settings.h"
 
-int setup_interactively(settings_t *settings, int (*setup_func)(settings_t *settings, setting_desc_t **next), int defaults);
+int setup_interactively(til_settings_t *settings, int (*setup_func)(til_settings_t *settings, til_setting_desc_t **next), int defaults);
 
 #endif

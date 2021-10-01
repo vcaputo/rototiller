@@ -3,7 +3,7 @@
 
 #include <math.h>
 
-#include "fb.h"
+#include "til_fb.h"
 
 #include "ray_3f.h"
 #include "ray_euler.h"
@@ -39,7 +39,7 @@ typedef struct ray_camera_frame_t {
 
 typedef struct ray_camera_fragment_t {
 	ray_camera_frame_t	*frame;			/* the frame supplied to fragment_begin() */
-	fb_fragment_t		*fb_fragment;		/* the fragment supplied to fragment_begin() */
+	til_fb_fragment_t	*fb_fragment;		/* the fragment supplied to fragment_begin() */
 	ray_ray_t		*ray;			/* the ray supplied to frame_begin(), which gets updated as we step through the frame. */
 
 	ray_3f_t		cur_w, cur_e;		/* current row's west and east ends */
@@ -49,7 +49,7 @@ typedef struct ray_camera_fragment_t {
 
 
 void ray_camera_frame_prepare(const ray_camera_t *camera, unsigned frame_width, unsigned frame_height, ray_camera_frame_t *res_frame);
-void ray_camera_fragment_begin(ray_camera_frame_t *frame, fb_fragment_t *fb_fragment, ray_ray_t *res_ray, ray_camera_fragment_t *res_fragment);
+void ray_camera_fragment_begin(ray_camera_frame_t *frame, til_fb_fragment_t *fb_fragment, ray_ray_t *res_ray, ray_camera_fragment_t *res_fragment);
 
 
 /* Step the ray through the fragment on the x axis, returns 1 when rays remain on this axis, 0 at the end. */

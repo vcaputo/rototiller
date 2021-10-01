@@ -43,13 +43,13 @@ static inline void thrust_part(particle_t *burst, particle_t *victim, float dist
 
 
 typedef struct burst_sphere_t {
-	particles_t	*particles;
-	particle_t	*center, *last;
-	fb_fragment_t	*fragment;
-	float		radius_min;
-	float		radius_max;
-	unsigned	trace_matches:1;
-	unsigned	trace_affected:1;
+	particles_t		*particles;
+	particle_t		*center, *last;
+	til_fb_fragment_t	*fragment;
+	float			radius_min;
+	float			radius_max;
+	unsigned		trace_matches:1;
+	unsigned		trace_affected:1;
 } burst_sphere_t;
 
 
@@ -94,7 +94,7 @@ static void burst_cb(bsp_t *bsp, list_head_t *occupants, void *_s)
 }
 
 
-static particle_status_t burst_sim(particles_t *particles, const particles_conf_t *conf, particle_t *p, fb_fragment_t *f)
+static particle_status_t burst_sim(particles_t *particles, const particles_conf_t *conf, particle_t *p, til_fb_fragment_t *f)
 {
 	burst_ctxt_t	*ctxt = p->ctxt;
 	bsp_t		*bsp = particles_bsp(particles);	/* XXX see note above about bsp_occupant_t */

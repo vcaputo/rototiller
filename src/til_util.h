@@ -1,5 +1,5 @@
-#ifndef _UTIL_H
-#define _UTIL_H
+#ifndef _TIL_UTIL_H
+#define _TIL_UTIL_H
 
 #include <errno.h>
 #include <stdio.h>
@@ -27,6 +27,6 @@
 #define MAX(_a, _b) \
 	((_a) > (_b) ? (_a) : (_b))
 
-unsigned get_ncpus(void);
+unsigned til_get_ncpus(void);
 
-#endif /* _UTIL_H */
+#endif /* _TIL_UTIL_H */

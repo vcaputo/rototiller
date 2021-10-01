@@ -1,11 +1,12 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "fb.h"
-#include "rototiller.h"
-#include "settings.h"
+#include "til.h"
+#include "til_fb.h"
+#include "til_settings.h"
+#include "til_util.h"
+
 #include "txt/txt.h"
-#include "util.h"
 
 /* Copyright (C) 2020 - Vito Caputo <vcaputo@pengaru.com> */
 
@@ -23,28 +24,28 @@
  */
 
 typedef struct compose_layer_t {
-	const rototiller_module_t	*module;
-	void				*module_ctxt;
-	char				*settings;
+	const til_module_t	*module;
+	void			*module_ctxt;
+	char			*settings;
 } compose_layer_t;
 
 typedef struct compose_context_t {
-	unsigned			n_cpus;
+	unsigned		n_cpus;
 
-	size_t				n_layers;
-	compose_layer_t			layers[];
+	size_t			n_layers;
+	compose_layer_t		layers[];
 } compose_context_t;
 
 static void * compose_create_context(unsigned ticks, unsigned num_cpus);
 static void compose_destroy_context(void *context);
-static void compose_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter);
-static int compose_setup(const settings_t *settings, setting_desc_t **next_setting);
+static void compose_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter);
+static int compose_setup(const til_settings_t *settings, til_setting_desc_t **next_setting);
 
 static char	*compose_default_layers[] = { "drizzle", "stars", "spiro", "plato", NULL };
 static char	**compose_layers;
 
 
-rototiller_module_t	compose_module = {
+til_module_t	compose_module = {
 	.create_context = compose_create_context,
 	.destroy_context = compose_destroy_context,
 	.prepare_frame = compose_prepare_frame,
@@ -72,9 +73,9 @@ static void * compose_create_context(unsigned ticks, unsigned num_cpus)
 	ctxt->n_cpus = num_cpus;
 
 	for (int i = 0; i < n; i++) {
-		const rototiller_module_t	*module;
+		const til_module_t	*module;
 
-		module = rototiller_lookup_module(layers[i]);
+		module = til_lookup_module(layers[i]);
 
 		ctxt->layers[i].module = module;
 		if (module->create_context)
@@ -99,26 +100,26 @@ static void compose_destroy_context(void *context)
 }
 
 
-static void compose_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
+static void compose_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
 {
 	compose_context_t	*ctxt = context;
 
-	fb_fragment_zero(fragment);
+	til_fb_fragment_zero(fragment);
 
 	for (int i = 0; i < ctxt->n_layers; i++)
-		rototiller_module_render(ctxt->layers[i].module, ctxt->layers[i].module_ctxt, ticks, fragment);
+		til_module_render(ctxt->layers[i].module, ctxt->layers[i].module_ctxt, ticks, fragment);
 }
 
 
-static int compose_setup(const settings_t *settings, setting_desc_t **next_setting)
+static int compose_setup(const til_settings_t *settings, til_setting_desc_t **next_setting)
 {
 	const char	*layers;
 
-	layers = settings_get_value(settings, "layers");
+	layers = til_settings_get_value(settings, "layers");
 	if (!layers) {
 		int	r;
 
-		r = setting_desc_clone(&(setting_desc_t){
+		r = til_setting_desc_clone(&(til_setting_desc_t){
 						.name = "Colon-Separated List Of Module Layers, In Draw Order",
 						.key = "layers",
 						.preferred = "drizzle:stars:spiro:plato",
@@ -132,12 +133,12 @@ static int compose_setup(const settings_t *settings, setting_desc_t **next_setti
 
 	/* turn layers colon-separated list into a null-terminated array of strings */
 	{
-		const rototiller_module_t	**modules;
+		const til_module_t	**modules;
 		size_t				n_modules;
 		char				*toklayers, *layer;
 		int				n = 2;
 
-		rototiller_get_modules(&modules, &n_modules);
+		til_get_modules(&modules, &n_modules);
 
 		toklayers = strdup(layers);
 		if (!toklayers)

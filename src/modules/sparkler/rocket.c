@@ -1,6 +1,7 @@
 #include <stdlib.h>
 
-#include "fb.h"
+#include "til_fb.h"
+
 #include "helpers.h"
 #include "particle.h"
 #include "particles.h"
@@ -54,7 +55,7 @@ static int rocket_init(particles_t *particles, const particles_conf_t *conf, par
 }
 
 
-static particle_status_t rocket_sim(particles_t *particles, const particles_conf_t *conf, particle_t *p, fb_fragment_t *f)
+static particle_status_t rocket_sim(particles_t *particles, const particles_conf_t *conf, particle_t *p, til_fb_fragment_t *f)
 {
 	rocket_ctxt_t	*ctxt = p->ctxt;
 	int		i, n_sparks;
@@ -120,7 +121,7 @@ static particle_status_t rocket_sim(particles_t *particles, const particles_conf
 }
 
 
-static void rocket_draw(particles_t *particles, const particles_conf_t *conf, particle_t *p, int x, int y, fb_fragment_t *f)
+static void rocket_draw(particles_t *particles, const particles_conf_t *conf, particle_t *p, int x, int y, til_fb_fragment_t *f)
 {
 	rocket_ctxt_t	*ctxt = p->ctxt;
 
@@ -128,7 +129,7 @@ static void rocket_draw(particles_t *particles, const particles_conf_t *conf, pa
 		/* kill off parts that wander off screen */
 		return;
 
-	fb_fragment_put_pixel_unchecked(f, x, y, 0xff0000);
+	til_fb_fragment_put_pixel_unchecked(f, x, y, 0xff0000);
 }
 
 

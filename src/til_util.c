@@ -7,12 +7,12 @@
 #include <windows.h>
 #endif
 
-#include "util.h"
+#include "til_util.h"
 
-#define SYSFS_CPU	"/sys/devices/system/cpu/cpu"
-#define MAXCPUS		1024
+#define TIL_SYSFS_CPU	"/sys/devices/system/cpu/cpu"
+#define TIL_MAXCPUS		1024
 
-unsigned get_ncpus(void)
+unsigned til_get_ncpus(void)
 {
 #ifdef __WIN32__
 	SYSTEM_INFO sysinfo;
@@ -21,11 +21,11 @@ unsigned get_ncpus(void)
 
 	return sysinfo.dwNumberOfProcessors;
 #else
-	char		path[cstrlen(SYSFS_CPU "1024") + 1];
+	char		path[cstrlen(TIL_SYSFS_CPU "1024") + 1];
 	unsigned	n;
 
-	for (n = 0; n < MAXCPUS; n++) {
-		snprintf(path, sizeof(path), "%s%u", SYSFS_CPU, n);
+	for (n = 0; n < TIL_MAXCPUS; n++) {
+		snprintf(path, sizeof(path), "%s%u", TIL_SYSFS_CPU, n);
 		if (access(path, F_OK) == -1)
 			break;
 	}

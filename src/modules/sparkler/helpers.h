@@ -3,7 +3,8 @@
 
 #include <stdint.h>
 
-#include "fb.h"
+#include "til_fb.h"
+
 #include "particle.h"
 #include "particles.h"
 
@@ -20,9 +21,9 @@ static inline uint32_t makergb(uint32_t r, uint32_t g, uint32_t b, float intensi
 
 
 /* return if the particle should be drawn, and set *longevity to 0 if out of bounds */
-static inline int should_draw_expire_if_oob(particles_t *particles, particle_t *p, int x, int y, fb_fragment_t *f, int *longevity)
+static inline int should_draw_expire_if_oob(particles_t *particles, particle_t *p, int x, int y, til_fb_fragment_t *f, int *longevity)
 {
-	if (!fb_fragment_contains(f, x, y)) {
+	if (!til_fb_fragment_contains(f, x, y)) {
 		if (longevity && (x < 0 || x > f->frame_width || y < 0 || y > f->frame_height))
 			*longevity = 0; /* offscreen */
 

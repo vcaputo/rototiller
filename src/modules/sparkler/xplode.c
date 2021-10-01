@@ -1,6 +1,7 @@
 #include <stdlib.h>
 
-#include "fb.h"
+#include "til_fb.h"
+
 #include "helpers.h"
 #include "particle.h"
 #include "particles.h"
@@ -36,7 +37,7 @@ static int xplode_init(particles_t *particles, const particles_conf_t *conf, par
 }
 
 
-static particle_status_t xplode_sim(particles_t *particles, const particles_conf_t *conf, particle_t *p, fb_fragment_t *f)
+static particle_status_t xplode_sim(particles_t *particles, const particles_conf_t *conf, particle_t *p, til_fb_fragment_t *f)
 {
 	xplode_ctxt_t	*ctxt = p->ctxt;
 
@@ -57,7 +58,7 @@ static particle_status_t xplode_sim(particles_t *particles, const particles_conf
 }
 
 
-static void xplode_draw(particles_t *particles, const particles_conf_t *conf, particle_t *p, int x, int y, fb_fragment_t *f)
+static void xplode_draw(particles_t *particles, const particles_conf_t *conf, particle_t *p, int x, int y, til_fb_fragment_t *f)
 {
 	xplode_ctxt_t	*ctxt = p->ctxt;
 	uint32_t	color;
@@ -71,7 +72,7 @@ static void xplode_draw(particles_t *particles, const particles_conf_t *conf, pa
 		color = makergb(0xff, 0xff, 0x00, ((float)ctxt->longevity / ctxt->lifetime));
 	}
 
-	fb_fragment_put_pixel_unchecked(f, x, y, color);
+	til_fb_fragment_put_pixel_unchecked(f, x, y, color);
 }
 
 

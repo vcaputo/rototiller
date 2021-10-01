@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-typedef struct fb_fragment_t fb_fragment_t;
+typedef struct til_fb_fragment_t til_fb_fragment_t;
 typedef struct txt_t txt_t;
 
 typedef enum txt_halign_t {
@@ -28,6 +28,6 @@ typedef struct txt_align_t {
 txt_t * txt_new(const char *str);
 txt_t * txt_newf(const char *fmt, ...);
 txt_t * txt_free(txt_t *txt);
-void txt_render_fragment(txt_t *txt, fb_fragment_t *fragment, uint32_t color, int x, int y, txt_align_t alignment);
+void txt_render_fragment(txt_t *txt, til_fb_fragment_t *fragment, uint32_t color, int x, int y, txt_align_t alignment);
 
 #endif

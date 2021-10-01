@@ -10,12 +10,13 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#include "settings.h"
-#include "setup.h"
-#include "fb.h"
+#include "til.h"
+#include "til_settings.h"
+#include "til_fb.h"
+#include "til_util.h"
+
 #include "fps.h"
-#include "rototiller.h"
-#include "util.h"
+#include "setup.h"
 
 /* Copyright (C) 2016 Vito Caputo <vcaputo@pengaru.com> */
 
@@ -27,17 +28,17 @@
  */
 #define DEFAULT_VIDEO	"sdl"
 
-extern fb_ops_t			drm_fb_ops;
-extern fb_ops_t			sdl_fb_ops;
-fb_ops_t			*fb_ops;
+extern til_fb_ops_t	drm_fb_ops;
+extern til_fb_ops_t	sdl_fb_ops;
+static til_fb_ops_t	*fb_ops;
 
 typedef struct rototiller_t {
-	const rototiller_module_t	*module;
-	void				*module_context;
-	pthread_t			thread;
-	fb_t				*fb;
-	struct timeval			start_tv;
-	unsigned			ticks_offset;
+	const til_module_t	*module;
+	void			*module_context;
+	pthread_t		thread;
+	til_fb_t		*fb;
+	struct timeval		start_tv;
+	unsigned		ticks_offset;
 } rototiller_t;
 
 static rototiller_t		rototiller;
@@ -86,8 +87,8 @@ static int parse_argv(int argc, const char *argv[], argv_t *res_args)
 
 
 typedef struct setup_t {
-	settings_t	*module;
-	settings_t	*video;
+	til_settings_t	*module;
+	til_settings_t	*video;
 } setup_t;
 
 /* FIXME: this is unnecessarily copy-pasta, i think modules should just be made
@@ -96,24 +97,24 @@ typedef struct setup_t {
  */
 
 /* select video backend if not yet selected, then setup the selected backend. */
-static int setup_video(settings_t *settings, setting_desc_t **next_setting)
+static int setup_video(til_settings_t *settings, til_setting_desc_t **next_setting)
 {
 	const char	*video;
 
 	/* XXX: there's only one option currently, so this is simple */
-	video = settings_get_key(settings, 0);
+	video = til_settings_get_key(settings, 0);
 	if (!video) {
-		setting_desc_t	*desc;
-		const char	*values[] = {
+		til_setting_desc_t	*desc;
+		const char		*values[] = {
 #ifdef HAVE_DRM
-					"drm",
+						"drm",
 #endif
-					"sdl",
-					NULL,
-				};
-		int		r;
+						"sdl",
+						NULL,
+					};
+		int			r;
 
-		r = setting_desc_clone(&(setting_desc_t){
+		r = til_setting_desc_clone(&(til_setting_desc_t){
 						.name = "Video Backend",
 						.key = NULL,
 						.regex = "[a-z]+",
@@ -152,21 +153,21 @@ static int setup_from_args(argv_t *args, setup_t *res_setup)
 	int	r, changes = 0;
 	setup_t	setup;
 
-	setup.module = settings_new(args->module);
+	setup.module = til_settings_new(args->module);
 	if (!setup.module)
 		return -ENOMEM;
 
-	setup.video = settings_new(args->video);
+	setup.video = til_settings_new(args->video);
 	if (!setup.video) {
-		settings_free(setup.module);
+		til_settings_free(setup.module);
 
 		return -ENOMEM;
 	}
 
-	r = setup_interactively(setup.module, rototiller_module_setup, args->use_defaults);
+	r = setup_interactively(setup.module, til_module_setup, args->use_defaults);
 	if (r < 0) {
-		settings_free(setup.module);
-		settings_free(setup.video);
+		til_settings_free(setup.module);
+		til_settings_free(setup.video);
 
 		return r;
 	}
@@ -176,8 +177,8 @@ static int setup_from_args(argv_t *args, setup_t *res_setup)
 
 	r = setup_interactively(setup.video, setup_video, args->use_defaults);
 	if (r < 0) {
-		settings_free(setup.module);
-		settings_free(setup.video);
+		til_settings_free(setup.module);
+		til_settings_free(setup.video);
 
 		return r;
 	}
@@ -197,14 +198,14 @@ static int print_setup_as_args(setup_t *setup)
 	char	buf[64];
 	int	r;
 
-	module_args = settings_as_arg(setup->module);
+	module_args = til_settings_as_arg(setup->module);
 	if (!module_args) {
 		r = -ENOMEM;
 
 		goto _out;
 	}
 
-	video_args = settings_as_arg(setup->video);
+	video_args = til_settings_as_arg(setup->video);
 	if (!video_args) {
 		r = -ENOMEM;
 
@@ -255,17 +256,17 @@ static void * rototiller_thread(void *_rt)
 	struct timeval	now;
 
 	for (;;) {
-		fb_page_t	*page;
+		til_fb_page_t	*page;
 		unsigned	ticks;
 
-		page = fb_page_get(rt->fb);
+		page = til_fb_page_get(rt->fb);
 
 		gettimeofday(&now, NULL);
 		ticks = get_ticks(&rt->start_tv, &now, rt->ticks_offset);
 
-		rototiller_module_render(rt->module, rt->module_context, ticks, &page->fragment);
+		til_module_render(rt->module, rt->module_context, ticks, &page->fragment);
 
-		fb_page_put(rt->fb, page);
+		til_fb_page_put(rt->fb, page);
 	}
 
 	return NULL;
@@ -296,20 +297,20 @@ int main(int argc, const char *argv[])
 	exit_if(r && print_setup_as_args(&setup) < 0,
 		"unable to print setup");
 
-	exit_if(!(rototiller.module = rototiller_lookup_module(settings_get_key(setup.module, 0))),
-		"unable to lookup module from settings \"%s\"", settings_get_key(setup.module, 0));
+	exit_if(!(rototiller.module = til_lookup_module(til_settings_get_key(setup.module, 0))),
+		"unable to lookup module from settings \"%s\"", til_settings_get_key(setup.module, 0));
 
-	exit_if((r = fb_new(fb_ops, setup.video, NUM_FB_PAGES, &rototiller.fb)) < 0,
+	exit_if((r = til_fb_new(fb_ops, setup.video, NUM_FB_PAGES, &rototiller.fb)) < 0,
 		"unable to create fb: %s", strerror(-r));
 
 	exit_if(!fps_setup(),
 		"unable to setup fps counter");
 
-	exit_if((r = rototiller_init()) < 0,
+	exit_if((r = til_init()) < 0,
 		"unable to initialize librototiller: %s", strerror(-r));
 
 	gettimeofday(&rototiller.start_tv, NULL);
-	exit_if((r = rototiller_module_create_context(
+	exit_if((r = til_module_create_context(
 						rototiller.module,
 						get_ticks(&rototiller.start_tv,
 							&rototiller.start_tv,
@@ -321,7 +322,7 @@ int main(int argc, const char *argv[])
 		"unable to create dispatch thread");
 
 	for (;;) {
-		if (fb_flip(rototiller.fb) < 0)
+		if (til_fb_flip(rototiller.fb) < 0)
 			break;
 
 		fps_print(rototiller.fb);
@@ -329,12 +330,12 @@ int main(int argc, const char *argv[])
 
 	pthread_cancel(rototiller.thread);
 	pthread_join(rototiller.thread, NULL);
-	rototiller_shutdown();
+	til_shutdown();
 
 	if (rototiller.module_context)
 		rototiller.module->destroy_context(rototiller.module_context);
 
-	fb_free(rototiller.fb);
+	til_fb_free(rototiller.fb);
 
 	return EXIT_SUCCESS;
 }

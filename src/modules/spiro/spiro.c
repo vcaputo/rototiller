@@ -4,9 +4,10 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "til.h"
+#include "til_fb.h"
+
 #include "draw.h"
-#include "fb.h"
-#include "rototiller.h"
 
 /* Copyright (C) 2020 Philip J. Freeman <elektron@halo.nu> */
 
@@ -60,7 +61,7 @@ static void spiro_destroy_context(void *context)
 }
 
 
-static void spiro_render_fragment(void *context, unsigned ticks, unsigned cpu, fb_fragment_t *fragment)
+static void spiro_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
 	spiro_context_t	*ctxt = context;
 
@@ -82,7 +83,7 @@ static void spiro_render_fragment(void *context, unsigned ticks, unsigned cpu, f
 	}
 
 	/* blank the fragment */
-	fb_fragment_zero(fragment);
+	til_fb_fragment_zero(fragment);
 
 	/* plot one spirograph run */
 	float l=ctxt->p/ctxt->r;
@@ -92,7 +93,7 @@ static void spiro_render_fragment(void *context, unsigned ticks, unsigned cpu, f
 		float my_y=((1.f-k)*sinf(t))-(l*k*sinf(((1.f-k)/k)*t));
 		int pos_x=display_origin_x+(my_x*display_R);
 		int pos_y=display_origin_y+(my_y*display_R);
-		fb_fragment_put_pixel_unchecked(fragment, pos_x, pos_y,
+		til_fb_fragment_put_pixel_unchecked(fragment, pos_x, pos_y,
 			makergb(sinf(M_1_PI*t)*127+128,
 				sinf(M_1_PI*t+(2*M_PI*.333333333333f))*127+128,
 				sinf(M_1_PI*t+(4*M_PI*.333333333333f))*127+128,
@@ -101,31 +102,31 @@ static void spiro_render_fragment(void *context, unsigned ticks, unsigned cpu, f
 
 #ifdef DEBUG
 	/* plot the origin point */
-	fb_fragment_put_pixel_unchecked(fragment, display_origin_x, display_origin_y,
+	til_fb_fragment_put_pixel_unchecked(fragment, display_origin_x, display_origin_y,
 		makergb(0xFF, 0xFF, 0x00, 1));
 
 	/* plot the fixed outer circle C0 */
 	for(float a=0.f; a<2*M_PI; a+= M_PI_2/display_R) {
 		int pos_x=display_origin_x+(cosf(a)*display_R);
 		int pos_y=display_origin_y+(sinf(a)*display_R);
-		fb_fragment_put_pixel_unchecked(fragment, pos_x, pos_y,
+		til_fb_fragment_put_pixel_unchecked(fragment, pos_x, pos_y,
 			makergb(0xFF, 0xFF, 0x00, 1));
 	}
 
 	/* plot inner circle Ci */
-	fb_fragment_put_pixel_unchecked(fragment, display_origin_x+display_R-(ctxt->r*display_R),
+	til_fb_fragment_put_pixel_unchecked(fragment, display_origin_x+display_R-(ctxt->r*display_R),
 		display_origin_y, makergb(0xFF, 0xFF, 0x00, 1));
 
 	for(float a=0.f; a<2*M_PI; a+= M_PI_2/display_R) {
 		int pos_x=display_origin_x+display_R-(ctxt->r*display_R)+
 			(cosf(a)*ctxt->r*display_R);
 		int pos_y=display_origin_y+(sinf(a)*ctxt->r*display_R);
-		fb_fragment_put_pixel_unchecked(fragment, pos_x, pos_y,
+		til_fb_fragment_put_pixel_unchecked(fragment, pos_x, pos_y,
 			makergb(0xFF, 0xFF, 0x00, 1));
 	}
 
 	/* plot p */
-	fb_fragment_put_pixel_unchecked(fragment, display_origin_x+display_R-(ctxt->r*display_R)+
+	til_fb_fragment_put_pixel_unchecked(fragment, display_origin_x+display_R-(ctxt->r*display_R)+
 		(ctxt->p*display_R), display_origin_y, makergb(0xFF, 0xFF, 0x00, 1));
 #endif
 
@@ -144,7 +145,7 @@ static void spiro_render_fragment(void *context, unsigned ticks, unsigned cpu, f
 
 }
 
-rototiller_module_t	spiro_module = {
+til_module_t	spiro_module = {
 	.create_context  = spiro_create_context,
 	.destroy_context = spiro_destroy_context,
 	.render_fragment = spiro_render_fragment,

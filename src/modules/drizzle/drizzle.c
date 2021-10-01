@@ -17,9 +17,10 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "fb.h"
+#include "til.h"
+#include "til_fb.h"
+
 #include "puddle/puddle.h"
-#include "rototiller.h"
 
 #define PUDDLE_SIZE		512
 #define DRIZZLE_CNT		20
@@ -92,15 +93,15 @@ static void drizzle_destroy_context(void *context)
 }
 
 
-static int drizzle_fragmenter(void *context, const fb_fragment_t *fragment, unsigned number, fb_fragment_t *res_fragment)
+static int drizzle_fragmenter(void *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
 {
 	drizzle_context_t	*ctxt = context;
 
-	return fb_fragment_slice_single(fragment, ctxt->n_cpus, number, res_fragment);
+	return til_fb_fragment_slice_single(fragment, ctxt->n_cpus, number, res_fragment);
 }
 
 
-static void drizzle_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
+static void drizzle_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
 {
 	drizzle_context_t	*ctxt = context;
 
@@ -124,7 +125,7 @@ static void drizzle_prepare_frame(void *context, unsigned ticks, unsigned n_cpus
 }
 
 
-static void drizzle_render_fragment(void *context, unsigned ticks, unsigned cpu, fb_fragment_t *fragment)
+static void drizzle_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
 	drizzle_context_t	*ctxt = context;
 	float			xf = 1.f / (float)fragment->frame_width;
@@ -142,7 +143,7 @@ static void drizzle_render_fragment(void *context, unsigned ticks, unsigned cpu,
 			color.z = puddle_sample(ctxt->puddle, &coord);
 
 			pixel = color_to_uint32(color);
-			fb_fragment_put_pixel_unchecked(fragment, x, y, pixel);
+			til_fb_fragment_put_pixel_unchecked(fragment, x, y, pixel);
 
 			coord.x += xf;
 		}
@@ -152,7 +153,7 @@ static void drizzle_render_fragment(void *context, unsigned ticks, unsigned cpu,
 }
 
 
-static int drizzle_setup(const settings_t *settings, setting_desc_t **next_setting)
+static int drizzle_setup(const til_settings_t *settings, til_setting_desc_t **next_setting)
 {
 	const char	*viscosity;
 	const char	*values[] = {
@@ -163,15 +164,15 @@ static int drizzle_setup(const settings_t *settings, setting_desc_t **next_setti
 				NULL
 			};
 
-	viscosity = settings_get_value(settings, "viscosity");
+	viscosity = til_settings_get_value(settings, "viscosity");
 	if (!viscosity) {
 		int	r;
 
-		r = setting_desc_clone(&(setting_desc_t){
+		r = til_setting_desc_clone(&(til_setting_desc_t){
 						.name = "Puddle Viscosity",
 						.key = "viscosity",
 						.regex = "\\.[0-9]+",
-						.preferred = SETTINGS_STR(DEFAULT_VISCOSITY),
+						.preferred = TIL_SETTINGS_STR(DEFAULT_VISCOSITY),
 						.values = values,
 						.annotations = NULL
 					}, next_setting);
@@ -187,7 +188,7 @@ static int drizzle_setup(const settings_t *settings, setting_desc_t **next_setti
 }
 
 
-rototiller_module_t	drizzle_module = {
+til_module_t	drizzle_module = {
 	.create_context = drizzle_create_context,
 	.destroy_context = drizzle_destroy_context,
 	.prepare_frame = drizzle_prepare_frame,

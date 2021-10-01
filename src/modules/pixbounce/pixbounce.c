@@ -2,8 +2,8 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "til.h"
 #include "draw.h"
-#include "rototiller.h"
 
 /* Copyright (C) 2018-19 Philip J. Freeman <elektron@halo.nu> */
 
@@ -135,7 +135,7 @@ static void pixbounce_destroy_context(void *context)
 	free(context);
 }
 
-static void pixbounce_render_fragment(void *context, unsigned ticks, unsigned cpu, fb_fragment_t *fragment)
+static void pixbounce_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
 	pixbounce_context_t *ctxt = context;
 
@@ -143,7 +143,7 @@ static void pixbounce_render_fragment(void *context, unsigned ticks, unsigned cp
 	int	width = fragment->width, height = fragment->height;
 
 	/* blank the frame */
-	fb_fragment_zero(fragment);
+	til_fb_fragment_zero(fragment);
 
 	/* check for very small fragment */
 	if(pix_width*2>width||pix_height*2>height)
@@ -164,7 +164,7 @@ static void pixbounce_render_fragment(void *context, unsigned ticks, unsigned cp
 		for(int cursor_x=0; cursor_x < pix_width*multiplier; cursor_x++) {
 			int pix_offset = ((cursor_y/multiplier)*pix_width) + (cursor_x/multiplier);
 			if(pix_map[ctxt->pix_num][pix_offset] == 0) continue;
-			fb_fragment_put_pixel_unchecked(
+			til_fb_fragment_put_pixel_unchecked(
 					fragment, ctxt->x+cursor_x, ctxt->y+cursor_y,
 					makergb(0xFF, 0xFF, 0xFF, 1)
 				);
@@ -192,7 +192,7 @@ static void pixbounce_render_fragment(void *context, unsigned ticks, unsigned cp
 	ctxt->y = ctxt->y+ctxt->y_dir;
 }
 
-rototiller_module_t	pixbounce_module = {
+til_module_t	pixbounce_module = {
 	.create_context  = pixbounce_create_context,
 	.destroy_context = pixbounce_destroy_context,
 	.render_fragment = pixbounce_render_fragment,

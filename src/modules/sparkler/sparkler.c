@@ -4,9 +4,9 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "fb.h"
-#include "rototiller.h"
-#include "util.h"
+#include "til.h"
+#include "til_fb.h"
+#include "til_util.h"
 
 #include "particles.h"
 
@@ -60,14 +60,14 @@ static void sparkler_destroy_context(void *context)
 }
 
 
-static int sparkler_fragmenter(void *context, const fb_fragment_t *fragment, unsigned number, fb_fragment_t *res_fragment)
+static int sparkler_fragmenter(void *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
 {
 	sparkler_context_t	*ctxt = context;
 
-	return fb_fragment_slice_single(fragment, ctxt->n_cpus, number, res_fragment);
+	return til_fb_fragment_slice_single(fragment, ctxt->n_cpus, number, res_fragment);
 }
 
-static void sparkler_prepare_frame(void *context, unsigned ticks, unsigned ncpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
+static void sparkler_prepare_frame(void *context, unsigned ticks, unsigned ncpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
 {
 	sparkler_context_t	*ctxt = context;
 
@@ -75,7 +75,7 @@ static void sparkler_prepare_frame(void *context, unsigned ticks, unsigned ncpus
 	ctxt->n_cpus = ncpus;
 
 	if (sparkler_conf.show_bsp_matches)
-		fb_fragment_zero(fragment);
+		til_fb_fragment_zero(fragment);
 
 	particles_sim(ctxt->particles, fragment);
 	particles_add_particles(ctxt->particles, NULL, &simple_ops, INIT_PARTS / 4);
@@ -84,19 +84,19 @@ static void sparkler_prepare_frame(void *context, unsigned ticks, unsigned ncpus
 
 
 /* Render a 3D particle system */
-static void sparkler_render_fragment(void *context, unsigned ticks, unsigned cpu, fb_fragment_t *fragment)
+static void sparkler_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
 	sparkler_context_t	*ctxt = context;
 
 	if (!sparkler_conf.show_bsp_matches)
-		fb_fragment_zero(fragment);
+		til_fb_fragment_zero(fragment);
 
 	particles_draw(ctxt->particles, fragment);
 }
 
 
 /* Settings hooks for configurable variables */
-static int sparkler_setup(const settings_t *settings, setting_desc_t **next_setting)
+static int sparkler_setup(const til_settings_t *settings, til_setting_desc_t **next_setting)
 {
 	const char	*show_bsp_leafs;
 	const char	*show_bsp_matches;
@@ -108,11 +108,11 @@ static int sparkler_setup(const settings_t *settings, setting_desc_t **next_sett
 
 	/* TODO: return -EINVAL on parse errors? */
 
-	show_bsp_leafs = settings_get_value(settings, "show_bsp_leafs");
+	show_bsp_leafs = til_settings_get_value(settings, "show_bsp_leafs");
 	if (!show_bsp_leafs) {
 		int	r;
 
-		r = setting_desc_clone(&(setting_desc_t){
+		r = til_setting_desc_clone(&(til_setting_desc_t){
 						.name = "Show BSP Leaf Node Bounding Boxes",
 						.key = "show_bsp_leafs",
 						.preferred = "off",
@@ -129,7 +129,7 @@ static int sparkler_setup(const settings_t *settings, setting_desc_t **next_sett
 
 		sparkler_conf.show_bsp_leafs = 1;
 
-		show_bsp_leafs_min_depth = settings_get_value(settings, "show_bsp_leafs_min_depth");
+		show_bsp_leafs_min_depth = til_settings_get_value(settings, "show_bsp_leafs_min_depth");
 		if (!show_bsp_leafs_min_depth) {
 			const char	*depth_values[] = {
 						"0",
@@ -141,7 +141,7 @@ static int sparkler_setup(const settings_t *settings, setting_desc_t **next_sett
 					};
 			int	r;
 
-			r = setting_desc_clone(&(setting_desc_t){
+			r = til_setting_desc_clone(&(til_setting_desc_t){
 							.name = "Show BSP Leaf Node Bounding Boxes Minimum Depth",
 							.key = "show_bsp_leafs_min_depth",
 							.preferred = "8",
@@ -158,11 +158,11 @@ static int sparkler_setup(const settings_t *settings, setting_desc_t **next_sett
 		sparkler_conf.show_bsp_leafs = 0;
 	}
 
-	show_bsp_matches = settings_get_value(settings, "show_bsp_matches");
+	show_bsp_matches = til_settings_get_value(settings, "show_bsp_matches");
 	if (!show_bsp_matches) {
 		int	r;
 
-		r = setting_desc_clone(&(setting_desc_t){
+		r = til_setting_desc_clone(&(til_setting_desc_t){
 						.name = "Show BSP Search Matches",
 						.key = "show_bsp_matches",
 						.preferred = "off",
@@ -182,11 +182,11 @@ static int sparkler_setup(const settings_t *settings, setting_desc_t **next_sett
 	if (!strcasecmp(show_bsp_matches, "on")) {
 		const char	*show_bsp_matches_affected_only;
 
-		show_bsp_matches_affected_only = settings_get_value(settings, "show_bsp_matches_affected_only");
+		show_bsp_matches_affected_only = til_settings_get_value(settings, "show_bsp_matches_affected_only");
 		if (!show_bsp_matches_affected_only) {
 			int	r;
 
-			r = setting_desc_clone(&(setting_desc_t){
+			r = til_setting_desc_clone(&(til_setting_desc_t){
 							.name = "Show Only Affected BSP Search Matches",
 							.key = "show_bsp_matches_affected_only",
 							.preferred = "off",
@@ -208,7 +208,7 @@ static int sparkler_setup(const settings_t *settings, setting_desc_t **next_sett
 }
 
 
-rototiller_module_t	sparkler_module = {
+til_module_t	sparkler_module = {
 	.create_context = sparkler_create_context,
 	.destroy_context = sparkler_destroy_context,
 	.prepare_frame = sparkler_prepare_frame,

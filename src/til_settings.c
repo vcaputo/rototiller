@@ -4,8 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "settings.h"
-#include "util.h"
+#include "til_settings.h"
+#include "til_util.h"
 
 #ifdef __WIN32__
 char * strndup(const char *s, size_t n)
@@ -29,21 +29,21 @@ char * strndup(const char *s, size_t n)
 #endif
 
 /* Split form of key=value[,key=value...] settings string */
-typedef struct settings_t {
+typedef struct til_settings_t {
 	unsigned	num;
 	const char	**keys;
 	const char	**values;
-} settings_t;
+} til_settings_t;
 
-typedef enum settings_fsm_state_t {
-	SETTINGS_FSM_STATE_KEY,
-	SETTINGS_FSM_STATE_EQUAL,
-	SETTINGS_FSM_STATE_VALUE,
-	SETTINGS_FSM_STATE_COMMA,
-} settings_fsm_state_t;
+typedef enum til_settings_fsm_state_t {
+	TIL_SETTINGS_FSM_STATE_KEY,
+	TIL_SETTINGS_FSM_STATE_EQUAL,
+	TIL_SETTINGS_FSM_STATE_VALUE,
+	TIL_SETTINGS_FSM_STATE_COMMA,
+} til_settings_fsm_state_t;
 
 
-static int add_value(settings_t *settings, const char *key, const char *value)
+static int add_value(til_settings_t *settings, const char *key, const char *value)
 {
 	assert(settings);
 
@@ -59,13 +59,13 @@ static int add_value(settings_t *settings, const char *key, const char *value)
 
 
 /* split settings_string into a data structure */
-settings_t * settings_new(const char *settings_string)
+til_settings_t * til_settings_new(const char *settings_string)
 {
-	settings_fsm_state_t	state = SETTINGS_FSM_STATE_KEY;
-	const char		*p, *token;
-	settings_t		*settings;
+	til_settings_fsm_state_t	state = TIL_SETTINGS_FSM_STATE_KEY;
+	const char			*p, *token;
+	til_settings_t			*settings;
 
-	settings = calloc(1, sizeof(settings_t));
+	settings = calloc(1, sizeof(til_settings_t));
 	if (!settings)
 		return NULL;
 
@@ -76,31 +76,31 @@ settings_t * settings_new(const char *settings_string)
 	for (token = p = settings_string; ;p++) {
 
 		switch (state) {
-		case SETTINGS_FSM_STATE_COMMA:
+		case TIL_SETTINGS_FSM_STATE_COMMA:
 			token = p;
-			state = SETTINGS_FSM_STATE_KEY;
+			state = TIL_SETTINGS_FSM_STATE_KEY;
 			break;
 
-		case SETTINGS_FSM_STATE_KEY:
+		case TIL_SETTINGS_FSM_STATE_KEY:
 			if (*p == '=' || *p == ',' || *p == '\0') {
 				add_value(settings, strndup(token, p - token), NULL);
 
 				if (*p == '=')
-					state = SETTINGS_FSM_STATE_EQUAL;
+					state = TIL_SETTINGS_FSM_STATE_EQUAL;
 				else if (*p == ',')
-					state = SETTINGS_FSM_STATE_COMMA;
+					state = TIL_SETTINGS_FSM_STATE_COMMA;
 			}
 			break;
 
-		case SETTINGS_FSM_STATE_EQUAL:
+		case TIL_SETTINGS_FSM_STATE_EQUAL:
 			token = p;
-			state = SETTINGS_FSM_STATE_VALUE;
+			state = TIL_SETTINGS_FSM_STATE_VALUE;
 			break;
 
-		case SETTINGS_FSM_STATE_VALUE:
+		case TIL_SETTINGS_FSM_STATE_VALUE:
 			if (*p == ',' || *p == '\0') {
 				settings->values[settings->num - 1] = strndup(token, p - token);
-				state = SETTINGS_FSM_STATE_COMMA;
+				state = TIL_SETTINGS_FSM_STATE_COMMA;
 			}
 			break;
 
@@ -119,7 +119,7 @@ settings_t * settings_new(const char *settings_string)
 
 
 /* free structure attained via settings_new() */
-settings_t * settings_free(settings_t *settings)
+til_settings_t * til_settings_free(til_settings_t *settings)
 {
 
 	if (settings) {
@@ -138,14 +138,12 @@ settings_t * settings_free(settings_t *settings)
 
 
 /* find key= in settings, return dup of value side or NULL if missing */
-const char * settings_get_value(const settings_t *settings, const char *key)
+const char * til_settings_get_value(const til_settings_t *settings, const char *key)
 {
-	int	i;
-
 	assert(settings);
 	assert(key);
 
-	for (i = 0; i < settings->num; i++) {
+	for (int i = 0; i < settings->num; i++) {
 		if (!strcmp(key, settings->keys[i]))
 			return settings->values[i];
 	}
@@ -155,7 +153,7 @@ const char * settings_get_value(const settings_t *settings, const char *key)
 
 
 /* return positional key from settings */
-const char * settings_get_key(const settings_t *settings, unsigned pos)
+const char * til_settings_get_key(const til_settings_t *settings, unsigned pos)
 {
 	assert(settings);
 
@@ -170,7 +168,7 @@ const char * settings_get_key(const settings_t *settings, unsigned pos)
  * or just key if value is NULL.
  */
 /* returns < 0 on error */
-int settings_add_value(settings_t *settings, const char *key, const char *value)
+int til_settings_add_value(til_settings_t *settings, const char *key, const char *value)
 {
 	assert(settings);
 	assert(key);
@@ -183,21 +181,20 @@ int settings_add_value(settings_t *settings, const char *key, const char *value)
 /* returns 0 when input settings are complete */
 /* returns 1 when input settings are incomplete, storing the next setting's description needed in *next_setting */
 /* returns -errno on error */
-int settings_apply_desc_generators(const settings_t *settings, const setting_desc_generator_t generators[], unsigned n_generators, void *setup_context, setting_desc_t **next_setting)
+int til_settings_apply_desc_generators(const til_settings_t *settings, const til_setting_desc_generator_t generators[], unsigned n_generators, void *setup_context, til_setting_desc_t **next_setting)
 {
-	unsigned	i;
-	setting_desc_t	*next;
+	til_setting_desc_t	*next;
 
 	assert(settings);
 	assert(generators);
 	assert(n_generators > 0);
 	assert(next_setting);
 
-	for (i = 0; i < n_generators; i++) {
-		const setting_desc_generator_t	*g = &generators[i];
-		const char			*value;
-		setting_desc_t			*desc;
-		int				r;
+	for (unsigned i = 0; i < n_generators; i++) {
+		const til_setting_desc_generator_t	*g = &generators[i];
+		const char				*value;
+		til_setting_desc_t			*desc;
+		int					r;
 
 		r = g->func(setup_context, &desc);
 		if (r < 0)
@@ -205,12 +202,12 @@ int settings_apply_desc_generators(const settings_t *settings, const setting_des
 
 		assert(desc);
 
-		value = settings_get_value(settings, g->key);
+		value = til_settings_get_value(settings, g->key);
 		if (value) {
 			int	r;
 
-			r = setting_desc_check(desc, value);
-			setting_desc_free(desc);
+			r = til_setting_desc_check(desc, value);
+			til_setting_desc_free(desc);
 			if (r < 0)
 				return r;
 
@@ -232,9 +229,9 @@ int settings_apply_desc_generators(const settings_t *settings, const setting_des
 /* convenience helper for creating a new setting description */
 /* copies of everything supplied are made in newly allocated memory, stored @ res_desc */
 /* returns < 0 on error */
-int setting_desc_clone(const setting_desc_t *desc, setting_desc_t **res_desc)
+int til_setting_desc_clone(const til_setting_desc_t *desc, til_setting_desc_t **res_desc)
 {
-	setting_desc_t	*d;
+	til_setting_desc_t	*d;
 
 	assert(desc);
 	assert(desc->name);
@@ -242,7 +239,7 @@ int setting_desc_clone(const setting_desc_t *desc, setting_desc_t **res_desc)
 	assert(!desc->annotations || desc->values);
 	assert(res_desc);
 
-	d = calloc(1, sizeof(setting_desc_t));
+	d = calloc(1, sizeof(til_setting_desc_t));
 	if (!d)
 		return -ENOMEM;
 
@@ -283,7 +280,7 @@ int setting_desc_clone(const setting_desc_t *desc, setting_desc_t **res_desc)
 }
 
 
-setting_desc_t * setting_desc_free(setting_desc_t *desc)
+til_setting_desc_t * til_setting_desc_free(til_setting_desc_t *desc)
 {
 	if (desc) {
 		free((void *)desc->name);
@@ -310,7 +307,7 @@ setting_desc_t * setting_desc_free(setting_desc_t *desc)
 }
 
 
-int setting_desc_check(const setting_desc_t *desc, const char *value)
+int til_setting_desc_check(const til_setting_desc_t *desc, const char *value)
 {
 	assert(desc);
 
@@ -356,7 +353,7 @@ static int snpf(char *buf, size_t size, off_t offset, const char *format, ...)
 }
 
 
-char * settings_as_arg(const settings_t *settings)
+char * til_settings_as_arg(const til_settings_t *settings)
 {
 	char	*buf = NULL;
 	size_t	off, size;

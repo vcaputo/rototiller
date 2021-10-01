@@ -1,6 +1,7 @@
 #include <stdlib.h>
 
-#include "fb.h"
+#include "til_fb.h"
+
 #include "helpers.h"
 #include "particle.h"
 #include "particles.h"
@@ -32,7 +33,7 @@ static int spark_init(particles_t *particles, const particles_conf_t *conf, part
 }
 
 
-static particle_status_t spark_sim(particles_t *particles, const particles_conf_t *conf, particle_t *p, fb_fragment_t *f)
+static particle_status_t spark_sim(particles_t *particles, const particles_conf_t *conf, particle_t *p, til_fb_fragment_t *f)
 {
 	spark_ctxt_t	*ctxt = p->ctxt;
 
@@ -45,7 +46,7 @@ static particle_status_t spark_sim(particles_t *particles, const particles_conf_
 }
 
 
-static void spark_draw(particles_t *particles, const particles_conf_t *conf, particle_t *p, int x, int y, fb_fragment_t *f)
+static void spark_draw(particles_t *particles, const particles_conf_t *conf, particle_t *p, int x, int y, til_fb_fragment_t *f)
 {
 	spark_ctxt_t	*ctxt = p->ctxt;
 
@@ -53,7 +54,7 @@ static void spark_draw(particles_t *particles, const particles_conf_t *conf, par
 		/* offscreen */
 		return;
 
-	fb_fragment_put_pixel_unchecked(f, x, y, makergb(0xff, 0xa0, 0x20, ((float)ctxt->longevity / ctxt->lifetime)));
+	til_fb_fragment_put_pixel_unchecked(f, x, y, makergb(0xff, 0xa0, 0x20, ((float)ctxt->longevity / ctxt->lifetime)));
 }
 
 

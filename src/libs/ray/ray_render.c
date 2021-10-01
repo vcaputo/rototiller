@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "fb.h"
+#include "til_fb.h"
 
 #include "ray_camera.h"
 #include "ray_color.h"
@@ -200,7 +200,7 @@ static inline ray_color_t trace_ray(ray_render_t *render, ray_ray_t *primary_ray
 }
 
 
-void ray_render_trace_fragment(ray_render_t *render, fb_fragment_t *fb_fragment)
+void ray_render_trace_fragment(ray_render_t *render, til_fb_fragment_t *fb_fragment)
 {
 	uint32_t		*buf = fb_fragment->buf;
 	ray_camera_fragment_t	fragment;

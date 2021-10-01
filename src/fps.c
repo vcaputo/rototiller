@@ -2,8 +2,8 @@
 #include <stdio.h>
 #include <sys/time.h>
 
-#include "fb.h"
-#include "util.h"
+#include "til_fb.h"
+#include "til_util.h"
 
 
 static int	print_fps;
@@ -36,7 +36,7 @@ int fps_setup(void)
 }
 
 
-void fps_print(fb_t *fb)
+void fps_print(til_fb_t *fb)
 {
 #ifdef __WIN32__
 
@@ -46,7 +46,7 @@ void fps_print(fb_t *fb)
 	if (!print_fps)
 		return;
 
-	fb_get_put_pages_count(fb, &n);
+	til_fb_get_put_pages_count(fb, &n);
 	printf("FPS: %u\n", n);
 
 	print_fps = 0;

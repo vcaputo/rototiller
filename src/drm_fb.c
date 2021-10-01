@@ -12,9 +12,9 @@
 #include <xf86drm.h>
 #include <xf86drmMode.h>
 
-#include "fb.h"
-#include "settings.h"
-#include "util.h"
+#include "til_fb.h"
+#include "til_settings.h"
+#include "til_util.h"
 
 /* drm fb backend, everything drm-specific in rototiller resides here. */
 
@@ -68,9 +68,9 @@ static const char * connector_type_name(uint32_t type) {
 }
 
 
-static int dev_desc_generator(void *setup_context, setting_desc_t **res_desc)
+static int dev_desc_generator(void *setup_context, til_setting_desc_t **res_desc)
 {
-	return  setting_desc_clone(&(setting_desc_t){
+	return  til_setting_desc_clone(&(til_setting_desc_t){
 					.name = "DRM Device Path",
 					.key = "dev",
 					.regex = "/dev/dri/card[0-9]",
@@ -145,7 +145,7 @@ static void free_strv(const char **strv)
 }
 
 
-static int connector_desc_generator(void *setup_context, setting_desc_t **res_desc)
+static int connector_desc_generator(void *setup_context, til_setting_desc_t **res_desc)
 {
 	drm_fb_setup_t	*s = setup_context;
 	const char	**connectors;
@@ -157,7 +157,7 @@ static int connector_desc_generator(void *setup_context, setting_desc_t **res_de
 	if (r < 0)
 		return r;
 
-	r = setting_desc_clone(&(setting_desc_t){
+	r = til_setting_desc_clone(&(til_setting_desc_t){
 					.name = "DRM Connector",
 					.key = "connector",
 					.regex = "[a-zA-Z0-9]+",
@@ -254,7 +254,7 @@ _out:
 }
 
 
-static int mode_desc_generator(void *setup_context, setting_desc_t **res_desc)
+static int mode_desc_generator(void *setup_context, til_setting_desc_t **res_desc)
 {
 	drm_fb_setup_t	*s = setup_context;
 	const char	**modes;
@@ -266,7 +266,7 @@ static int mode_desc_generator(void *setup_context, setting_desc_t **res_desc)
 	if (r < 0)
 		return r;
 
-	r = setting_desc_clone(&(setting_desc_t){
+	r = til_setting_desc_clone(&(til_setting_desc_t){
 					.name = "DRM Video Mode",
 					.key = "mode",
 					.regex = "[0-9]+[xX][0-9]+@[0-9]+",
@@ -283,10 +283,10 @@ static int mode_desc_generator(void *setup_context, setting_desc_t **res_desc)
 /* setup is called repeatedly as settings is constructed, until 0 is returned. */
 /* a negative value is returned on error */
 /* positive value indicates another setting is needed, described in next_setting */
-static int drm_fb_setup(const settings_t *settings, setting_desc_t **next_setting)
+static int drm_fb_setup(const til_settings_t *settings, til_setting_desc_t **next_setting)
 {
 	drm_fb_setup_t			context = {};
-	setting_desc_generator_t	generators[] = {
+	til_setting_desc_generator_t	generators[] = {
 						{
 							.key = "dev",
 							.value_ptr = &context.dev,
@@ -305,7 +305,7 @@ static int drm_fb_setup(const settings_t *settings, setting_desc_t **next_settin
 	if (!drmAvailable())
 		return -ENOSYS;
 
-	return settings_apply_desc_generators(settings, generators, nelems(generators), &context, next_setting);
+	return til_settings_apply_desc_generators(settings, generators, nelems(generators), &context, next_setting);
 }
 
 
@@ -335,7 +335,7 @@ static drmModeModeInfo * lookup_mode(drmModeConnector *connector, const char *mo
 
 
 /* prepare the drm context for use with the supplied settings */
-static int drm_fb_init(const settings_t *settings, void **res_context)
+static int drm_fb_init(const til_settings_t *settings, void **res_context)
 {
 	drm_fb_t	*c;
 	const char	*dev;
@@ -351,19 +351,19 @@ static int drm_fb_init(const settings_t *settings, void **res_context)
 		goto _err;
 	}
 
-	dev = settings_get_value(settings, "dev");
+	dev = til_settings_get_value(settings, "dev");
 	if (!dev) {
 		r = -EINVAL;
 		goto _err;
 	}
 
-	connector = settings_get_value(settings, "connector");
+	connector = til_settings_get_value(settings, "connector");
 	if (!connector) {
 		r = -EINVAL;
 		goto _err;
 	}
 
-	mode = settings_get_value(settings, "mode");
+	mode = til_settings_get_value(settings, "mode");
 	if (!mode) {
 		r = -EINVAL;
 		goto _err;
@@ -422,7 +422,7 @@ _err:
 }
 
 
-static void drm_fb_shutdown(fb_t *fb, void *context)
+static void drm_fb_shutdown(til_fb_t *fb, void *context)
 {
 	drm_fb_t	*c = context;
 
@@ -435,7 +435,7 @@ static void drm_fb_shutdown(fb_t *fb, void *context)
 }
 
 
-static int drm_fb_acquire(fb_t *fb, void *context, void *page)
+static int drm_fb_acquire(til_fb_t *fb, void *context, void *page)
 {
 	drm_fb_t	*c = context;
 	drm_fb_page_t	*p = page;
@@ -444,13 +444,13 @@ static int drm_fb_acquire(fb_t *fb, void *context, void *page)
 }
 
 
-static void drm_fb_release(fb_t *fb, void *context)
+static void drm_fb_release(til_fb_t *fb, void *context)
 {
 	/* TODO restore the existing mode @ last acquire? */
 }
 
 
-static void * drm_fb_page_alloc(fb_t *fb, void *context, fb_page_t *res_page)
+static void * drm_fb_page_alloc(til_fb_t *fb, void *context, til_fb_page_t *res_page)
 {
 	struct drm_mode_create_dumb	create_dumb = { .bpp = 32 };
 	struct drm_mode_map_dumb	map_dumb = {};
@@ -493,7 +493,7 @@ static void * drm_fb_page_alloc(fb_t *fb, void *context, fb_page_t *res_page)
 }
 
 
-static int drm_fb_page_free(fb_t *fb, void *context, void *page)
+static int drm_fb_page_free(til_fb_t *fb, void *context, void *page)
 {
 	struct drm_mode_destroy_dumb	destroy_dumb = {};
 	drm_fb_t			*c = context;
@@ -511,7 +511,7 @@ static int drm_fb_page_free(fb_t *fb, void *context, void *page)
 }
 
 
-static int drm_fb_page_flip(fb_t *fb, void *context, void *page)
+static int drm_fb_page_flip(til_fb_t *fb, void *context, void *page)
 {
 	drmEventContext	drm_ev_ctx = {
 				.version = DRM_EVENT_CONTEXT_VERSION,
@@ -528,7 +528,7 @@ static int drm_fb_page_flip(fb_t *fb, void *context, void *page)
 }
 
 
-fb_ops_t drm_fb_ops = {
+til_fb_ops_t drm_fb_ops = {
 	.setup = drm_fb_setup,
 	.init = drm_fb_init,
 	.shutdown = drm_fb_shutdown,

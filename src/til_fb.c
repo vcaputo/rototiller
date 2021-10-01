@@ -4,9 +4,9 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#include "fb.h"
-#include "settings.h"
-#include "util.h"
+#include "til_fb.h"
+#include "til_settings.h"
+#include "til_util.h"
 
 /* Copyright (C) 2016-2017 Vito Caputo <vcaputo@pengaru.com> */
 
@@ -39,51 +39,51 @@
  * Let me know if you're aware of a better way with existing mainline drm!
  *
  *
- * XXX: fb_new() used to create a thread which did the equivalent of fb_flip()
+ * XXX: til_fb_new() used to create a thread which did the equivalent of til_fb_flip()
  * continuously in a loop.  This posed a problem for the sdl_fb backend, due to
  * the need for event pumping in the page flip hook.  SDL internally uses TLS
  * and requires that the same thread which initialized SDL call the event
  * functions.  To satisfy this requirement, the body of the flipper thread loop
- * has been moved to the fb_flip() function.  Rototiller's main thread is
+ * has been moved to the til_fb_flip() function.  Rototiller's main thread is
  * expected to call this repeatedly, turning it effectively into the flipper
  * thread.  This required rototiller to move what was previously the main
  * thread's duties - page rendering dispatch, to a separate thread.
  */
 
 
-/* Most of fb_page_t is kept private, the public part is
- * just an fb_fragment_t describing the whole page.
+/* Most of til_fb_page_t is kept private, the public part is
+ * just an til_fb_fragment_t describing the whole page.
  */
-typedef struct _fb_page_t _fb_page_t;
-struct _fb_page_t {
+typedef struct _til_fb_page_t _til_fb_page_t;
+struct _til_fb_page_t {
 	void		*ops_page;
 
-	_fb_page_t	*next, *previous;
-	fb_page_t	public_page;
+	_til_fb_page_t	*next, *previous;
+	til_fb_page_t	public_page;
 };
 
-typedef struct fb_t {
-	const fb_ops_t	*ops;
+typedef struct til_fb_t {
+	const til_fb_ops_t	*ops;
 	void		*ops_context;
 	int		n_pages;
 
 	pthread_mutex_t	rebuild_mutex;
 	int		rebuild_pages;		/* counter of pages needing a rebuild */
 
-	_fb_page_t	*active_page;		/* page currently displayed */
+	_til_fb_page_t	*active_page;		/* page currently displayed */
 
 	pthread_mutex_t	ready_mutex;
 	pthread_cond_t	ready_cond;
-	_fb_page_t	*ready_pages_head;	/* next pages to flip to */
-	_fb_page_t	*ready_pages_tail;
+	_til_fb_page_t	*ready_pages_head;	/* next pages to flip to */
+	_til_fb_page_t	*ready_pages_tail;
 
 	pthread_mutex_t	inactive_mutex;
 	pthread_cond_t	inactive_cond;
-	_fb_page_t	*inactive_pages_head;	/* finished pages available for (re)use */
-	_fb_page_t	*inactive_pages_tail;
+	_til_fb_page_t	*inactive_pages_head;	/* finished pages available for (re)use */
+	_til_fb_page_t	*inactive_pages_tail;
 
 	unsigned	put_pages_count;
-} fb_t;
+} til_fb_t;
 
 #ifndef container_of
 #define container_of(_ptr, _type, _member) \
@@ -91,12 +91,12 @@ typedef struct fb_t {
 #endif
 
 
-/* Consumes ready pages queued via fb_page_put(), submits them to drm to flip
+/* Consumes ready pages queued via til_fb_page_put(), submits them to drm to flip
  * on vsync.  Produces inactive pages from those replaced, making them
- * available to fb_page_get(). */
-int fb_flip(fb_t *fb)
+ * available to til_fb_page_get(). */
+int til_fb_flip(til_fb_t *fb)
 {
-	_fb_page_t	*next_active_page;
+	_til_fb_page_t	*next_active_page;
 	int		r;
 
 	/* wait for a flip req, submit the req page for flip on vsync, wait for it to flip before making the
@@ -133,7 +133,7 @@ int fb_flip(fb_t *fb)
 	 * head, as well as rebuild pages from the head.
 	 */
 	pthread_mutex_lock(&fb->rebuild_mutex);
-	for (_fb_page_t *p = fb->inactive_pages_head; p && fb->rebuild_pages > 0; p = p->next) {
+	for (_til_fb_page_t *p = fb->inactive_pages_head; p && fb->rebuild_pages > 0; p = p->next) {
 		fb->ops->page_free(fb, fb->ops_context, p->ops_page);
 		p->ops_page = fb->ops->page_alloc(fb, fb->ops_context, &p->public_page);
 		fb->rebuild_pages--;
@@ -150,7 +150,7 @@ int fb_flip(fb_t *fb)
 
 
 /* acquire the fb, making page the visible page */
-static int fb_acquire(fb_t *fb, _fb_page_t *page)
+static int til_fb_acquire(til_fb_t *fb, _til_fb_page_t *page)
 {
 	int	ret;
 
@@ -165,7 +165,7 @@ static int fb_acquire(fb_t *fb, _fb_page_t *page)
 
 
 /* release the fb, making the visible page inactive */
-static void fb_release(fb_t *fb)
+static void til_fb_release(til_fb_t *fb)
 {
 	fb->ops->release(fb, fb->ops_context);
 
@@ -185,11 +185,11 @@ static void fb_release(fb_t *fb)
 
 
 /* creates a framebuffer page */
-static void fb_page_new(fb_t *fb)
+static void til_fb_page_new(til_fb_t *fb)
 {
-	_fb_page_t	*page;
+	_til_fb_page_t	*page;
 
-	page = calloc(1, sizeof(_fb_page_t));
+	page = calloc(1, sizeof(_til_fb_page_t));
 	assert(page);
 
 	page->ops_page = fb->ops->page_alloc(fb, fb->ops_context, &page->public_page);
@@ -206,7 +206,7 @@ static void fb_page_new(fb_t *fb)
 }
 
 
-static void _fb_page_free(fb_t *fb, _fb_page_t *page)
+static void _til_fb_page_free(til_fb_t *fb, _til_fb_page_t *page)
 {
 	fb->ops->page_free(fb, fb->ops_context, page->ops_page);
 
@@ -215,9 +215,9 @@ static void _fb_page_free(fb_t *fb, _fb_page_t *page)
 
 
 /* get the next inactive page from the fb, waiting if necessary. */
-static inline _fb_page_t * _fb_page_get(fb_t *fb)
+static inline _til_fb_page_t * _til_fb_page_get(til_fb_t *fb)
 {
-	_fb_page_t	*page;
+	_til_fb_page_t	*page;
 
 	/* As long as n_pages is >= 3 this won't block unless we're submitting
 	 * pages faster than vhz.
@@ -240,14 +240,14 @@ static inline _fb_page_t * _fb_page_get(fb_t *fb)
 
 
 /* public interface */
-fb_page_t * fb_page_get(fb_t *fb)
+til_fb_page_t * til_fb_page_get(til_fb_t *fb)
 {
-	return &(_fb_page_get(fb)->public_page);
+	return &(_til_fb_page_get(fb)->public_page);
 }
 
 
 /* put a page into the fb, queueing for display */
-static inline void _fb_page_put(fb_t *fb, _fb_page_t *page)
+static inline void _til_fb_page_put(til_fb_t *fb, _til_fb_page_t *page)
 {
 	pthread_mutex_lock(&fb->ready_mutex);
 	if (fb->ready_pages_tail)
@@ -264,16 +264,16 @@ static inline void _fb_page_put(fb_t *fb, _fb_page_t *page)
 /* public interface */
 
 /* put a page into the fb, queueing for display */
-void fb_page_put(fb_t *fb, fb_page_t *page)
+void til_fb_page_put(til_fb_t *fb, til_fb_page_t *page)
 {
 	fb->put_pages_count++;
 
-	_fb_page_put(fb, container_of(page, _fb_page_t, public_page));
+	_til_fb_page_put(fb, container_of(page, _til_fb_page_t, public_page));
 }
 
 
 /* get (and reset) the current count of put pages */
-void fb_get_put_pages_count(fb_t *fb, unsigned *count)
+void til_fb_get_put_pages_count(til_fb_t *fb, unsigned *count)
 {
 	*count = fb->put_pages_count;
 	fb->put_pages_count = 0;
@@ -281,11 +281,11 @@ void fb_get_put_pages_count(fb_t *fb, unsigned *count)
 
 
 /* free the fb and associated resources */
-fb_t * fb_free(fb_t *fb)
+til_fb_t * til_fb_free(til_fb_t *fb)
 {
 	if (fb) {
 		if (fb->active_page)
-			fb_release(fb);
+			til_fb_release(fb);
 
 		/* TODO: free all the pages */
 
@@ -305,10 +305,10 @@ fb_t * fb_free(fb_t *fb)
 
 
 /* create a new fb instance */
-int fb_new(const fb_ops_t *ops, settings_t *settings, int n_pages, fb_t **res_fb)
+int til_fb_new(const til_fb_ops_t *ops, til_settings_t *settings, int n_pages, til_fb_t **res_fb)
 {
-	_fb_page_t	*page;
-	fb_t		*fb;
+	_til_fb_page_t	*page;
+	til_fb_t		*fb;
 	int		r;
 
 	assert(ops);
@@ -322,7 +322,7 @@ int fb_new(const fb_ops_t *ops, settings_t *settings, int n_pages, fb_t **res_fb
 	if (n_pages < 2)
 		return -EINVAL;
 
-	fb = calloc(1, sizeof(fb_t));
+	fb = calloc(1, sizeof(til_fb_t));
 	if (!fb)
 		return -ENOMEM;
 
@@ -334,7 +334,7 @@ int fb_new(const fb_ops_t *ops, settings_t *settings, int n_pages, fb_t **res_fb
 	}
 
 	for (int i = 0; i < n_pages; i++)
-		fb_page_new(fb);
+		til_fb_page_new(fb);
 
 	fb->n_pages = n_pages;
 
@@ -344,13 +344,13 @@ int fb_new(const fb_ops_t *ops, settings_t *settings, int n_pages, fb_t **res_fb
 	pthread_cond_init(&fb->inactive_cond, NULL);
 	pthread_mutex_init(&fb->rebuild_mutex, NULL);
 
-	page = _fb_page_get(fb);
+	page = _til_fb_page_get(fb);
 	if (!page) {
 		r = -ENOMEM;
 		goto fail;
 	}
 
-	r = fb_acquire(fb, page);
+	r = til_fb_acquire(fb, page);
 	if (r < 0)
 		goto fail;
 
@@ -359,7 +359,7 @@ int fb_new(const fb_ops_t *ops, settings_t *settings, int n_pages, fb_t **res_fb
 	return r;
 
 fail:
-	fb_free(fb);
+	til_fb_free(fb);
 
 	return r;
 }
@@ -370,7 +370,7 @@ fail:
  * rendered to again.  It's intended to be used in response to window
  * resizes.
  */
-void fb_rebuild(fb_t *fb)
+void til_fb_rebuild(til_fb_t *fb)
 {
 	assert(fb);
 
@@ -382,7 +382,7 @@ void fb_rebuild(fb_t *fb)
 
 
 /* helpers for fragmenting incrementally */
-int fb_fragment_slice_single(const fb_fragment_t *fragment, unsigned n_fragments, unsigned number, fb_fragment_t *res_fragment)
+int til_fb_fragment_slice_single(const til_fb_fragment_t *fragment, unsigned n_fragments, unsigned number, til_fb_fragment_t *res_fragment)
 {
 	unsigned	slice = fragment->height / n_fragments;
 	unsigned	yoff = slice * number;
@@ -407,7 +407,7 @@ int fb_fragment_slice_single(const fb_fragment_t *fragment, unsigned n_fragments
 }
 
 
-int fb_fragment_tile_single(const fb_fragment_t *fragment, unsigned tile_size, unsigned number, fb_fragment_t *res_fragment)
+int til_fb_fragment_tile_single(const til_fb_fragment_t *fragment, unsigned tile_size, unsigned number, til_fb_fragment_t *res_fragment)
 {
 	unsigned	w = fragment->width / tile_size, h = fragment->height / tile_size;
 	unsigned	x, y, xoff, yoff;

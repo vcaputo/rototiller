@@ -4,8 +4,8 @@
 #include <stdlib.h>
 #include <errno.h>
 
-#include "fb.h"
-#include "settings.h"
+#include "til_fb.h"
+#include "til_settings.h"
 
 
 /* sdl fb backend, everything sdl-specific in rototiller resides here. */
@@ -26,60 +26,60 @@ struct sdl_fb_page_t {
 };
 
 
-static int sdl_fb_setup(const settings_t *settings, setting_desc_t **next_setting)
+static int sdl_fb_setup(const til_settings_t *settings, til_setting_desc_t **next_setting)
 {
-	const char		*fullscreen_values[] = {
-					"off",
-					"on",
-					NULL
-				};
-	const setting_desc_t	descs[] = {
-					{
-						.name = "SDL Fullscreen Mode",
-						.key = "fullscreen",
-						.regex = NULL,
-						.preferred = fullscreen_values[0],
-						.values = fullscreen_values,
-						.annotations = NULL
-					}, {
-						.name = "SDL Window size",
-						.key = "size",
-						.regex = "[1-9][0-9]*[xX][1-9][0-9]*",
-						.preferred = "640x480",
-						.values = NULL,
-						.annotations = NULL
-					},
-				};
-	const char		*fullscreen;
-	int			r;
+	const char			*fullscreen_values[] = {
+						"off",
+						"on",
+						NULL
+					};
+	const til_setting_desc_t	descs[] = {
+						{
+							.name = "SDL Fullscreen Mode",
+							.key = "fullscreen",
+							.regex = NULL,
+							.preferred = fullscreen_values[0],
+							.values = fullscreen_values,
+							.annotations = NULL
+						}, {
+							.name = "SDL Window size",
+							.key = "size",
+							.regex = "[1-9][0-9]*[xX][1-9][0-9]*",
+							.preferred = "640x480",
+							.values = NULL,
+							.annotations = NULL
+						},
+					};
+	const char			*fullscreen;
+	int				r;
 
 
-	fullscreen = settings_get_value(settings, "fullscreen");
+	fullscreen = til_settings_get_value(settings, "fullscreen");
 	if (!fullscreen) {
-		r = setting_desc_clone(&descs[0], next_setting);
+		r = til_setting_desc_clone(&descs[0], next_setting);
 		if (r < 0)
 			return r;
 
 		return 1;
 	}
 
-	r = setting_desc_check(&descs[0], fullscreen);
+	r = til_setting_desc_check(&descs[0], fullscreen);
 	if (r < 0)
 		return r;
 
 	if (!strcasecmp(fullscreen, "off")) {
 		const char	*size;
 
-		size = settings_get_value(settings, "size");
+		size = til_settings_get_value(settings, "size");
 		if (!size) {
-			r = setting_desc_clone(&descs[1], next_setting);
+			r = til_setting_desc_clone(&descs[1], next_setting);
 			if (r < 0)
 				return r;
 
 			return 1;
 		}
 
-		r = setting_desc_check(&descs[1], size);
+		r = til_setting_desc_check(&descs[1], size);
 		if (r < 0)
 			return r;
 	}
@@ -103,7 +103,7 @@ static int sdl_err_to_errno(int err)
 	}
 }
 
-static int sdl_fb_init(const settings_t *settings, void **res_context)
+static int sdl_fb_init(const til_settings_t *settings, void **res_context)
 {
 	const char	*fullscreen;
 	const char	*size;
@@ -113,11 +113,11 @@ static int sdl_fb_init(const settings_t *settings, void **res_context)
 	assert(settings);
 	assert(res_context);
 
-	fullscreen = settings_get_value(settings, "fullscreen");
+	fullscreen = til_settings_get_value(settings, "fullscreen");
 	if (!fullscreen)
 		return -EINVAL;
 
-	size = settings_get_value(settings, "size");
+	size = til_settings_get_value(settings, "size");
 	if (!size && !strcasecmp(fullscreen, "off"))
 		return -EINVAL;
 
@@ -162,7 +162,7 @@ static int sdl_fb_init(const settings_t *settings, void **res_context)
 }
 
 
-static void sdl_fb_shutdown(fb_t *fb, void *context)
+static void sdl_fb_shutdown(til_fb_t *fb, void *context)
 {
 	sdl_fb_t	*c = context;
 
@@ -171,7 +171,7 @@ static void sdl_fb_shutdown(fb_t *fb, void *context)
 }
 
 
-static int sdl_fb_acquire(fb_t *fb, void *context, void *page)
+static int sdl_fb_acquire(til_fb_t *fb, void *context, void *page)
 {
 	sdl_fb_t	*c = context;
 	sdl_fb_page_t	*p = page;
@@ -192,7 +192,7 @@ static int sdl_fb_acquire(fb_t *fb, void *context, void *page)
 }
 
 
-static void sdl_fb_release(fb_t *fb, void *context)
+static void sdl_fb_release(til_fb_t *fb, void *context)
 {
 	sdl_fb_t	*c = context;
 
@@ -202,7 +202,7 @@ static void sdl_fb_release(fb_t *fb, void *context)
 }
 
 
-static void * sdl_fb_page_alloc(fb_t *fb, void *context, fb_page_t *res_page)
+static void * sdl_fb_page_alloc(til_fb_t *fb, void *context, til_fb_page_t *res_page)
 {
 	sdl_fb_t	*c = context;
 	sdl_fb_page_t	*p;
@@ -225,7 +225,7 @@ static void * sdl_fb_page_alloc(fb_t *fb, void *context, fb_page_t *res_page)
 }
 
 
-static int sdl_fb_page_free(fb_t *fb, void *context, void *page)
+static int sdl_fb_page_free(til_fb_t *fb, void *context, void *page)
 {
 	sdl_fb_t	*c = context;
 	sdl_fb_page_t	*p = page;
@@ -253,7 +253,7 @@ static int sdl_ready()
 }
 
 
-static int sdl_fb_page_flip(fb_t *fb, void *context, void *page)
+static int sdl_fb_page_flip(til_fb_t *fb, void *context, void *page)
 {
 	sdl_fb_t	*c = context;
 	sdl_fb_page_t	*p = page;
@@ -278,7 +278,7 @@ static int sdl_fb_page_flip(fb_t *fb, void *context, void *page)
 }
 
 
-fb_ops_t sdl_fb_ops = {
+til_fb_ops_t sdl_fb_ops = {
 	.setup = sdl_fb_setup,
 	.init = sdl_fb_init,
 	.shutdown = sdl_fb_shutdown,

@@ -1,11 +1,11 @@
 #include <assert.h>
 #include <stdio.h>
 
-#include "settings.h"
-#include "util.h"
+#include "til_settings.h"
+#include "til_util.h"
 
 /* add key=value, but if key is NULL, use value as key. */
-static int add_value(settings_t *settings, const char *key, const char *value)
+static int add_value(til_settings_t *settings, const char *key, const char *value)
 {
 	assert(settings);
 
@@ -16,17 +16,17 @@ static int add_value(settings_t *settings, const char *key, const char *value)
 
 	assert(key);
 
-	return settings_add_value(settings, key, value);
+	return til_settings_add_value(settings, key, value);
 }
 
 
 /* returns negative on error, otherwise number of additions made to settings */
-int setup_interactively(settings_t *settings, int (*setup_func)(settings_t *settings, setting_desc_t **next), int defaults)
+int setup_interactively(til_settings_t *settings, int (*setup_func)(til_settings_t *settings, til_setting_desc_t **next), int defaults)
 {
-	unsigned	additions = 0;
-	char		buf[256] = "\n";
-	setting_desc_t	*next;
-	int		r;
+	unsigned		additions = 0;
+	char			buf[256] = "\n";
+	til_setting_desc_t	*next;
+	int			r;
 
 	assert(settings);
 	assert(setup_func);
@@ -117,7 +117,7 @@ int setup_interactively(settings_t *settings, int (*setup_func)(settings_t *sett
 		}
 
 _next:
-		setting_desc_free(next);
+		til_setting_desc_free(next);
 	}
 
 	return r < 0 ? r : additions;

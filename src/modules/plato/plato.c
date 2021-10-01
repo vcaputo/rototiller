@@ -44,8 +44,8 @@
 #include <unistd.h>
 #include <math.h>
 
-#include "fb.h"
-#include "rototiller.h"
+#include "til.h"
+#include "til_fb.h"
 
 
 typedef struct plato_context_t {
@@ -546,7 +546,7 @@ static inline uint32_t color_to_uint32(v3f_t color) {
 }
 
 
-static void draw_line(fb_fragment_t *fragment, int x1, int y1, int x2, int y2)
+static void draw_line(til_fb_fragment_t *fragment, int x1, int y1, int x2, int y2)
 {
 	int	x_delta = x2 - x1;
 	int	y_delta = y2 - y1;
@@ -564,7 +564,7 @@ static void draw_line(fb_fragment_t *fragment, int x1, int y1, int x2, int y2)
 				minor -= x_delta;
 			}
 
-			fb_fragment_put_pixel_checked(fragment, x1, y1, 0xffffffff);
+			til_fb_fragment_put_pixel_checked(fragment, x1, y1, 0xffffffff);
 		}
 	} else {
 		/* Y-major */
@@ -574,14 +574,14 @@ static void draw_line(fb_fragment_t *fragment, int x1, int y1, int x2, int y2)
 				minor -= y_delta;
 			}
 
-			fb_fragment_put_pixel_checked(fragment, x1, y1, 0xffffffff);
+			til_fb_fragment_put_pixel_checked(fragment, x1, y1, 0xffffffff);
 		}
 	}
 }
 
 #define ZCONST	3.f
 
-static void draw_polyhedron(const polyhedron_t *polyhedron, m4f_t *transform, fb_fragment_t *fragment)
+static void draw_polyhedron(const polyhedron_t *polyhedron, m4f_t *transform, til_fb_fragment_t *fragment)
 {
 	unsigned	n_faces = polyhedron->edge_cnt - polyhedron->vertex_cnt + 2;	// https://en.wikipedia.org/wiki/Euler%27s_polyhedron_formula
 	unsigned	n_verts_per_face = polyhedron->n_vertices / n_faces;
@@ -631,12 +631,12 @@ static void plato_destroy_context(void *context)
 }
 
 
-static void plato_render_fragment(void *context, unsigned ticks, unsigned cpu, fb_fragment_t *fragment)
+static void plato_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
 	plato_context_t	*ctxt = context;
 
 	ctxt->r += .015f;
-	fb_fragment_zero(fragment);
+	til_fb_fragment_zero(fragment);
 
 	for (int i = 0; i < sizeof(polyhedra) / sizeof(*polyhedra); i++) {
 		m4f_t	transform;
@@ -667,7 +667,7 @@ static void plato_render_fragment(void *context, unsigned ticks, unsigned cpu, f
 }
 
 
-rototiller_module_t	plato_module = {
+til_module_t	plato_module = {
 	.create_context = plato_create_context,
 	.destroy_context = plato_destroy_context,
 	.render_fragment = plato_render_fragment,

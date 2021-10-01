@@ -1,5 +1,5 @@
-#ifndef _KNOBS_H
-#define _KNOBS_H
+#ifndef _TIL_KNOBS_H
+#define _TIL_KNOBS_H
 
 #include <assert.h>
 
@@ -33,7 +33,7 @@
  * to get external and internal manipulators to agree on which
  * side owns control via the managed field.
  */
-typedef struct knob_t {
+typedef struct til_knob_t {
 	const char	*name;		/* Short API-oriented name */
 	const char	*desc;		/* Longer UI-oriented name */
 	const float	min, max;	/* Value bounds */
@@ -41,14 +41,14 @@ typedef struct knob_t {
 	unsigned	managed:1;	/* Set when knob control of value is active,
 					 * suppress automagic control of value when set.
 					 */
-} knob_t;
+} til_knob_t;
 
 
 /* helper for modules automating knob controls, use this to
  * change values intead of direct manipulation to respect active.
  * returns new (or unchanged) value
  */
-static inline float knob_auto_set(knob_t *knob, float value)
+static inline float til_knob_auto_set(til_knob_t *knob, float value)
 {
 	assert(knob);
 
@@ -60,18 +60,18 @@ static inline float knob_auto_set(knob_t *knob, float value)
 
 /* identical to knob_auto_set, except adds to existing value.
  */
-static inline float knob_auto_add(knob_t *knob, float value)
+static inline float til_knob_auto_add(til_knob_t *knob, float value)
 {
 	assert(knob);
 
-	return knob_auto_set(knob, knob->value + value);
+	return til_knob_auto_set(knob, knob->value + value);
 }
 
 
 /* identical to knob_auto* variants, except intended for
  * external knob-twisters, i.e. the "managed" knob entrypoints.
  */
-static inline float knob_set(knob_t *knob, float value)
+static inline float til_knob_set(til_knob_t *knob, float value)
 {
 	assert(knob);
 
@@ -81,11 +81,11 @@ static inline float knob_set(knob_t *knob, float value)
 }
 
 
-static inline float knob_add(knob_t *knob, float value)
+static inline float til_knob_add(til_knob_t *knob, float value)
 {
 	assert(knob);
 
-	return knob_set(knob, knob->value + value);
+	return til_knob_set(knob, knob->value + value);
 }
 
 #endif

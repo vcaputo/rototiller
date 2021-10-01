@@ -1,8 +1,9 @@
 #ifndef _PARTICLE_H
 #define _PARTICLE_H
 
+#include "til_fb.h"
+
 #include "bsp.h"
-#include "fb.h"
 #include "v3f.h"
 
 typedef struct particle_props_t {
@@ -28,8 +29,8 @@ typedef struct particle_ops_t {
 	unsigned		context_size;								/* size of the particle context (0 for none) */
 	int			(*init)(particles_t *, const particles_conf_t *, particle_t *);					/* initialize the particle, called after allocating context (optional) */
 	void			(*cleanup)(particles_t *, const particles_conf_t *, particle_t *);				/* cleanup function, called before freeing context (optional) */
-	particle_status_t	(*sim)(particles_t *, const particles_conf_t *, particle_t *, fb_fragment_t *);			/* simulate the particle for another cycle (required) */
-	void			(*draw)(particles_t *, const particles_conf_t *, particle_t *, int, int, fb_fragment_t *);	/* draw the particle, 3d->2d projection has been done already (optional) */
+	particle_status_t	(*sim)(particles_t *, const particles_conf_t *, particle_t *, til_fb_fragment_t *);			/* simulate the particle for another cycle (required) */
+	void			(*draw)(particles_t *, const particles_conf_t *, particle_t *, int, int, til_fb_fragment_t *);	/* draw the particle, 3d->2d projection has been done already (optional) */
 } particle_ops_t;
 
 struct particle_t {
@@ -68,12 +69,12 @@ static inline void particle_cleanup(particles_t *particles, const particles_conf
  * example is true, then sim may draw into fragment, and the callers shouldn't zero the fragment between sim and draw but
  * instead should zero it before sim.  It's kind of janky, not a fan.
  */
-static inline particle_status_t particle_sim(particles_t *particles, const particles_conf_t *conf, particle_t *p, fb_fragment_t *f) {
+static inline particle_status_t particle_sim(particles_t *particles, const particles_conf_t *conf, particle_t *p, til_fb_fragment_t *f) {
 	return p->ops->sim(particles, conf, p, f);
 }
 
 
-static inline void particle_draw(particles_t *particles, const particles_conf_t *conf, particle_t *p, int x, int y, fb_fragment_t *f) {
+static inline void particle_draw(particles_t *particles, const particles_conf_t *conf, particle_t *p, int x, int y, til_fb_fragment_t *f) {
 	if (p->ops->draw) {
 		p->ops->draw(particles, conf, p, x, y, f);
 	}

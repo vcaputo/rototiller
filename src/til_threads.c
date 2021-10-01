@@ -2,18 +2,18 @@
 #include <pthread.h>
 #include <stdlib.h>
 
-#include "fb.h"
-#include "rototiller.h"
-#include "threads.h"
-#include "util.h"
+#include "til.h"
+#include "til_fb.h"
+#include "til_threads.h"
+#include "til_util.h"
 
-typedef struct thread_t {
-	threads_t	*threads;
+typedef struct til_thread_t {
+	til_threads_t	*threads;
 	pthread_t	pthread;
 	unsigned	id;
-} thread_t;
+} til_thread_t;
 
-typedef struct threads_t {
+typedef struct til_threads_t {
 	unsigned		n_threads;
 
 	pthread_mutex_t		idle_mutex;
@@ -22,24 +22,24 @@ typedef struct threads_t {
 
 	pthread_mutex_t		frame_mutex;
 	pthread_cond_t		frame_cond;
-	void			(*render_fragment_func)(void *context, unsigned ticks, unsigned cpu, fb_fragment_t *fragment);
+	void			(*render_fragment_func)(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment);
 	void			*context;
-	fb_fragment_t		*fragment;
-	rototiller_fragmenter_t	fragmenter;
+	til_fb_fragment_t	*fragment;
+	til_fragmenter_t	fragmenter;
 	unsigned		ticks;
 
 	unsigned		next_fragment;
 	unsigned		frame_num;
 
-	thread_t		threads[];
-} threads_t;
+	til_thread_t		threads[];
+} til_threads_t;
 
 
 /* render fragments using the supplied render function */
 static void * thread_func(void *_thread)
 {
-	thread_t	*thread = _thread;
-	threads_t	*threads = thread->threads;
+	til_thread_t	*thread = _thread;
+	til_threads_t	*threads = thread->threads;
 	unsigned	prev_frame_num = 0;
 
 	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
@@ -56,8 +56,8 @@ static void * thread_func(void *_thread)
 
 		/* render fragments */
 		for (;;) {
-			unsigned	frag_num;
-			fb_fragment_t	fragment;
+			unsigned		frag_num;
+			til_fb_fragment_t	fragment;
 
 			frag_num = __sync_fetch_and_add(&threads->next_fragment, 1);
 
@@ -81,7 +81,7 @@ static void * thread_func(void *_thread)
 
 
 /* wait for all threads to be idle */
-void threads_wait_idle(threads_t *threads)
+void til_threads_wait_idle(til_threads_t *threads)
 {
 	pthread_mutex_lock(&threads->idle_mutex);
 	pthread_cleanup_push((void (*)(void *))pthread_mutex_unlock, &threads->idle_mutex);
@@ -92,9 +92,9 @@ void threads_wait_idle(threads_t *threads)
 
 
 /* submit a frame's fragments to the threads */
-void threads_frame_submit(threads_t *threads, fb_fragment_t *fragment, rototiller_fragmenter_t fragmenter, void (*render_fragment_func)(void *context, unsigned ticks, unsigned cpu, fb_fragment_t *fragment), void *context, unsigned ticks)
+void til_threads_frame_submit(til_threads_t *threads, til_fb_fragment_t *fragment, til_fragmenter_t fragmenter, void (*render_fragment_func)(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment), void *context, unsigned ticks)
 {
-	threads_wait_idle(threads);	/* XXX: likely non-blocking; already happens pre page flip */
+	til_threads_wait_idle(threads);	/* XXX: likely non-blocking; already happens pre page flip */
 
 	pthread_mutex_lock(&threads->frame_mutex);
 	pthread_cleanup_push((void (*)(void *))pthread_mutex_unlock, &threads->frame_mutex);
@@ -111,12 +111,12 @@ void threads_frame_submit(threads_t *threads, fb_fragment_t *fragment, rototille
 
 
 /* create threads instance, a thread per cpu is created */
-threads_t * threads_create(void)
+til_threads_t * til_threads_create(void)
 {
-	unsigned	i, num = get_ncpus();
-	threads_t	*threads;
+	unsigned	num = til_get_ncpus();
+	til_threads_t	*threads;
 
-	threads = calloc(1, sizeof(threads_t) + sizeof(thread_t) * num);
+	threads = calloc(1, sizeof(til_threads_t) + sizeof(til_thread_t) * num);
 	if (!threads)
 		return NULL;
 
@@ -128,8 +128,8 @@ threads_t * threads_create(void)
 	pthread_mutex_init(&threads->frame_mutex, NULL);
 	pthread_cond_init(&threads->frame_cond, NULL);
 
-	for (i = 0; i < num; i++) {
-		thread_t	*thread = &threads->threads[i];
+	for (unsigned i = 0; i < num; i++) {
+		til_thread_t	*thread = &threads->threads[i];
 
 		thread->threads = threads;
 		thread->id = i;
@@ -141,14 +141,12 @@ threads_t * threads_create(void)
 
 
 /* destroy a threads instance */
-void threads_destroy(threads_t *threads)
+void til_threads_destroy(til_threads_t *threads)
 {
-	unsigned	i;
-
-	for (i = 0; i < threads->n_threads; i++)
+	for (unsigned i = 0; i < threads->n_threads; i++)
 		pthread_cancel(threads->threads[i].pthread);
 
-	for (i = 0; i < threads->n_threads; i++)
+	for (unsigned i = 0; i < threads->n_threads; i++)
 		pthread_join(threads->threads[i].pthread, NULL);
 
 	pthread_mutex_destroy(&threads->idle_mutex);
@@ -162,7 +160,7 @@ void threads_destroy(threads_t *threads)
 
 
 /* return the number of threads */
-unsigned threads_num_threads(threads_t *threads)
+unsigned til_threads_num_threads(til_threads_t *threads)
 {
 	return threads->n_threads;
 }

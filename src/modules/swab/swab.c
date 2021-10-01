@@ -21,11 +21,11 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "din/din.h"
+#include "til.h"
+#include "til_fb.h"
+#include "til_util.h"
 
-#include "fb.h"
-#include "rototiller.h"
-#include "util.h"
+#include "din/din.h"
 
 
 typedef struct swab_context_t {
@@ -92,15 +92,15 @@ static void swab_destroy_context(void *context)
 }
 
 
-static int swab_fragmenter(void *context, const fb_fragment_t *fragment, unsigned number, fb_fragment_t *res_fragment)
+static int swab_fragmenter(void *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
 {
 	swab_context_t	*ctxt = context;
 
-	return fb_fragment_slice_single(fragment, ctxt->n_cpus, number, res_fragment);
+	return til_fb_fragment_slice_single(fragment, ctxt->n_cpus, number, res_fragment);
 }
 
 
-static void swab_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
+static void swab_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
 {
 	swab_context_t	*ctxt = context;
 
@@ -111,7 +111,7 @@ static void swab_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, f
 }
 
 
-static void swab_render_fragment(void *context, unsigned ticks, unsigned cpu, fb_fragment_t *fragment)
+static void swab_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
 	swab_context_t	*ctxt = context;
 	float		cos_r = cos(ctxt->r);
@@ -134,13 +134,13 @@ static void swab_render_fragment(void *context, unsigned ticks, unsigned cpu, fb
 			color.b = din(ctxt->din, &(v3f_t){ .x = (float)x * xscale * .81f, .y = (float)y * yscale * .81f, .z = z2 }) * t;
 
 			pixel = color_to_uint32(color);
-			fb_fragment_put_pixel_unchecked(fragment, x, y, pixel);
+			til_fb_fragment_put_pixel_unchecked(fragment, x, y, pixel);
 		}
 	}
 }
 
 
-rototiller_module_t	swab_module = {
+til_module_t	swab_module = {
 	.create_context = swab_create_context,
 	.destroy_context = swab_destroy_context,
 	.prepare_frame = swab_prepare_frame,

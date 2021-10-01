@@ -2,7 +2,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 
-#include "fb.h"
+#include "til_fb.h"
 
 #include "ascii/ascii.h"
 #include "txt.h"
@@ -153,19 +153,19 @@ static int overlaps(int x1, int y1, unsigned w1, unsigned h1, int x2, int y2, un
 }
 
 
-static inline void draw_char(fb_fragment_t *fragment, uint32_t color, int x, int y, char c)
+static inline void draw_char(til_fb_fragment_t *fragment, uint32_t color, int x, int y, char c)
 {
 	/* TODO: this could be optimized to skip characters with no overlap */
 	for (int i = 0; i < ASCII_HEIGHT; i++) {
 		for (int j = 0; j < ASCII_WIDTH; j++) {
 			if (ascii_chars[c][i * ASCII_WIDTH + j])
-				fb_fragment_put_pixel_checked(fragment, x + j, y + i, color);
+				til_fb_fragment_put_pixel_checked(fragment, x + j, y + i, color);
 		}
 	}
 }
 
 
-void txt_render_fragment(txt_t *txt, fb_fragment_t *fragment, uint32_t color, int x, int y, txt_align_t alignment)
+void txt_render_fragment(txt_t *txt, til_fb_fragment_t *fragment, uint32_t color, int x, int y, txt_align_t alignment)
 {
 	int	jx, jy, col, row;
 	char	c, *str;

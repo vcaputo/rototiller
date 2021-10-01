@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "fb.h"
-#include "rototiller.h"
+#include "til.h"
+#include "til_fb.h"
 
 /* Copyright (C) 2019 - Vito Caputo <vcaputo@pengaru.com> */
 
@@ -43,21 +43,21 @@ static void snow_destroy_context(void *context)
 }
 
 
-static int snow_fragmenter(void *context, const fb_fragment_t *fragment, unsigned number, fb_fragment_t *res_fragment)
+static int snow_fragmenter(void *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
 {
 	snow_context_t	*ctxt = context;
 
-	return fb_fragment_slice_single(fragment, ctxt->n_cpus, number, res_fragment);
+	return til_fb_fragment_slice_single(fragment, ctxt->n_cpus, number, res_fragment);
 }
 
 
-static void snow_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
+static void snow_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
 {
 	*res_fragmenter = snow_fragmenter;
 }
 
 
-static void snow_render_fragment(void *context, unsigned ticks, unsigned cpu, fb_fragment_t *fragment)
+static void snow_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
 	snow_context_t	*ctxt = context;
 	int		*seed = &ctxt->seeds[cpu].seed;
@@ -70,13 +70,13 @@ static void snow_render_fragment(void *context, unsigned ticks, unsigned cpu, fb
 			uint32_t	pixel = rand_r(seed) % 256;
 #endif
 
-			fb_fragment_put_pixel_unchecked(fragment, x, y, pixel << 16 | pixel << 8 | pixel);
+			til_fb_fragment_put_pixel_unchecked(fragment, x, y, pixel << 16 | pixel << 8 | pixel);
 		}
 	}
 }
 
 
-rototiller_module_t	snow_module = {
+til_module_t	snow_module = {
 	.create_context = snow_create_context,
 	.destroy_context = snow_destroy_context,
 	.prepare_frame = snow_prepare_frame,

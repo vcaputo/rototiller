@@ -7,10 +7,11 @@
 #include <unistd.h>
 #include <math.h>
 
+#include "til.h"
+#include "til_fb.h"
+#include "til_settings.h"
+
 #include "draw.h"
-#include "fb.h"
-#include "rototiller.h"
-#include "settings.h"
 
 /* Copyright (C) 2017-20 Philip J. Freeman <elektron@halo.nu> */
 
@@ -94,7 +95,7 @@ static void stars_destroy_context(void *context)
 }
 
 
-static void stars_render_fragment(void *context, unsigned ticks, unsigned cpu, fb_fragment_t *fragment)
+static void stars_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
 	stars_context_t	*ctxt = context;
 	struct points* iterator;
@@ -113,7 +114,7 @@ static void stars_render_fragment(void *context, unsigned ticks, unsigned cpu, f
 
 	max_radius=1.f+((width+height)*.001f);
 
-	fb_fragment_zero(fragment);
+	til_fb_fragment_zero(fragment);
 
 	iterator=ctxt->points;
 	for(;;)
@@ -147,7 +148,7 @@ static void stars_render_fragment(void *context, unsigned ticks, unsigned cpu, f
 			opacity = 1;
 
 		if (pos_x>0 && pos_x<width && pos_y>0 && pos_y<height)
-			fb_fragment_put_pixel_unchecked(fragment, pos_x, pos_y,
+			til_fb_fragment_put_pixel_unchecked(fragment, pos_x, pos_y,
 				makergb(0xFF, 0xFF, 0xFF, opacity));
 
 		for(int my_y=floorf(pos_y-max_radius); my_y<=(int)ceilf(pos_y+max_radius); my_y++)
@@ -162,7 +163,7 @@ static void stars_render_fragment(void *context, unsigned ticks, unsigned cpu, f
 				continue;
 
 
-			fb_fragment_put_pixel_unchecked(fragment, my_x, my_y,
+			til_fb_fragment_put_pixel_unchecked(fragment, my_x, my_y,
 				makergb(0xFF, 0xFF, 0xFF, opacity));
 
 		}
@@ -200,7 +201,7 @@ static void stars_render_fragment(void *context, unsigned ticks, unsigned cpu, f
 	ctxt->offset_y = tmp_y;
 }
 
-int stars_setup(const settings_t *settings, setting_desc_t **next_setting)
+int stars_setup(const til_settings_t *settings, til_setting_desc_t **next_setting)
 {
 	const char	*rot_adj;
 	const char      *rot_adj_values[] = {
@@ -213,15 +214,15 @@ int stars_setup(const settings_t *settings, setting_desc_t **next_setting)
 				NULL
 			};
 
-	rot_adj = settings_get_value(settings, "rot_adj");
+	rot_adj = til_settings_get_value(settings, "rot_adj");
 	if(!rot_adj) {
 		int ret_val;
 
-		ret_val = setting_desc_clone(&(setting_desc_t){
+		ret_val = til_setting_desc_clone(&(til_setting_desc_t){
 							.name = "Rotation Rate",
 							.key = "rot_adj",
 							.regex = "\\.[0-9]+",
-							.preferred = SETTINGS_STR(DEFAULT_ROT_ADJ),
+							.preferred = TIL_SETTINGS_STR(DEFAULT_ROT_ADJ),
 							.values = rot_adj_values,
 							.annotations = NULL
 						}, next_setting);
@@ -236,7 +237,7 @@ int stars_setup(const settings_t *settings, setting_desc_t **next_setting)
 	return 0;
 }
 
-rototiller_module_t	stars_module = {
+til_module_t	stars_module = {
 	.create_context  = stars_create_context,
 	.destroy_context = stars_destroy_context,
 	.render_fragment = stars_render_fragment,

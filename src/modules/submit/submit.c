@@ -20,10 +20,10 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "fb.h"
-#include "rototiller.h"
-#include "settings.h"
-#include "util.h"
+#include "til.h"
+#include "til_fb.h"
+#include "til_settings.h"
+#include "til_util.h"
 
 #include "grid/grid.h"
 
@@ -185,7 +185,7 @@ static inline uint32_t sample_grid(submit_context_t *ctxt, float x, float y)
 }
 
 
-static void draw_grid(submit_context_t *ctxt, fb_fragment_t *fragment)
+static void draw_grid(submit_context_t *ctxt, til_fb_fragment_t *fragment)
 {
 	float	xscale = ((float)GRID_SIZE - 1.f) / (float)fragment->frame_width;
 	float	yscale = ((float)GRID_SIZE - 1.f) / (float)fragment->frame_height;
@@ -196,13 +196,13 @@ static void draw_grid(submit_context_t *ctxt, fb_fragment_t *fragment)
 
 			/* TODO: this could be optimized a bit! i.e. don't recompute the y for every x etc. */
 			color = sample_grid(ctxt, .5f + ((float)(fragment->x + x)) * xscale, .5f + ((float)(fragment->y + y)) * yscale);
-			fb_fragment_put_pixel_unchecked(fragment, fragment->x + x, fragment->y + y, color);
+			til_fb_fragment_put_pixel_unchecked(fragment, fragment->x + x, fragment->y + y, color);
 		}
 	}
 }
 
 
-static void draw_grid_bilerp(submit_context_t *ctxt, fb_fragment_t *fragment)
+static void draw_grid_bilerp(submit_context_t *ctxt, til_fb_fragment_t *fragment)
 {
 	float	xscale = ((float)GRID_SIZE - 1.f) / (float)fragment->frame_width;
 	float	yscale = ((float)GRID_SIZE - 1.f) / (float)fragment->frame_height;
@@ -213,7 +213,7 @@ static void draw_grid_bilerp(submit_context_t *ctxt, fb_fragment_t *fragment)
 
 			/* TODO: this could be optimized a bit! i.e. don't recompute the y for every x etc. */
 			color = sample_grid_bilerp(ctxt, .5f + ((float)(fragment->x + x)) * xscale, .5f + ((float)(fragment->y + y)) * yscale);
-			fb_fragment_put_pixel_unchecked(fragment, fragment->x + x, fragment->y + y, color);
+			til_fb_fragment_put_pixel_unchecked(fragment, fragment->x + x, fragment->y + y, color);
 		}
 	}
 }
@@ -284,13 +284,13 @@ static void submit_destroy_context(void *context)
 }
 
 
-static int submit_fragmenter(void *context, const fb_fragment_t *fragment, unsigned number, fb_fragment_t *res_fragment)
+static int submit_fragmenter(void *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
 {
-	return fb_fragment_tile_single(fragment, 32, number, res_fragment);
+	return til_fb_fragment_tile_single(fragment, 32, number, res_fragment);
 }
 
 
-static void submit_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
+static void submit_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
 {
 	submit_context_t	*ctxt = context;
 
@@ -311,7 +311,7 @@ static void submit_prepare_frame(void *context, unsigned ticks, unsigned n_cpus,
 }
 
 
-static void submit_render_fragment(void *context, unsigned ticks, unsigned cpu, fb_fragment_t *fragment)
+static void submit_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
 	submit_context_t	*ctxt = context;
 
@@ -322,11 +322,11 @@ static void submit_render_fragment(void *context, unsigned ticks, unsigned cpu, 
 }
 
 
-static int submit_setup(const settings_t *settings, setting_desc_t **next_setting)
+static int submit_setup(const til_settings_t *settings, til_setting_desc_t **next_setting)
 {
 	const char	*bilerp;
 
-	bilerp = settings_get_value(settings, "bilerp");
+	bilerp = til_settings_get_value(settings, "bilerp");
 	if (!bilerp) {
 		const char	*values[] = {
 					"off",
@@ -335,7 +335,7 @@ static int submit_setup(const settings_t *settings, setting_desc_t **next_settin
 				};
 		int		r;
 
-		r = setting_desc_clone(&(setting_desc_t){
+		r = til_setting_desc_clone(&(til_setting_desc_t){
 						.name = "Bilinear Interpolation of Cell Colors",
 						.key = "bilerp",
 						.regex = NULL,
@@ -358,7 +358,7 @@ static int submit_setup(const settings_t *settings, setting_desc_t **next_settin
 }
 
 
-rototiller_module_t	submit_module = {
+til_module_t	submit_module = {
 	.create_context = submit_create_context,
 	.destroy_context = submit_destroy_context,
 	.prepare_frame = submit_prepare_frame,

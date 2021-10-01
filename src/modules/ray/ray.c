@@ -2,9 +2,9 @@
 #include <inttypes.h>
 #include <math.h>
 
-#include "fb.h"
-#include "rototiller.h"
-#include "util.h"
+#include "til.h"
+#include "til_fb.h"
+#include "til_util.h"
 
 #include "ray/ray_camera.h"
 #include "ray/ray_object.h"
@@ -142,14 +142,14 @@ static void ray_destroy_context(void *context)
 }
 
 
-static int ray_fragmenter(void *context, const fb_fragment_t *fragment, unsigned number, fb_fragment_t *res_fragment)
+static int ray_fragmenter(void *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
 {
-	return fb_fragment_tile_single(fragment, 64, number, res_fragment);
+	return til_fb_fragment_tile_single(fragment, 64, number, res_fragment);
 }
 
 
 /* prepare a frame for concurrent rendering */
-static void ray_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
+static void ray_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
 {
 	ray_context_t	*ctxt = context;
 
@@ -181,7 +181,7 @@ static void ray_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, fb
 
 
 /* ray trace a simple scene into the fragment */
-static void ray_render_fragment(void *context, unsigned ticks, unsigned cpu, fb_fragment_t *fragment)
+static void ray_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
 	ray_context_t	*ctxt = context;
 
@@ -189,7 +189,7 @@ static void ray_render_fragment(void *context, unsigned ticks, unsigned cpu, fb_
 }
 
 
-static void ray_finish_frame(void *context, unsigned ticks, fb_fragment_t *fragment)
+static void ray_finish_frame(void *context, unsigned ticks, til_fb_fragment_t *fragment)
 {
 	ray_context_t	*ctxt = context;
 
@@ -197,7 +197,7 @@ static void ray_finish_frame(void *context, unsigned ticks, fb_fragment_t *fragm
 }
 
 
-rototiller_module_t	ray_module = {
+til_module_t	ray_module = {
 	.create_context = ray_create_context,
 	.destroy_context = ray_destroy_context,
 	.prepare_frame = ray_prepare_frame,

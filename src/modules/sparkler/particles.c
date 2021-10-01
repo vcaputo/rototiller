@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "fb.h"
+#include "til_fb.h"
 
 #include "chunker.h"
 #include "container.h"
@@ -221,7 +221,7 @@ bsp_t * particles_bsp(particles_t *particles)
 }
 
 
-static inline void _particles_draw(particles_t *particles, list_head_t *list, fb_fragment_t *fragment)
+static inline void _particles_draw(particles_t *particles, list_head_t *list, til_fb_fragment_t *fragment)
 {
 	float		w2 = fragment->frame_width * .5f, h2 = fragment->frame_height * .5f;
 	_particle_t	*p;
@@ -247,7 +247,7 @@ static inline void _particles_draw(particles_t *particles, list_head_t *list, fb
 
 
 /* TODO: maybe polish up and move into fb.c? */
-static void draw_line(fb_fragment_t *fragment, int x1, int y1, int x2, int y2)
+static void draw_line(til_fb_fragment_t *fragment, int x1, int y1, int x2, int y2)
 {
 	int	x_delta = x2 - x1;
 	int	y_delta = y2 - y1;
@@ -265,7 +265,7 @@ static void draw_line(fb_fragment_t *fragment, int x1, int y1, int x2, int y2)
 				minor -= x_delta;
 			}
 
-			fb_fragment_put_pixel_checked(fragment, x1, y1, 0xffffffff);
+			til_fb_fragment_put_pixel_checked(fragment, x1, y1, 0xffffffff);
 		}
 	} else {
 		/* Y-major */
@@ -275,13 +275,13 @@ static void draw_line(fb_fragment_t *fragment, int x1, int y1, int x2, int y2)
 				minor -= y_delta;
 			}
 
-			fb_fragment_put_pixel_checked(fragment, x1, y1, 0xffffffff);
+			til_fb_fragment_put_pixel_checked(fragment, x1, y1, 0xffffffff);
 		}
 	}
 }
 
 
-static void draw_edge(fb_fragment_t *fragment, const v3f_t *a, const v3f_t *b)
+static void draw_edge(til_fb_fragment_t *fragment, const v3f_t *a, const v3f_t *b)
 {
 	float	w2 = fragment->frame_width * .5f, h2 = fragment->frame_height * .5f;
 	int	x1, y1, x2, y2;
@@ -296,7 +296,7 @@ static void draw_edge(fb_fragment_t *fragment, const v3f_t *a, const v3f_t *b)
 }
 
 
-static void draw_bv(fb_fragment_t *fragment, const v3f_t *bv_min, const v3f_t *bv_max)
+static void draw_bv(til_fb_fragment_t *fragment, const v3f_t *bv_min, const v3f_t *bv_max)
 {
 	draw_edge(fragment,
 		&(v3f_t){bv_min->x, bv_max->y, bv_min->z},
@@ -339,8 +339,8 @@ static void draw_bv(fb_fragment_t *fragment, const v3f_t *bv_min, const v3f_t *b
 
 /* something to encapsulate these pointers for passing through as one to draw_leaf() */
 typedef struct draw_leafs_t {
-	particles_t	*particles;
-	fb_fragment_t	*fragment;
+	particles_t		*particles;
+	til_fb_fragment_t	*fragment;
 } draw_leafs_t;
 
 
@@ -360,7 +360,7 @@ static void draw_leaf(const bsp_t *bsp, const list_head_t *occupants, unsigned d
 
 
 /* draw all of the particles, currently called in heirarchical order */
-void particles_draw(particles_t *particles, fb_fragment_t *fragment)
+void particles_draw(particles_t *particles, til_fb_fragment_t *fragment)
 {
 	draw_leafs_t	draw = { .particles = particles, .fragment = fragment };
 
@@ -373,7 +373,7 @@ void particles_draw(particles_t *particles, fb_fragment_t *fragment)
 }
 
 
-static inline particle_status_t _particles_sim(particles_t *particles, list_head_t *list, fb_fragment_t *fragment)
+static inline particle_status_t _particles_sim(particles_t *particles, list_head_t *list, til_fb_fragment_t *fragment)
 {
 	particle_status_t	ret = PARTICLE_DEAD, s;
 	_particle_t		*p, *_p;
@@ -400,7 +400,7 @@ static inline particle_status_t _particles_sim(particles_t *particles, list_head
 
 /* simulate the particles, call the sim method of every particle in the heirarchy, this is what makes the particles dynamic */
 /* if any paticle is still living, we return PARTICLE_ALIVE, to inform the caller when everything's dead */
-particle_status_t particles_sim(particles_t *particles, fb_fragment_t *fragment)
+particle_status_t particles_sim(particles_t *particles, til_fb_fragment_t *fragment)
 {
 	assert(particles);
 
@@ -480,7 +480,7 @@ void particles_age(particles_t *particles)
 /* draw a line expressed in world-space positions a to b into fragment, this is intended for
  * instrumentation/overlay debugging type purposes...
  */
-void particles_draw_line(particles_t *particles, const v3f_t *a, const v3f_t *b, fb_fragment_t *fragment)
+void particles_draw_line(particles_t *particles, const v3f_t *a, const v3f_t *b, til_fb_fragment_t *fragment)
 {
 	float	w2 = fragment->frame_width * .5f, h2 = fragment->frame_height * .5f;
 	int	x1, y1, x2, y2;

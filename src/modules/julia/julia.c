@@ -3,8 +3,8 @@
 #include <math.h>
 #include <stdlib.h>
 
-#include "fb.h"
-#include "rototiller.h"
+#include "til.h"
+#include "til_fb.h"
 
 /* Copyright (C) 2017 Vito Caputo <vcaputo@pengaru.com> */
 
@@ -102,16 +102,16 @@ static inline unsigned julia_iter(float real, float imag, float creal, float cim
 }
 
 
-static int julia_fragmenter(void *context, const fb_fragment_t *fragment, unsigned number, fb_fragment_t *res_fragment)
+static int julia_fragmenter(void *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
 {
 	julia_context_t	*ctxt = context;
 
-	return fb_fragment_slice_single(fragment, ctxt->n_cpus, number, res_fragment);
+	return til_fb_fragment_slice_single(fragment, ctxt->n_cpus, number, res_fragment);
 }
 
 
 /* Prepare a frame for concurrent drawing of fragment using multiple fragments */
-static void julia_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
+static void julia_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
 {
 	julia_context_t	*ctxt = context;
 
@@ -139,7 +139,7 @@ static void julia_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, 
 
 
 /* Draw a morphing Julia set */
-static void julia_render_fragment(void *context, unsigned ticks, unsigned cpu, fb_fragment_t *fragment)
+static void julia_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
 	julia_context_t	*ctxt = context;
 	unsigned	x, y;
@@ -160,7 +160,7 @@ static void julia_render_fragment(void *context, unsigned ticks, unsigned cpu, f
 }
 
 
-rototiller_module_t	julia_module = {
+til_module_t	julia_module = {
 	.create_context = julia_create_context,
 	.destroy_context = julia_destroy_context,
 	.prepare_frame = julia_prepare_frame,

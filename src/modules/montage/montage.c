@@ -2,15 +2,14 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "fb.h"
-#include "rototiller.h"
-#include "settings.h"
-#include "util.h"
+#include "til.h"
+#include "til_fb.h"
+#include "til_util.h"
 
 /* Copyright (C) 2019 - Vito Caputo <vcaputo@pengaru.com> */
 
 typedef struct montage_context_t {
-	const rototiller_module_t	**modules;
+	const til_module_t	**modules;
 	void				**contexts;
 	size_t				n_modules;
 	unsigned			n_cpus;
@@ -19,11 +18,11 @@ typedef struct montage_context_t {
 static void setup_next_module(montage_context_t *ctxt);
 static void * montage_create_context(unsigned ticks, unsigned num_cpus);
 static void montage_destroy_context(void *context);
-static void montage_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter);
-static void montage_render_fragment(void *context, unsigned ticks, unsigned cpu, fb_fragment_t *fragment);
+static void montage_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter);
+static void montage_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment);
 
 
-rototiller_module_t	montage_module = {
+til_module_t	montage_module = {
 	.create_context = montage_create_context,
 	.destroy_context = montage_destroy_context,
 	.prepare_frame = montage_prepare_frame,
@@ -35,28 +34,28 @@ rototiller_module_t	montage_module = {
 
 static void * montage_create_context(unsigned ticks, unsigned num_cpus)
 {
-	const rototiller_module_t	**modules, *rtv_module, *compose_module;
-	size_t				n_modules;
-	montage_context_t		*ctxt;
+	const til_module_t	**modules, *rtv_module, *compose_module;
+	size_t			n_modules;
+	montage_context_t	*ctxt;
 
 	ctxt = calloc(1, sizeof(montage_context_t));
 	if (!ctxt)
 		return NULL;
 
-	rototiller_get_modules(&modules, &n_modules);
+	til_get_modules(&modules, &n_modules);
 
-	ctxt->modules = calloc(n_modules, sizeof(rototiller_module_t *));
+	ctxt->modules = calloc(n_modules, sizeof(til_module_t *));
 	if (!ctxt->modules) {
 		free(ctxt);
 
 		return NULL;
 	}
 
-	rtv_module = rototiller_lookup_module("rtv");
-	compose_module = rototiller_lookup_module("compose");
+	rtv_module = til_lookup_module("rtv");
+	compose_module = til_lookup_module("compose");
 
 	for (size_t i = 0; i < n_modules; i++) {
-		const rototiller_module_t	*module = modules[i];
+		const til_module_t	*module = modules[i];
 
 		if (module == &montage_module ||	/* prevents recursion */
 		    module == rtv_module ||		/* also prevents recursion, rtv can run montage */
@@ -88,7 +87,7 @@ static void * montage_create_context(unsigned ticks, unsigned num_cpus)
 	}
 
 	for (size_t i = 0; i < ctxt->n_modules; i++) {
-		const rototiller_module_t	*module = ctxt->modules[i];
+		const til_module_t	*module = ctxt->modules[i];
 
 		if (module->create_context)	/* FIXME errors */
 			ctxt->contexts[i] = module->create_context(ticks, 1);
@@ -103,7 +102,7 @@ static void montage_destroy_context(void *context)
 	montage_context_t	*ctxt = context;
 
 	for (int i = 0; i < ctxt->n_modules; i++) {
-		const rototiller_module_t	*module = ctxt->modules[i];
+		const til_module_t	*module = ctxt->modules[i];
 
 		if (!ctxt->contexts[i])
 			continue;
@@ -118,8 +117,8 @@ static void montage_destroy_context(void *context)
 
 
 
-/* this is a hacked up derivative of fb_fragment_tile_single() */
-static int montage_fragment_tile(const fb_fragment_t *fragment, unsigned tile_width, unsigned tile_height, unsigned number, fb_fragment_t *res_fragment)
+/* this is a hacked up derivative of til_fb_fragment_tile_single() */
+static int montage_fragment_tile(const til_fb_fragment_t *fragment, unsigned tile_width, unsigned tile_height, unsigned number, til_fb_fragment_t *res_fragment)
 {
 	unsigned	w = fragment->width / tile_width, h = fragment->height / tile_height;
 	unsigned	x, y, xoff, yoff;
@@ -166,7 +165,7 @@ static int montage_fragment_tile(const fb_fragment_t *fragment, unsigned tile_wi
  * 1. it divides the frame into subfragments for threaded rendering
  * 2. it determines which modules will be rendered where via fragment->number
  */
-static int montage_fragmenter(void *context, const fb_fragment_t *fragment, unsigned number, fb_fragment_t *res_fragment)
+static int montage_fragmenter(void *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
 {
 	montage_context_t	*ctxt = context;
 	float			root = sqrtf(ctxt->n_modules);
@@ -186,7 +185,7 @@ static int montage_fragmenter(void *context, const fb_fragment_t *fragment, unsi
 
 
 
-static void montage_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
+static void montage_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
 {
 	montage_context_t	*ctxt = context;
 
@@ -194,13 +193,13 @@ static void montage_prepare_frame(void *context, unsigned ticks, unsigned n_cpus
 }
 
 
-static void montage_render_fragment(void *context, unsigned ticks, unsigned cpu, fb_fragment_t *fragment)
+static void montage_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
-	montage_context_t		*ctxt = context;
-	const rototiller_module_t	*module = ctxt->modules[fragment->number];
+	montage_context_t	*ctxt = context;
+	const til_module_t	*module = ctxt->modules[fragment->number];
 
 	if (fragment->number >= ctxt->n_modules) {
-		fb_fragment_zero(fragment);
+		til_fb_fragment_zero(fragment);
 
 		return;
 	}
@@ -212,7 +211,7 @@ static void montage_render_fragment(void *context, unsigned ticks, unsigned cpu,
 	 * fashion for now. FIXME TODO: move this into rototiller.c
 	 */
 	if (module->prepare_frame) {
-		rototiller_fragmenter_t	unused;
+		til_fragmenter_t	unused;
 
 		/* XXX FIXME: ignoring the fragmenter here is a violation of the module API,
 		 * rototiller.c should have a module render interface with explicit non-threading

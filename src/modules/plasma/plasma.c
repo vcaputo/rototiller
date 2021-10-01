@@ -3,8 +3,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "fb.h"
-#include "rototiller.h"
+#include "til.h"
+#include "til_fb.h"
 
 /* Copyright (C) 2017 Vito Caputo <vcaputo@pengaru.com> */
 
@@ -72,16 +72,16 @@ static void plasma_destroy_context(void *context)
 }
 
 
-static int plasma_fragmenter(void *context, const fb_fragment_t *fragment, unsigned number, fb_fragment_t *res_fragment)
+static int plasma_fragmenter(void *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
 {
 	plasma_context_t	*ctxt = context;
 
-	return fb_fragment_slice_single(fragment, ctxt->n_cpus, number, res_fragment);
+	return til_fb_fragment_slice_single(fragment, ctxt->n_cpus, number, res_fragment);
 }
 
 
 /* Prepare a frame for concurrent drawing of fragment using multiple fragments */
-static void plasma_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
+static void plasma_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
 {
 	plasma_context_t	*ctxt = context;
 
@@ -92,7 +92,7 @@ static void plasma_prepare_frame(void *context, unsigned ticks, unsigned n_cpus,
 
 
 /* Draw a plasma effect */
-static void plasma_render_fragment(void *context, unsigned ticks, unsigned cpu, fb_fragment_t *fragment)
+static void plasma_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
 	plasma_context_t	*ctxt = context;
 	int			xstep = PLASMA_WIDTH / fragment->frame_width;
@@ -161,7 +161,7 @@ static void plasma_render_fragment(void *context, unsigned ticks, unsigned cpu, 
 }
 
 
-rototiller_module_t	plasma_module = {
+til_module_t	plasma_module = {
 	.create_context = plasma_create_context,
 	.destroy_context = plasma_destroy_context,
 	.prepare_frame = plasma_prepare_frame,

@@ -24,8 +24,8 @@
 #include <unistd.h>
 #include <math.h>
 
-#include "fb.h"
-#include "rototiller.h"
+#include "til.h"
+#include "til_fb.h"
 
 #define SWARM_SIZE	(32 * 1024)
 #define SWARM_ZCONST	4.f
@@ -236,13 +236,13 @@ static void swarm_update(swarm_context_t *ctxt, unsigned ticks)
 }
 
 
-static void swarm_render_fragment(void *context, unsigned ticks, unsigned cpu, fb_fragment_t *fragment)
+static void swarm_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
 	swarm_context_t	*ctxt = context;
 
 	swarm_update(ctxt, ticks);
 
-	fb_fragment_zero(fragment);
+	til_fb_fragment_zero(fragment);
 
 	{
 		float		fw = fragment->frame_width, fh = fragment->frame_height;
@@ -261,13 +261,13 @@ static void swarm_render_fragment(void *context, unsigned ticks, unsigned cpu, f
 			nc.x = nc.x * fw + fw;
 			nc.y = nc.y * fh + fh;
 
-			fb_fragment_put_pixel_checked(fragment, nc.x, nc.y, color);
+			til_fb_fragment_put_pixel_checked(fragment, nc.x, nc.y, color);
 		}
 	}
 }
 
 
-rototiller_module_t	swarm_module = {
+til_module_t	swarm_module = {
 	.create_context = swarm_create_context,
 	.destroy_context = swarm_destroy_context,
 	.render_fragment = swarm_render_fragment,

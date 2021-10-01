@@ -3,8 +3,8 @@
 #include <math.h>
 #include <stdlib.h>
 
-#include "fb.h"
-#include "rototiller.h"
+#include "til.h"
+#include "til_fb.h"
 
 /* Copyright (C) 2016 Vito Caputo <vcaputo@pengaru.com> */
 
@@ -169,16 +169,16 @@ static void init_roto(uint8_t texture[256][256], int32_t *costab, int32_t *sinta
 }
 
 
-static int roto_fragmenter(void *context, const fb_fragment_t *fragment, unsigned number, fb_fragment_t *res_fragment)
+static int roto_fragmenter(void *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
 {
 	roto_context_t	*ctxt = context;
 
-	return fb_fragment_slice_single(fragment, ctxt->n_cpus, number, res_fragment);
+	return til_fb_fragment_slice_single(fragment, ctxt->n_cpus, number, res_fragment);
 }
 
 
 /* prepare a frame for concurrent rendering */
-static void roto_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
+static void roto_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
 {
 	roto_context_t	*ctxt = context;
 	static int	initialized;
@@ -199,7 +199,7 @@ static void roto_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, f
 
 
 /* Draw a rotating checkered 256x256 texture into fragment. */
-static void roto_render_fragment(void *context, unsigned ticks, unsigned cpu, fb_fragment_t *fragment)
+static void roto_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
 	roto_context_t	*ctxt = context;
 	int		y_cos_r, y_sin_r, x_cos_r, x_sin_r, x_cos_r_init, x_sin_r_init, cos_r, sin_r;
@@ -248,7 +248,7 @@ static void roto_render_fragment(void *context, unsigned ticks, unsigned cpu, fb
 }
 
 
-rototiller_module_t	roto_module = {
+til_module_t	roto_module = {
 	.create_context = roto_create_context,
 	.destroy_context = roto_destroy_context,
 	.prepare_frame = roto_prepare_frame,

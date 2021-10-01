@@ -19,9 +19,10 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "til.h"
+#include "til_fb.h"
+
 #include "din/din.h"
-#include "fb.h"
-#include "rototiller.h"
 
 #include "v2f.h"
 #include "v3f.h"
@@ -100,15 +101,15 @@ static void meta2d_destroy_context(void *context)
 }
 
 
-static int meta2d_fragmenter(void *context, const fb_fragment_t *fragment, unsigned number, fb_fragment_t *res_fragment)
+static int meta2d_fragmenter(void *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
 {
 	meta2d_context_t	*ctxt = context;
 
-	return fb_fragment_slice_single(fragment, ctxt->n_cpus, number, res_fragment);
+	return til_fb_fragment_slice_single(fragment, ctxt->n_cpus, number, res_fragment);
 }
 
 
-static void meta2d_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
+static void meta2d_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
 {
 	meta2d_context_t	*ctxt = context;
 
@@ -185,7 +186,7 @@ static void meta2d_prepare_frame(void *context, unsigned ticks, unsigned n_cpus,
 }
 
 
-static void meta2d_render_fragment(void *context, unsigned ticks, unsigned cpu, fb_fragment_t *fragment)
+static void meta2d_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
 	meta2d_context_t	*ctxt = context;
 	float			xf = 2.f / (float)fragment->frame_width;
@@ -217,13 +218,13 @@ static void meta2d_render_fragment(void *context, unsigned ticks, unsigned cpu, 
 				color = (v3f_t){};
 
 			pixel = color_to_uint32(color);
-			fb_fragment_put_pixel_unchecked(fragment, x, y, pixel);
+			til_fb_fragment_put_pixel_unchecked(fragment, x, y, pixel);
 		}
 	}
 }
 
 
-rototiller_module_t	meta2d_module = {
+til_module_t	meta2d_module = {
 	.create_context = meta2d_create_context,
 	.destroy_context = meta2d_destroy_context,
 	.prepare_frame = meta2d_prepare_frame,

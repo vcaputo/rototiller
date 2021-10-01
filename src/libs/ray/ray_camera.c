@@ -1,4 +1,4 @@
-#include "fb.h"
+#include "til_fb.h"
 
 #include "ray_camera.h"
 #include "ray_euler.h"
@@ -51,7 +51,7 @@ void ray_camera_frame_prepare(const ray_camera_t *camera, unsigned frame_width, 
 
 
 /* Begin a frame's fragment, initializing frame and ray. */
-void ray_camera_fragment_begin(ray_camera_frame_t *frame, fb_fragment_t *fb_fragment, ray_ray_t *res_ray, ray_camera_fragment_t *res_fragment)
+void ray_camera_fragment_begin(ray_camera_frame_t *frame, til_fb_fragment_t *fb_fragment, ray_ray_t *res_ray, ray_camera_fragment_t *res_fragment)
 {
 	res_fragment->frame = frame;
 	res_fragment->fb_fragment = fb_fragment;

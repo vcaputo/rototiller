@@ -3,9 +3,9 @@
 #include <math.h>
 #include <stdlib.h>
 
-#include "fb.h"
-#include "rototiller.h"
-#include "settings.h"
+#include "til.h"
+#include "til_fb.h"
+#include "til_settings.h"
 
 
 /* This code is almost entirely taken from the paper:
@@ -208,14 +208,14 @@ static void flui2d_destroy_context(void *context)
 }
 
 
-static int flui2d_fragmenter(void *context, const fb_fragment_t *fragment, unsigned number, fb_fragment_t *res_fragment)
+static int flui2d_fragmenter(void *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
 {
-	return fb_fragment_tile_single(fragment, 64, number, res_fragment);
+	return til_fb_fragment_tile_single(fragment, 64, number, res_fragment);
 }
 
 
 /* Prepare a frame for concurrent drawing of fragment using multiple fragments */
-static void flui2d_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, fb_fragment_t *fragment, rototiller_fragmenter_t *res_fragmenter)
+static void flui2d_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
 {
 	flui2d_context_t	*ctxt = context;
 	float			r = (ticks % (unsigned)(2 * M_PI * 1000)) * .001f;
@@ -247,7 +247,7 @@ static void flui2d_prepare_frame(void *context, unsigned ticks, unsigned n_cpus,
 
 
 /* Draw a the flui2d densities */
-static void flui2d_render_fragment(void *context, unsigned ticks, unsigned cpu, fb_fragment_t *fragment)
+static void flui2d_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
 	flui2d_context_t	*ctxt = context;
 
@@ -277,14 +277,14 @@ static void flui2d_render_fragment(void *context, unsigned ticks, unsigned cpu, 
 
 			pixel = ((float)dens * 256.f);
 			pixel = pixel << 16 | pixel << 8 | pixel;
-			fb_fragment_put_pixel_unchecked(fragment, x, y, pixel);
+			til_fb_fragment_put_pixel_unchecked(fragment, x, y, pixel);
 		}
 	}
 }
 
 
 /* Settings hooks for configurable variables */
-static int flui2d_setup(const settings_t *settings, setting_desc_t **next_setting)
+static int flui2d_setup(const til_settings_t *settings, til_setting_desc_t **next_setting)
 {
 	const char	*viscosity;
 	const char	*diffusion;
@@ -301,15 +301,15 @@ static int flui2d_setup(const settings_t *settings, setting_desc_t **next_settin
 			};
 
 
-	viscosity = settings_get_value(settings, "viscosity");
+	viscosity = til_settings_get_value(settings, "viscosity");
 	if (!viscosity) {
 		int	r;
 
-		r = setting_desc_clone(&(setting_desc_t){
+		r = til_setting_desc_clone(&(til_setting_desc_t){
 						.name = "Fluid Viscosity",
 						.key = "viscosity",
 						.regex = "\\.[0-9]+",
-						.preferred = SETTINGS_STR(DEFAULT_VISCOSITY),
+						.preferred = TIL_SETTINGS_STR(DEFAULT_VISCOSITY),
 						.values = values,
 						.annotations = NULL
 					}, next_setting);
@@ -319,15 +319,15 @@ static int flui2d_setup(const settings_t *settings, setting_desc_t **next_settin
 		return 1;
 	}
 
-	diffusion = settings_get_value(settings, "diffusion");
+	diffusion = til_settings_get_value(settings, "diffusion");
 	if (!diffusion) {
 		int	r;
 
-		r = setting_desc_clone(&(setting_desc_t){
+		r = til_setting_desc_clone(&(til_setting_desc_t){
 						.name = "Fluid Diffusion",
 						.key = "diffusion",
 						.regex = "\\.[0-9]+",
-						.preferred = SETTINGS_STR(DEFAULT_DIFFUSION),
+						.preferred = TIL_SETTINGS_STR(DEFAULT_DIFFUSION),
 						.values = values,
 						.annotations = NULL
 					}, next_setting);
@@ -345,7 +345,7 @@ static int flui2d_setup(const settings_t *settings, setting_desc_t **next_settin
 }
 
 
-rototiller_module_t	flui2d_module = {
+til_module_t	flui2d_module = {
 	.create_context = flui2d_create_context,
 	.destroy_context = flui2d_destroy_context,
 	.prepare_frame = flui2d_prepare_frame,
