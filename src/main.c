@@ -11,6 +11,7 @@
 #include <unistd.h>
 
 #include "til.h"
+#include "til_args.h"
 #include "til_settings.h"
 #include "til_fb.h"
 #include "til_util.h"
@@ -42,48 +43,6 @@ typedef struct rototiller_t {
 } rototiller_t;
 
 static rototiller_t		rototiller;
-
-
-typedef struct argv_t {
-	const char	*module;
-	const char	*video;
-
-	unsigned	use_defaults:1;
-	unsigned	help:1;
-} argv_t;
-
-/*
- * ./rototiller --video=drm,dev=/dev/dri/card3,connector=VGA-1,mode=640x480@60
- * ./rototiller --video=sdl,size=640x480
- * ./rototiller --module=roto,foo=bar,module=settings
- * ./rototiller --defaults
- */
-static int parse_argv(int argc, const char *argv[], argv_t *res_args)
-{
-	int	i;
-
-	assert(argc > 0);
-	assert(argv);
-	assert(res_args);
-
-	/* this is intentionally being kept very simple, no new dependencies like getopt. */
-
-	for (i = 1; i < argc; i++) {
-		if (!strncmp("--video=", argv[i], 8)) {
-			res_args->video = &argv[i][8];
-		} else if (!strncmp("--module=", argv[i], 9)) {
-			res_args->module = &argv[i][9];
-		} else if (!strcmp("--defaults", argv[i])) {
-			res_args->use_defaults = 1;
-		} else if (!strcmp("--help", argv[i])) {
-			res_args->help = 1;
-		} else {
-			return -EINVAL;
-		}
-	}
-
-	return 0;
-}
 
 
 typedef struct setup_t {
@@ -148,7 +107,7 @@ static int setup_video(til_settings_t *settings, til_setting_desc_t **next_setti
 
 /* turn args into settings, automatically applying defaults if appropriate, or interactively if appropriate. */
 /* returns negative value on error, 0 when settings unchanged from args, 1 when changed */
-static int setup_from_args(argv_t *args, setup_t *res_setup)
+static int setup_from_args(til_args_t *args, setup_t *res_setup)
 {
 	int	r, changes = 0;
 	setup_t	setup;
@@ -232,15 +191,11 @@ _out:
 
 static int print_help(void)
 {
-	return printf(
-		"Run without any flags or partial settings for interactive mode.\n"
+	printf("Run without any flags or partial settings for interactive mode.\n"
 		"\n"
-		"Supported flags:\n"
-		"  --defaults	use defaults for unspecified settings\n"
-		"  --help	this help\n"
-		"  --module=	module settings\n"
-		"  --video=	video settings\n"
-		);
+		"Supported flags:\n");
+
+	return til_args_help(stdout);
 }
 
 
@@ -282,10 +237,10 @@ static void * rototiller_thread(void *_rt)
 int main(int argc, const char *argv[])
 {
 	setup_t		setup = {};
-	argv_t		args = {};
+	til_args_t	args = {};
 	int		r;
 
-	exit_if(parse_argv(argc, argv, &args) < 0,
+	exit_if(til_args_parse(argc, argv, &args) < 0,
 		"unable to process arguments");
 
 	if (args.help)
