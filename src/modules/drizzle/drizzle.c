@@ -24,7 +24,7 @@
 
 #define PUDDLE_SIZE		512
 #define DRIZZLE_CNT		20
-#define DEFAULT_VISCOSITY	.01f
+#define DEFAULT_VISCOSITY	.01
 
 typedef struct drizzle_context_t {
 	puddle_t	*puddle;
@@ -157,10 +157,10 @@ static int drizzle_setup(const til_settings_t *settings, til_setting_desc_t **ne
 {
 	const char	*viscosity;
 	const char	*values[] = {
-				".005f",
-				".01f",
-				".03f",
-				".05f",
+				".005",
+				".01",
+				".03",
+				".05",
 				NULL
 			};
 

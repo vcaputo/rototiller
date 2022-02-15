@@ -15,7 +15,7 @@
 
 /* Copyright (C) 2017-20 Philip J. Freeman <elektron@halo.nu> */
 
-#define DEFAULT_ROT_ADJ	.00003f
+#define DEFAULT_ROT_ADJ	.00003
 
 static float	stars_rot_adj = DEFAULT_ROT_ADJ;
 
@@ -205,12 +205,12 @@ int stars_setup(const til_settings_t *settings, til_setting_desc_t **next_settin
 {
 	const char	*rot_adj;
 	const char      *rot_adj_values[] = {
-				".0f",
-				".00001f",
-				".00003f",
-				".0001f",
-				".0003f",
-				".001f",
+				".0",
+				".00001",
+				".00003",
+				".0001",
+				".0003",
+				".001",
 				NULL
 			};
 

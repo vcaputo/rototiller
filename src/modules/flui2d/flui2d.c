@@ -16,14 +16,9 @@
  *   - Vito Caputo <vcaputo@pengaru.com> 10/13/2019
  */
 
-#if 1
 	/* These knobs affect how the simulated fluid behaves */
-#define DEFAULT_VISCOSITY	.000000001f
-#define DEFAULT_DIFFUSION	.00001f
-#else
-#define DEFAULT_VISCOSITY	.00001f
-#define DEFAULT_DIFFUSION	.000001f
-#endif
+#define DEFAULT_VISCOSITY	.000000001
+#define DEFAULT_DIFFUSION	.00001
 
 #define ROOT		128	// Change this to vary the density field resolution
 #define SIZE		((ROOT + 2) * (ROOT + 2))
@@ -289,14 +284,14 @@ static int flui2d_setup(const til_settings_t *settings, til_setting_desc_t **nex
 	const char	*viscosity;
 	const char	*diffusion;
 	const char	*values[] = {
-				".000000000001f",
-				".0000000001f",
-				".000000001f",
-				".00000001f",
-				".0000001f",
-				".000001f",
-				".00001f",
-				".0001f",
+				".000000000001",
+				".0000000001",
+				".000000001",
+				".00000001",
+				".0000001",
+				".000001",
+				".00001",
+				".0001",
 				NULL
 			};
 
