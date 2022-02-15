@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <stdint.h>
 #include <inttypes.h>
 #include <math.h>
@@ -19,6 +20,7 @@
 	/* These knobs affect how the simulated fluid behaves */
 #define DEFAULT_VISCOSITY	.000000001
 #define DEFAULT_DIFFUSION	.00001
+#define DEFAULT_DECAY		.0001
 
 #define ROOT		128	// Change this to vary the density field resolution
 #define SIZE		((ROOT + 2) * (ROOT + 2))
@@ -27,11 +29,12 @@
 
 static float	flui2d_viscosity = DEFAULT_VISCOSITY;
 static float	flui2d_diffusion = DEFAULT_DIFFUSION;
+static float	flui2d_decay = DEFAULT_DECAY;
 
 typedef struct flui2d_t {
 	float	u[SIZE], v[SIZE], u_prev[SIZE], v_prev[SIZE];
 	float	dens[SIZE], dens_prev[SIZE];
-	float	visc, diff;
+	float	visc, diff, decay;
 } flui2d_t;
 
 static void set_bnd(int N, int b, float *x)
@@ -57,7 +60,7 @@ static void add_source(int N, float *x, float *s, float dt)
 		x[i] += dt * s[i];
 }
 
-static void diffuse(int N, int b, float *x, float *x0, float diff, float dt)
+static void diffuse(int N, int b, float *x, float *x0, float diff, float decay, float dt)
 {
 	float a = dt * diff * (float)N * (float)N;
 	int i, j, k;
@@ -66,7 +69,7 @@ static void diffuse(int N, int b, float *x, float *x0, float diff, float dt)
 	for (k = 0; k < 20; k++) {
 		for (i = 1; i <= N; i++) {
 			for (j = 1; j <= N; j++) {
-				x[IX(i, j)] = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) * z;
+				x[IX(i, j)] = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) * z * (1.f - decay);
 			}
 		}
 		set_bnd(N, b, x);
@@ -146,7 +149,7 @@ static void project(int N, float *u, float *v, float *p, float *div)
 	set_bnd(N, 2, v);
 }
 
-static void dens_step(int N, float *x, float *x0, float *u, float *v, float diff, float dt)
+static void dens_step(int N, float *x, float *x0, float *u, float *v, float diff, float decay, float dt)
 {
 
 	/*
@@ -154,7 +157,7 @@ static void dens_step(int N, float *x, float *x0, float *u, float *v, float diff
 	 * add_source(N, x, x0, dt);
 	 * SWAP(x0, x);
 	 */
-	diffuse(N, 0, x, x0, diff, dt);
+	diffuse(N, 0, x, x0, diff, decay, dt);
 	SWAP(x0, x);
 	advect(N, 0, x, x0, u, v, dt);
 }
@@ -164,9 +167,9 @@ static void vel_step(int N, float *u, float *v, float *u0, float *v0, float visc
 	add_source(N, u, u0, dt);
 	add_source(N, v, v0, dt);
 	SWAP(u0, u);
-	diffuse(N, 1, u, u0, visc, dt);
+	diffuse(N, 1, u, u0, visc, 0.f, dt);
 	SWAP(v0, v);
-	diffuse(N, 2, v, v0, visc, dt);
+	diffuse(N, 2, v, v0, visc, 0.f, dt);
 	project(N, u, v, u0, v0);
 	SWAP(u0, u);
 	SWAP(v0, v);
@@ -192,6 +195,7 @@ static void * flui2d_create_context(unsigned ticks, unsigned num_cpus)
 
 	ctxt->fluid.visc = flui2d_viscosity;
 	ctxt->fluid.diff = flui2d_diffusion;
+	ctxt->fluid.decay = flui2d_decay;
 
 	return ctxt;
 }
@@ -234,7 +238,7 @@ static void flui2d_prepare_frame(void *context, unsigned ticks, unsigned n_cpus,
 	 * a GLSL implementation for a fragment shader.
 	 */
 	vel_step(ROOT, ctxt->fluid.u, ctxt->fluid.v, ctxt->fluid.u_prev, ctxt->fluid.v_prev, ctxt->fluid.visc, .1f);
-	dens_step(ROOT, ctxt->fluid.dens, ctxt->fluid.dens_prev, ctxt->fluid.u, ctxt->fluid.v, ctxt->fluid.diff, .1f);
+	dens_step(ROOT, ctxt->fluid.dens, ctxt->fluid.dens_prev, ctxt->fluid.u, ctxt->fluid.v, ctxt->fluid.diff, ctxt->fluid.decay, .1f);
 
 	ctxt->xf = 1.f / fragment->frame_width;
 	ctxt->yf = 1.f / fragment->frame_height;
@@ -294,6 +298,15 @@ static int flui2d_setup(const til_settings_t *settings, til_setting_desc_t **nex
 				".0001",
 				NULL
 			};
+	const char	*decay;
+	const char	*decay_values[] = {
+				".000001",
+				".00001",
+				".0001",
+				".001",
+				".01",
+				NULL
+			};
 
 
 	viscosity = til_settings_get_value(settings, "viscosity");
@@ -332,9 +345,32 @@ static int flui2d_setup(const til_settings_t *settings, til_setting_desc_t **nex
 		return 1;
 	}
 
+	decay = til_settings_get_value(settings, "decay");
+	if (!decay) {
+		int	r;
+
+		r = til_setting_desc_clone(&(til_setting_desc_t){
+						.name = "Fluid Decay",
+						.key = "decay",
+						.regex = "\\.[0-9]+",
+						.preferred = TIL_SETTINGS_STR(DEFAULT_DECAY),
+						.values = decay_values,
+						.annotations = NULL
+					}, next_setting);
+		if (r < 0)
+			return r;
+
+		return 1;
+	}
+
 	/* TODO: return -EINVAL on parse errors? */
 	sscanf(viscosity, "%f", &flui2d_viscosity);
 	sscanf(diffusion, "%f", &flui2d_diffusion);
+	sscanf(decay, "%f", &flui2d_decay);
+
+	/* prevent overflow in case an explicit out of range setting is supplied */
+	if (flui2d_decay > 1.f || flui2d_decay < 0.f)
+		return -EINVAL;
 
 	return 0;
 }
