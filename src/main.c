@@ -233,6 +233,9 @@ int main(int argc, const char *argv[])
 	til_args_t	args = {};
 	int		r;
 
+	exit_if((r = til_init()) < 0,
+		"unable to initialize libtil: %s", strerror(-r));
+
 	exit_if(til_args_parse(argc, argv, &args) < 0,
 		"unable to process arguments");
 
@@ -253,9 +256,6 @@ int main(int argc, const char *argv[])
 
 	exit_if(!fps_setup(),
 		"unable to setup fps counter");
-
-	exit_if((r = til_init()) < 0,
-		"unable to initialize librototiller: %s", strerror(-r));
 
 	gettimeofday(&rototiller.start_tv, NULL);
 	exit_if((r = til_module_create_context(
