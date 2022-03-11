@@ -109,45 +109,38 @@ static int setup_video(til_settings_t *settings, til_setting_desc_t **next_setti
 /* returns negative value on error, 0 when settings unchanged from args, 1 when changed */
 static int setup_from_args(til_args_t *args, setup_t *res_setup)
 {
-	int	r, changes = 0;
-	setup_t	setup;
+	int	r = -ENOMEM, changes = 0;
+	setup_t	setup = {};
 
 	setup.module = til_settings_new(args->module);
 	if (!setup.module)
-		return -ENOMEM;
+		goto _err;
 
 	setup.video = til_settings_new(args->video);
-	if (!setup.video) {
-		til_settings_free(setup.module);
-
-		return -ENOMEM;
-	}
+	if (!setup.video)
+		goto _err;
 
 	r = setup_interactively(setup.module, til_module_setup, args->use_defaults);
-	if (r < 0) {
-		til_settings_free(setup.module);
-		til_settings_free(setup.video);
-
-		return r;
-	}
-
+	if (r < 0)
+		goto _err;
 	if (r)
 		changes = 1;
 
 	r = setup_interactively(setup.video, setup_video, args->use_defaults);
-	if (r < 0) {
-		til_settings_free(setup.module);
-		til_settings_free(setup.video);
-
-		return r;
-	}
-
+	if (r < 0)
+		goto _err;
 	if (r)
 		changes = 1;
 
 	*res_setup = setup;
 
 	return changes;
+
+_err:
+	til_settings_free(setup.module);
+	til_settings_free(setup.video);
+
+	return r;
 }
 
 
