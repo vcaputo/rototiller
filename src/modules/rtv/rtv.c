@@ -48,7 +48,7 @@ static void * rtv_create_context(unsigned ticks, unsigned num_cpus);
 static void rtv_destroy_context(void *context);
 static void rtv_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter);
 static void rtv_finish_frame(void *context, unsigned ticks, til_fb_fragment_t *fragment);
-static int rtv_setup(const til_settings_t *settings, til_setting_desc_t **next_setting);
+static int rtv_setup(const til_settings_t *settings, const til_setting_t **res_setting, const til_setting_desc_t **res_desc);
 
 static unsigned rtv_duration = RTV_DURATION_SECS;
 static unsigned rtv_context_duration = RTV_CONTEXT_DURATION_SECS;
@@ -94,9 +94,10 @@ static void randomize_channels(rtv_context_t *ctxt)
 
 static char * randomize_module_setup(const til_module_t *module)
 {
-	til_settings_t		*settings;
-	til_setting_desc_t	*desc;
-	char			*arg;
+	til_settings_t			*settings;
+	const til_setting_t		*setting;
+	const til_setting_desc_t	*desc;
+	char				*arg;
 
 	if (!module->setup)
 		return NULL;
@@ -105,12 +106,12 @@ static char * randomize_module_setup(const til_module_t *module)
 	if (!settings)
 		return NULL;
 
-	while (module->setup(settings, &desc) > 0) {
+	while (module->setup(settings, &setting, &desc) > 0) {
 		if (desc->random) {
 			char	*value;
 
 			value = desc->random();
-			til_settings_add_value(settings, desc->key, value);
+			til_settings_add_value(settings, desc->key, value, desc);
 			free(value);
 		} else if (desc->values) {
 			int	n;
@@ -119,12 +120,10 @@ static char * randomize_module_setup(const til_module_t *module)
 
 			n = rand() % n;
 
-			til_settings_add_value(settings, desc->key, desc->values[n]);
+			til_settings_add_value(settings, desc->key, desc->values[n], desc);
 		} else {
-			til_settings_add_value(settings, desc->key, desc->preferred);
+			til_settings_add_value(settings, desc->key, desc->preferred, desc);
 		}
-
-		til_setting_desc_free(desc);
 	}
 
 	arg = til_settings_as_arg(settings);
@@ -313,114 +312,97 @@ static void rtv_finish_frame(void *context, unsigned ticks, til_fb_fragment_t *f
 }
 
 
-static int rtv_setup(const til_settings_t *settings, til_setting_desc_t **next_setting)
+static int rtv_setup(const til_settings_t *settings, const til_setting_t **res_setting, const til_setting_desc_t **res_desc)
 {
+	const char	*channels;
 	const char	*duration;
 	const char	*context_duration;
 	const char	*caption_duration;
 	const char	*snow_duration;
-	const char	*channels;
 	const char	*snow_module;
+	int		r;
 
-	channels = til_settings_get_value(settings, "channels");
-	if (!channels) {
-		int	r;
+	r = til_settings_get_and_describe_value(settings,
+						&(til_setting_desc_t){
+							.name = "Colon-Separated List Of Channel Modules",
+							.key = "channels",
+							.preferred = "all",
+							.annotations = NULL
+						},
+						&channels,
+						res_setting,
+						res_desc);
+	if (r)
+		return r;
 
-		r = til_setting_desc_clone(&(til_setting_desc_t){
-						.name = "Colon-Separated List Of Channel Modules",
-						.key = "channels",
-						.preferred = "all",
-						.annotations = NULL
-					}, next_setting);
-		if (r < 0)
-			return r;
+	r = til_settings_get_and_describe_value(settings,
+						&(til_setting_desc_t){
+							.name = "Channel Duration In Seconds",
+							.key = "duration",
+							.regex = "\\.[0-9]+",
+							.preferred = TIL_SETTINGS_STR(RTV_DURATION_SECS),
+							.annotations = NULL
+						},
+						&duration,
+						res_setting,
+						res_desc);
+	if (r)
+		return r;
 
-		return 1;
-	}
+	r = til_settings_get_and_describe_value(settings,
+						&(til_setting_desc_t){
+							.name = "Context Duration In Seconds",
+							.key = "context_duration",
+							.regex = "\\.[0-9]+",
+							.preferred = TIL_SETTINGS_STR(RTV_CONTEXT_DURATION_SECS),
+							.annotations = NULL
+						},
+						&context_duration,
+						res_setting,
+						res_desc);
+	if (r)
+		return r;
 
-	duration = til_settings_get_value(settings, "duration");
-	if (!duration) {
-		int	r;
+	r = til_settings_get_and_describe_value(settings,
+						&(til_setting_desc_t){
+							.name = "Caption Duration In Seconds",
+							.key = "caption_duration",
+							.regex = "\\.[0-9]+",
+							.preferred = TIL_SETTINGS_STR(RTV_CAPTION_DURATION_SECS),
+							.annotations = NULL
+						},
+						&caption_duration,
+						res_setting,
+						res_desc);
+	if (r)
+		return r;
 
-		r = til_setting_desc_clone(&(til_setting_desc_t){
-						.name = "Channel Duration In Seconds",
-						.key = "duration",
-						.regex = "\\.[0-9]+",
-						.preferred = TIL_SETTINGS_STR(RTV_DURATION_SECS),
-						.annotations = NULL
-					}, next_setting);
-		if (r < 0)
-			return r;
+	r = til_settings_get_and_describe_value(settings,
+						&(til_setting_desc_t){
+							.name = "Snow On Channel Switch Duration In Seconds",
+							.key = "snow_duration",
+							.regex = "\\.[0-9]+",
+							.preferred = TIL_SETTINGS_STR(RTV_SNOW_DURATION_SECS),
+							.annotations = NULL
+						},
+						&snow_duration,
+						res_setting,
+						res_desc);
+	if (r)
+		return r;
 
-		return 1;
-	}
-
-	context_duration = til_settings_get_value(settings, "context_duration");
-	if (!context_duration) {
-		int	r;
-
-		r = til_setting_desc_clone(&(til_setting_desc_t){
-						.name = "Context Duration In Seconds",
-						.key = "context_duration",
-						.regex = "\\.[0-9]+",
-						.preferred = TIL_SETTINGS_STR(RTV_CONTEXT_DURATION_SECS),
-						.annotations = NULL
-					}, next_setting);
-		if (r < 0)
-			return r;
-
-		return 1;
-	}
-
-	caption_duration = til_settings_get_value(settings, "caption_duration");
-	if (!caption_duration) {
-		int	r;
-
-		r = til_setting_desc_clone(&(til_setting_desc_t){
-						.name = "Caption Duration In Seconds",
-						.key = "caption_duration",
-						.regex = "\\.[0-9]+",
-						.preferred = TIL_SETTINGS_STR(RTV_CAPTION_DURATION_SECS),
-						.annotations = NULL
-					}, next_setting);
-		if (r < 0)
-			return r;
-
-		return 1;
-	}
-
-	snow_duration = til_settings_get_value(settings, "snow_duration");
-	if (!snow_duration) {
-		int	r;
-
-		r = til_setting_desc_clone(&(til_setting_desc_t){
-						.name = "Snow On Channel Switch Duration In Seconds",
-						.key = "snow_duration",
-						.regex = "\\.[0-9]+",
-						.preferred = TIL_SETTINGS_STR(RTV_SNOW_DURATION_SECS),
-						.annotations = NULL
-					}, next_setting);
-		if (r < 0)
-			return r;
-
-		return 1;
-	}
-
-	snow_module = til_settings_get_value(settings, "snow_module");
-	if (!snow_module) {
-		int	r;
-
-		r = til_setting_desc_clone(&(til_setting_desc_t){
-						.name = "Module To Use For Snow (\"none\" To Blank)",
-						.key = "snow_module",
-						.preferred = "snow",
-						.annotations = NULL
-					}, next_setting);
-		if (r < 0)
-			return r;
-
-		return 1;
-	}
+	r = til_settings_get_and_describe_value(settings,
+						&(til_setting_desc_t){
+							.name = "Module To Use For Snow (\"none\" To Blank)",
+							.key = "snow_module",
+							.preferred = "snow",
+							.annotations = NULL
+						},
+						&snow_module,
+						res_setting,
+						res_desc);
+	if (r)
+		return r;
 
 	/* turn channels colon-separated list into a null-terminated array of strings */
 	if (strcmp(channels, "all")) {

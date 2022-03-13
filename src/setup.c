@@ -16,62 +16,78 @@ static int add_value(til_settings_t *settings, const char *key, const char *valu
 
 	assert(key);
 
-	return til_settings_add_value(settings, key, value);
+	return til_settings_add_value(settings, key, value, NULL);
 }
 
 
 /* returns negative on error, otherwise number of additions made to settings */
-int setup_interactively(til_settings_t *settings, int (*setup_func)(til_settings_t *settings, til_setting_desc_t **next), int defaults)
+int setup_interactively(til_settings_t *settings, int (*setup_func)(til_settings_t *settings, const til_setting_t **res_setting, const til_setting_desc_t **res_desc), int defaults)
 {
-	unsigned		additions = 0;
-	char			buf[256] = "\n";
-	til_setting_desc_t	*next;
-	int			r;
+	unsigned			additions = 0;
+	char				buf[256] = "\n";
+	const til_setting_t		*setting;
+	const til_setting_desc_t	*desc;
+	int				r;
 
 	assert(settings);
 	assert(setup_func);
 
 	/* TODO: regex and error handling */
 
-	while ((r = setup_func(settings, &next)) > 0) {
+	while ((r = setup_func(settings, &setting, &desc)) > 0) {
 		additions++;
+
+		/* if setup_func() has returned a description for an undescribed preexisting setting,
+		 * validate its value against the description and assign the description if it passes.
+		 */
+		if (setting && !setting->desc) {
+			 /* XXX FIXME: this key as value exception is janky, make a helper to access the value or stop doing that. */
+			r = til_setting_desc_check(desc, setting->value ? : setting->key);
+			if (r < 0)
+				return r;
+
+			/* XXX FIXME everything's constified necessitating this fuckery, revisit and cleanup later, prolly another til_settings helper */
+			((til_setting_t *)setting)->desc = desc;
+
+			continue;
+		}
 
 		if (!defaults)
 			puts("");
 
-		if (next->values) {
+		if (desc->values) {
 			unsigned	i, preferred = 0;
 			int		width = 0;
 
-			for (i = 0; next->values[i]; i++) {
+			for (i = 0; desc->values[i]; i++) {
 				int	len;
 
-				len = strlen(next->values[i]);
+				len = strlen(desc->values[i]);
 				if (len > width)
 					width = len;
 			}
 
 			/* multiple choice */
 			if (!defaults)
-				printf("%s:\n", next->name);
+				printf("%s:\n", desc->name);
 
-			for (i = 0; next->values[i]; i++) {
+			for (i = 0; desc->values[i]; i++) {
 				if (!defaults)
-					printf("%2u: %*s%s%s\n", i, width, next->values[i],
-						next->annotations ? ": " : "",
-						next->annotations ? next->annotations[i] : "");
+					printf("%2u: %*s%s%s\n", i, width, desc->values[i],
+						desc->annotations ? ": " : "",
+						desc->annotations ? desc->annotations[i] : "");
 
-				if (!strcmp(next->preferred, next->values[i]))
+				if (!strcmp(desc->preferred, desc->values[i]))
 					preferred = i;
 			}
 
 			if (!defaults)
 				printf("Enter a value 0-%u [%u (%s)]: ",
-					i - 1, preferred, next->preferred);
+					i - 1, preferred, desc->preferred);
 		} else {
 			/* arbitrarily typed input */
 			if (!defaults)
-				printf("%s [%s]: ", next->name, next->preferred);
+				printf("%s [%s]: ", desc->name, desc->preferred);
 		}
 
 		if (!defaults) {
@@ -81,11 +97,11 @@ int setup_interactively(til_settings_t *settings, int (*setup_func)(til_settings
 
 		if (*buf == '\n') {
 			/* accept preferred */
-			add_value(settings, next->key, next->preferred);
+			add_value(settings, desc->key, desc->preferred);
 		} else {
 			buf[strlen(buf) - 1] = '\0';
 
-			if (next->values) {
+			if (desc->values) {
 				unsigned	i, j, found;
 
 				/* multiple choice, map numeric input to values entry */
@@ -95,9 +111,9 @@ int setup_interactively(til_settings_t *settings, int (*setup_func)(til_settings
 					goto _next;
 				}
 
-				for (found = i = 0; next->values[i]; i++) {
+				for (found = i = 0; desc->values[i]; i++) {
 					if (i == j) {
-						add_value(settings, next->key, next->values[i]);
+						add_value(settings, desc->key, desc->values[i]);
 						found = 1;
 						break;
 					}
@@ -112,12 +128,11 @@ int setup_interactively(til_settings_t *settings, int (*setup_func)(til_settings
 
 			} else {
 				/* use typed input as setting, TODO: apply regex */
-				add_value(settings, next->key, buf);
+				add_value(settings, desc->key, buf);
 			}
 		}
-
 _next:
-		til_setting_desc_free(next);
+		til_setting_desc_free(desc);
 	}
 
 	return r < 0 ? r : additions;

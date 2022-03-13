@@ -56,13 +56,13 @@ typedef struct setup_t {
  */
 
 /* select video backend if not yet selected, then setup the selected backend. */
-static int setup_video(til_settings_t *settings, til_setting_desc_t **next_setting)
+static int setup_video(til_settings_t *settings, const til_setting_t **res_setting, const til_setting_desc_t **res_desc)
 {
-	const char	*video;
+	const til_setting_t	*setting;
+	const char		*video;
 
-	/* XXX: there's only one option currently, so this is simple */
-	video = til_settings_get_key(settings, 0);
-	if (!video) {
+	video = til_settings_get_key(settings, 0, &setting);
+	if (!video || !setting->desc) {
 		til_setting_desc_t	*desc;
 		const char		*values[] = {
 #ifdef HAVE_DRM
@@ -80,9 +80,12 @@ static int setup_video(til_settings_t *settings, til_setting_desc_t **next_setti
 						.preferred = DEFAULT_VIDEO,
 						.values = values,
 						.annotations = NULL
-					}, next_setting);
+					}, res_desc);
+
 		if (r < 0)
 			return r;
+
+		*res_setting = video ? setting : NULL;
 
 		return 1;
 	}
@@ -92,13 +95,13 @@ static int setup_video(til_settings_t *settings, til_setting_desc_t **next_setti
 	if (!strcmp(video, "drm")) {
 		fb_ops = &drm_fb_ops;
 
-		return drm_fb_ops.setup(settings, next_setting);
+		return drm_fb_ops.setup(settings, res_setting, res_desc);
 	} else
 #endif
 	if (!strcmp(video, "sdl")) {
 		fb_ops = &sdl_fb_ops;
 
-		return sdl_fb_ops.setup(settings, next_setting);
+		return sdl_fb_ops.setup(settings, res_setting, res_desc);
 	}
 
 	return -EINVAL;
@@ -248,8 +251,8 @@ int main(int argc, const char *argv[])
 	exit_if(r && print_setup_as_args(&setup) < 0,
 		"unable to print setup");
 
-	exit_if(!(rototiller.module = til_lookup_module(til_settings_get_key(setup.module, 0))),
-		"unable to lookup module from settings \"%s\"", til_settings_get_key(setup.module, 0));
+	exit_if(!(rototiller.module = til_lookup_module(til_settings_get_key(setup.module, 0, NULL))),
+		"unable to lookup module from settings \"%s\"", til_settings_get_key(setup.module, 0, NULL));
 
 	exit_if((r = til_fb_new(fb_ops, setup.video, NUM_FB_PAGES, &rototiller.fb)) < 0,
 		"unable to create fb: %s", strerror(-r));

@@ -96,83 +96,75 @@ static void sparkler_render_fragment(void *context, unsigned ticks, unsigned cpu
 
 
 /* Settings hooks for configurable variables */
-static int sparkler_setup(const til_settings_t *settings, til_setting_desc_t **next_setting)
+static int sparkler_setup(const til_settings_t *settings, const til_setting_t **res_setting, const til_setting_desc_t **res_desc)
 {
 	const char	*show_bsp_leafs;
 	const char	*show_bsp_matches;
 	const char	*values[] = {
-				"off",
-				"on",
-				NULL
+			       "off",
+			       "on",
+			       NULL
 			};
+	int		r;
 
 	/* TODO: return -EINVAL on parse errors? */
 
-	show_bsp_leafs = til_settings_get_value(settings, "show_bsp_leafs");
-	if (!show_bsp_leafs) {
-		int	r;
-
-		r = til_setting_desc_clone(&(til_setting_desc_t){
-						.name = "Show BSP Leaf Node Bounding Boxes",
-						.key = "show_bsp_leafs",
-						.preferred = "off",
-						.values = values,
-					}, next_setting);
-		if (r < 0)
-			return r;
-
-		return 1;
-	}
+	r = til_settings_get_and_describe_value(settings,
+						&(til_setting_desc_t){
+							.name = "Show BSP Leaf Node Bounding Boxes",
+							.key = "show_bsp_leafs",
+							.preferred = "off",
+							.values = values
+						},
+						&show_bsp_leafs,
+						res_setting,
+						res_desc);
+	if (r)
+		return r;
 
 	if (!strcasecmp(show_bsp_leafs, "on")) {
+		const char	*depth_values[] = {
+					"0",
+					"4",
+					"6",
+					"8",
+					"10",
+					NULL
+				};
 		const char	*show_bsp_leafs_min_depth;
 
 		sparkler_conf.show_bsp_leafs = 1;
 
-		show_bsp_leafs_min_depth = til_settings_get_value(settings, "show_bsp_leafs_min_depth");
-		if (!show_bsp_leafs_min_depth) {
-			const char	*depth_values[] = {
-						"0",
-						"4",
-						"6",
-						"8",
-						"10",
-						NULL
-					};
-			int	r;
-
-			r = til_setting_desc_clone(&(til_setting_desc_t){
+	r = til_settings_get_and_describe_value(settings,
+						&(til_setting_desc_t){
 							.name = "Show BSP Leaf Node Bounding Boxes Minimum Depth",
 							.key = "show_bsp_leafs_min_depth",
 							.preferred = "8",
-							.values = depth_values,
-						}, next_setting);
-			if (r < 0)
-				return r;
-
-			return 1;
-		}
+							.values = depth_values
+						},
+						&show_bsp_leafs_min_depth,
+						res_setting,
+						res_desc);
+	if (r)
+		return r;
 
 		sscanf(show_bsp_leafs_min_depth, "%u", &sparkler_conf.show_bsp_leafs_min_depth);
 	} else {
 		sparkler_conf.show_bsp_leafs = 0;
 	}
 
-	show_bsp_matches = til_settings_get_value(settings, "show_bsp_matches");
-	if (!show_bsp_matches) {
-		int	r;
-
-		r = til_setting_desc_clone(&(til_setting_desc_t){
-						.name = "Show BSP Search Matches",
-						.key = "show_bsp_matches",
-						.preferred = "off",
-						.values = values,
-					}, next_setting);
-		if (r < 0)
-			return r;
-
-		return 1;
-	}
+	r = til_settings_get_and_describe_value(settings,
+						&(til_setting_desc_t){
+							.name = "Show BSP Search Matches",
+							.key = "show_bsp_matches",
+							.preferred = "off",
+							.values = values
+						},
+						&show_bsp_matches,
+						res_setting,
+						res_desc);
+	if (r)
+		return r;
 
 	if (!strcasecmp(show_bsp_matches, "on"))
 		sparkler_conf.show_bsp_matches = 1;
@@ -182,21 +174,18 @@ static int sparkler_setup(const til_settings_t *settings, til_setting_desc_t **n
 	if (!strcasecmp(show_bsp_matches, "on")) {
 		const char	*show_bsp_matches_affected_only;
 
-		show_bsp_matches_affected_only = til_settings_get_value(settings, "show_bsp_matches_affected_only");
-		if (!show_bsp_matches_affected_only) {
-			int	r;
-
-			r = til_setting_desc_clone(&(til_setting_desc_t){
-							.name = "Show Only Affected BSP Search Matches",
-							.key = "show_bsp_matches_affected_only",
-							.preferred = "off",
-							.values = values,
-						}, next_setting);
-			if (r < 0)
-				return r;
-
-			return 1;
-		}
+		r = til_settings_get_and_describe_value(settings,
+							&(til_setting_desc_t){
+								.name = "Show Only Affected BSP Search Matches",
+								.key = "show_bsp_matches_affected_only",
+								.preferred = "off",
+								.values = values
+							},
+							&show_bsp_matches_affected_only,
+							res_setting,
+							res_desc);
+		if (r)
+			return r;
 
 		if (!strcasecmp(show_bsp_matches_affected_only, "on"))
 			sparkler_conf.show_bsp_matches_affected_only = 1;

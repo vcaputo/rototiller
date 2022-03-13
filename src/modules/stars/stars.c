@@ -201,10 +201,10 @@ static void stars_render_fragment(void *context, unsigned ticks, unsigned cpu, t
 	ctxt->offset_y = tmp_y;
 }
 
-int stars_setup(const til_settings_t *settings, til_setting_desc_t **next_setting)
+int stars_setup(const til_settings_t *settings, const til_setting_t **res_setting, const til_setting_desc_t **res_desc)
 {
 	const char	*rot_adj;
-	const char      *rot_adj_values[] = {
+	const char	*rot_adj_values[] = {
 				".0",
 				".00001",
 				".00003",
@@ -213,24 +213,22 @@ int stars_setup(const til_settings_t *settings, til_setting_desc_t **next_settin
 				".001",
 				NULL
 			};
+	int		r;
 
-	rot_adj = til_settings_get_value(settings, "rot_adj");
-	if(!rot_adj) {
-		int ret_val;
-
-		ret_val = til_setting_desc_clone(&(til_setting_desc_t){
+	r = til_settings_get_and_describe_value(settings,
+						&(til_setting_desc_t){
 							.name = "Rotation Rate",
 							.key = "rot_adj",
 							.regex = "\\.[0-9]+",
 							.preferred = TIL_SETTINGS_STR(DEFAULT_ROT_ADJ),
 							.values = rot_adj_values,
 							.annotations = NULL
-						}, next_setting);
-		if(ret_val<0)
-			return ret_val;
-
-		return 1;
-	}
+						},
+						&rot_adj,
+						res_setting,
+						res_desc);
+	if (r)
+		return r;
 
 	sscanf(rot_adj, "%f", &stars_rot_adj);
 

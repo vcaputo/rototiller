@@ -283,7 +283,7 @@ static void flui2d_render_fragment(void *context, unsigned ticks, unsigned cpu, 
 
 
 /* Settings hooks for configurable variables */
-static int flui2d_setup(const til_settings_t *settings, til_setting_desc_t **next_setting)
+static int flui2d_setup(const til_settings_t *settings, const til_setting_t **res_setting, const til_setting_desc_t **res_desc)
 {
 	const char	*viscosity;
 	const char	*diffusion;
@@ -307,61 +307,52 @@ static int flui2d_setup(const til_settings_t *settings, til_setting_desc_t **nex
 				".01",
 				NULL
 			};
+	int		r;
 
+	r = til_settings_get_and_describe_value(settings,
+						&(til_setting_desc_t){
+							.name = "Fluid Viscosity",
+							.key = "viscosity",
+							.regex = "\\.[0-9]+",
+							.preferred = TIL_SETTINGS_STR(DEFAULT_VISCOSITY),
+							.values = values,
+							.annotations = NULL
+						},
+						&viscosity,
+						res_setting,
+						res_desc);
+	if (r)
+		return r;
 
-	viscosity = til_settings_get_value(settings, "viscosity");
-	if (!viscosity) {
-		int	r;
+	r = til_settings_get_and_describe_value(settings,
+						&(til_setting_desc_t){
+							.name = "Fluid Diffusion",
+							.key = "diffusion",
+							.regex = "\\.[0-9]+",
+							.preferred = TIL_SETTINGS_STR(DEFAULT_DIFFUSION),
+							.values = values,
+							.annotations = NULL
+						},
+						&diffusion,
+						res_setting,
+						res_desc);
+	if (r)
+		return r;
 
-		r = til_setting_desc_clone(&(til_setting_desc_t){
-						.name = "Fluid Viscosity",
-						.key = "viscosity",
-						.regex = "\\.[0-9]+",
-						.preferred = TIL_SETTINGS_STR(DEFAULT_VISCOSITY),
-						.values = values,
-						.annotations = NULL
-					}, next_setting);
-		if (r < 0)
-			return r;
-
-		return 1;
-	}
-
-	diffusion = til_settings_get_value(settings, "diffusion");
-	if (!diffusion) {
-		int	r;
-
-		r = til_setting_desc_clone(&(til_setting_desc_t){
-						.name = "Fluid Diffusion",
-						.key = "diffusion",
-						.regex = "\\.[0-9]+",
-						.preferred = TIL_SETTINGS_STR(DEFAULT_DIFFUSION),
-						.values = values,
-						.annotations = NULL
-					}, next_setting);
-		if (r < 0)
-			return r;
-
-		return 1;
-	}
-
-	decay = til_settings_get_value(settings, "decay");
-	if (!decay) {
-		int	r;
-
-		r = til_setting_desc_clone(&(til_setting_desc_t){
-						.name = "Fluid Decay",
-						.key = "decay",
-						.regex = "\\.[0-9]+",
-						.preferred = TIL_SETTINGS_STR(DEFAULT_DECAY),
-						.values = decay_values,
-						.annotations = NULL
-					}, next_setting);
-		if (r < 0)
-			return r;
-
-		return 1;
-	}
+	r = til_settings_get_and_describe_value(settings,
+						&(til_setting_desc_t){
+							.name = "Fluid Decay",
+							.key = "decay",
+							.regex = "\\.[0-9]+",
+							.preferred = TIL_SETTINGS_STR(DEFAULT_DECAY),
+							.values = decay_values,
+							.annotations = NULL
+						},
+						&decay,
+						res_setting,
+						res_desc);
+	if (r)
+		return r;
 
 	/* TODO: return -EINVAL on parse errors? */
 	sscanf(viscosity, "%f", &flui2d_viscosity);

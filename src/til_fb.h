@@ -35,7 +35,7 @@ typedef struct til_fb_t til_fb_t;
 
 /* Supply this struct to fb_new() with the appropriate context */
 typedef struct til_fb_ops_t {
-	int	(*setup)(const til_settings_t *settings, til_setting_desc_t **next);
+	int	(*setup)(const til_settings_t *settings, const til_setting_t **res_setting, const til_setting_desc_t **res_desc);
 	int	(*init)(const til_settings_t *settings, void **res_context);
 	void	(*shutdown)(til_fb_t *fb, void *context);
 	int	(*acquire)(til_fb_t *fb, void *context, void *page);

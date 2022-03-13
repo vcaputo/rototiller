@@ -322,32 +322,30 @@ static void submit_render_fragment(void *context, unsigned ticks, unsigned cpu, 
 }
 
 
-static int submit_setup(const til_settings_t *settings, til_setting_desc_t **next_setting)
+static int submit_setup(const til_settings_t *settings, const til_setting_t **res_setting, const til_setting_desc_t **res_desc)
 {
+	const char	*values[] = {
+				"off",
+				"on",
+				NULL
+			};
 	const char	*bilerp;
+	int		r;
 
-	bilerp = til_settings_get_value(settings, "bilerp");
-	if (!bilerp) {
-		const char	*values[] = {
-					"off",
-					"on",
-					NULL
-				};
-		int		r;
-
-		r = til_setting_desc_clone(&(til_setting_desc_t){
-						.name = "Bilinear Interpolation of Cell Colors",
-						.key = "bilerp",
-						.regex = NULL,
-						.preferred = values[0],
-						.values = values,
-						.annotations = NULL
-					}, next_setting);
-		if (r < 0)
-			return r;
-
-		return 1;
-	}
+	r = til_settings_get_and_describe_value(settings,
+						&(til_setting_desc_t){
+							.name = "Bilinear Interpolation of Cell Colors",
+							.key = "bilerp",
+							.regex = NULL,
+							.preferred = values[0],
+							.values = values,
+							.annotations = NULL
+						},
+						&bilerp,
+						res_setting,
+						res_desc);
+	if (r)
+		return r;
 
 	if (!strcasecmp(bilerp, "on"))
 		bilerp_setting = 1;

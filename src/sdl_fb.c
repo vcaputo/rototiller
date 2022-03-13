@@ -26,61 +26,47 @@ struct sdl_fb_page_t {
 };
 
 
-static int sdl_fb_setup(const til_settings_t *settings, til_setting_desc_t **next_setting)
+static int sdl_fb_setup(const til_settings_t *settings, const til_setting_t **res_setting, const til_setting_desc_t **res_desc)
 {
-	const char			*fullscreen_values[] = {
-						"off",
-						"on",
-						NULL
-					};
-	const til_setting_desc_t	descs[] = {
-						{
+	const char	*fullscreen_values[] = {
+				"off",
+				"on",
+				NULL
+			};
+	const char	*fullscreen;
+	int		r;
+
+	r = til_settings_get_and_describe_value(settings,
+						&(til_setting_desc_t){
 							.name = "SDL Fullscreen Mode",
 							.key = "fullscreen",
 							.regex = NULL,
 							.preferred = fullscreen_values[0],
 							.values = fullscreen_values,
 							.annotations = NULL
-						}, {
-							.name = "SDL Window size",
-							.key = "size",
-							.regex = "[1-9][0-9]*[xX][1-9][0-9]*",
-							.preferred = "640x480",
-							.values = NULL,
-							.annotations = NULL
 						},
-					};
-	const char			*fullscreen;
-	int				r;
-
-
-	fullscreen = til_settings_get_value(settings, "fullscreen");
-	if (!fullscreen) {
-		r = til_setting_desc_clone(&descs[0], next_setting);
-		if (r < 0)
-			return r;
-
-		return 1;
-	}
-
-	r = til_setting_desc_check(&descs[0], fullscreen);
-	if (r < 0)
+						&fullscreen,
+						res_setting,
+						res_desc);
+	if (r)
 		return r;
 
 	if (!strcasecmp(fullscreen, "off")) {
 		const char	*size;
 
-		size = til_settings_get_value(settings, "size");
-		if (!size) {
-			r = til_setting_desc_clone(&descs[1], next_setting);
-			if (r < 0)
-				return r;
-
-			return 1;
-		}
-
-		r = til_setting_desc_check(&descs[1], size);
-		if (r < 0)
+		r = til_settings_get_and_describe_value(settings,
+							&(til_setting_desc_t){
+								.name = "SDL Window size",
+								.key = "size",
+								.regex = "[1-9][0-9]*[xX][1-9][0-9]*",
+								.preferred = "640x480",
+								.values = NULL,
+								.annotations = NULL
+							},
+							&size,
+							res_setting,
+							res_desc);
+		if (r)
 			return r;
 	}
 
@@ -113,11 +99,11 @@ static int sdl_fb_init(const til_settings_t *settings, void **res_context)
 	assert(settings);
 	assert(res_context);
 
-	fullscreen = til_settings_get_value(settings, "fullscreen");
+	fullscreen = til_settings_get_value(settings, "fullscreen", NULL);
 	if (!fullscreen)
 		return -EINVAL;
 
-	size = til_settings_get_value(settings, "size");
+	size = til_settings_get_value(settings, "size", NULL);
 	if (!size && !strcasecmp(fullscreen, "off"))
 		return -EINVAL;
 

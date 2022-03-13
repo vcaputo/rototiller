@@ -153,7 +153,7 @@ static void drizzle_render_fragment(void *context, unsigned ticks, unsigned cpu,
 }
 
 
-static int drizzle_setup(const til_settings_t *settings, til_setting_desc_t **next_setting)
+static int drizzle_setup(const til_settings_t *settings, const til_setting_t **res_setting, const til_setting_desc_t **res_desc)
 {
 	const char	*viscosity;
 	const char	*values[] = {
@@ -163,24 +163,22 @@ static int drizzle_setup(const til_settings_t *settings, til_setting_desc_t **ne
 				".05",
 				NULL
 			};
+	int		r;
 
-	viscosity = til_settings_get_value(settings, "viscosity");
-	if (!viscosity) {
-		int	r;
-
-		r = til_setting_desc_clone(&(til_setting_desc_t){
-						.name = "Puddle Viscosity",
-						.key = "viscosity",
-						.regex = "\\.[0-9]+",
-						.preferred = TIL_SETTINGS_STR(DEFAULT_VISCOSITY),
-						.values = values,
-						.annotations = NULL
-					}, next_setting);
-		if (r < 0)
-			return r;
-
-		return 1;
-	}
+	r = til_settings_get_and_describe_value(settings,
+						&(til_setting_desc_t){
+							.name = "Puddle Viscosity",
+							.key = "viscosity",
+							.regex = "\\.[0-9]+",
+							.preferred = TIL_SETTINGS_STR(DEFAULT_VISCOSITY),
+							.values = values,
+							.annotations = NULL
+						},
+						&viscosity,
+						res_setting,
+						res_desc);
+	if (r)
+		return r;
 
 	sscanf(viscosity, "%f", &drizzle_viscosity);
 

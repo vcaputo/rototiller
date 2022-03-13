@@ -68,7 +68,7 @@ static const char * connector_type_name(uint32_t type) {
 }
 
 
-static int dev_desc_generator(void *setup_context, til_setting_desc_t **res_desc)
+static int dev_desc_generator(void *setup_context, const til_setting_desc_t **res_desc)
 {
 	return  til_setting_desc_clone(&(til_setting_desc_t){
 					.name = "DRM Device Path",
@@ -145,7 +145,7 @@ static void free_strv(const char **strv)
 }
 
 
-static int connector_desc_generator(void *setup_context, til_setting_desc_t **res_desc)
+static int connector_desc_generator(void *setup_context, const til_setting_desc_t **res_desc)
 {
 	drm_fb_setup_t	*s = setup_context;
 	const char	**connectors;
@@ -254,7 +254,7 @@ _out:
 }
 
 
-static int mode_desc_generator(void *setup_context, til_setting_desc_t **res_desc)
+static int mode_desc_generator(void *setup_context, const til_setting_desc_t **res_desc)
 {
 	drm_fb_setup_t	*s = setup_context;
 	const char	**modes;
@@ -283,7 +283,7 @@ static int mode_desc_generator(void *setup_context, til_setting_desc_t **res_des
 /* setup is called repeatedly as settings is constructed, until 0 is returned. */
 /* a negative value is returned on error */
 /* positive value indicates another setting is needed, described in next_setting */
-static int drm_fb_setup(const til_settings_t *settings, til_setting_desc_t **next_setting)
+static int drm_fb_setup(const til_settings_t *settings, const til_setting_t **res_setting, const til_setting_desc_t **res_desc)
 {
 	drm_fb_setup_t			context = {};
 	til_setting_desc_generator_t	generators[] = {
@@ -305,7 +305,7 @@ static int drm_fb_setup(const til_settings_t *settings, til_setting_desc_t **nex
 	if (!drmAvailable())
 		return -ENOSYS;
 
-	return til_settings_apply_desc_generators(settings, generators, nelems(generators), &context, next_setting);
+	return til_settings_apply_desc_generators(settings, generators, nelems(generators), &context, res_setting, res_desc);
 }
 
 
@@ -351,19 +351,19 @@ static int drm_fb_init(const til_settings_t *settings, void **res_context)
 		goto _err;
 	}
 
-	dev = til_settings_get_value(settings, "dev");
+	dev = til_settings_get_value(settings, "dev", NULL);
 	if (!dev) {
 		r = -EINVAL;
 		goto _err;
 	}
 
-	connector = til_settings_get_value(settings, "connector");
+	connector = til_settings_get_value(settings, "connector", NULL);
 	if (!connector) {
 		r = -EINVAL;
 		goto _err;
 	}
 
-	mode = til_settings_get_value(settings, "mode");
+	mode = til_settings_get_value(settings, "mode", NULL);
 	if (!mode) {
 		r = -EINVAL;
 		goto _err;

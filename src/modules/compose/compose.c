@@ -39,7 +39,7 @@ typedef struct compose_context_t {
 static void * compose_create_context(unsigned ticks, unsigned num_cpus);
 static void compose_destroy_context(void *context);
 static void compose_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter);
-static int compose_setup(const til_settings_t *settings, til_setting_desc_t **next_setting);
+static int compose_setup(const til_settings_t *settings, const til_setting_t **res_setting, const til_setting_desc_t **res_desc);
 
 static char	*compose_default_layers[] = { "drizzle", "stars", "spiro", "plato", NULL };
 static char	**compose_layers;
@@ -111,32 +111,30 @@ static void compose_prepare_frame(void *context, unsigned ticks, unsigned n_cpus
 }
 
 
-static int compose_setup(const til_settings_t *settings, til_setting_desc_t **next_setting)
+static int compose_setup(const til_settings_t *settings, const til_setting_t **res_setting, const til_setting_desc_t **res_desc)
 {
 	const char	*layers;
+	int		r;
 
-	layers = til_settings_get_value(settings, "layers");
-	if (!layers) {
-		int	r;
-
-		r = til_setting_desc_clone(&(til_setting_desc_t){
-						.name = "Colon-Separated List Of Module Layers, In Draw Order",
-						.key = "layers",
-						.preferred = "drizzle:stars:spiro:plato",
-						.annotations = NULL
-					}, next_setting);
-		if (r < 0)
-			return r;
-
-		return 1;
-	}
+	r = til_settings_get_and_describe_value(settings,
+						&(til_setting_desc_t){
+							.name = "Colon-Separated List Of Module Layers, In Draw Order",
+							.key = "layers",
+							.preferred = "drizzle:stars:spiro:plato",
+							.annotations = NULL
+						},
+						&layers,
+						res_setting,
+						res_desc);
+	if (r)
+		return r;
 
 	/* turn layers colon-separated list into a null-terminated array of strings */
 	{
 		const til_module_t	**modules;
-		size_t				n_modules;
-		char				*toklayers, *layer;
-		int				n = 2;
+		size_t			n_modules;
+		char			*toklayers, *layer;
+		int			n = 2;
 
 		til_get_modules(&modules, &n_modules);
 
