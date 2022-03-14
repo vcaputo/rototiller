@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <errno.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "til_args.h"
@@ -9,12 +10,32 @@
  * ./rototiller --video=sdl,size=640x480
  * ./rototiller --module=roto,foo=bar,module=settings
  * ./rototiller --defaults
+ *
+ * unrecognized arguments trigger an -EINVAL error, unless res_{argc,argv} are non-NULL
+ * where a new argv will be allocated and populated with the otherwise invalid arguments
+ * in the same order they were encountered in the input argv.  This is to support integration
+ * with argv-handling application libraries like glib(g_application_run()).
  */
-int til_args_parse(int argc, const char *argv[], til_args_t *res_args)
+static int args_parse(int argc, const char *argv[], til_args_t *res_args, int *res_argc, const char **res_argv[])
 {
-	assert(argc > 0);
 	assert(argv);
 	assert(res_args);
+	assert(!res_argc || res_argv);
+
+	if (res_argv) {
+		*res_argv = calloc(argc + 1, sizeof(*res_argv));
+
+		if (!*res_argv)
+			return -ENOMEM;
+
+		*res_argc = 0;
+	}
+
+	if (!argc)
+		return 0;
+
+	if (res_argv)
+		(*res_argv)[(*res_argc)++] = argv[0];
 
 	/* this is intentionally being kept very simple, no new dependencies like getopt. */
 
@@ -28,11 +49,29 @@ int til_args_parse(int argc, const char *argv[], til_args_t *res_args)
 		} else if (!strcmp("--help", argv[i])) {
 			res_args->help = 1;
 		} else {
-			return -EINVAL;
+			if (!res_argv)
+				return -EINVAL;
+
+			(*res_argv)[(*res_argc)++] = argv[i];
 		}
 	}
 
 	return 0;
+}
+
+
+int til_args_pruned_parse(int argc, const char *argv[], til_args_t *res_args, int *res_argc, const char **res_argv[])
+{
+	assert(res_argc && res_argv);
+
+	return args_parse(argc, argv, res_args, res_argc, res_argv);
+}
+
+
+int til_args_parse(int argc, const char *argv[], til_args_t *res_args)
+{
+	return args_parse(argc, argv, res_args, NULL, NULL);
+
 }
 
 

@@ -12,6 +12,7 @@ typedef struct til_args_t {
 } til_args_t;
 
 int til_args_parse(int argc, const char *argv[], til_args_t *res_args);
+int til_args_pruned_parse(int argc, const char *argv[], til_args_t *res_args, int *res_argc, const char **res_argv[]);
 int til_args_help(FILE *out);
 
 #endif
