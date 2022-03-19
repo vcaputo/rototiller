@@ -155,7 +155,7 @@ static int sparkler_setup(const til_settings_t *settings, til_setting_t **res_se
 
 	r = til_settings_get_and_describe_value(settings,
 						&(til_setting_desc_t){
-							.name = "Show BSP-tree search matches",
+							.name = "Show BSP-tree search broad-phase match candidates",
 							.key = "show_bsp_matches",
 							.preferred = "off",
 							.values = values
@@ -176,7 +176,7 @@ static int sparkler_setup(const til_settings_t *settings, til_setting_t **res_se
 
 		r = til_settings_get_and_describe_value(settings,
 							&(til_setting_desc_t){
-								.name = "Limit matches shown to those affected by the search",
+								.name = "Show only narrow-phase affected match results",
 								.key = "show_bsp_matches_affected_only",
 								.preferred = "off",
 								.values = values
