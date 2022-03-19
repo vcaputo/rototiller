@@ -169,5 +169,4 @@ til_module_t	plasma_module = {
 	.name = "plasma",
 	.description = "Oldskool plasma effect (threaded)",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",
-	.license = "GPLv2",
 };

@@ -256,5 +256,4 @@ til_module_t	roto_module = {
 	.name = "roto",
 	.description = "Anti-aliased tiled texture rotation (threaded)",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",
-	.license = "GPLv2",
 };

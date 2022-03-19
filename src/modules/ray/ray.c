@@ -206,5 +206,4 @@ til_module_t	ray_module = {
 	.name = "ray",
 	.description = "Ray tracer (threaded)",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",
-	.license = "GPLv2",
 };

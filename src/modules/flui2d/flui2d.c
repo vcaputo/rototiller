@@ -375,6 +375,5 @@ til_module_t	flui2d_module = {
 	.name = "flui2d",
 	.description = "Fluid dynamics simulation in 2D (threaded (poorly))",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",
-	.license = "Unknown",
 	.setup = flui2d_setup,
 };

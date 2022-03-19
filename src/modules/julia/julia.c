@@ -168,5 +168,4 @@ til_module_t	julia_module = {
 	.name = "julia",
 	.description = "Julia set fractal morpher (threaded)",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",
-	.license = "GPLv2",
 };

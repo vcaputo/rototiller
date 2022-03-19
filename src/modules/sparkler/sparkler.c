@@ -206,5 +206,4 @@ til_module_t	sparkler_module = {
 	.name = "sparkler",
 	.description = "Particle system with spatial interactions (threaded (poorly))",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",
-	.license = "GPLv2",
 };

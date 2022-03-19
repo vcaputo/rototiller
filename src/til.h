@@ -22,7 +22,6 @@ typedef struct til_module_t {
 	char	*name;
 	char	*description;
 	char	*author;
-	char	*license;
 } til_module_t;
 
 int til_init(void);

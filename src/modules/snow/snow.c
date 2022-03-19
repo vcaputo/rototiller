@@ -84,5 +84,4 @@ til_module_t	snow_module = {
 	.name = "snow",
 	.description = "TV snow / white noise (threaded)",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",
-	.license = "GPLv2",
 };

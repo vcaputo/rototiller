@@ -152,5 +152,4 @@ til_module_t	spiro_module = {
 	.name = "spiro",
 	.description = "Spirograph emulator",
 	.author = "Philip J Freeman <elektron@halo.nu>",
-	.license = "GPLv2",
 };

@@ -2,7 +2,7 @@
  *  Copyright (C) 2020 - Vito Caputo - <vcaputo@pengaru.com>
  *
  *  This program is free software: you can redistribute it and/or modify it
- *  under the terms of the GNU General Public License version 3 as published
+ *  under the terms of the GNU General Public License version 2 as published
  *  by the Free Software Foundation.
  *
  *  This program is distributed in the hope that it will be useful,
@@ -194,6 +194,5 @@ til_module_t	drizzle_module = {
 	.name = "drizzle",
 	.description = "Classic 2D rain effect (threaded (poorly))",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",
-	.license = "GPLv3",
 	.setup = drizzle_setup,
 };

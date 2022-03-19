@@ -2,7 +2,7 @@
  *  Copyright (C) 2019 - Vito Caputo - <vcaputo@pengaru.com>
  *
  *  This program is free software: you can redistribute it and/or modify it
- *  under the terms of the GNU General Public License version 3 as published
+ *  under the terms of the GNU General Public License version 2 as published
  *  by the Free Software Foundation.
  *
  *  This program is distributed in the hope that it will be useful,
@@ -232,5 +232,4 @@ til_module_t	meta2d_module = {
 	.name = "meta2d",
 	.description = "Classic 2D metaballs (threaded)",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",
-	.license = "GPLv3",
 };
