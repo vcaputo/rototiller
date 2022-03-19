@@ -184,7 +184,7 @@ int til_module_setup(til_settings_t *settings, const til_setting_t **res_setting
 		}
 
 		r = til_setting_desc_clone(&(til_setting_desc_t){
-						.name = "Renderer Module",
+						.name = "Renderer module",
 						.key = NULL,
 						.regex = "[a-zA-Z0-9]+",
 						.preferred = DEFAULT_MODULE,

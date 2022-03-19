@@ -38,7 +38,7 @@ static int sdl_fb_setup(const til_settings_t *settings, const til_setting_t **re
 
 	r = til_settings_get_and_describe_value(settings,
 						&(til_setting_desc_t){
-							.name = "SDL Fullscreen Mode",
+							.name = "SDL fullscreen mode",
 							.key = "fullscreen",
 							.regex = NULL,
 							.preferred = fullscreen_values[0],
@@ -56,7 +56,7 @@ static int sdl_fb_setup(const til_settings_t *settings, const til_setting_t **re
 
 		r = til_settings_get_and_describe_value(settings,
 							&(til_setting_desc_t){
-								.name = "SDL Window size",
+								.name = "SDL window size",
 								.key = "size",
 								.regex = "[1-9][0-9]*[xX][1-9][0-9]*",
 								.preferred = "640x480",

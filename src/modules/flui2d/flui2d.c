@@ -311,7 +311,7 @@ static int flui2d_setup(const til_settings_t *settings, const til_setting_t **re
 
 	r = til_settings_get_and_describe_value(settings,
 						&(til_setting_desc_t){
-							.name = "Fluid Viscosity",
+							.name = "Fluid viscosity",
 							.key = "viscosity",
 							.regex = "\\.[0-9]+",
 							.preferred = TIL_SETTINGS_STR(DEFAULT_VISCOSITY),
@@ -326,7 +326,7 @@ static int flui2d_setup(const til_settings_t *settings, const til_setting_t **re
 
 	r = til_settings_get_and_describe_value(settings,
 						&(til_setting_desc_t){
-							.name = "Fluid Diffusion",
+							.name = "Fluid diffusion",
 							.key = "diffusion",
 							.regex = "\\.[0-9]+",
 							.preferred = TIL_SETTINGS_STR(DEFAULT_DIFFUSION),
@@ -341,7 +341,7 @@ static int flui2d_setup(const til_settings_t *settings, const til_setting_t **re
 
 	r = til_settings_get_and_describe_value(settings,
 						&(til_setting_desc_t){
-							.name = "Fluid Decay",
+							.name = "Fluid decay",
 							.key = "decay",
 							.regex = "\\.[0-9]+",
 							.preferred = TIL_SETTINGS_STR(DEFAULT_DECAY),

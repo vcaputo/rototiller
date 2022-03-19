@@ -74,7 +74,7 @@ static int setup_video(til_settings_t *settings, const til_setting_t **res_setti
 		int			r;
 
 		r = til_setting_desc_clone(&(til_setting_desc_t){
-						.name = "Video Backend",
+						.name = "Video backend",
 						.key = NULL,
 						.regex = "[a-z]+",
 						.preferred = DEFAULT_VIDEO,

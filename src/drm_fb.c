@@ -71,7 +71,7 @@ static const char * connector_type_name(uint32_t type) {
 static int dev_desc_generator(void *setup_context, const til_setting_desc_t **res_desc)
 {
 	return  til_setting_desc_clone(&(til_setting_desc_t){
-					.name = "DRM Device Path",
+					.name = "DRM device path",
 					.key = "dev",
 					.regex = "/dev/dri/card[0-9]",
 					.preferred = "/dev/dri/card0",
@@ -158,7 +158,7 @@ static int connector_desc_generator(void *setup_context, const til_setting_desc_
 		return r;
 
 	r = til_setting_desc_clone(&(til_setting_desc_t){
-					.name = "DRM Connector",
+					.name = "DRM connector",
 					.key = "connector",
 					.regex = "[a-zA-Z0-9]+",
 					.preferred = connectors[0],
@@ -267,7 +267,7 @@ static int mode_desc_generator(void *setup_context, const til_setting_desc_t **r
 		return r;
 
 	r = til_setting_desc_clone(&(til_setting_desc_t){
-					.name = "DRM Video Mode",
+					.name = "DRM video mode",
 					.key = "mode",
 					.regex = "[0-9]+[xX][0-9]+@[0-9]+",
 					.preferred = modes[0],

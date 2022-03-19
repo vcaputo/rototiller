@@ -217,7 +217,7 @@ int stars_setup(const til_settings_t *settings, const til_setting_t **res_settin
 
 	r = til_settings_get_and_describe_value(settings,
 						&(til_setting_desc_t){
-							.name = "Rotation Rate",
+							.name = "Rotation rate",
 							.key = "rot_adj",
 							.regex = "\\.[0-9]+",
 							.preferred = TIL_SETTINGS_STR(DEFAULT_ROT_ADJ),

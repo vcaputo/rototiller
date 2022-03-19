@@ -111,7 +111,7 @@ static int sparkler_setup(const til_settings_t *settings, const til_setting_t **
 
 	r = til_settings_get_and_describe_value(settings,
 						&(til_setting_desc_t){
-							.name = "Show BSP Leaf Node Bounding Boxes",
+							.name = "Show BSP-tree leaf-node bounding boxes",
 							.key = "show_bsp_leafs",
 							.preferred = "off",
 							.values = values
@@ -135,18 +135,18 @@ static int sparkler_setup(const til_settings_t *settings, const til_setting_t **
 
 		sparkler_conf.show_bsp_leafs = 1;
 
-	r = til_settings_get_and_describe_value(settings,
-						&(til_setting_desc_t){
-							.name = "Show BSP Leaf Node Bounding Boxes Minimum Depth",
-							.key = "show_bsp_leafs_min_depth",
-							.preferred = "8",
-							.values = depth_values
-						},
-						&show_bsp_leafs_min_depth,
-						res_setting,
-						res_desc);
-	if (r)
-		return r;
+		r = til_settings_get_and_describe_value(settings,
+							&(til_setting_desc_t){
+								.name = "Minimum BSP-tree depth for shown leaf-nodes",
+								.key = "show_bsp_leafs_min_depth",
+								.preferred = "8",
+								.values = depth_values
+							},
+							&show_bsp_leafs_min_depth,
+							res_setting,
+							res_desc);
+		if (r)
+			return r;
 
 		sscanf(show_bsp_leafs_min_depth, "%u", &sparkler_conf.show_bsp_leafs_min_depth);
 	} else {
@@ -155,7 +155,7 @@ static int sparkler_setup(const til_settings_t *settings, const til_setting_t **
 
 	r = til_settings_get_and_describe_value(settings,
 						&(til_setting_desc_t){
-							.name = "Show BSP Search Matches",
+							.name = "Show BSP-tree search matches",
 							.key = "show_bsp_matches",
 							.preferred = "off",
 							.values = values
@@ -176,7 +176,7 @@ static int sparkler_setup(const til_settings_t *settings, const til_setting_t **
 
 		r = til_settings_get_and_describe_value(settings,
 							&(til_setting_desc_t){
-								.name = "Show Only Affected BSP Search Matches",
+								.name = "Limit matches shown to those affected by the search",
 								.key = "show_bsp_matches_affected_only",
 								.preferred = "off",
 								.values = values

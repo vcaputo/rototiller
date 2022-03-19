@@ -322,7 +322,7 @@ static int rtv_setup(const til_settings_t *settings, const til_setting_t **res_s
 
 	r = til_settings_get_and_describe_value(settings,
 						&(til_setting_desc_t){
-							.name = "Colon-Separated List Of Channel Modules",
+							.name = "Colon-separated list of channel modules",
 							.key = "channels",
 							.preferred = "all",
 							.annotations = NULL
@@ -335,7 +335,7 @@ static int rtv_setup(const til_settings_t *settings, const til_setting_t **res_s
 
 	r = til_settings_get_and_describe_value(settings,
 						&(til_setting_desc_t){
-							.name = "Channel Duration In Seconds",
+							.name = "Channel duration, in seconds",
 							.key = "duration",
 							.regex = "\\.[0-9]+",
 							.preferred = TIL_SETTINGS_STR(RTV_DURATION_SECS),
@@ -349,7 +349,7 @@ static int rtv_setup(const til_settings_t *settings, const til_setting_t **res_s
 
 	r = til_settings_get_and_describe_value(settings,
 						&(til_setting_desc_t){
-							.name = "Context Duration In Seconds",
+							.name = "Context duration, in seconds",
 							.key = "context_duration",
 							.regex = "\\.[0-9]+",
 							.preferred = TIL_SETTINGS_STR(RTV_CONTEXT_DURATION_SECS),
@@ -363,7 +363,7 @@ static int rtv_setup(const til_settings_t *settings, const til_setting_t **res_s
 
 	r = til_settings_get_and_describe_value(settings,
 						&(til_setting_desc_t){
-							.name = "Caption Duration In Seconds",
+							.name = "Caption duration, in seconds",
 							.key = "caption_duration",
 							.regex = "\\.[0-9]+",
 							.preferred = TIL_SETTINGS_STR(RTV_CAPTION_DURATION_SECS),
@@ -377,7 +377,7 @@ static int rtv_setup(const til_settings_t *settings, const til_setting_t **res_s
 
 	r = til_settings_get_and_describe_value(settings,
 						&(til_setting_desc_t){
-							.name = "Snow On Channel Switch Duration In Seconds",
+							.name = "Snow on channel-switch duration, in seconds",
 							.key = "snow_duration",
 							.regex = "\\.[0-9]+",
 							.preferred = TIL_SETTINGS_STR(RTV_SNOW_DURATION_SECS),
@@ -391,7 +391,7 @@ static int rtv_setup(const til_settings_t *settings, const til_setting_t **res_s
 
 	r = til_settings_get_and_describe_value(settings,
 						&(til_setting_desc_t){
-							.name = "Module To Use For Snow (\"none\" To Blank)",
+							.name = "Module to use for snow (\"none\" for blank)",
 							.key = "snow_module",
 							.preferred = "snow",
 							.annotations = NULL

@@ -167,7 +167,7 @@ static int drizzle_setup(const til_settings_t *settings, const til_setting_t **r
 
 	r = til_settings_get_and_describe_value(settings,
 						&(til_setting_desc_t){
-							.name = "Puddle Viscosity",
+							.name = "Puddle viscosity",
 							.key = "viscosity",
 							.regex = "\\.[0-9]+",
 							.preferred = TIL_SETTINGS_STR(DEFAULT_VISCOSITY),

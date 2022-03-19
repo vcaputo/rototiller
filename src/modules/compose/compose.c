@@ -118,7 +118,7 @@ static int compose_setup(const til_settings_t *settings, const til_setting_t **r
 
 	r = til_settings_get_and_describe_value(settings,
 						&(til_setting_desc_t){
-							.name = "Colon-Separated List Of Module Layers, In Draw Order",
+							.name = "Colon-separated list of module layers, in draw-order",
 							.key = "layers",
 							.preferred = "drizzle:stars:spiro:plato",
 							.annotations = NULL
