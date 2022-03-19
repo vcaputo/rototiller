@@ -226,6 +226,15 @@ int til_settings_add_value(til_settings_t *settings, const char *key, const char
 }
 
 
+void til_settings_reset_descs(til_settings_t *settings)
+{
+	assert(settings);
+
+	for (unsigned i = 0; i < settings->num; i++)
+		settings->settings[i]->desc = NULL;
+}
+
+
 /* apply the supplied setting description generators to the supplied settings */
 /* returns 0 when input settings are complete */
 /* returns 1 when input settings are incomplete, storing the next setting's description needed in *next_setting */
