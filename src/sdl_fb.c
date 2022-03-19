@@ -26,7 +26,7 @@ struct sdl_fb_page_t {
 };
 
 
-static int sdl_fb_setup(const til_settings_t *settings, const til_setting_t **res_setting, const til_setting_desc_t **res_desc)
+static int sdl_fb_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc)
 {
 	const char	*fullscreen_values[] = {
 				"off",

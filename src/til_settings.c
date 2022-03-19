@@ -139,7 +139,7 @@ til_settings_t * til_settings_free(til_settings_t *settings)
 
 
 /* find key= in settings, return dup of value side or NULL if missing */
-const char * til_settings_get_value(const til_settings_t *settings, const char *key, const til_setting_t **res_setting)
+const char * til_settings_get_value(const til_settings_t *settings, const char *key, til_setting_t **res_setting)
 {
 	assert(settings);
 	assert(key);
@@ -158,7 +158,7 @@ const char * til_settings_get_value(const til_settings_t *settings, const char *
 
 
 /* return positional key from settings */
-const char * til_settings_get_key(const til_settings_t *settings, unsigned pos, const til_setting_t **res_setting)
+const char * til_settings_get_key(const til_settings_t *settings, unsigned pos, til_setting_t **res_setting)
 {
 	assert(settings);
 
@@ -179,10 +179,10 @@ const char * til_settings_get_key(const til_settings_t *settings, unsigned pos, 
  * 0 when setting is present and described, res_value and res_setting will be populated w/non-NULL, and res_desc NULL in this case.
  * 1 when setting is either present but undescribed, or absent (and undescribed), res_* will be populated but res_{value,setting} may be NULL if absent and simply described.
  */
-int til_settings_get_and_describe_value(const til_settings_t *settings, const til_setting_desc_t *desc, const char **res_value, const til_setting_t **res_setting, const til_setting_desc_t **res_desc)
+int til_settings_get_and_describe_value(const til_settings_t *settings, const til_setting_desc_t *desc, const char **res_value, til_setting_t **res_setting, const til_setting_desc_t **res_desc)
 {
-	const til_setting_t	*setting;
-	const char		*value;
+	til_setting_t	*setting;
+	const char	*value;
 
 	assert(settings);
 	assert(desc);
@@ -239,7 +239,7 @@ void til_settings_reset_descs(til_settings_t *settings)
 /* returns 0 when input settings are complete */
 /* returns 1 when input settings are incomplete, storing the next setting's description needed in *next_setting */
 /* returns -errno on error */
-int til_settings_apply_desc_generators(const til_settings_t *settings, const til_setting_desc_generator_t generators[], unsigned n_generators, void *setup_context, const til_setting_t **res_setting, const til_setting_desc_t **res_desc)
+int til_settings_apply_desc_generators(const til_settings_t *settings, const til_setting_desc_generator_t generators[], unsigned n_generators, void *setup_context, til_setting_t **res_setting, const til_setting_desc_t **res_desc)
 {
 	assert(settings);
 	assert(generators);

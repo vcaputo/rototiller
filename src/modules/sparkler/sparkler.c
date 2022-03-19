@@ -96,7 +96,7 @@ static void sparkler_render_fragment(void *context, unsigned ticks, unsigned cpu
 
 
 /* Settings hooks for configurable variables */
-static int sparkler_setup(const til_settings_t *settings, const til_setting_t **res_setting, const til_setting_desc_t **res_desc)
+static int sparkler_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc)
 {
 	const char	*show_bsp_leafs;
 	const char	*show_bsp_matches;

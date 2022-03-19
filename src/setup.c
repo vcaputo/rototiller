@@ -21,11 +21,11 @@ static int add_value(til_settings_t *settings, const char *key, const char *valu
 
 
 /* returns negative on error, otherwise number of additions made to settings */
-int setup_interactively(til_settings_t *settings, int (*setup_func)(til_settings_t *settings, const til_setting_t **res_setting, const til_setting_desc_t **res_desc), int defaults)
+int setup_interactively(til_settings_t *settings, int (*setup_func)(til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc), int defaults)
 {
 	unsigned			additions = 0;
 	char				buf[256] = "\n";
-	const til_setting_t		*setting;
+	til_setting_t			*setting;
 	const til_setting_desc_t	*desc;
 	int				r;
 

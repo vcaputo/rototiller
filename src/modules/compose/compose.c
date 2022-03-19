@@ -39,7 +39,7 @@ typedef struct compose_context_t {
 static void * compose_create_context(unsigned ticks, unsigned num_cpus);
 static void compose_destroy_context(void *context);
 static void compose_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter);
-static int compose_setup(const til_settings_t *settings, const til_setting_t **res_setting, const til_setting_desc_t **res_desc);
+static int compose_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc);
 
 static char	*compose_default_layers[] = { "drizzle", "stars", "spiro", "plato", NULL };
 static char	**compose_layers;
@@ -109,7 +109,7 @@ static void compose_prepare_frame(void *context, unsigned ticks, unsigned n_cpus
 }
 
 
-static int compose_setup(const til_settings_t *settings, const til_setting_t **res_setting, const til_setting_desc_t **res_desc)
+static int compose_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc)
 {
 	const char	*layers;
 	int		r;

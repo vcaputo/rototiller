@@ -33,13 +33,13 @@ struct til_setting_t {
 
 til_settings_t * til_settings_new(const char *settings);
 til_settings_t * til_settings_free(til_settings_t *settings);
-const char * til_settings_get_value(const til_settings_t *settings, const char *key, const til_setting_t **res_setting);
-const char * til_settings_get_key(const til_settings_t *settings, unsigned pos, const til_setting_t **res_setting);
+const char * til_settings_get_value(const til_settings_t *settings, const char *key, til_setting_t **res_setting);
+const char * til_settings_get_key(const til_settings_t *settings, unsigned pos, til_setting_t **res_setting);
 int til_settings_add_value(til_settings_t *settings, const char *key, const char *value, const til_setting_desc_t *desc);
 void til_settings_reset_descs(til_settings_t *settings);
-int til_settings_get_and_describe_value(const til_settings_t *settings, const til_setting_desc_t *desc, const char **res_value, const til_setting_t **res_setting, const til_setting_desc_t **res_desc);
+int til_settings_get_and_describe_value(const til_settings_t *settings, const til_setting_desc_t *desc, const char **res_value, til_setting_t **res_setting, const til_setting_desc_t **res_desc);
 char * til_settings_as_arg(const til_settings_t *settings);
-int til_settings_apply_desc_generators(const til_settings_t *settings, const til_setting_desc_generator_t generators[], unsigned n_generators, void *setup_context, const til_setting_t **res_setting, const til_setting_desc_t **res_desc);
+int til_settings_apply_desc_generators(const til_settings_t *settings, const til_setting_desc_generator_t generators[], unsigned n_generators, void *setup_context, til_setting_t **res_setting, const til_setting_desc_t **res_desc);
 
 int til_setting_desc_clone(const til_setting_desc_t *desc, const til_setting_desc_t **res_desc);
 til_setting_desc_t * til_setting_desc_free(const til_setting_desc_t *desc);

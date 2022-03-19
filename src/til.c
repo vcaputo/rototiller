@@ -178,9 +178,9 @@ void * til_module_destroy_context(const til_module_t *module, void *context)
 
 
 /* select module if not yet selected, then setup the module. */
-int til_module_setup(til_settings_t *settings, const til_setting_t **res_setting, const til_setting_desc_t **res_desc)
+int til_module_setup(til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc)
 {
-	const til_setting_t	*setting;
+	til_setting_t		*setting;
 	const til_module_t	*module;
 	const char		*name;
 

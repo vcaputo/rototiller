@@ -56,10 +56,10 @@ typedef struct setup_t {
  */
 
 /* select video backend if not yet selected, then setup the selected backend. */
-static int setup_video(til_settings_t *settings, const til_setting_t **res_setting, const til_setting_desc_t **res_desc)
+static int setup_video(til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc)
 {
-	const til_setting_t	*setting;
-	const char		*video;
+	til_setting_t	*setting;
+	const char	*video;
 
 	video = til_settings_get_key(settings, 0, &setting);
 	if (!video || !setting->desc) {

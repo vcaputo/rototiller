@@ -322,7 +322,7 @@ static void submit_render_fragment(void *context, unsigned ticks, unsigned cpu, 
 }
 
 
-static int submit_setup(const til_settings_t *settings, const til_setting_t **res_setting, const til_setting_desc_t **res_desc)
+static int submit_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc)
 {
 	const char	*values[] = {
 				"off",

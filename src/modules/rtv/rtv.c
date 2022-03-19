@@ -48,7 +48,7 @@ static void * rtv_create_context(unsigned ticks, unsigned num_cpus);
 static void rtv_destroy_context(void *context);
 static void rtv_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter);
 static void rtv_finish_frame(void *context, unsigned ticks, til_fb_fragment_t *fragment);
-static int rtv_setup(const til_settings_t *settings, const til_setting_t **res_setting, const til_setting_desc_t **res_desc);
+static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc);
 
 static unsigned rtv_duration = RTV_DURATION_SECS;
 static unsigned rtv_context_duration = RTV_CONTEXT_DURATION_SECS;
@@ -95,7 +95,7 @@ static void randomize_channels(rtv_context_t *ctxt)
 static char * randomize_module_setup(const til_module_t *module)
 {
 	til_settings_t			*settings;
-	const til_setting_t		*setting;
+	til_setting_t			*setting;
 	const til_setting_desc_t	*desc;
 	char				*arg;
 
@@ -308,7 +308,7 @@ static void rtv_finish_frame(void *context, unsigned ticks, til_fb_fragment_t *f
 }
 
 
-static int rtv_setup(const til_settings_t *settings, const til_setting_t **res_setting, const til_setting_desc_t **res_desc)
+static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc)
 {
 	const char	*channels;
 	const char	*duration;
