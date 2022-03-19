@@ -145,9 +145,7 @@ static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks)
 		if (ctxt->channel->cumulative_time >= rtv_context_duration) {
 			ctxt->channel->cumulative_time = 0;
 
-			if (ctxt->channel->module->destroy_context)
-				ctxt->channel->module->destroy_context(ctxt->channel->module_ctxt);
-			ctxt->channel->module_ctxt = NULL;
+			ctxt->channel->module_ctxt = til_module_destroy_context(ctxt->channel->module, ctxt->channel->module_ctxt);
 
 			free(ctxt->channel->settings);
 			ctxt->channel->settings = NULL;

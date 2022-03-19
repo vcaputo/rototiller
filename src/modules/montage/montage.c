@@ -101,14 +101,8 @@ static void montage_destroy_context(void *context)
 {
 	montage_context_t	*ctxt = context;
 
-	for (int i = 0; i < ctxt->n_modules; i++) {
-		const til_module_t	*module = ctxt->modules[i];
-
-		if (!ctxt->contexts[i])
-			continue;
-
-		 module->destroy_context(ctxt->contexts[i]);
-	}
+	for (int i = 0; i < ctxt->n_modules; i++)
+		til_module_destroy_context(ctxt->modules[i], ctxt->contexts[i]);
 
 	free(ctxt->contexts);
 	free(ctxt->modules);

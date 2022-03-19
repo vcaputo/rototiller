@@ -282,10 +282,7 @@ int main(int argc, const char *argv[])
 	pthread_cancel(rototiller.thread);
 	pthread_join(rototiller.thread, NULL);
 	til_shutdown();
-
-	if (rototiller.module_context)
-		rototiller.module->destroy_context(rototiller.module_context);
-
+	til_module_destroy_context(rototiller.module, rototiller.module_context);
 	til_fb_free(rototiller.fb);
 
 	return EXIT_SUCCESS;

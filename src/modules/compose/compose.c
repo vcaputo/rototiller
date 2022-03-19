@@ -92,10 +92,8 @@ static void compose_destroy_context(void *context)
 {
 	compose_context_t	*ctxt = context;
 
-	for (int i = 0; i < ctxt->n_layers; i++) {
-		if (ctxt->layers[i].module_ctxt)
-			ctxt->layers[i].module->destroy_context(ctxt->layers[i].module_ctxt);
-	}
+	for (int i = 0; i < ctxt->n_layers; i++)
+		til_module_destroy_context(ctxt->layers[i].module, ctxt->layers[i].module_ctxt);
 	free(context);
 }
 
