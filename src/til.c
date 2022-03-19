@@ -164,6 +164,19 @@ int til_module_create_context(const til_module_t *module, unsigned ticks, void *
 }
 
 
+void * til_module_destroy_context(const til_module_t *module, void *context)
+{
+	assert(module);
+
+	if (!module->destroy_context)
+		return NULL;
+
+	module->destroy_context(context);
+
+	return NULL;
+}
+
+
 /* select module if not yet selected, then setup the module. */
 int til_module_setup(til_settings_t *settings, const til_setting_t **res_setting, const til_setting_desc_t **res_desc)
 {
