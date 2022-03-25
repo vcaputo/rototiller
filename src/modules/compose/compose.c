@@ -141,6 +141,9 @@ static int compose_setup(const til_settings_t *settings, til_setting_t **res_set
 			return -ENOMEM;
 
 		layer = strtok(toklayers, ":");
+		if (!layer)
+			return -EINVAL;
+
 		do {
 			char	**new;
 			size_t	i;
