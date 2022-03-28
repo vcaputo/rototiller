@@ -29,6 +29,7 @@ struct til_setting_t {
 	const char			*key;
 	const char			*value;
 	const til_setting_desc_t	*desc;
+	void				*user_data;
 };
 
 til_settings_t * til_settings_new(const char *settings);

@@ -53,6 +53,7 @@ static int add_value(til_settings_t *settings, const char *key, const char *valu
 	settings->settings[settings->num - 1]->key = key;
 	settings->settings[settings->num - 1]->value = value;
 	settings->settings[settings->num - 1]->desc = desc;
+	settings->settings[settings->num - 1]->user_data = NULL;
 
 	return 0;
 }
