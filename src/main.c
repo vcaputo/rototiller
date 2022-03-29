@@ -27,7 +27,11 @@
  * another page so we can begin rendering another frame before vsync.  With
  * just two pages we end up twiddling thumbs until the vsync arrives.
  */
+#ifdef HAVE_SDL
 #define DEFAULT_VIDEO	"sdl"
+#else
+#define DEFAULT_VIDEO	"drm"
+#endif
 
 extern til_fb_ops_t	drm_fb_ops;
 extern til_fb_ops_t	sdl_fb_ops;
@@ -68,7 +72,9 @@ static int setup_video(til_settings_t *settings, til_setting_t **res_setting, co
 #ifdef HAVE_DRM
 						"drm",
 #endif
+#ifdef HAVE_SDL
 						"sdl",
+#endif
 						NULL,
 					};
 		int			r;
@@ -96,13 +102,15 @@ static int setup_video(til_settings_t *settings, til_setting_t **res_setting, co
 		fb_ops = &drm_fb_ops;
 
 		return drm_fb_ops.setup(settings, res_setting, res_desc);
-	} else
+	}
 #endif
+#ifdef HAVE_SDL
 	if (!strcmp(video, "sdl")) {
 		fb_ops = &sdl_fb_ops;
 
 		return sdl_fb_ops.setup(settings, res_setting, res_desc);
 	}
+#endif
 
 	return -EINVAL;
 }
