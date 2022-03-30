@@ -20,7 +20,7 @@ typedef struct snow_context_t {
 } snow_context_t;
 
 
-static void * snow_create_context(unsigned ticks, unsigned n_cpus)
+static void * snow_create_context(unsigned ticks, unsigned n_cpus, void *setup)
 {
 	snow_context_t	*ctxt;
 

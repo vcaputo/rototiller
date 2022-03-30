@@ -144,7 +144,7 @@ void til_module_render(const til_module_t *module, void *context, unsigned ticks
 }
 
 
-int til_module_create_context(const til_module_t *module, unsigned ticks, void **res_context)
+int til_module_create_context(const til_module_t *module, unsigned ticks, void *setup, void **res_context)
 {
 	void	*context;
 
@@ -154,7 +154,7 @@ int til_module_create_context(const til_module_t *module, unsigned ticks, void *
 	if (!module->create_context)
 		return 0;
 
-	context = module->create_context(ticks, til_threads_num_threads(til_threads));
+	context = module->create_context(ticks, til_threads_num_threads(til_threads), setup);
 	if (!context)
 		return -ENOMEM;
 
@@ -178,7 +178,7 @@ void * til_module_destroy_context(const til_module_t *module, void *context)
 
 
 /* select module if not yet selected, then setup the module. */
-int til_module_setup(til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc)
+int til_module_setup(til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, void **res_setup)
 {
 	til_setting_t		*setting;
 	const til_module_t	*module;
@@ -217,7 +217,7 @@ int til_module_setup(til_settings_t *settings, til_setting_t **res_setting, cons
 		return -EINVAL;
 
 	if (module->setup)
-		return module->setup(settings, res_setting, res_desc);
+		return module->setup(settings, res_setting, res_desc, res_setup);
 
 	return 0;
 }

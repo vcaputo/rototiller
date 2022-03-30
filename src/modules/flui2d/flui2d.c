@@ -185,7 +185,7 @@ typedef struct flui2d_context_t {
 } flui2d_context_t;
 
 
-static void * flui2d_create_context(unsigned ticks, unsigned num_cpus)
+static void * flui2d_create_context(unsigned ticks, unsigned num_cpus, void *setup)
 {
 	flui2d_context_t	*ctxt;
 
@@ -283,7 +283,7 @@ static void flui2d_render_fragment(void *context, unsigned ticks, unsigned cpu, 
 
 
 /* Settings hooks for configurable variables */
-static int flui2d_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc)
+static int flui2d_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, void **res_setup)
 {
 	const char	*viscosity;
 	const char	*diffusion;

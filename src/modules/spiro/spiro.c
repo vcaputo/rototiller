@@ -29,7 +29,7 @@ typedef struct spiro_context_t {
 } spiro_context_t;
 
 
-static void * spiro_create_context(unsigned ticks, unsigned num_cpus)
+static void * spiro_create_context(unsigned ticks, unsigned num_cpus, void *setup)
 {
 	spiro_context_t *ctxt;
 	float		z;

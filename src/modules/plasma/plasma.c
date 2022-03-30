@@ -52,7 +52,7 @@ static void init_plasma(int32_t *costab, int32_t *sintab)
 }
 
 
-static void * plasma_create_context(unsigned ticks, unsigned num_cpus)
+static void * plasma_create_context(unsigned ticks, unsigned num_cpus, void *setup)
 {
 	static int	initialized;
 

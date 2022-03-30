@@ -609,7 +609,7 @@ static void draw_polyhedron(const polyhedron_t *polyhedron, m4f_t *transform, ti
 }
 
 
-static void * plato_create_context(unsigned ticks, unsigned num_cpus)
+static void * plato_create_context(unsigned ticks, unsigned num_cpus, void *setup)
 {
 	plato_context_t	*ctxt;
 

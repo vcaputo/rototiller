@@ -130,7 +130,7 @@ typedef struct ray_context_t {
 } ray_context_t;
 
 
-static void * ray_create_context(unsigned ticks, unsigned num_cpus)
+static void * ray_create_context(unsigned ticks, unsigned num_cpus, void *setup)
 {
 	return calloc(1, sizeof(ray_context_t));
 }

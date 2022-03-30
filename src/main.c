@@ -51,7 +51,9 @@ static rototiller_t		rototiller;
 
 typedef struct setup_t {
 	til_settings_t	*module;
+	void		*module_setup;
 	til_settings_t	*video;
+	void		*video_setup;
 } setup_t;
 
 /* FIXME: this is unnecessarily copy-pasta, i think modules should just be made
@@ -60,7 +62,7 @@ typedef struct setup_t {
  */
 
 /* select video backend if not yet selected, then setup the selected backend. */
-static int setup_video(til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc)
+static int setup_video(til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, void **res_setup)
 {
 	til_setting_t	*setting;
 	const char	*video;
@@ -101,14 +103,14 @@ static int setup_video(til_settings_t *settings, til_setting_t **res_setting, co
 	if (!strcmp(video, "drm")) {
 		fb_ops = &drm_fb_ops;
 
-		return drm_fb_ops.setup(settings, res_setting, res_desc);
+		return drm_fb_ops.setup(settings, res_setting, res_desc, res_setup);
 	}
 #endif
 #ifdef HAVE_SDL
 	if (!strcmp(video, "sdl")) {
 		fb_ops = &sdl_fb_ops;
 
-		return sdl_fb_ops.setup(settings, res_setting, res_desc);
+		return sdl_fb_ops.setup(settings, res_setting, res_desc, res_setup);
 	}
 #endif
 
@@ -131,13 +133,13 @@ static int setup_from_args(til_args_t *args, setup_t *res_setup)
 	if (!setup.video)
 		goto _err;
 
-	r = setup_interactively(setup.module, til_module_setup, args->use_defaults);
+	r = setup_interactively(setup.module, til_module_setup, args->use_defaults, &setup.module_setup);
 	if (r < 0)
 		goto _err;
 	if (r)
 		changes = 1;
 
-	r = setup_interactively(setup.video, setup_video, args->use_defaults);
+	r = setup_interactively(setup.video, setup_video, args->use_defaults, &setup.video_setup);
 	if (r < 0)
 		goto _err;
 	if (r)
@@ -274,6 +276,7 @@ int main(int argc, const char *argv[])
 						get_ticks(&rototiller.start_tv,
 							&rototiller.start_tv,
 							rototiller.ticks_offset),
+						setup.module_setup,
 						&rototiller.module_context)) < 0,
 		"unable to create module context: %s", strerror(-r));
 

@@ -64,7 +64,7 @@ static inline uint32_t color_to_uint32(v3f_t color) {
 }
 
 
-static void * drizzle_create_context(unsigned ticks, unsigned num_cpus)
+static void * drizzle_create_context(unsigned ticks, unsigned num_cpus, void *setup)
 {
 	drizzle_context_t	*ctxt;
 
@@ -153,7 +153,7 @@ static void drizzle_render_fragment(void *context, unsigned ticks, unsigned cpu,
 }
 
 
-static int drizzle_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc)
+static int drizzle_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, void **res_setup)
 {
 	const char	*viscosity;
 	const char	*values[] = {

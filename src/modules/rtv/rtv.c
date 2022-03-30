@@ -24,6 +24,7 @@
 typedef struct rtv_channel_t {
 	const til_module_t	*module;
 	void			*module_ctxt;
+	void			*module_setup;
 	time_t			last_on_time, cumulative_time;
 	char			*settings;
 	txt_t			*caption;
@@ -44,11 +45,11 @@ typedef struct rtv_context_t {
 } rtv_context_t;
 
 static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks);
-static void * rtv_create_context(unsigned ticks, unsigned num_cpus);
+static void * rtv_create_context(unsigned ticks, unsigned num_cpus, void *setup);
 static void rtv_destroy_context(void *context);
 static void rtv_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter);
 static void rtv_finish_frame(void *context, unsigned ticks, til_fb_fragment_t *fragment);
-static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc);
+static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, void **res_setup);
 
 static unsigned rtv_duration = RTV_DURATION_SECS;
 static unsigned rtv_context_duration = RTV_CONTEXT_DURATION_SECS;
@@ -92,7 +93,7 @@ static void randomize_channels(rtv_context_t *ctxt)
 }
 
 
-static char * randomize_module_setup(const til_module_t *module)
+static char * randomize_module_setup(const til_module_t *module, void **res_setup)
 {
 	til_settings_t			*settings;
 	til_setting_t			*setting;
@@ -106,7 +107,7 @@ static char * randomize_module_setup(const til_module_t *module)
 	if (!settings)
 		return NULL;
 
-	while (module->setup(settings, &setting, &desc) > 0) {
+	while (module->setup(settings, &setting, &desc, res_setup) > 0) {
 		if (desc->random) {
 			char	*value;
 
@@ -181,7 +182,7 @@ static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks)
 			char	*settings;
 			txt_t	*caption;
 
-			settings = randomize_module_setup(ctxt->channel->module);
+			settings = randomize_module_setup(ctxt->channel->module, &ctxt->channel->module_setup);
 			caption = txt_newf("Title: %s%s%s\nDescription: %s%s%s",
 						 ctxt->channel->module->name,
 						 ctxt->channel->module->author ? "\nAuthor: " : "",
@@ -199,7 +200,7 @@ static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks)
 	}
 
 	if (!ctxt->channel->module_ctxt)
-		(void) til_module_create_context(ctxt->channel->module, ticks, &ctxt->channel->module_ctxt);
+		(void) til_module_create_context(ctxt->channel->module, ticks, ctxt->channel->module_setup, &ctxt->channel->module_ctxt);
 
 	ctxt->channel->last_on_time = now;
 }
@@ -223,7 +224,7 @@ static int rtv_should_skip_module(const rtv_context_t *ctxt, const til_module_t 
 }
 
 
-static void * rtv_create_context(unsigned ticks, unsigned num_cpus)
+static void * rtv_create_context(unsigned ticks, unsigned num_cpus, void *setup)
 {
 	rtv_context_t		*ctxt;
 	const til_module_t	**modules;
@@ -241,7 +242,7 @@ static void * rtv_create_context(unsigned ticks, unsigned num_cpus)
 	ctxt->snow_channel.module = &none_module;
 	if (rtv_snow_module) {
 		ctxt->snow_channel.module = til_lookup_module(rtv_snow_module);
-		(void) til_module_create_context(ctxt->snow_channel.module, ticks, &ctxt->snow_channel.module_ctxt);
+		(void) til_module_create_context(ctxt->snow_channel.module, ticks, NULL, &ctxt->snow_channel.module_ctxt);
 	}
 
 	for (size_t i = 0; i < n_modules; i++) {
@@ -307,7 +308,7 @@ static void rtv_finish_frame(void *context, unsigned ticks, til_fb_fragment_t *f
 }
 
 
-static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc)
+static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, void **res_setup)
 {
 	const char	*channels;
 	const char	*duration;

@@ -25,7 +25,7 @@ extern particle_ops_t	simple_ops;
 
 static particles_conf_t	sparkler_conf;
 
-static void * sparkler_create_context(unsigned ticks, unsigned num_cpus)
+static void * sparkler_create_context(unsigned ticks, unsigned num_cpus, void *setup)
 {
 	static int		initialized;
 	sparkler_context_t	*ctxt;
@@ -96,7 +96,7 @@ static void sparkler_render_fragment(void *context, unsigned ticks, unsigned cpu
 
 
 /* Settings hooks for configurable variables */
-static int sparkler_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc)
+static int sparkler_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, void **res_setup)
 {
 	const char	*show_bsp_leafs;
 	const char	*show_bsp_matches;

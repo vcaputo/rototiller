@@ -109,7 +109,7 @@ static int pick_pix(int num_pics, int last_pic)
 	return pix_num;
 }
 
-static void * pixbounce_create_context(unsigned ticks, unsigned num_cpus)
+static void * pixbounce_create_context(unsigned ticks, unsigned num_cpus, void *setup)
 {
 	pixbounce_context_t *ctxt;
 

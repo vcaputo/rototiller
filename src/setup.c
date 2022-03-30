@@ -21,7 +21,7 @@ static int add_value(til_settings_t *settings, const char *key, const char *valu
 
 
 /* returns negative on error, otherwise number of additions made to settings */
-int setup_interactively(til_settings_t *settings, int (*setup_func)(til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc), int defaults)
+int setup_interactively(til_settings_t *settings, int (*setup_func)(til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, void **res_setup), int defaults, void **res_setup)
 {
 	unsigned			additions = 0;
 	char				buf[256] = "\n";
@@ -34,7 +34,7 @@ int setup_interactively(til_settings_t *settings, int (*setup_func)(til_settings
 
 	/* TODO: regex and error handling */
 
-	while ((r = setup_func(settings, &setting, &desc)) > 0) {
+	while ((r = setup_func(settings, &setting, &desc, res_setup)) > 0) {
 		additions++;
 
 		/* if setup_func() has returned a description for an undescribed preexisting setting,

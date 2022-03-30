@@ -41,7 +41,7 @@ float get_random_unit_coord() {
 }
 
 
-static void * stars_create_context(unsigned ticks, unsigned num_cpus)
+static void * stars_create_context(unsigned ticks, unsigned num_cpus, void *setup)
 {
 	stars_context_t *ctxt;
 	float		z;
@@ -201,7 +201,7 @@ static void stars_render_fragment(void *context, unsigned ticks, unsigned cpu, t
 	ctxt->offset_y = tmp_y;
 }
 
-int stars_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc)
+int stars_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, void **res_setup)
 {
 	const char	*rot_adj;
 	const char	*rot_adj_values[] = {

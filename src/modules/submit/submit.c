@@ -261,7 +261,7 @@ static void setup_grid(submit_context_t *ctxt)
 }
 
 
-static void * submit_create_context(unsigned ticks, unsigned num_cpus)
+static void * submit_create_context(unsigned ticks, unsigned num_cpus, void *setup)
 {
 	submit_context_t	*ctxt;
 
@@ -322,7 +322,7 @@ static void submit_render_fragment(void *context, unsigned ticks, unsigned cpu, 
 }
 
 
-static int submit_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc)
+static int submit_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, void **res_setup)
 {
 	const char	*values[] = {
 				"off",
