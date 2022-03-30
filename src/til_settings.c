@@ -261,8 +261,6 @@ int til_settings_apply_desc_generators(const til_settings_t *settings, const til
 		til_setting_desc_free(desc); /* always need to cleanup the desc from g->func(), res_desc gets its own copy */
 		if (r)
 			return r;
-
-		return 1;
 	}
 
 	return 0;
