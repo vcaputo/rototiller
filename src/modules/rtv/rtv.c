@@ -198,8 +198,8 @@ static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks)
 		ctxt->next_hide_caption = now + rtv_caption_duration;
 	}
 
-	if (!ctxt->channel->module_ctxt && ctxt->channel->module->create_context)
-		ctxt->channel->module_ctxt = ctxt->channel->module->create_context(ticks, ctxt->n_cpus);
+	if (!ctxt->channel->module_ctxt)
+		(void) til_module_create_context(ctxt->channel->module, ticks, &ctxt->channel->module_ctxt);
 
 	ctxt->channel->last_on_time = now;
 }
@@ -241,8 +241,7 @@ static void * rtv_create_context(unsigned ticks, unsigned num_cpus)
 	ctxt->snow_channel.module = &none_module;
 	if (rtv_snow_module) {
 		ctxt->snow_channel.module = til_lookup_module(rtv_snow_module);
-		if (ctxt->snow_channel.module->create_context)
-			ctxt->snow_channel.module_ctxt = ctxt->snow_channel.module->create_context(ticks, ctxt->n_cpus);
+		(void) til_module_create_context(ctxt->snow_channel.module, ticks, &ctxt->snow_channel.module_ctxt);
 	}
 
 	for (size_t i = 0; i < n_modules; i++) {

@@ -78,8 +78,7 @@ static void * compose_create_context(unsigned ticks, unsigned num_cpus)
 		module = til_lookup_module(layers[i]);
 
 		ctxt->layers[i].module = module;
-		if (module->create_context)
-			ctxt->layers[i].module_ctxt = module->create_context(ticks, num_cpus);
+		(void) til_module_create_context(module, ticks, &ctxt->layers[i].module_ctxt);
 
 		ctxt->n_layers++;
 	}
