@@ -96,7 +96,7 @@ til_settings_t * til_settings_new(const char *settings_string)
 		case TIL_SETTINGS_FSM_STATE_EQUAL:
 			token = p;
 			state = TIL_SETTINGS_FSM_STATE_VALUE;
-			break;
+			/* fallthrough, necessary to not leave NULL values for empty "key=\0" settings */
 
 		case TIL_SETTINGS_FSM_STATE_VALUE:
 			if (*p == ',' || *p == '\0') {
