@@ -20,17 +20,13 @@
  * https://en.wikipedia.org/wiki/Swarm_intelligence
  */
 
+#include <errno.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <math.h>
 
 #include "til.h"
 #include "til_fb.h"
-
-typedef enum swarm_draw_style_t {
-	SWARM_DRAW_STYLE_POINTS,	/* simple opaque pixel per particle */
-	SWARM_DRAW_STYLE_LINES,		/* simple opaque lines per particle, oriented and sized by direction and velocity */
-} swarm_draw_style_t;
 
 typedef struct v3f_t {
 	float	x, y, z;
@@ -46,9 +42,19 @@ typedef struct boid_t {
 	float	velocity;
 } boid_t;
 
+typedef enum swarm_draw_style_t {
+	SWARM_DRAW_STYLE_POINTS,	/* simple opaque pixel per particle */
+	SWARM_DRAW_STYLE_LINES,		/* simple opaque lines per particle, oriented and sized by direction and velocity */
+} swarm_draw_style_t;
+
+typedef struct swarm_setup_t {
+	swarm_draw_style_t	draw_style;
+} swarm_setup_t;
+
 typedef struct swarm_context_t {
 	v3f_t		color;
 	float		ztweak;
+	swarm_setup_t	setup;
 	boid_t		boids[];
 } swarm_context_t;
 
@@ -56,7 +62,9 @@ typedef struct swarm_context_t {
 #define SWARM_ZCONST		4.f
 #define SWARM_DEFAULT_STYLE	SWARM_DRAW_STYLE_LINES
 
-static swarm_draw_style_t swarm_draw_style = SWARM_DEFAULT_STYLE;
+static swarm_setup_t swarm_default_setup = {
+	.draw_style = SWARM_DEFAULT_STYLE,
+};
 
 
 static inline float randf(float min, float max)
@@ -174,9 +182,14 @@ static void * swarm_create_context(unsigned ticks, unsigned num_cpus, void *setu
 {
 	swarm_context_t	*ctxt;
 
+	if (!setup)
+		setup = &swarm_default_setup;
+
 	ctxt = calloc(1, sizeof(swarm_context_t) + sizeof(*(ctxt->boids)) * SWARM_SIZE);
 	if (!ctxt)
 		return NULL;
+
+	ctxt->setup = *(swarm_setup_t *)setup;
 
 	for (unsigned i = 0; i < SWARM_SIZE; i++)
 		boid_randomize(&ctxt->boids[i]);
@@ -399,7 +412,7 @@ static void swarm_render_fragment(void *context, unsigned ticks, unsigned cpu, t
 
 	til_fb_fragment_zero(fragment);
 
-	switch (swarm_draw_style) {
+	switch (ctxt->setup.draw_style) {
 	case SWARM_DRAW_STYLE_POINTS:
 		return swarm_draw_as_points(ctxt, fragment);
 	case SWARM_DRAW_STYLE_LINES:
@@ -432,9 +445,19 @@ static int swarm_setup(const til_settings_t *settings, til_setting_t **res_setti
 	if (r)
 		return r;
 
-	for (int i = 0; styles[i]; i++) {
-		if (!strcmp(styles[i], style))
-			swarm_draw_style = i;
+	if (res_setup) {
+		swarm_setup_t	*setup;
+
+		setup = calloc(1, sizeof(*setup));
+		if (!setup)
+			return -ENOMEM;
+
+		for (int i = 0; styles[i]; i++) {
+			if (!strcmp(styles[i], style))
+				setup->draw_style = i;
+		}
+
+		*res_setup = setup;
 	}
 
 	return 0;

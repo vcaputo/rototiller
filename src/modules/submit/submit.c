@@ -53,12 +53,15 @@ typedef struct submit_context_t {
 	grid_player_t	*players[NUM_PLAYERS];
 	uint32_t	seq;
 	uint32_t	game_winner;
+	unsigned	bilerp:1;
 	uint8_t		cells[GRID_SIZE * GRID_SIZE];
 } submit_context_t;
 
+typedef struct submit_setup_t {
+	unsigned	bilerp:1;
+} submit_setup_t;
 
-static int	bilerp_setting;
-
+static submit_setup_t submit_default_setup;
 
 /* convert a color into a packed, 32-bit rgb pixel value (taken from libs/ray/ray_color.h) */
 static inline uint32_t color_to_uint32(color_t color) {
@@ -265,10 +268,14 @@ static void * submit_create_context(unsigned ticks, unsigned num_cpus, void *set
 {
 	submit_context_t	*ctxt;
 
+	if (!setup)
+		setup = &submit_default_setup;
+
 	ctxt = calloc(1, sizeof(submit_context_t));
 	if (!ctxt)
 		return NULL;
 
+	ctxt->bilerp = ((submit_setup_t *)setup)->bilerp;
 	setup_grid(ctxt);
 
 	return ctxt;
@@ -315,7 +322,7 @@ static void submit_render_fragment(void *context, unsigned ticks, unsigned cpu, 
 {
 	submit_context_t	*ctxt = context;
 
-	if (!bilerp_setting)
+	if (!ctxt->bilerp)
 		draw_grid(ctxt, fragment);
 	else
 		draw_grid_bilerp(ctxt, fragment);
@@ -347,10 +354,18 @@ static int submit_setup(const til_settings_t *settings, til_setting_t **res_sett
 	if (r)
 		return r;
 
-	if (!strcasecmp(bilerp, "on"))
-		bilerp_setting = 1;
-	else
-		bilerp_setting = 0;
+	if (res_setup) {
+		submit_setup_t	*setup;
+
+		setup = calloc(1, sizeof(*setup));
+		if (!setup)
+			return -ENOMEM;
+
+		if (!strcasecmp(bilerp, "on"))
+			setup->bilerp = 1;
+
+		*res_setup = setup;
+	}
 
 	return 0;
 }

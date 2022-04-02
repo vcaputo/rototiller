@@ -20,6 +20,7 @@
 #define RTV_DURATION_SECS		15
 #define RTV_CAPTION_DURATION_SECS	5
 #define RTV_CONTEXT_DURATION_SECS	60
+#define RTV_DEFAULT_SNOW_MODULE		"snow"
 
 typedef struct rtv_channel_t {
 	const til_module_t	*module;
@@ -38,11 +39,25 @@ typedef struct rtv_context_t {
 	rtv_channel_t		*channel, *last_channel;
 	txt_t			*caption;
 
+	unsigned		duration;
+	unsigned		context_duration;
+	unsigned		snow_duration;
+	unsigned		caption_duration;
+
 	rtv_channel_t		snow_channel;
 
 	size_t			n_channels;
 	rtv_channel_t		channels[];
 } rtv_context_t;
+
+typedef struct rtv_setup_t {
+	unsigned	duration;
+	unsigned	context_duration;
+	unsigned	snow_duration;
+	unsigned	caption_duration;
+	char 		*snow_module;
+	char		*channels[];
+} rtv_setup_t;
 
 static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks);
 static void * rtv_create_context(unsigned ticks, unsigned num_cpus, void *setup);
@@ -51,12 +66,14 @@ static void rtv_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, ti
 static void rtv_finish_frame(void *context, unsigned ticks, til_fb_fragment_t *fragment);
 static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, void **res_setup);
 
-static unsigned rtv_duration = RTV_DURATION_SECS;
-static unsigned rtv_context_duration = RTV_CONTEXT_DURATION_SECS;
-static unsigned rtv_snow_duration = RTV_SNOW_DURATION_SECS;
-static unsigned rtv_caption_duration = RTV_CAPTION_DURATION_SECS;
-static char	**rtv_channels;
-static char 	*rtv_snow_module;
+static rtv_setup_t rtv_default_setup = {
+	.duration = RTV_DURATION_SECS,
+	.context_duration = RTV_CONTEXT_DURATION_SECS,
+	.snow_duration = RTV_SNOW_DURATION_SECS,
+	.caption_duration = RTV_CAPTION_DURATION_SECS,
+	.snow_module = RTV_DEFAULT_SNOW_MODULE,
+	.channels = { NULL }, /* NULL == "all" */
+};
 
 
 til_module_t	rtv_module = {
@@ -143,7 +160,7 @@ static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks)
 	 */
 	if (ctxt->channel) {
 		ctxt->channel->cumulative_time += now - ctxt->channel->last_on_time;
-		if (ctxt->channel->cumulative_time >= rtv_context_duration) {
+		if (ctxt->channel->cumulative_time >= ctxt->context_duration) {
 			ctxt->channel->cumulative_time = 0;
 
 			ctxt->channel->module_ctxt = til_module_destroy_context(ctxt->channel->module, ctxt->channel->module_ctxt);
@@ -159,7 +176,7 @@ static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks)
 		ctxt->last_channel = ctxt->channel;
 		ctxt->channel = &ctxt->snow_channel;
 		ctxt->caption = NULL;
-		ctxt->next_switch = now + rtv_snow_duration;
+		ctxt->next_switch = now + ctxt->snow_duration;
 	} else {
 		size_t	i;
 
@@ -195,8 +212,8 @@ static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks)
 			ctxt->channel->settings = settings ? settings : strdup("");
 		}
 
-		ctxt->next_switch = now + rtv_duration;
-		ctxt->next_hide_caption = now + rtv_caption_duration;
+		ctxt->next_switch = now + ctxt->duration;
+		ctxt->next_hide_caption = now + ctxt->caption_duration;
 	}
 
 	if (!ctxt->channel->module_ctxt)
@@ -206,16 +223,19 @@ static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks)
 }
 
 
-static int rtv_should_skip_module(const rtv_context_t *ctxt, const til_module_t *module)
+static int rtv_should_skip_module(const rtv_setup_t *setup, const til_module_t *module)
 {
 	if (module == &rtv_module ||
-	    module == ctxt->snow_channel.module)
+	    (setup->snow_module && !strcmp(module->name, setup->snow_module)))
 		return 1;
 
-	if (!rtv_channels)
+	/* An empty channels list is a special case for representing "all", an
+	 * empty channels setting returns -EINVAL during _setup().
+	 */
+	if (!setup->channels[0])
 		return 0;
 
-	for (char **channel = rtv_channels; *channel; channel++) {
+	for (char * const *channel = setup->channels; *channel; channel++) {
 		if (!strcmp(module->name, *channel))
 			return 0;
 	}
@@ -228,28 +248,39 @@ static void * rtv_create_context(unsigned ticks, unsigned num_cpus, void *setup)
 {
 	rtv_context_t		*ctxt;
 	const til_module_t	**modules;
-	size_t			n_modules;
+	size_t			n_modules, n_channels = 0;
 	static til_module_t	none_module = {};
+
+	if (!setup)
+		setup = &rtv_default_setup;
 
 	til_get_modules(&modules, &n_modules);
 
-	ctxt = calloc(1, sizeof(rtv_context_t) + n_modules * sizeof(rtv_channel_t));
+	/* how many modules are in the setup? */
+	for (size_t i = 0; i < n_modules; i++) {
+		if (!rtv_should_skip_module(setup, modules[i]))
+			n_channels++;
+	}
+
+	ctxt = calloc(1, sizeof(rtv_context_t) + n_channels * sizeof(rtv_channel_t));
 	if (!ctxt)
 		return NULL;
 
 	ctxt->n_cpus = num_cpus;
+	ctxt->duration = ((rtv_setup_t *)setup)->duration;
+	ctxt->context_duration = ((rtv_setup_t *)setup)->context_duration;
+	ctxt->snow_duration = ((rtv_setup_t *)setup)->snow_duration;
+	ctxt->caption_duration = ((rtv_setup_t *)setup)->caption_duration;
 
 	ctxt->snow_channel.module = &none_module;
-	if (rtv_snow_module) {
-		ctxt->snow_channel.module = til_lookup_module(rtv_snow_module);
+	if (((rtv_setup_t *)setup)->snow_module) {
+		ctxt->snow_channel.module = til_lookup_module(((rtv_setup_t *)setup)->snow_module);
 		(void) til_module_create_context(ctxt->snow_channel.module, ticks, NULL, &ctxt->snow_channel.module_ctxt);
 	}
 
 	for (size_t i = 0; i < n_modules; i++) {
-		if (rtv_should_skip_module(ctxt, modules[i]))
-			continue;
-
-		ctxt->channels[ctxt->n_channels++].module = modules[i];
+		if (!rtv_should_skip_module(setup, modules[i]))
+			ctxt->channels[ctxt->n_channels++].module = modules[i];
 	}
 
 	setup_next_channel(ctxt, ticks);
@@ -400,52 +431,64 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 	if (r)
 		return r;
 
-	/* turn channels colon-separated list into a null-terminated array of strings */
-	if (strcmp(channels, "all")) {
-		const til_module_t	**modules;
-		size_t			n_modules;
-		char			*tokchannels, *channel;
-		int			n = 2;
+	if (res_setup) {
+		rtv_setup_t	*setup;
 
-		til_get_modules(&modules, &n_modules);
-
-		tokchannels = strdup(channels);
-		if (!tokchannels)
+		setup = calloc(1, sizeof(*setup) + sizeof(setup->channels[0]));
+		if (!setup)
 			return -ENOMEM;
 
-		channel = strtok(tokchannels, ":");
-		do {
-			char	**new;
-			size_t	i;
+		/* turn channels colon-separated list into a null-terminated array of strings */
+		if (strcmp(channels, "all")) {
+			const til_module_t	**modules;
+			size_t			n_modules;
+			char			*tokchannels, *channel;
+			int			n = 2;
 
-			for (i = 0; i < n_modules; i++) {
-				if (!strcmp(channel, modules[i]->name))
-					break;
-			}
+			til_get_modules(&modules, &n_modules);
 
-			if (i >= n_modules)
-				return -EINVAL;
-
-			new = realloc(rtv_channels, n * sizeof(*rtv_channels));
-			if (!new)
+			tokchannels = strdup(channels);
+			if (!tokchannels)
 				return -ENOMEM;
 
-			new[n - 2] = channel;
-			new[n - 1] = NULL;
-			n++;
+			channel = strtok(tokchannels, ":");
+			do {
+				rtv_setup_t	*new;
+				size_t		i;
 
-			rtv_channels = new;
-		} while (channel = strtok(NULL, ":"));
+				for (i = 0; i < n_modules; i++) {
+					if (!strcmp(channel, modules[i]->name))
+						break;
+				}
+
+				if (i >= n_modules)
+					return -EINVAL;
+
+				new = realloc(setup, sizeof(*setup) + n * sizeof(setup->channels[0]));
+				if (!new) {
+					free(setup);
+					return -ENOMEM;
+				}
+
+				new->channels[n - 2] = channel;
+				new->channels[n - 1] = NULL;
+				n++;
+
+				setup = new;
+			} while (channel = strtok(NULL, ":"));
+		}
+
+		if (strcmp(snow_module, "none"))
+			setup->snow_module = strdup(snow_module);
+
+		/* TODO FIXME: parse errors */
+		sscanf(duration, "%u", &setup->duration);
+		sscanf(context_duration, "%u", &setup->context_duration);
+		sscanf(caption_duration, "%u", &setup->caption_duration);
+		sscanf(snow_duration, "%u", &setup->snow_duration);
+
+		*res_setup = setup;
 	}
-
-	if (strcmp(snow_module, "none"))
-		rtv_snow_module = strdup(snow_module);
-
-	/* TODO FIXME: parse errors */
-	sscanf(duration, "%u", &rtv_duration);
-	sscanf(context_duration, "%u", &rtv_context_duration);
-	sscanf(caption_duration, "%u", &rtv_caption_duration);
-	sscanf(snow_duration, "%u", &rtv_snow_duration);
 
 	return 0;
 }

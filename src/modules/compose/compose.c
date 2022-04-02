@@ -36,13 +36,19 @@ typedef struct compose_context_t {
 	compose_layer_t		layers[];
 } compose_context_t;
 
+typedef struct compose_setup_t {
+	size_t			n_layers;
+	char			*layers[];
+} compose_setup_t;
+
 static void * compose_create_context(unsigned ticks, unsigned num_cpus, void *setup);
 static void compose_destroy_context(void *context);
 static void compose_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter);
 static int compose_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, void **res_setup);
 
-static char	*compose_default_layers[] = { "drizzle", "stars", "spiro", "plato", NULL };
-static char	**compose_layers;
+static compose_setup_t compose_default_setup = {
+	.layers = { "drizzle", "stars", "spiro", "plato", NULL },
+};
 
 
 til_module_t	compose_module = {
@@ -57,14 +63,13 @@ til_module_t	compose_module = {
 
 static void * compose_create_context(unsigned ticks, unsigned num_cpus, void *setup)
 {
-	char			**layers = compose_default_layers;
 	compose_context_t	*ctxt;
-	int			n;
+	size_t			n;
 
-	if (compose_layers)
-		layers = compose_layers;
+	if (!setup)
+		setup = &compose_default_setup;
 
-	for (n = 0; layers[n]; n++);
+	for (n = 0; ((compose_setup_t *)setup)->layers[n]; n++);
 
 	ctxt = calloc(1, sizeof(compose_context_t) + n * sizeof(compose_layer_t));
 	if (!ctxt)
@@ -75,7 +80,7 @@ static void * compose_create_context(unsigned ticks, unsigned num_cpus, void *se
 	for (int i = 0; i < n; i++) {
 		const til_module_t	*module;
 
-		module = til_lookup_module(layers[i]);
+		module = til_lookup_module(((compose_setup_t *)setup)->layers[i]);
 
 		ctxt->layers[i].module = module;
 		(void) til_module_create_context(module, ticks, NULL, &ctxt->layers[i].module_ctxt);
@@ -127,7 +132,8 @@ static int compose_setup(const til_settings_t *settings, til_setting_t **res_set
 		return r;
 
 	/* turn layers colon-separated list into a null-terminated array of strings */
-	{
+	if (res_setup) {
+		compose_setup_t		*setup = NULL;
 		const til_module_t	**modules;
 		size_t			n_modules;
 		char			*toklayers, *layer;
@@ -144,8 +150,8 @@ static int compose_setup(const til_settings_t *settings, til_setting_t **res_set
 			return -EINVAL;
 
 		do {
-			char	**new;
-			size_t	i;
+			compose_setup_t	*new;
+			size_t		i;
 
 			/* other meta-modules like montage and rtv may need to
 			 * have some consideration here, but for now I'm just
@@ -163,16 +169,18 @@ static int compose_setup(const til_settings_t *settings, til_setting_t **res_set
 			if (i >= n_modules)
 				return -EINVAL;
 
-			new = realloc(compose_layers, n * sizeof(*compose_layers));
+			new = realloc(setup, sizeof(*setup) + n * sizeof(*setup->layers));
 			if (!new)
 				return -ENOMEM;
 
-			new[n - 2] = layer;
-			new[n - 1] = NULL;
+			new->layers[n - 2] = layer;
+			new->layers[n - 1] = NULL;
 			n++;
 
-			compose_layers = new;
+			setup = new;
 		} while (layer = strtok(NULL, ":"));
+
+		*res_setup = setup;
 	}
 
 	return 0;

@@ -14,6 +14,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <errno.h>
 #include <stdlib.h>
 #include <unistd.h>
 
@@ -26,11 +27,6 @@
 #define DRIZZLE_CNT		20
 #define DEFAULT_VISCOSITY	.01
 
-typedef struct drizzle_context_t {
-	puddle_t	*puddle;
-	unsigned	n_cpus;
-} drizzle_context_t;
-
 typedef struct v3f_t {
 	float	x, y, z;
 } v3f_t;
@@ -39,7 +35,19 @@ typedef struct v2f_t {
 	float	x, y;
 } v2f_t;
 
-static float	drizzle_viscosity = DEFAULT_VISCOSITY;
+typedef struct drizzle_setup_t {
+	float		viscosity;
+} drizzle_setup_t;
+
+typedef struct drizzle_context_t {
+	puddle_t	*puddle;
+	unsigned	n_cpus;
+	drizzle_setup_t	setup;
+} drizzle_context_t;
+
+static drizzle_setup_t drizzle_default_setup = {
+	.viscosity = DEFAULT_VISCOSITY,
+};
 
 
 /* convert a color into a packed, 32-bit rgb pixel value (taken from libs/ray/ray_color.h) */
@@ -68,6 +76,9 @@ static void * drizzle_create_context(unsigned ticks, unsigned num_cpus, void *se
 {
 	drizzle_context_t	*ctxt;
 
+	if (!setup)
+		setup = &drizzle_default_setup;
+
 	ctxt = calloc(1, sizeof(drizzle_context_t));
 	if (!ctxt)
 		return NULL;
@@ -79,6 +90,7 @@ static void * drizzle_create_context(unsigned ticks, unsigned num_cpus, void *se
 	}
 
 	ctxt->n_cpus = num_cpus;
+	ctxt->setup = *(drizzle_setup_t *)setup;
 
 	return ctxt;
 }
@@ -121,7 +133,7 @@ static void drizzle_prepare_frame(void *context, unsigned ticks, unsigned n_cpus
 		puddle_set(ctxt->puddle, x + 1, y + 1, 1.f);
 	}
 
-	puddle_tick(ctxt->puddle, drizzle_viscosity);
+	puddle_tick(ctxt->puddle, ctxt->setup.viscosity);
 }
 
 
@@ -180,7 +192,17 @@ static int drizzle_setup(const til_settings_t *settings, til_setting_t **res_set
 	if (r)
 		return r;
 
-	sscanf(viscosity, "%f", &drizzle_viscosity);
+	if (res_setup) {
+		drizzle_setup_t	*setup;
+
+		setup = calloc(1, sizeof(*setup));
+		if (!setup)
+			return -ENOMEM;
+
+		sscanf(viscosity, "%f", &setup->viscosity);
+
+		*res_setup = setup;
+	}
 
 	return 0;
 }

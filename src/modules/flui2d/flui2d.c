@@ -27,10 +27,6 @@
 #define IX(i, j)	((i) + (ROOT + 2) * (j))
 #define SWAP(x0, x)	{float *tmp = x0; x0 = x; x = tmp;}
 
-static float	flui2d_viscosity = DEFAULT_VISCOSITY;
-static float	flui2d_diffusion = DEFAULT_DIFFUSION;
-static float	flui2d_decay = DEFAULT_DECAY;
-
 typedef struct flui2d_t {
 	float	u[SIZE], v[SIZE], u_prev[SIZE], v_prev[SIZE];
 	float	dens[SIZE], dens_prev[SIZE];
@@ -184,18 +180,33 @@ typedef struct flui2d_context_t {
 	float		xf, yf;
 } flui2d_context_t;
 
+typedef struct flui2d_setup_t {
+	float	viscosity;
+	float	diffusion;
+	float	decay;
+} flui2d_setup_t;
+
+static flui2d_setup_t flui2d_default_setup = {
+	.viscosity = DEFAULT_VISCOSITY,
+	.diffusion = DEFAULT_DIFFUSION,
+	.decay = DEFAULT_DECAY,
+};
+
 
 static void * flui2d_create_context(unsigned ticks, unsigned num_cpus, void *setup)
 {
 	flui2d_context_t	*ctxt;
 
+	if (!setup)
+		setup = &flui2d_default_setup;
+
 	ctxt = calloc(1, sizeof(flui2d_context_t));
 	if (!ctxt)
 		return NULL;
 
-	ctxt->fluid.visc = flui2d_viscosity;
-	ctxt->fluid.diff = flui2d_diffusion;
-	ctxt->fluid.decay = flui2d_decay;
+	ctxt->fluid.visc = ((flui2d_setup_t *)setup)->viscosity;
+	ctxt->fluid.diff = ((flui2d_setup_t *)setup)->diffusion;
+	ctxt->fluid.decay = ((flui2d_setup_t *)setup)->decay;
 
 	return ctxt;
 }
@@ -354,14 +365,26 @@ static int flui2d_setup(const til_settings_t *settings, til_setting_t **res_sett
 	if (r)
 		return r;
 
-	/* TODO: return -EINVAL on parse errors? */
-	sscanf(viscosity, "%f", &flui2d_viscosity);
-	sscanf(diffusion, "%f", &flui2d_diffusion);
-	sscanf(decay, "%f", &flui2d_decay);
+	if (res_setup) {
+		flui2d_setup_t	*setup;
 
-	/* prevent overflow in case an explicit out of range setting is supplied */
-	if (flui2d_decay > 1.f || flui2d_decay < 0.f)
-		return -EINVAL;
+		setup = calloc(1, sizeof(*setup));
+		if (!setup)
+			return -ENOMEM;
+
+		/* TODO: return -EINVAL on parse errors? */
+		sscanf(viscosity, "%f", &setup->viscosity);
+		sscanf(diffusion, "%f", &setup->diffusion);
+		sscanf(decay, "%f", &setup->decay);
+
+		/* prevent overflow in case an explicit out of range setting is supplied */
+		if (setup->decay > 1.f || setup->decay < 0.f) {
+			free(setup);
+			return -EINVAL;
+		}
+
+		*res_setup = setup;
+	}
 
 	return 0;
 }

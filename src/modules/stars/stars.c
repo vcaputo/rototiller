@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,8 +18,6 @@
 
 #define DEFAULT_ROT_ADJ	.00003
 
-static float	stars_rot_adj = DEFAULT_ROT_ADJ;
-
 struct points
 {
 	float x, y, z;
@@ -35,6 +34,14 @@ typedef struct stars_context_t {
 	float		offset_angle;
 } stars_context_t;
 
+typedef struct stars_setup_t {
+	float		rot_adj;
+} stars_setup_t;
+
+static stars_setup_t stars_default_setup = {
+	.rot_adj = DEFAULT_ROT_ADJ,
+};
+
 
 float get_random_unit_coord() {
 	return (((float)rand()/(float)RAND_MAX)*2.0)-1.0;
@@ -47,12 +54,15 @@ static void * stars_create_context(unsigned ticks, unsigned num_cpus, void *setu
 	float		z;
 	struct points* p_ptr = NULL;
 
+	if (!setup)
+		setup = &stars_default_setup;
+
 	ctxt = malloc(sizeof(stars_context_t));
 	if (!ctxt)
 		return NULL;
 
 	ctxt->points = NULL;
-	ctxt->rot_adj = stars_rot_adj;
+	ctxt->rot_adj = ((stars_setup_t *)setup)->rot_adj;
 	ctxt->rot_rate = 0.00;
 	ctxt->rot_angle = 0;
 	ctxt->offset_x = 0.5;
@@ -230,7 +240,17 @@ int stars_setup(const til_settings_t *settings, til_setting_t **res_setting, con
 	if (r)
 		return r;
 
-	sscanf(rot_adj, "%f", &stars_rot_adj);
+	if (res_setup) {
+		stars_setup_t	*setup;
+
+		setup = calloc(1, sizeof(*setup));
+		if (!setup)
+			return -ENOMEM;
+
+		sscanf(rot_adj, "%f", &setup->rot_adj);
+
+		*res_setup = setup;
+	}
 
 	return 0;
 }

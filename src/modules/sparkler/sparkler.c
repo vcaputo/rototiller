@@ -16,19 +16,30 @@
 
 #define INIT_PARTS 100
 
+typedef struct sparkler_setup_t {
+	unsigned		show_bsp_leafs:1;
+	unsigned		show_bsp_matches:1;
+	unsigned		show_bsp_matches_affected_only:1;
+	unsigned		show_bsp_leafs_min_depth;
+} sparkler_setup_t;
+
 typedef struct sparkler_context_t {
-	particles_t	*particles;
-	unsigned	n_cpus;
+	particles_t		*particles;
+	unsigned		n_cpus;
+	sparkler_setup_t	setup;
 } sparkler_context_t;
 
 extern particle_ops_t	simple_ops;
 
-static particles_conf_t	sparkler_conf;
+static sparkler_setup_t sparkler_default_setup;
 
 static void * sparkler_create_context(unsigned ticks, unsigned num_cpus, void *setup)
 {
 	static int		initialized;
 	sparkler_context_t	*ctxt;
+
+	if (!setup)
+		setup = &sparkler_default_setup;
 
 	if (!initialized) {
 		srand(time(NULL) + getpid());
@@ -39,7 +50,14 @@ static void * sparkler_create_context(unsigned ticks, unsigned num_cpus, void *s
 	if (!ctxt)
 		return NULL;
 
-	ctxt->particles = particles_new(&sparkler_conf);
+	ctxt->setup = *(sparkler_setup_t *)setup;
+
+	ctxt->particles = particles_new(&(particles_conf_t){
+						.show_bsp_leafs = ((sparkler_setup_t *)setup)->show_bsp_leafs,
+						.show_bsp_matches = ((sparkler_setup_t *)setup)->show_bsp_matches,
+						.show_bsp_leafs_min_depth = ((sparkler_setup_t *)setup)->show_bsp_leafs_min_depth,
+						.show_bsp_matches_affected_only = ((sparkler_setup_t *)setup)->show_bsp_matches_affected_only,
+					});
 	if (!ctxt->particles) {
 		free(ctxt);
 		return NULL;
@@ -74,7 +92,7 @@ static void sparkler_prepare_frame(void *context, unsigned ticks, unsigned ncpus
 	*res_fragmenter = sparkler_fragmenter;
 	ctxt->n_cpus = ncpus;
 
-	if (sparkler_conf.show_bsp_matches)
+	if (ctxt->setup.show_bsp_matches)
 		til_fb_fragment_zero(fragment);
 
 	particles_sim(ctxt->particles, fragment);
@@ -88,7 +106,7 @@ static void sparkler_render_fragment(void *context, unsigned ticks, unsigned cpu
 {
 	sparkler_context_t	*ctxt = context;
 
-	if (!sparkler_conf.show_bsp_matches)
+	if (!ctxt->setup.show_bsp_matches)
 		til_fb_fragment_zero(fragment);
 
 	particles_draw(ctxt->particles, fragment);
@@ -99,7 +117,9 @@ static void sparkler_render_fragment(void *context, unsigned ticks, unsigned cpu
 static int sparkler_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, void **res_setup)
 {
 	const char	*show_bsp_leafs;
+	const char	*show_bsp_leafs_min_depth;
 	const char	*show_bsp_matches;
+	const char	*show_bsp_matches_affected_only;
 	const char	*values[] = {
 			       "off",
 			       "on",
@@ -131,9 +151,6 @@ static int sparkler_setup(const til_settings_t *settings, til_setting_t **res_se
 					"10",
 					NULL
 				};
-		const char	*show_bsp_leafs_min_depth;
-
-		sparkler_conf.show_bsp_leafs = 1;
 
 		r = til_settings_get_and_describe_value(settings,
 							&(til_setting_desc_t){
@@ -147,10 +164,6 @@ static int sparkler_setup(const til_settings_t *settings, til_setting_t **res_se
 							res_desc);
 		if (r)
 			return r;
-
-		sscanf(show_bsp_leafs_min_depth, "%u", &sparkler_conf.show_bsp_leafs_min_depth);
-	} else {
-		sparkler_conf.show_bsp_leafs = 0;
 	}
 
 	r = til_settings_get_and_describe_value(settings,
@@ -166,14 +179,7 @@ static int sparkler_setup(const til_settings_t *settings, til_setting_t **res_se
 	if (r)
 		return r;
 
-	if (!strcasecmp(show_bsp_matches, "on"))
-		sparkler_conf.show_bsp_matches = 1;
-	else
-		sparkler_conf.show_bsp_matches = 0;
-
 	if (!strcasecmp(show_bsp_matches, "on")) {
-		const char	*show_bsp_matches_affected_only;
-
 		r = til_settings_get_and_describe_value(settings,
 							&(til_setting_desc_t){
 								.name = "Show only narrow-phase affected match results",
@@ -187,10 +193,29 @@ static int sparkler_setup(const til_settings_t *settings, til_setting_t **res_se
 		if (r)
 			return r;
 
-		if (!strcasecmp(show_bsp_matches_affected_only, "on"))
-			sparkler_conf.show_bsp_matches_affected_only = 1;
-		else
-			sparkler_conf.show_bsp_matches_affected_only = 0;
+	}
+
+	if (res_setup) {
+		sparkler_setup_t	*setup;
+
+		setup = calloc(1, sizeof(*setup));
+		if (!setup)
+			return -ENOMEM;
+
+		if (!strcasecmp(show_bsp_leafs, "on")) {
+			setup->show_bsp_leafs = 1;
+
+			sscanf(show_bsp_leafs_min_depth, "%u", &setup->show_bsp_leafs_min_depth);
+		}
+
+		if (!strcasecmp(show_bsp_matches, "on")) {
+			setup->show_bsp_matches = 1;
+
+			if (!strcasecmp(show_bsp_matches_affected_only, "on"))
+				setup->show_bsp_matches_affected_only = 1;
+		}
+
+		*res_setup = setup;
 	}
 
 	return 0;
