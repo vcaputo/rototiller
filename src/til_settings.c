@@ -188,12 +188,13 @@ int til_settings_get_and_describe_value(const til_settings_t *settings, const ti
 	assert(settings);
 	assert(desc);
 	assert(res_value);
-	assert(res_setting);
-	assert(res_desc);
 
 	value = til_settings_get_value(settings, desc->key, &setting);
 	if (!value || !setting->desc) {
 		int	r;
+
+		assert(res_setting);
+		assert(res_desc);
 
 		r = til_setting_desc_clone(desc, res_desc);
 		if (r < 0)
@@ -206,8 +207,10 @@ int til_settings_get_and_describe_value(const til_settings_t *settings, const ti
 	}
 
 	*res_value = value;
-	*res_setting = setting;
-	*res_desc = NULL;
+	if (res_setting)
+		*res_setting = setting;
+	if (res_desc)
+		*res_desc = NULL;
 
 	return 0;
 }
