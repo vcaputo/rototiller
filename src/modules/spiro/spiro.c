@@ -38,8 +38,6 @@ static void * spiro_create_context(unsigned ticks, unsigned num_cpus, void *setu
 	if (!ctxt)
 		return NULL;
 
-	srand(ticks + getpid());
-
 	ctxt->r=.25f+(rand()/(float)RAND_MAX)*.5f;
 	if(ctxt->r>.5f)
 		ctxt->r_dir=-1;

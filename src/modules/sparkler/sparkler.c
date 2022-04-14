@@ -35,16 +35,10 @@ static sparkler_setup_t sparkler_default_setup;
 
 static void * sparkler_create_context(unsigned ticks, unsigned num_cpus, void *setup)
 {
-	static int		initialized;
 	sparkler_context_t	*ctxt;
 
 	if (!setup)
 		setup = &sparkler_default_setup;
-
-	if (!initialized) {
-		srand(time(NULL) + getpid());
-		initialized = 1;
-	}
 
 	ctxt = calloc(1, sizeof(sparkler_context_t));
 	if (!ctxt)

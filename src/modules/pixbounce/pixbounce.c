@@ -117,8 +117,6 @@ static void * pixbounce_create_context(unsigned ticks, unsigned num_cpus, void *
 	if (!ctxt)
 		return NULL;
 
-	srand(time(NULL) + getpid());
-
 	ctxt->n_cpus = num_cpus;
 	ctxt->x = 0;
 	ctxt->y = 8;

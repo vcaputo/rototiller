@@ -76,7 +76,6 @@ static void * meta2d_create_context(unsigned ticks, unsigned num_cpus, void *set
 	ctxt->din_a = din_new(10, 10, META2D_NUM_BALLS + 2);
 	ctxt->din_b = din_new(10, 10, META2D_NUM_BALLS + 2);
 
-	srand(getpid());
 	ctxt->n_cpus = num_cpus;
 
 	for (int i = 0; i < META2D_NUM_BALLS; i++) {
