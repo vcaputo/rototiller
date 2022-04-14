@@ -381,6 +381,15 @@ void til_fb_rebuild(til_fb_t *fb)
 }
 
 
+/* accessor for getting the ops_context */
+void * til_fb_context(til_fb_t *fb)
+{
+	assert(fb);
+
+	return fb->ops_context;
+}
+
+
 /* helpers for fragmenting incrementally */
 int til_fb_fragment_slice_single(const til_fb_fragment_t *fragment, unsigned n_fragments, unsigned number, til_fb_fragment_t *res_fragment)
 {
