@@ -446,6 +446,7 @@ int til_fb_fragment_tile_single(const til_fb_fragment_t *fragment, unsigned tile
 	res_fragment->stride = fragment->stride + ((fragment->width - res_fragment->width) * 4);
 	res_fragment->pitch = fragment->pitch;
 	res_fragment->number = number;
+	res_fragment->zeroed = fragment->zeroed;
 
 	return 1;
 }
