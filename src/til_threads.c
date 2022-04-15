@@ -18,6 +18,8 @@ typedef struct til_threads_t {
 
 	pthread_mutex_t		idle_mutex;
 	pthread_cond_t		idle_cond;
+	unsigned		idle_n_fragments;
+	unsigned		idle_n_zeroed;
 	unsigned		n_idle;
 
 	pthread_mutex_t		frame_mutex;
@@ -45,6 +47,7 @@ static void * thread_func(void *_thread)
 	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
 
 	for (;;) {
+		unsigned	n_fragments = 0, n_zeroed = 0;
 
 		/* wait for a new frame */
 		pthread_mutex_lock(&threads->frame_mutex);
@@ -65,14 +68,22 @@ static void * thread_func(void *_thread)
 				break;
 
 			threads->render_fragment_func(threads->context, threads->ticks, thread->id, &fragment);
+			n_zeroed += fragment.zeroed;
+			n_fragments++;
 		}
 
 		/* report as idle */
 		pthread_mutex_lock(&threads->idle_mutex);
 		pthread_cleanup_push((void (*)(void *))pthread_mutex_unlock, &threads->idle_mutex);
+		threads->idle_n_fragments += n_fragments;
+		threads->idle_n_zeroed += n_zeroed;
 		threads->n_idle++;
-		if (threads->n_idle == threads->n_threads)	/* Frame finished! Notify potential waiter. */
+		if (threads->n_idle == threads->n_threads) {	/* Frame finished! Notify potential waiter. */
+			if (threads->idle_n_zeroed == threads->idle_n_fragments)
+				threads->fragment->zeroed = 1;
+
 			pthread_cond_signal(&threads->idle_cond);
+		}
 		pthread_cleanup_pop(1);
 	}
 
@@ -104,7 +115,7 @@ void til_threads_frame_submit(til_threads_t *threads, til_fb_fragment_t *fragmen
 	threads->context = context;
 	threads->ticks = ticks;
 	threads->frame_num++;
-	threads->n_idle = threads->next_fragment = 0;
+	threads->n_idle = threads->idle_n_zeroed = threads->idle_n_fragments = threads->next_fragment = 0;
 	pthread_cond_broadcast(&threads->frame_cond);
 	pthread_cleanup_pop(1);
 }
