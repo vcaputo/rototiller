@@ -233,7 +233,7 @@ static inline _til_fb_page_t * _til_fb_page_get(til_fb_t *fb)
 	pthread_mutex_unlock(&fb->inactive_mutex);
 
 	page->next = page->previous = NULL;
-	page->public_page.fragment.zeroed = 0;
+	page->public_page.fragment.cleared = 0;
 
 	return page;
 }
@@ -410,7 +410,7 @@ int til_fb_fragment_slice_single(const til_fb_fragment_t *fragment, unsigned n_f
 	res_fragment->stride = fragment->stride;
 	res_fragment->pitch = fragment->pitch;
 	res_fragment->number = number;
-	res_fragment->zeroed = fragment->zeroed;
+	res_fragment->cleared = fragment->cleared;
 
 	return 1;
 }
@@ -446,7 +446,7 @@ int til_fb_fragment_tile_single(const til_fb_fragment_t *fragment, unsigned tile
 	res_fragment->stride = fragment->stride + ((fragment->width - res_fragment->width) * 4);
 	res_fragment->pitch = fragment->pitch;
 	res_fragment->number = number;
-	res_fragment->zeroed = fragment->zeroed;
+	res_fragment->cleared = fragment->cleared;
 
 	return 1;
 }

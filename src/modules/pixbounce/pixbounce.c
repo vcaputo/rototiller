@@ -141,7 +141,7 @@ static void pixbounce_render_fragment(void *context, unsigned ticks, unsigned cp
 	int	width = fragment->width, height = fragment->height;
 
 	/* blank the frame */
-	til_fb_fragment_zero(fragment);
+	til_fb_fragment_clear(fragment);
 
 	/* check for very small fragment */
 	if(pix_width*2>width||pix_height*2>height)

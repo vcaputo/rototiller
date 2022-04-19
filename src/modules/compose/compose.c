@@ -106,7 +106,7 @@ static void compose_prepare_frame(void *context, unsigned ticks, unsigned n_cpus
 {
 	compose_context_t	*ctxt = context;
 
-	til_fb_fragment_zero(fragment);
+	til_fb_fragment_clear(fragment);
 
 	for (int i = 0; i < ctxt->n_layers; i++)
 		til_module_render(ctxt->layers[i].module, ctxt->layers[i].module_ctxt, ticks, fragment);

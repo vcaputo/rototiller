@@ -124,7 +124,7 @@ static void stars_render_fragment(void *context, unsigned ticks, unsigned cpu, t
 
 	max_radius=1.f+((width+height)*.001f);
 
-	til_fb_fragment_zero(fragment);
+	til_fb_fragment_clear(fragment);
 
 	iterator=ctxt->points;
 	for(;;)

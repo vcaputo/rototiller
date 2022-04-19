@@ -81,7 +81,7 @@ static void spiro_render_fragment(void *context, unsigned ticks, unsigned cpu, t
 	}
 
 	/* blank the fragment */
-	til_fb_fragment_zero(fragment);
+	til_fb_fragment_clear(fragment);
 
 	/* plot one spirograph run */
 	float l=ctxt->p/ctxt->r;

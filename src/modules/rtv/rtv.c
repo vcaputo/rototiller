@@ -311,7 +311,7 @@ static void rtv_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, ti
 	 */
 	if (!ctxt->channel->module->render_fragment &&
 	    !ctxt->channel->module->prepare_frame)
-		til_fb_fragment_zero(fragment);
+		til_fb_fragment_clear(fragment);
 	else
 		til_module_render(ctxt->channel->module, ctxt->channel->module_ctxt, ticks, fragment);
 }

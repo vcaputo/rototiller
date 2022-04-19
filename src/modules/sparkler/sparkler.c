@@ -87,7 +87,7 @@ static void sparkler_prepare_frame(void *context, unsigned ticks, unsigned ncpus
 	ctxt->n_cpus = ncpus;
 
 	if (ctxt->setup.show_bsp_matches)
-		til_fb_fragment_zero(fragment);
+		til_fb_fragment_clear(fragment);
 
 	particles_sim(ctxt->particles, fragment);
 	particles_add_particles(ctxt->particles, NULL, &simple_ops, INIT_PARTS / 4);
@@ -101,7 +101,7 @@ static void sparkler_render_fragment(void *context, unsigned ticks, unsigned cpu
 	sparkler_context_t	*ctxt = context;
 
 	if (!ctxt->setup.show_bsp_matches)
-		til_fb_fragment_zero(fragment);
+		til_fb_fragment_clear(fragment);
 
 	particles_draw(ctxt->particles, fragment);
 }

@@ -636,7 +636,7 @@ static void plato_render_fragment(void *context, unsigned ticks, unsigned cpu, t
 	plato_context_t	*ctxt = context;
 
 	ctxt->r += .015f;
-	til_fb_fragment_zero(fragment);
+	til_fb_fragment_clear(fragment);
 
 	for (int i = 0; i < sizeof(polyhedra) / sizeof(*polyhedra); i++) {
 		m4f_t	transform;

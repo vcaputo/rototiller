@@ -410,7 +410,7 @@ static void swarm_render_fragment(void *context, unsigned ticks, unsigned cpu, t
 
 	swarm_update(ctxt, ticks);
 
-	til_fb_fragment_zero(fragment);
+	til_fb_fragment_clear(fragment);
 
 	switch (ctxt->setup.draw_style) {
 	case SWARM_DRAW_STYLE_POINTS:

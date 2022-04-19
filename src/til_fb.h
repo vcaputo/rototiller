@@ -19,7 +19,7 @@ typedef struct til_fb_fragment_t {
 	unsigned	stride;		/* number of bytes from the end of one row to the start of the next */
 	unsigned	pitch;		/* number of bytes separating y from y + 1, including any padding */
 	unsigned	number;		/* this fragment's number as produced by fragmenting */
-	unsigned	zeroed:1;	/* if this fragment has been zeroed since last flip */
+	unsigned	cleared:1;	/* if this fragment has been cleared since last flip */
 } til_fb_fragment_t;
 
 /* This is a page handle object for page flip submission/life-cycle.
@@ -101,15 +101,15 @@ static inline void til_fb_fragment_fill(til_fb_fragment_t *fragment, uint32_t pi
 }
 
 
-/* zero a fragment */
-static inline void til_fb_fragment_zero(til_fb_fragment_t *fragment)
+/* clear a fragment */
+static inline void til_fb_fragment_clear(til_fb_fragment_t *fragment)
 {
-	if (fragment->zeroed)
+	if (fragment->cleared)
 		return;
 
 	til_fb_fragment_fill(fragment, 0);
 
-	fragment->zeroed = 1;
+	fragment->cleared = 1;
 }
 
 #endif

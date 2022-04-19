@@ -149,7 +149,7 @@ static int montage_fragment_tile(const til_fb_fragment_t *fragment, unsigned til
 	res_fragment->stride = fragment->stride + ((fragment->width - res_fragment->width) * 4);
 	res_fragment->pitch = fragment->pitch;
 	res_fragment->number = number;
-	res_fragment->zeroed = fragment->zeroed;
+	res_fragment->cleared = fragment->cleared;
 
 	return 1;
 }
@@ -193,7 +193,7 @@ static void montage_render_fragment(void *context, unsigned ticks, unsigned cpu,
 	const til_module_t	*module = ctxt->modules[fragment->number];
 
 	if (fragment->number >= ctxt->n_modules) {
-		til_fb_fragment_zero(fragment);
+		til_fb_fragment_clear(fragment);
 
 		return;
 	}

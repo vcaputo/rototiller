@@ -123,7 +123,7 @@ Hacking on rototiller / libtil:
         unsigned stride;         /* number of bytes from the end of one row to the start of the next */
         unsigned pitch;          /* number of bytes separating y from y + 1, including any padding */
         unsigned number;         /* this fragment's number as produced by fragmenting */
-        unsigned zeroed:1;       /* if this fragment has been zeroed since last flip */
+        unsigned cleared:1;      /* if this fragment has been cleared since last flip */
       } til_fb_fragment_t;
 
     For most modules these members are simply used as provided, and
@@ -202,19 +202,19 @@ Hacking on rototiller / libtil:
     In the latter case it's common to require bulk-clearing the fragment
   before the algorithm draws its sparse overlay-like contents onto the
   canvas.  To facilitate potential compositing of such modules, the
-  "til_fb_fragment_t" structure contains a "zeroed" member used to indicate
+  "til_fb_fragment_t" structure contains a "cleared" member used to indicate
   if a given fragment's buf contents have been fully initialized yet for
-  the current frame.  When "zeroed" is already set, the bulk clearing
+  the current frame.  When "cleared" is already set, the bulk clearing
   operation should be skipped, allowing the existing contents to serve as
   the logically blank canvas.
 
     A convenience helper for such modules is provided named
-  til_fb_fragment_zero().  Simply call this at the start of the
-  render_fragment() function, and the conditional zeroed vs. non-zeroed
+  til_fb_fragment_clear().  Simply call this at the start of the
+  render_fragment() function, and the conditional cleared vs. non-cleared
   details will be handled automatically.  Otherwise see the implementation
   in "src/til_fb.h" to see what's appropriate.  To clarify, modules
   implementing algorithms that naturally always write every pixel in the
-  fragment may completely ignore this aspect, and need not set the zeroed
+  fragment may completely ignore this aspect, and need not set the cleared
   member; that's handled automatically.
 
 
