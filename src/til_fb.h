@@ -90,17 +90,24 @@ static inline int til_fb_fragment_put_pixel_checked(til_fb_fragment_t *fragment,
 }
 
 
-/* zero a fragment */
-static inline void til_fb_fragment_zero(til_fb_fragment_t *fragment)
+/* fill a fragment with an arbitrary pixel */
+static inline void til_fb_fragment_fill(til_fb_fragment_t *fragment, uint32_t pixel)
 {
 	void	*buf = fragment->buf;
 
+	/* TODO: there should be a fast-path for non-divided fragments where there's no stride to skip */
+	for (int y = 0; y < fragment->height; y++, buf += fragment->pitch)
+		memset(buf, pixel, fragment->pitch - fragment->stride);
+}
+
+
+/* zero a fragment */
+static inline void til_fb_fragment_zero(til_fb_fragment_t *fragment)
+{
 	if (fragment->zeroed)
 		return;
 
-	/* TODO: there should be a fast-path for non-divided fragments where there's no stride to skip */
-	for (int y = 0; y < fragment->height; y++, buf += fragment->pitch)
-		memset(buf, 0, fragment->pitch - fragment->stride);
+	til_fb_fragment_fill(fragment, 0);
 
 	fragment->zeroed = 1;
 }
