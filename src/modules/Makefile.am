@@ -1,1 +1,1 @@
-SUBDIRS = blinds compose drizzle flui2d julia meta2d montage pixbounce plasma plato ray roto rtv snow sparkler spiro stars submit swab swarm
+SUBDIRS = blinds checkers compose drizzle flui2d julia meta2d montage pixbounce plasma plato ray roto rtv snow sparkler spiro stars submit swab swarm
