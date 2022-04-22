@@ -236,22 +236,24 @@ int til_module_setup(til_settings_t *settings, til_setting_t **res_setting, cons
 }
 
 
-/* originally taken from rtv, this randomizes a module's setup @res_setup, returning args form as well */
-char * til_module_randomize_setup(const til_module_t *module, void **res_setup)
+/* originally taken from rtv, this randomizes a module's setup @res_setup, args @res_arg
+ * returns 0 on no setup, 1 on setup successful with results stored @res_*, -errno on error.
+ */
+int til_module_randomize_setup(const til_module_t *module, void **res_setup, char **res_arg)
 {
 	til_settings_t			*settings;
 	til_setting_t			*setting;
 	const til_setting_desc_t	*desc;
-	char				*arg;
+	int				r = 1;
 
 	assert(module);
 
 	if (!module->setup)
-		return NULL;
+		return 0;
 
 	settings = til_settings_new(NULL);
 	if (!settings)
-		return NULL;
+		return -ENOMEM;
 
 	while (module->setup(settings, &setting, &desc, res_setup) > 0) {
 		if (desc->random) {
@@ -273,8 +275,17 @@ char * til_module_randomize_setup(const til_module_t *module, void **res_setup)
 		}
 	}
 
-	arg = til_settings_as_arg(settings);
+	if (res_arg) {
+		char	*arg;
+
+		arg = til_settings_as_arg(settings);
+		if (!arg)
+			r = -ENOMEM;
+		else
+			*res_arg = arg;
+	}
+
 	til_settings_free(settings);
 
-	return arg;
+	return r;
 }
