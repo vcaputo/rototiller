@@ -198,27 +198,21 @@ static void montage_render_fragment(void *context, unsigned ticks, unsigned cpu,
 		return;
 	}
 
-
 	/* since we're *already* in a threaded render of tiles, no further
 	 * threading within the montage tiles is desirable, so the per-module
 	 * render is done explicitly serially here in an open-coded ad-hoc
 	 * fashion for now. FIXME TODO: move this into rototiller.c
 	 */
 	if (module->prepare_frame) {
-		til_fragmenter_t	unused;
+		til_fragmenter_t	fragmenter;
+		unsigned		fragnum = 0;
+		til_fb_fragment_t	frag;
 
-		/* XXX FIXME: ignoring the fragmenter here is a violation of the module API,
-		 * rototiller.c should have a module render interface with explicit non-threading
-		 * that still does all the necessary fragmenting as needed.
-		 *
-		 * Today, I can get away with this, because montage is the only module that's
-		 * sensitive to this aspect of the API and it skips itself.
-		 */
+		module->prepare_frame(ctxt->contexts[fragment->number], ticks, 1, fragment, &fragmenter);
 
-		module->prepare_frame(ctxt->contexts[fragment->number], ticks, 1, fragment, &unused);
-	}
-
-	if (module->render_fragment)
-		module->render_fragment(ctxt->contexts[fragment->number], ticks, 0, fragment);
+		while (fragmenter(ctxt->contexts[fragment->number], fragment, fragnum++, &frag))
+			module->render_fragment(ctxt->contexts[fragment->number], ticks, fragnum, &frag);
+	} else if (module->render_fragment)
+			module->render_fragment(ctxt->contexts[fragment->number], ticks, 0, fragment);
 }
 
