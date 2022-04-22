@@ -78,12 +78,16 @@ static void * compose_create_context(unsigned ticks, unsigned num_cpus, void *se
 	ctxt->n_cpus = num_cpus;
 
 	for (int i = 0; i < n; i++) {
-		const til_module_t	*module;
+		const til_module_t	*layer_module;
+		void			*layer_setup = NULL;
 
-		module = til_lookup_module(((compose_setup_t *)setup)->layers[i]);
+		layer_module = til_lookup_module(((compose_setup_t *)setup)->layers[i]);
+		(void) til_module_randomize_setup(layer_module, &layer_setup, NULL);
 
-		ctxt->layers[i].module = module;
-		(void) til_module_create_context(module, ticks, NULL, &ctxt->layers[i].module_ctxt);
+		ctxt->layers[i].module = layer_module;
+		(void) til_module_create_context(layer_module, ticks, layer_setup, &ctxt->layers[i].module_ctxt);
+
+		/* TODO FIXME: free setup! */
 
 		ctxt->n_layers++;
 	}
