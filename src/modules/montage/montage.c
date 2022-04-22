@@ -10,9 +10,9 @@
 
 typedef struct montage_context_t {
 	const til_module_t	**modules;
-	void				**contexts;
-	size_t				n_modules;
-	unsigned			n_cpus;
+	void			**contexts;
+	size_t			n_modules;
+	unsigned		n_cpus;
 } montage_context_t;
 
 static void setup_next_module(montage_context_t *ctxt);
@@ -88,9 +88,19 @@ static void * montage_create_context(unsigned ticks, unsigned num_cpus, void *se
 
 	for (size_t i = 0; i < ctxt->n_modules; i++) {
 		const til_module_t	*module = ctxt->modules[i];
+		void			*setup = NULL;
+
+		(void) til_module_randomize_setup(module, &setup, NULL);
 
 		if (module->create_context)	/* FIXME errors */
-			ctxt->contexts[i] = module->create_context(ticks, 1, NULL);
+			ctxt->contexts[i] = module->create_context(ticks, 1, setup);
+
+		/* TODO FIXME: free setup! modules don't currently implement it.
+		 * What should probably happen is the setup should become a til struct
+		 * type having just a free function pointer.  Then module setups would
+		 * simply embed this at the start of their private setup struct and return a
+		 * pointer to that as their setup.
+		 */
 	}
 
 	return ctxt;
