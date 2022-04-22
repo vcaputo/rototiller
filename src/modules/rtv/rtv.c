@@ -110,47 +110,6 @@ static void randomize_channels(rtv_context_t *ctxt)
 }
 
 
-static char * randomize_module_setup(const til_module_t *module, void **res_setup)
-{
-	til_settings_t			*settings;
-	til_setting_t			*setting;
-	const til_setting_desc_t	*desc;
-	char				*arg;
-
-	if (!module->setup)
-		return NULL;
-
-	settings = til_settings_new(NULL);
-	if (!settings)
-		return NULL;
-
-	while (module->setup(settings, &setting, &desc, res_setup) > 0) {
-		if (desc->random) {
-			char	*value;
-
-			value = desc->random();
-			til_settings_add_value(settings, desc->key, value, desc);
-			free(value);
-		} else if (desc->values) {
-			int	n;
-
-			for (n = 0; desc->values[n]; n++);
-
-			n = rand() % n;
-
-			til_settings_add_value(settings, desc->key, desc->values[n], desc);
-		} else {
-			til_settings_add_value(settings, desc->key, desc->preferred, desc);
-		}
-	}
-
-	arg = til_settings_as_arg(settings);
-	til_settings_free(settings);
-
-	return arg;
-}
-
-
 static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks)
 {
 	time_t	now = time(NULL);
@@ -199,7 +158,7 @@ static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks)
 			char	*settings;
 			txt_t	*caption;
 
-			settings = randomize_module_setup(ctxt->channel->module, &ctxt->channel->module_setup);
+			settings = til_module_randomize_setup(ctxt->channel->module, &ctxt->channel->module_setup);
 			caption = txt_newf("Title: %s%s%s\nDescription: %s%s%s",
 						 ctxt->channel->module->name,
 						 ctxt->channel->module->author ? "\nAuthor: " : "",

@@ -33,5 +33,6 @@ void til_module_render(const til_module_t *module, void *context, unsigned ticks
 int til_module_create_context(const til_module_t *module, unsigned ticks, void *setup, void **res_context);
 void * til_module_destroy_context(const til_module_t *module, void *context);
 int til_module_setup(til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, void **res_setup);
+char * til_module_randomize_setup(const til_module_t *module, void **res_setup);
 
 #endif

@@ -234,3 +234,47 @@ int til_module_setup(til_settings_t *settings, til_setting_t **res_setting, cons
 
 	return 0;
 }
+
+
+/* originally taken from rtv, this randomizes a module's setup @res_setup, returning args form as well */
+char * til_module_randomize_setup(const til_module_t *module, void **res_setup)
+{
+	til_settings_t			*settings;
+	til_setting_t			*setting;
+	const til_setting_desc_t	*desc;
+	char				*arg;
+
+	assert(module);
+
+	if (!module->setup)
+		return NULL;
+
+	settings = til_settings_new(NULL);
+	if (!settings)
+		return NULL;
+
+	while (module->setup(settings, &setting, &desc, res_setup) > 0) {
+		if (desc->random) {
+			char	*value;
+
+			value = desc->random();
+			til_settings_add_value(settings, desc->key, value, desc);
+			free(value);
+		} else if (desc->values) {
+			int	n;
+
+			for (n = 0; desc->values[n]; n++);
+
+			n = rand() % n;
+
+			til_settings_add_value(settings, desc->key, desc->values[n], desc);
+		} else {
+			til_settings_add_value(settings, desc->key, desc->preferred, desc);
+		}
+	}
+
+	arg = til_settings_as_arg(settings);
+	til_settings_free(settings);
+
+	return arg;
+}
