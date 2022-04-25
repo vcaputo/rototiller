@@ -64,8 +64,8 @@ Hacking on rototiller / libtil:
   required for `bootstrap` to succeed in generating the configure script
   and Makefile templates, `pkg-config` is used by configure, and a `make`
   program for executing the build.  On Debian systems installing the
-  "build-essential" meta package should get things at least building
-  successfully.
+  "build-essential" meta-package and "libtool" should at least get things
+  building successfully.
 
     To actually produce a `rototiller` binary usable for rendering visual
   output, libsdl2 and/or libdrm development packages will also be needed.
