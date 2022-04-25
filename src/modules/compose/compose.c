@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 #include "til.h"
@@ -117,6 +118,64 @@ static void compose_prepare_frame(void *context, unsigned ticks, unsigned n_cpus
 }
 
 
+/* return a randomized valid layers= setting */
+static char * compose_random_layers_setting(void)
+{
+	size_t			n_modules, n_rand_overlays, n_overlayable = 0, base_idx;
+	char			*layers = NULL;
+	const til_module_t	**modules;
+
+	til_get_modules(&modules, &n_modules);
+
+	for (size_t i = 0; i < n_modules; i++) {
+		if (modules[i]->flags & TIL_MODULE_OVERLAYABLE)
+			n_overlayable++;
+	}
+
+	base_idx = rand() % (n_modules - n_overlayable);
+	for (size_t i = 0, j = 0; !layers && i < n_modules; i++) {
+		if (modules[i]->flags & TIL_MODULE_OVERLAYABLE)
+			continue;
+
+		if (j++ == base_idx)
+			layers = strdup(modules[i]->name);
+	}
+
+	/* TODO FIXME: this doesn't prevent duplicate overlays in the random set,
+	 * which generally is undesirable - but actually watching the results, is
+	 * sometimes interesting.  Maybe another module flag is necessary for indicating
+	 * manifold-appropriate overlays.
+	 */
+	n_rand_overlays = 1 + (rand() % (n_overlayable - 1));
+	for (size_t n = 0; n < n_rand_overlays; n++) {
+		size_t	rand_idx = rand() % n_overlayable;
+
+		for (size_t i = 0, j = 0; i < n_modules; i++) {
+			if (!(modules[i]->flags & TIL_MODULE_OVERLAYABLE))
+				continue;
+
+			if (j++ == rand_idx) {
+				char	*new;
+
+				new = realloc(layers, strlen(layers) + 1 + strlen(modules[i]->name) + 1);
+				if (!new) {
+					free(layers);
+					return NULL;
+				}
+
+				strcat(new, ":");
+				strcat(new, modules[i]->name);
+				layers = new;
+
+				break;
+			}
+		}
+	}
+
+	return layers;
+}
+
+
 static int compose_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	const char	*layers;
@@ -127,7 +186,8 @@ static int compose_setup(const til_settings_t *settings, til_setting_t **res_set
 							.name = "Colon-separated list of module layers, in draw-order",
 							.key = "layers",
 							.preferred = "drizzle:stars:spiro:plato",
-							.annotations = NULL
+							.annotations = NULL,
+							.random = compose_random_layers_setting,
 						},
 						&layers,
 						res_setting,
