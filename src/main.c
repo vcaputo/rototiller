@@ -51,9 +51,9 @@ static rototiller_t		rototiller;
 
 typedef struct setup_t {
 	til_settings_t	*module;
-	void		*module_setup;
+	til_setup_t	*module_setup;
 	til_settings_t	*video;
-	void		*video_setup;
+	til_setup_t	*video_setup;
 } setup_t;
 
 /* FIXME: this is unnecessarily copy-pasta, i think modules should just be made
@@ -62,7 +62,7 @@ typedef struct setup_t {
  */
 
 /* select video backend if not yet selected, then setup the selected backend. */
-static int setup_video(til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, void **res_setup)
+static int setup_video(til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	til_setting_t	*setting;
 	const char	*video;

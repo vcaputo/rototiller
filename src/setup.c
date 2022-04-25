@@ -2,6 +2,7 @@
 #include <stdio.h>
 
 #include "til_settings.h"
+#include "til_setup.h"
 #include "til_util.h"
 
 /* add key=value, but if key is NULL, use value as key. */
@@ -21,7 +22,7 @@ static int add_value(til_settings_t *settings, const char *key, const char *valu
 
 
 /* returns negative on error, otherwise number of additions made to settings */
-int setup_interactively(til_settings_t *settings, int (*setup_func)(til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, void **res_setup), int defaults, void **res_setup)
+int setup_interactively(til_settings_t *settings, int (*setup_func)(til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup), int defaults, til_setup_t **res_setup)
 {
 	unsigned			additions = 0;
 	char				buf[256] = "\n";

@@ -17,6 +17,7 @@
 #define INIT_PARTS 100
 
 typedef struct sparkler_setup_t {
+	til_setup_t		til_setup;
 	unsigned		show_bsp_leafs:1;
 	unsigned		show_bsp_matches:1;
 	unsigned		show_bsp_matches_affected_only:1;
@@ -33,12 +34,12 @@ extern particle_ops_t	simple_ops;
 
 static sparkler_setup_t sparkler_default_setup;
 
-static void * sparkler_create_context(unsigned ticks, unsigned num_cpus, void *setup)
+static void * sparkler_create_context(unsigned ticks, unsigned num_cpus, til_setup_t *setup)
 {
 	sparkler_context_t	*ctxt;
 
 	if (!setup)
-		setup = &sparkler_default_setup;
+		setup = &sparkler_default_setup.til_setup;
 
 	ctxt = calloc(1, sizeof(sparkler_context_t));
 	if (!ctxt)
@@ -108,7 +109,7 @@ static void sparkler_render_fragment(void *context, unsigned ticks, unsigned cpu
 
 
 /* Settings hooks for configurable variables */
-static int sparkler_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, void **res_setup)
+static int sparkler_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	const char	*show_bsp_leafs;
 	const char	*show_bsp_leafs_min_depth;
@@ -192,7 +193,7 @@ static int sparkler_setup(const til_settings_t *settings, til_setting_t **res_se
 	if (res_setup) {
 		sparkler_setup_t	*setup;
 
-		setup = calloc(1, sizeof(*setup));
+		setup = til_setup_new(sizeof(*setup), (void(*)(til_setup_t *))free);
 		if (!setup)
 			return -ENOMEM;
 
@@ -209,7 +210,7 @@ static int sparkler_setup(const til_settings_t *settings, til_setting_t **res_se
 				setup->show_bsp_matches_affected_only = 1;
 		}
 
-		*res_setup = setup;
+		*res_setup = &setup->til_setup;
 	}
 
 	return 0;

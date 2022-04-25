@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "til_settings.h"
+#include "til_setup.h"
 
 /* All renderers should target fb_fragment_t, which may or may not represent
  * a full-screen mmap.  Helpers are provided for subdividing fragments for
@@ -35,7 +36,7 @@ typedef struct til_fb_t til_fb_t;
 
 /* Supply this struct to fb_new() with the appropriate context */
 typedef struct til_fb_ops_t {
-	int	(*setup)(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, void **res_setup);
+	int	(*setup)(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
 	int	(*init)(const til_settings_t *settings, void **res_context);
 	void	(*shutdown)(til_fb_t *fb, void *context);
 	int	(*acquire)(til_fb_t *fb, void *context, void *page);

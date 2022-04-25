@@ -283,7 +283,7 @@ static int mode_desc_generator(void *setup_context, const til_setting_desc_t **r
 /* setup is called repeatedly as settings is constructed, until 0 is returned. */
 /* a negative value is returned on error */
 /* positive value indicates another setting is needed, described in next_setting */
-static int drm_fb_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, void **res_setup)
+static int drm_fb_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	drm_fb_setup_t			context = {};
 	til_setting_desc_generator_t	generators[] = {

@@ -181,9 +181,10 @@ typedef struct flui2d_context_t {
 } flui2d_context_t;
 
 typedef struct flui2d_setup_t {
-	float	viscosity;
-	float	diffusion;
-	float	decay;
+	til_setup_t	til_setup;
+	float		viscosity;
+	float		diffusion;
+	float		decay;
 } flui2d_setup_t;
 
 static flui2d_setup_t flui2d_default_setup = {
@@ -193,12 +194,12 @@ static flui2d_setup_t flui2d_default_setup = {
 };
 
 
-static void * flui2d_create_context(unsigned ticks, unsigned num_cpus, void *setup)
+static void * flui2d_create_context(unsigned ticks, unsigned num_cpus, til_setup_t *setup)
 {
 	flui2d_context_t	*ctxt;
 
 	if (!setup)
-		setup = &flui2d_default_setup;
+		setup = &flui2d_default_setup.til_setup;
 
 	ctxt = calloc(1, sizeof(flui2d_context_t));
 	if (!ctxt)
@@ -294,7 +295,7 @@ static void flui2d_render_fragment(void *context, unsigned ticks, unsigned cpu, 
 
 
 /* Settings hooks for configurable variables */
-static int flui2d_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, void **res_setup)
+static int flui2d_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	const char	*viscosity;
 	const char	*diffusion;
@@ -368,7 +369,7 @@ static int flui2d_setup(const til_settings_t *settings, til_setting_t **res_sett
 	if (res_setup) {
 		flui2d_setup_t	*setup;
 
-		setup = calloc(1, sizeof(*setup));
+		setup = til_setup_new(sizeof(*setup), (void(*)(til_setup_t *))free);
 		if (!setup)
 			return -ENOMEM;
 
@@ -383,7 +384,7 @@ static int flui2d_setup(const til_settings_t *settings, til_setting_t **res_sett
 			return -EINVAL;
 		}
 
-		*res_setup = setup;
+		*res_setup = &setup->til_setup;
 	}
 
 	return 0;

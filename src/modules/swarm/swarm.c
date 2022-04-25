@@ -48,6 +48,7 @@ typedef enum swarm_draw_style_t {
 } swarm_draw_style_t;
 
 typedef struct swarm_setup_t {
+	til_setup_t		til_setup;
 	swarm_draw_style_t	draw_style;
 } swarm_setup_t;
 
@@ -178,12 +179,12 @@ static inline uint32_t color_to_uint32(v3f_t color) {
 }
 
 
-static void * swarm_create_context(unsigned ticks, unsigned num_cpus, void *setup)
+static void * swarm_create_context(unsigned ticks, unsigned num_cpus, til_setup_t *setup)
 {
 	swarm_context_t	*ctxt;
 
 	if (!setup)
-		setup = &swarm_default_setup;
+		setup = &swarm_default_setup.til_setup;
 
 	ctxt = calloc(1, sizeof(swarm_context_t) + sizeof(*(ctxt->boids)) * SWARM_SIZE);
 	if (!ctxt)
@@ -421,7 +422,7 @@ static void swarm_render_fragment(void *context, unsigned ticks, unsigned cpu, t
 }
 
 
-static int swarm_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, void **res_setup)
+static int swarm_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	const char	*styles[] = {
 				"points",
@@ -448,7 +449,7 @@ static int swarm_setup(const til_settings_t *settings, til_setting_t **res_setti
 	if (res_setup) {
 		swarm_setup_t	*setup;
 
-		setup = calloc(1, sizeof(*setup));
+		setup = til_setup_new(sizeof(*setup), (void(*)(til_setup_t *))free);
 		if (!setup)
 			return -ENOMEM;
 
@@ -457,7 +458,7 @@ static int swarm_setup(const til_settings_t *settings, til_setting_t **res_setti
 				setup->draw_style = i;
 		}
 
-		*res_setup = setup;
+		*res_setup = &setup->til_setup;
 	}
 
 	return 0;

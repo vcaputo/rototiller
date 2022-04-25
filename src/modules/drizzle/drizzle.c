@@ -36,6 +36,7 @@ typedef struct v2f_t {
 } v2f_t;
 
 typedef struct drizzle_setup_t {
+	til_setup_t	til_setup;
 	float		viscosity;
 } drizzle_setup_t;
 
@@ -72,12 +73,12 @@ static inline uint32_t color_to_uint32(v3f_t color) {
 }
 
 
-static void * drizzle_create_context(unsigned ticks, unsigned num_cpus, void *setup)
+static void * drizzle_create_context(unsigned ticks, unsigned num_cpus, til_setup_t *setup)
 {
 	drizzle_context_t	*ctxt;
 
 	if (!setup)
-		setup = &drizzle_default_setup;
+		setup = &drizzle_default_setup.til_setup;
 
 	ctxt = calloc(1, sizeof(drizzle_context_t));
 	if (!ctxt)
@@ -165,7 +166,7 @@ static void drizzle_render_fragment(void *context, unsigned ticks, unsigned cpu,
 }
 
 
-static int drizzle_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, void **res_setup)
+static int drizzle_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	const char	*viscosity;
 	const char	*values[] = {
@@ -195,13 +196,13 @@ static int drizzle_setup(const til_settings_t *settings, til_setting_t **res_set
 	if (res_setup) {
 		drizzle_setup_t	*setup;
 
-		setup = calloc(1, sizeof(*setup));
+		setup = til_setup_new(sizeof(*setup), (void(*)(til_setup_t *))free);
 		if (!setup)
 			return -ENOMEM;
 
 		sscanf(viscosity, "%f", &setup->viscosity);
 
-		*res_setup = setup;
+		*res_setup = &setup->til_setup;
 	}
 
 	return 0;

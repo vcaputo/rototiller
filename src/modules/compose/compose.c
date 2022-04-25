@@ -37,14 +37,15 @@ typedef struct compose_context_t {
 } compose_context_t;
 
 typedef struct compose_setup_t {
+	til_setup_t		til_setup;
 	size_t			n_layers;
 	char			*layers[];
 } compose_setup_t;
 
-static void * compose_create_context(unsigned ticks, unsigned num_cpus, void *setup);
+static void * compose_create_context(unsigned ticks, unsigned num_cpus, til_setup_t *setup);
 static void compose_destroy_context(void *context);
 static void compose_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter);
-static int compose_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, void **res_setup);
+static int compose_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
 
 static compose_setup_t compose_default_setup = {
 	.layers = { "drizzle", "stars", "spiro", "plato", NULL },
@@ -61,13 +62,13 @@ til_module_t	compose_module = {
 };
 
 
-static void * compose_create_context(unsigned ticks, unsigned num_cpus, void *setup)
+static void * compose_create_context(unsigned ticks, unsigned num_cpus, til_setup_t *setup)
 {
 	compose_context_t	*ctxt;
 	size_t			n;
 
 	if (!setup)
-		setup = &compose_default_setup;
+		setup = &compose_default_setup.til_setup;
 
 	for (n = 0; ((compose_setup_t *)setup)->layers[n]; n++);
 
@@ -79,7 +80,7 @@ static void * compose_create_context(unsigned ticks, unsigned num_cpus, void *se
 
 	for (int i = 0; i < n; i++) {
 		const til_module_t	*layer_module;
-		void			*layer_setup = NULL;
+		til_setup_t		*layer_setup = NULL;
 
 		layer_module = til_lookup_module(((compose_setup_t *)setup)->layers[i]);
 		(void) til_module_randomize_setup(layer_module, &layer_setup, NULL);
@@ -117,7 +118,7 @@ static void compose_prepare_frame(void *context, unsigned ticks, unsigned n_cpus
 }
 
 
-static int compose_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, void **res_setup)
+static int compose_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	const char	*layers;
 	int		r;
@@ -137,7 +138,7 @@ static int compose_setup(const til_settings_t *settings, til_setting_t **res_set
 
 	/* turn layers colon-separated list into a null-terminated array of strings */
 	if (res_setup) {
-		compose_setup_t		*setup = NULL;
+		compose_setup_t		*setup;
 		const til_module_t	**modules;
 		size_t			n_modules;
 		char			*toklayers, *layer;
@@ -152,6 +153,10 @@ static int compose_setup(const til_settings_t *settings, til_setting_t **res_set
 		layer = strtok(toklayers, ":");
 		if (!layer)
 			return -EINVAL;
+
+		setup = til_setup_new(sizeof(*setup), (void(*)(til_setup_t *))free);
+		if (!setup)
+			return -ENOMEM;
 
 		do {
 			compose_setup_t	*new;
@@ -184,7 +189,7 @@ static int compose_setup(const til_settings_t *settings, til_setting_t **res_set
 			setup = new;
 		} while (layer = strtok(NULL, ":"));
 
-		*res_setup = setup;
+		*res_setup = &setup->til_setup;
 	}
 
 	return 0;

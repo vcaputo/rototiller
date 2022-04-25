@@ -58,6 +58,7 @@ typedef struct submit_context_t {
 } submit_context_t;
 
 typedef struct submit_setup_t {
+	til_setup_t	til_setup;
 	unsigned	bilerp:1;
 } submit_setup_t;
 
@@ -264,12 +265,12 @@ static void setup_grid(submit_context_t *ctxt)
 }
 
 
-static void * submit_create_context(unsigned ticks, unsigned num_cpus, void *setup)
+static void * submit_create_context(unsigned ticks, unsigned num_cpus, til_setup_t *setup)
 {
 	submit_context_t	*ctxt;
 
 	if (!setup)
-		setup = &submit_default_setup;
+		setup = &submit_default_setup.til_setup;
 
 	ctxt = calloc(1, sizeof(submit_context_t));
 	if (!ctxt)
@@ -329,7 +330,7 @@ static void submit_render_fragment(void *context, unsigned ticks, unsigned cpu, 
 }
 
 
-static int submit_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, void **res_setup)
+static int submit_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	const char	*values[] = {
 				"off",
@@ -357,14 +358,14 @@ static int submit_setup(const til_settings_t *settings, til_setting_t **res_sett
 	if (res_setup) {
 		submit_setup_t	*setup;
 
-		setup = calloc(1, sizeof(*setup));
+		setup = til_setup_new(sizeof(*setup), (void(*)(til_setup_t *))free);
 		if (!setup)
 			return -ENOMEM;
 
 		if (!strcasecmp(bilerp, "on"))
 			setup->bilerp = 1;
 
-		*res_setup = setup;
+		*res_setup = &setup->til_setup;
 	}
 
 	return 0;

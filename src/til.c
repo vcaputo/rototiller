@@ -157,7 +157,7 @@ void til_module_render(const til_module_t *module, void *context, unsigned ticks
 }
 
 
-int til_module_create_context(const til_module_t *module, unsigned ticks, void *setup, void **res_context)
+int til_module_create_context(const til_module_t *module, unsigned ticks, til_setup_t *setup, void **res_context)
 {
 	void	*context;
 
@@ -191,7 +191,7 @@ void * til_module_destroy_context(const til_module_t *module, void *context)
 
 
 /* select module if not yet selected, then setup the module. */
-int til_module_setup(til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, void **res_setup)
+int til_module_setup(til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	til_setting_t		*setting;
 	const til_module_t	*module;
@@ -239,7 +239,7 @@ int til_module_setup(til_settings_t *settings, til_setting_t **res_setting, cons
 /* originally taken from rtv, this randomizes a module's setup @res_setup, args @res_arg
  * returns 0 on no setup, 1 on setup successful with results stored @res_*, -errno on error.
  */
-int til_module_randomize_setup(const til_module_t *module, void **res_setup, char **res_arg)
+int til_module_randomize_setup(const til_module_t *module, til_setup_t **res_setup, char **res_arg)
 {
 	til_settings_t			*settings;
 	til_setting_t			*setting;

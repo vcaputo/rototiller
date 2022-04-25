@@ -41,6 +41,7 @@ typedef enum checkers_dynamics_t {
 } checkers_dynamics_t;
 
 typedef struct checkers_setup_t {
+	til_setup_t		til_setup;
 	unsigned		size;
 	checkers_pattern_t	pattern;
 	checkers_dynamics_t	dynamics;
@@ -60,12 +61,12 @@ static checkers_setup_t checkers_default_setup = {
 };
 
 
-static void * checkers_create_context(unsigned ticks, unsigned num_cpus, void *setup)
+static void * checkers_create_context(unsigned ticks, unsigned num_cpus, til_setup_t *setup)
 {
 	checkers_context_t	*ctxt;
 
 	if (!setup)
-		setup = &checkers_default_setup;
+		setup = &checkers_default_setup.til_setup;
 
 	ctxt = calloc(1, sizeof(checkers_context_t));
 	if (!ctxt)
@@ -150,7 +151,7 @@ static void checkers_render_fragment(void *context, unsigned ticks, unsigned cpu
 }
 
 
-static int checkers_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, void **res_setup)
+static int checkers_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	const char	*size;
 	const char	*pattern;
@@ -252,7 +253,7 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 	if (res_setup) {
 		checkers_setup_t	*setup;
 
-		setup = calloc(1, sizeof(*setup));
+		setup = til_setup_new(sizeof(*setup), (void(*)(til_setup_t *))free);
 		if (!setup)
 			return -ENOMEM;
 
@@ -283,7 +284,7 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 		if (setup->dynamics != CHECKERS_DYNAMICS_ODD && setup->dynamics != CHECKERS_DYNAMICS_EVEN)
 			sscanf(dynamics_rate, "%f", &setup->rate);
 
-		*res_setup = setup;
+		*res_setup = &setup->til_setup;
 	}
 
 	return 0;

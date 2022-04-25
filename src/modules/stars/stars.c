@@ -35,6 +35,7 @@ typedef struct stars_context_t {
 } stars_context_t;
 
 typedef struct stars_setup_t {
+	til_setup_t	til_setup;
 	float		rot_adj;
 } stars_setup_t;
 
@@ -48,14 +49,14 @@ float get_random_unit_coord() {
 }
 
 
-static void * stars_create_context(unsigned ticks, unsigned num_cpus, void *setup)
+static void * stars_create_context(unsigned ticks, unsigned num_cpus, til_setup_t *setup)
 {
 	stars_context_t *ctxt;
 	float		z;
 	struct points* p_ptr = NULL;
 
 	if (!setup)
-		setup = &stars_default_setup;
+		setup = &stars_default_setup.til_setup;
 
 	ctxt = malloc(sizeof(stars_context_t));
 	if (!ctxt)
@@ -211,7 +212,7 @@ static void stars_render_fragment(void *context, unsigned ticks, unsigned cpu, t
 	ctxt->offset_y = tmp_y;
 }
 
-int stars_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, void **res_setup)
+int stars_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	const char	*rot_adj;
 	const char	*rot_adj_values[] = {
@@ -243,13 +244,13 @@ int stars_setup(const til_settings_t *settings, til_setting_t **res_setting, con
 	if (res_setup) {
 		stars_setup_t	*setup;
 
-		setup = calloc(1, sizeof(*setup));
+		setup = til_setup_new(sizeof(*setup), (void(*)(til_setup_t *))free);
 		if (!setup)
 			return -ENOMEM;
 
 		sscanf(rot_adj, "%f", &setup->rot_adj);
 
-		*res_setup = setup;
+		*res_setup = &setup->til_setup;
 	}
 
 	return 0;

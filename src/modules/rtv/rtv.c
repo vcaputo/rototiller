@@ -25,7 +25,7 @@
 typedef struct rtv_channel_t {
 	const til_module_t	*module;
 	void			*module_ctxt;
-	void			*module_setup;
+	til_setup_t		*module_setup;
 	time_t			last_on_time, cumulative_time;
 	char			*settings;
 	txt_t			*caption;
@@ -51,6 +51,7 @@ typedef struct rtv_context_t {
 } rtv_context_t;
 
 typedef struct rtv_setup_t {
+	til_setup_t	til_setup;
 	unsigned	duration;
 	unsigned	context_duration;
 	unsigned	snow_duration;
@@ -60,11 +61,11 @@ typedef struct rtv_setup_t {
 } rtv_setup_t;
 
 static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks);
-static void * rtv_create_context(unsigned ticks, unsigned num_cpus, void *setup);
+static void * rtv_create_context(unsigned ticks, unsigned num_cpus, til_setup_t *setup);
 static void rtv_destroy_context(void *context);
 static void rtv_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter);
 static void rtv_finish_frame(void *context, unsigned ticks, til_fb_fragment_t *fragment);
-static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, void **res_setup);
+static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
 
 static rtv_setup_t rtv_default_setup = {
 	.duration = RTV_DURATION_SECS,
@@ -203,7 +204,7 @@ static int rtv_should_skip_module(const rtv_setup_t *setup, const til_module_t *
 }
 
 
-static void * rtv_create_context(unsigned ticks, unsigned num_cpus, void *setup)
+static void * rtv_create_context(unsigned ticks, unsigned num_cpus, til_setup_t *setup)
 {
 	rtv_context_t		*ctxt;
 	const til_module_t	**modules;
@@ -211,13 +212,13 @@ static void * rtv_create_context(unsigned ticks, unsigned num_cpus, void *setup)
 	static til_module_t	none_module = {};
 
 	if (!setup)
-		setup = &rtv_default_setup;
+		setup = &rtv_default_setup.til_setup;
 
 	til_get_modules(&modules, &n_modules);
 
 	/* how many modules are in the setup? */
 	for (size_t i = 0; i < n_modules; i++) {
-		if (!rtv_should_skip_module(setup, modules[i]))
+		if (!rtv_should_skip_module((rtv_setup_t *)setup, modules[i]))
 			n_channels++;
 	}
 
@@ -238,7 +239,7 @@ static void * rtv_create_context(unsigned ticks, unsigned num_cpus, void *setup)
 	}
 
 	for (size_t i = 0; i < n_modules; i++) {
-		if (!rtv_should_skip_module(setup, modules[i]))
+		if (!rtv_should_skip_module((rtv_setup_t *)setup, modules[i]))
 			ctxt->channels[ctxt->n_channels++].module = modules[i];
 	}
 
@@ -298,7 +299,7 @@ static void rtv_finish_frame(void *context, unsigned ticks, til_fb_fragment_t *f
 }
 
 
-static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, void **res_setup)
+static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	const char	*channels;
 	const char	*duration;
@@ -393,7 +394,8 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 	if (res_setup) {
 		rtv_setup_t	*setup;
 
-		setup = calloc(1, sizeof(*setup) + sizeof(setup->channels[0]));
+		/* FIXME: rtv_setup_t.snow_module needs freeing, so we need a bespoke free_func */
+		setup = til_setup_new(sizeof(*setup) + sizeof(setup->channels[0]), (void(*)(til_setup_t *))free);
 		if (!setup)
 			return -ENOMEM;
 
@@ -446,7 +448,7 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 		sscanf(caption_duration, "%u", &setup->caption_duration);
 		sscanf(snow_duration, "%u", &setup->snow_duration);
 
-		*res_setup = setup;
+		*res_setup = &setup->til_setup;
 	}
 
 	return 0;
