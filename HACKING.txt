@@ -76,7 +76,7 @@ Hacking on rototiller / libtil:
 
     After successfully building rototiller with the CLI frontend, an
   executable will be at "src/rototiller" in the build tree.  If the steps
-  above were followed verbatim, that would be at `build/src/rototiller`.
+  above were followed verbatim, that would be at "build/src/rototiller".
 
 
  Quickly testing modules via the CLI frontend:
@@ -128,14 +128,17 @@ Hacking on rototiller / libtil:
 
     For most modules these members are simply used as provided, and
   there's no need to manipulate them.  For simple non-threaded cases only
-  the "buf" and "frame_{width,height}" members are required, with "stride"
-  or "pitch" becoming important for algorithms directly manipulating buf's
+  the "buf" and "{width,height}" members are required, with "stride" or
+  "pitch" becoming important for algorithms directly manipulating buf's
   memory contents to properly address rows of pixels since fragments may
   be discontiguous in buf at row boundaries for a variety of reasons.
 
-    When using threaded rendering, the "{width,height}" members become
-  important as they describe a fragment's dimensions within the frame being
-  rendered.
+    When using threaded rendering, the "frame_{width,height}" members
+  become important as they describe a fragment's full-frame dimensions,
+  while "{width,height}" describe the specific fragment within the frame
+  being rendered by render_fragment().  In non-threaded scenarios these
+  members have the same values, but threading employs subfragmenting the
+  frame into independent fragments potentially rendered concurrently.
 
     The module_render() function prototype is declared within the
   "til_module_t" struct in "src/til.h" as:
@@ -271,10 +274,10 @@ Hacking on rototiller / libtil:
       which is potentially relevant for threaded renderers.  The "unsigned
       cpu" parameter supplied to render_fragment() will always be < this
       n_cpus value, and the two are intended to complement eachother.  When
-      creating the context, one may allocate per-cpu cache-aligned in
+      creating the context, one may allocate per-cpu cache-aligned space in
       n_cpus quantity.  Then the render_fragment() function would address
-      the per-cpu space using the cpu parameter as an index into the n_cpus
-      sized allocation.
+      this per-cpu space using the cpu parameter as an index into the
+      n_cpus sized allocation.
       This is often ignored.
 
     void *setup:
@@ -286,7 +289,7 @@ Hacking on rototiller / libtil:
 
     As mentioned above in describing the rendering function, this is
   entirely optional.  One may create 100% valid modules implementing only
-  the render_fragment().
+  the render_fragment() function.
 
 
  Runtime-configurable rendering:
@@ -395,14 +398,14 @@ Hacking on rototiller / libtil:
       }
 
 
-    In the above example a the minimal module now has a "foobar" boolean
+    In the above example the minimal module now has a "foobar" boolean
   style setting supporting the values "on" and "off".  It may be specified
   at runtime to rototiller (or any other frontend) via the commandline
   argument:
 
-      "--module=minimal,foobar=true"
+      "--module=minimal,foobar=on"
 
-    And if the "foobar=true" setting were omitted from the commandline, in
+    And if the "foobar=on" setting were omitted from the commandline, in
   rototiller's CLI frontend an interactive setup dialog would occur, i.e:
 
       Foobar configurable setting:
@@ -412,7 +415,7 @@ Hacking on rototiller / libtil:
 
     Much can be said on the subject of settings, this introduction should
   be enough to get started.  Use the existing modules as a reference on how
-  to implement sttings.  The sparkler modules in particular has one of the
+  to implement settings.  The sparkler module in particular has one of the
   more complicated setup() functions involving dependencies where some
   settings become expected and described only if others are enabled.
 
@@ -424,10 +427,10 @@ Hacking on rototiller / libtil:
 
     Note how the minimal_setup_t instance returned by setup() in res_setup
   is subsequently supplied to minimal_create_context() in its setup
-  parameter.  In the previous Stateful rendering example, this setup
+  parameter.  In the previous "Stateful rendering" example, this setup
   parameter was ignored as it would always be NULL lacking any setup()
   function.  But here we use it to retrieve the "foobar" value wired up by
-  the minimal_setup() function supplied for minimal_module.setup.
+  the minimal_setup() function supplied as minimal_module.setup.
 
 
  Threaded rendering:
@@ -435,7 +438,7 @@ Hacking on rototiller / libtil:
     Rototiller deliberately abstains from utilizing any GPU hardware-
   acceleration for rendering.  Instead, all rendering is done using the CPU
   programmed simply in C, without incurring a bunch of GPU API complexity
-  like OpenGL/Direct3D or any need manage GPU resources.
+  like OpenGL/Direct3D or any need to manage GPU resources.
 
     Modern systems tend to have multiple CPU cores, enabling parallel
   execution similar to how GPUs employ multiple execution units for
@@ -460,9 +463,9 @@ Hacking on rototiller / libtil:
 
     What's special here is the res_fragmenter parameter.  This is where
   your module is expected to provide a fragmenter function rototiller will
-  call repeatedly while splitting up the frame's fragment being rendered
+  call repeatedly while breaking up the frame's fragment being rendered
   into smaller subfragments for passing to the module's render_fragment()
-  in place of the larger frame's fragment.
+  in place of the larger frame's whole fragment.
 
     This effectively gives modules control over the order, quantity, size,
   and shape, of individually rendered subfragments.  Logically speaking,
