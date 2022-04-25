@@ -338,6 +338,7 @@ static void swarm_draw_as_points(swarm_context_t *ctxt, til_fb_fragment_t *fragm
 }
 
 
+/* though this is called _unchecked(), it's temporarily _checked() due to random segfaults. */
 static void draw_line_unchecked(til_fb_fragment_t *fragment, int x1, int y1, int x2, int y2, uint32_t color)
 {
 	int	x_delta = x2 - x1;
@@ -355,8 +356,8 @@ static void draw_line_unchecked(til_fb_fragment_t *fragment, int x1, int y1, int
 				y1 += sdy;
 				minor -= x_delta;
 			}
-
-			til_fb_fragment_put_pixel_unchecked(fragment, x1, y1, color);
+			/* XXX FIXME: segfaults occasionally when _unchecked !!! */
+			til_fb_fragment_put_pixel_checked(fragment, x1, y1, color);
 		}
 	} else {
 		/* Y-major */
@@ -366,7 +367,8 @@ static void draw_line_unchecked(til_fb_fragment_t *fragment, int x1, int y1, int
 				minor -= y_delta;
 			}
 
-			til_fb_fragment_put_pixel_unchecked(fragment, x1, y1, color);
+			/* XXX FIXME: segfaults occasionally when _unchecked !!! */
+			til_fb_fragment_put_pixel_checked(fragment, x1, y1, color);
 		}
 	}
 }
