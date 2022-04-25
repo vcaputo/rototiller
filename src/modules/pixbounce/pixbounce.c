@@ -197,4 +197,5 @@ til_module_t	pixbounce_module = {
 	.name = "pixbounce",
 	.description = "Pixmap bounce",
 	.author = "Philip J Freeman <elektron@halo.nu>",
+	.flags = TIL_MODULE_OVERLAYABLE,
 };

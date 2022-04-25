@@ -296,8 +296,9 @@ til_module_t	checkers_module = {
 	.destroy_context = checkers_destroy_context,
 	.prepare_frame = checkers_prepare_frame,
 	.render_fragment = checkers_render_fragment,
+	.setup = checkers_setup,
 	.name = "checkers",
 	.description = "Checker-patterned overlay (threaded)",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",
-	.setup = checkers_setup,
+	.flags = TIL_MODULE_OVERLAYABLE,
 };

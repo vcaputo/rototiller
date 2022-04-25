@@ -42,4 +42,5 @@ til_module_t	blinds_module = {
 	.name = "blinds",
 	.description = "Retro 80s-inspired window blinds",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",
+	.flags = TIL_MODULE_OVERLAYABLE,
 };

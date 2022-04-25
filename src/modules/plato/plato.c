@@ -674,4 +674,5 @@ til_module_t	plato_module = {
 	.name = "plato",
 	.description = "Platonic solids rendered in 3D",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",
+	.flags = TIL_MODULE_OVERLAYABLE,
 };

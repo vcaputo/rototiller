@@ -469,8 +469,9 @@ til_module_t	swarm_module = {
 	.create_context = swarm_create_context,
 	.destroy_context = swarm_destroy_context,
 	.render_fragment = swarm_render_fragment,
+	.setup = swarm_setup,
 	.name = "swarm",
 	.description = "\"Boids\"-inspired particle swarm in 3D",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",
-	.setup = swarm_setup,
+	.flags = TIL_MODULE_OVERLAYABLE,
 };

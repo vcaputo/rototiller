@@ -264,4 +264,5 @@ til_module_t	stars_module = {
 	.name = "stars",
 	.description = "Basic starfield",
 	.author = "Philip J Freeman <elektron@halo.nu>",
+	.flags = TIL_MODULE_OVERLAYABLE,
 };
