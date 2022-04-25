@@ -118,10 +118,10 @@ static void * pixbounce_create_context(unsigned ticks, unsigned num_cpus, til_se
 		return NULL;
 
 	ctxt->n_cpus = num_cpus;
-	ctxt->x = 0;
-	ctxt->y = 8;
-	ctxt->x_dir = 1;
-	ctxt->y_dir = 1;
+	ctxt->x = -1;
+	ctxt->y = -1;
+	ctxt->x_dir = 0;
+	ctxt->y_dir = 0;
 	ctxt->pix_num = rand() % num_pix;
 
 	return ctxt;
@@ -140,9 +140,6 @@ static void pixbounce_render_fragment(void *context, unsigned ticks, unsigned cp
 	int	multiplier_x, multiplier_y, multiplier;
 	int	width = fragment->width, height = fragment->height;
 
-	/* blank the frame */
-	til_fb_fragment_clear(fragment);
-
 	/* check for very small fragment */
 	if(pix_width*2>width||pix_height*2>height)
 		return;
@@ -156,6 +153,17 @@ static void pixbounce_render_fragment(void *context, unsigned ticks, unsigned cp
 	} else if(multiplier_y>multiplier_x) {
 		multiplier = multiplier_x * 77 / 100;
 	}
+
+	/* randomly initialize location and direction of pixmap */
+	if(ctxt->x == -1) {
+		ctxt->x = rand() % (width - pix_width * multiplier) + 1;
+		ctxt->y = rand() % (height - pix_height * multiplier) + 1;
+		ctxt->x_dir = (rand() % 3) - 1;
+		ctxt->y_dir = (rand() % 3) - 1;
+	}
+
+	/* blank the frame */
+	til_fb_fragment_clear(fragment);
 
 	/* translate pixmap to multiplier size and draw it to the fragment */
 	for(int cursor_y=0; cursor_y < pix_height*multiplier; cursor_y++) {
