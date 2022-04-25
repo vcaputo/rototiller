@@ -8,5 +8,6 @@ struct til_setup_t {
 };
 
 void * til_setup_new(size_t size, void (*free_func)(til_setup_t *setup));
+void * til_setup_free(til_setup_t *setup);
 
 #endif
