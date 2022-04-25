@@ -87,8 +87,7 @@ static void * compose_create_context(unsigned ticks, unsigned num_cpus, til_setu
 
 		ctxt->layers[i].module = layer_module;
 		(void) til_module_create_context(layer_module, ticks, layer_setup, &ctxt->layers[i].module_ctxt);
-
-		/* TODO FIXME: free setup! */
+		til_setup_free(layer_setup);
 
 		ctxt->n_layers++;
 	}
@@ -167,20 +166,29 @@ static int compose_setup(const til_settings_t *settings, til_setting_t **res_set
 			 * going to let the user potentially compose with montage
 			 * or rtv as one of the layers.
 			 */
-			if (!strcmp(layer, "compose")) /* XXX: prevent infinite recursion */
+			if (!strcmp(layer, "compose")) { /* XXX: prevent infinite recursion */
+				til_setup_free(&setup->til_setup);
+
 				return -EINVAL;
+			}
 
 			for (i = 0; i < n_modules; i++) {
 				if (!strcmp(layer, modules[i]->name))
 					break;
 			}
 
-			if (i >= n_modules)
+			if (i >= n_modules) {
+				til_setup_free(&setup->til_setup);
+
 				return -EINVAL;
+			}
 
 			new = realloc(setup, sizeof(*setup) + n * sizeof(*setup->layers));
-			if (!new)
+			if (!new) {
+				til_setup_free(&setup->til_setup);
+
 				return -ENOMEM;
+			}
 
 			new->layers[n - 2] = layer;
 			new->layers[n - 1] = NULL;

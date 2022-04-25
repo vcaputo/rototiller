@@ -409,8 +409,11 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 			til_get_modules(&modules, &n_modules);
 
 			tokchannels = strdup(channels);
-			if (!tokchannels)
+			if (!tokchannels) {
+				til_setup_free(&setup->til_setup);
+
 				return -ENOMEM;
+			}
 
 			channel = strtok(tokchannels, ":");
 			do {
@@ -422,12 +425,16 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 						break;
 				}
 
-				if (i >= n_modules)
+				if (i >= n_modules) {
+					til_setup_free(&setup->til_setup);
+
 					return -EINVAL;
+				}
 
 				new = realloc(setup, sizeof(*setup) + n * sizeof(setup->channels[0]));
 				if (!new) {
-					free(setup);
+					til_setup_free(&setup->til_setup);
+
 					return -ENOMEM;
 				}
 

@@ -95,12 +95,7 @@ static void * montage_create_context(unsigned ticks, unsigned num_cpus, til_setu
 		if (module->create_context)	/* FIXME errors */
 			ctxt->contexts[i] = module->create_context(ticks, 1, setup);
 
-		/* TODO FIXME: free setup! modules don't currently implement it.
-		 * What should probably happen is the setup should become a til struct
-		 * type having just a free function pointer.  Then module setups would
-		 * simply embed this at the start of their private setup struct and return a
-		 * pointer to that as their setup.
-		 */
+		til_setup_free(setup);
 	}
 
 	return ctxt;
