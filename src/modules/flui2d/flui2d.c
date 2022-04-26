@@ -209,8 +209,43 @@ static flui2d_setup_t flui2d_default_setup = {
 };
 
 
+/* gamma correction derived from libs/ray/ray_gamma.[ch] */
+static uint8_t	gamma_table[1024];
+
+
+static inline uint32_t gamma_color_to_uint32_rgb(float r, float g, float b) {
+	uint32_t	pixel;
+
+	if (r > 1.0f)
+		r = 1.0f;
+
+	if (g > 1.0f)
+		g = 1.0f;
+
+	if (b > 1.0f)
+		b = 1.0f;
+
+	pixel = (uint32_t)gamma_table[(unsigned)floorf(1023.0f * r)];
+	pixel <<= 8;
+	pixel |= (uint32_t)gamma_table[(unsigned)floorf(1023.0f * g)];
+	pixel <<= 8;
+	pixel |= (uint32_t)gamma_table[(unsigned)floorf(1023.0f * b)];
+
+	return pixel;
+}
+
+
+static void gamma_init(float gamma)
+{
+	/* This is from graphics gems 2 "REAL PIXELS" */
+	for (unsigned i = 0; i < 1024; i++)
+		gamma_table[i] = 256.0f * powf((((float)i + .5f) / 1024.0f), 1.0f/gamma);
+}
+
+
 static void * flui2d_create_context(unsigned ticks, unsigned num_cpus, til_setup_t *setup)
 {
+	static int		initialized;
 	flui2d_context_t	*ctxt;
 
 	if (!setup)
@@ -219,6 +254,11 @@ static void * flui2d_create_context(unsigned ticks, unsigned num_cpus, til_setup
 	ctxt = calloc(1, sizeof(flui2d_context_t));
 	if (!ctxt)
 		return NULL;
+
+	if (!initialized) {
+		initialized = 1;
+		gamma_init(1.4f);
+	}
 
 	ctxt->fluid.visc = ((flui2d_setup_t *)setup)->viscosity;
 	ctxt->fluid.diff = ((flui2d_setup_t *)setup)->diffusion;
@@ -317,7 +357,7 @@ static void flui2d_render_fragment(void *context, unsigned ticks, unsigned cpu, 
 		for (int x = fragment->x; x < fragment->x + fragment->width; x++) {
 			float		X, dens, dx0, dx1;
 			int		x0, x1;
-			uint32_t	pixel;
+			float		r, g, b;
 
 			X = (float)x * ctxt->xf * (float)ROOT;
 			x0 = (int)X;
@@ -328,27 +368,21 @@ static void flui2d_render_fragment(void *context, unsigned ticks, unsigned cpu, 
 			dx0 += ctxt->fluid.dens_r[(int)IX(x1, y0)] * (X - x0);
 			dx1 = ctxt->fluid.dens_r[(int)IX(x0, y1)] * (1.f - (X - x0));
 			dx1 += ctxt->fluid.dens_r[(int)IX(x1, y1)] * (X - x0);
-			dens = dx0 * (1.f - (Y - y0)) + dx1 * (Y - y0);
-
-			pixel = ((uint32_t)((float)dens * 256.f)) << 16;
+			r = dx0 * (1.f - (Y - y0)) + dx1 * (Y - y0);
 
 			dx0 = ctxt->fluid.dens_g[(int)IX(x0, y0)] * (1.f - (X - x0));
 			dx0 += ctxt->fluid.dens_g[(int)IX(x1, y0)] * (X - x0);
 			dx1 = ctxt->fluid.dens_g[(int)IX(x0, y1)] * (1.f - (X - x0));
 			dx1 += ctxt->fluid.dens_g[(int)IX(x1, y1)] * (X - x0);
-			dens = dx0 * (1.f - (Y - y0)) + dx1 * (Y - y0);
-
-			pixel |= ((uint32_t)((float)dens * 256.f)) << 8;
+			g = dx0 * (1.f - (Y - y0)) + dx1 * (Y - y0);
 
 			dx0 = ctxt->fluid.dens_b[(int)IX(x0, y0)] * (1.f - (X - x0));
 			dx0 += ctxt->fluid.dens_b[(int)IX(x1, y0)] * (X - x0);
 			dx1 = ctxt->fluid.dens_b[(int)IX(x0, y1)] * (1.f - (X - x0));
 			dx1 += ctxt->fluid.dens_b[(int)IX(x1, y1)] * (X - x0);
-			dens = dx0 * (1.f - (Y - y0)) + dx1 * (Y - y0);
+			b = dx0 * (1.f - (Y - y0)) + dx1 * (Y - y0);
 
-			pixel |= ((uint32_t)((float)dens * 256.f));
-
-			til_fb_fragment_put_pixel_unchecked(fragment, x, y, pixel);
+			til_fb_fragment_put_pixel_unchecked(fragment, x, y, gamma_color_to_uint32_rgb(r, g, b));
 		}
 	}
 }
