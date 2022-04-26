@@ -24,7 +24,9 @@
 
 typedef struct flui2d_t {
 	float	u[SIZE], v[SIZE], u_prev[SIZE], v_prev[SIZE];
-	float	dens[SIZE], dens_prev[SIZE];
+	float	dens_r[SIZE], dens_prev_r[SIZE];
+	float	dens_g[SIZE], dens_prev_g[SIZE];
+	float	dens_b[SIZE], dens_prev_b[SIZE];
 	float	visc, diff, decay;
 } flui2d_t;
 
@@ -253,7 +255,9 @@ static void flui2d_prepare_frame(void *context, unsigned ticks, unsigned n_cpus,
 		int	x = (cos(r) * .4f + .5f) * (float)ROOT;	/* figure eight pattern for the added densities */
 		int	y = (sin(r * 2.f) * .4f + .5f) * (float)ROOT;
 
-		ctxt->fluid.dens_prev[IX(x, y)] = 1.f;
+		ctxt->fluid.dens_prev_r[IX(x, y)] = .5f + cos(r) * .5f;
+		ctxt->fluid.dens_prev_g[IX(x, y)] = .5f + sin(r) * .5f;
+		ctxt->fluid.dens_prev_b[IX(x, y)] = .5f + cos(r * 2.f) * .5f;
 
 		/* This orientation for the added velocities at the added densities isn't trying to
 		 * emulate any sort of physical relationship to the movement - it's just creating a variety
@@ -269,7 +273,10 @@ static void flui2d_prepare_frame(void *context, unsigned ticks, unsigned n_cpus,
 #define FLUI2D_CLOCKGRID_STEP	(ROOT/FLUI2D_CLOCKGRID_SIZE)
 		for (int y = FLUI2D_CLOCKGRID_STEP; y < ROOT; y += FLUI2D_CLOCKGRID_STEP) {
 			for (int x = FLUI2D_CLOCKGRID_STEP; x < ROOT; x += FLUI2D_CLOCKGRID_STEP, r += ctxt->clockstep * M_PI * 2) {
-				ctxt->fluid.dens_prev[IX(x, y)] = 1.f;
+
+				ctxt->fluid.dens_prev_r[IX(x, y)] = .5f + cos(r) * .5f;
+				ctxt->fluid.dens_prev_g[IX(x, y)] = .5f + sin(r) * .5f;
+				ctxt->fluid.dens_prev_b[IX(x, y)] = .5f + cos(r * 2.f) * .5f;
 
 				ctxt->fluid.u_prev[IX(x, y)] = cos(r * 3.f);
 				ctxt->fluid.v_prev[IX(x, y)] = sin(r * 3.f);
@@ -285,7 +292,9 @@ static void flui2d_prepare_frame(void *context, unsigned ticks, unsigned n_cpus,
 	 * a GLSL implementation for a fragment shader.
 	 */
 	vel_step(ROOT, ctxt->fluid.u, ctxt->fluid.v, ctxt->fluid.u_prev, ctxt->fluid.v_prev, ctxt->fluid.visc, .1f);
-	dens_step(ROOT, ctxt->fluid.dens, ctxt->fluid.dens_prev, ctxt->fluid.u, ctxt->fluid.v, ctxt->fluid.diff, ctxt->fluid.decay, .1f);
+	dens_step(ROOT, ctxt->fluid.dens_r, ctxt->fluid.dens_prev_r, ctxt->fluid.u, ctxt->fluid.v, ctxt->fluid.diff, ctxt->fluid.decay, .1f);
+	dens_step(ROOT, ctxt->fluid.dens_g, ctxt->fluid.dens_prev_g, ctxt->fluid.u, ctxt->fluid.v, ctxt->fluid.diff, ctxt->fluid.decay, .1f);
+	dens_step(ROOT, ctxt->fluid.dens_b, ctxt->fluid.dens_prev_b, ctxt->fluid.u, ctxt->fluid.v, ctxt->fluid.diff, ctxt->fluid.decay, .1f);
 
 	ctxt->xf = 1.f / fragment->frame_width;
 	ctxt->yf = 1.f / fragment->frame_height;
@@ -315,14 +324,30 @@ static void flui2d_render_fragment(void *context, unsigned ticks, unsigned cpu, 
 			x1 = x0 + 1;
 
 			/* linear interpolation of density samples */
-			dx0 = ctxt->fluid.dens[(int)IX(x0, y0)] * (1.f - (X - x0));
-			dx0 += ctxt->fluid.dens[(int)IX(x1, y0)] * (X - x0);
-			dx1 = ctxt->fluid.dens[(int)IX(x0, y1)] * (1.f - (X - x0));
-			dx1 += ctxt->fluid.dens[(int)IX(x1, y1)] * (X - x0);
+			dx0 = ctxt->fluid.dens_r[(int)IX(x0, y0)] * (1.f - (X - x0));
+			dx0 += ctxt->fluid.dens_r[(int)IX(x1, y0)] * (X - x0);
+			dx1 = ctxt->fluid.dens_r[(int)IX(x0, y1)] * (1.f - (X - x0));
+			dx1 += ctxt->fluid.dens_r[(int)IX(x1, y1)] * (X - x0);
 			dens = dx0 * (1.f - (Y - y0)) + dx1 * (Y - y0);
 
-			pixel = ((float)dens * 256.f);
-			pixel = pixel << 16 | pixel << 8 | pixel;
+			pixel = ((uint32_t)((float)dens * 256.f)) << 16;
+
+			dx0 = ctxt->fluid.dens_g[(int)IX(x0, y0)] * (1.f - (X - x0));
+			dx0 += ctxt->fluid.dens_g[(int)IX(x1, y0)] * (X - x0);
+			dx1 = ctxt->fluid.dens_g[(int)IX(x0, y1)] * (1.f - (X - x0));
+			dx1 += ctxt->fluid.dens_g[(int)IX(x1, y1)] * (X - x0);
+			dens = dx0 * (1.f - (Y - y0)) + dx1 * (Y - y0);
+
+			pixel |= ((uint32_t)((float)dens * 256.f)) << 8;
+
+			dx0 = ctxt->fluid.dens_b[(int)IX(x0, y0)] * (1.f - (X - x0));
+			dx0 += ctxt->fluid.dens_b[(int)IX(x1, y0)] * (X - x0);
+			dx1 = ctxt->fluid.dens_b[(int)IX(x0, y1)] * (1.f - (X - x0));
+			dx1 += ctxt->fluid.dens_b[(int)IX(x1, y1)] * (X - x0);
+			dens = dx0 * (1.f - (Y - y0)) + dx1 * (Y - y0);
+
+			pixel |= ((uint32_t)((float)dens * 256.f));
+
 			til_fb_fragment_put_pixel_unchecked(fragment, x, y, pixel);
 		}
 	}
