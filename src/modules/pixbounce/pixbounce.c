@@ -134,6 +134,7 @@ typedef struct pixbounce_context_t {
 	int		x_dir, y_dir;
 	int		pix_num;
 	uint32_t	color;
+	int		multiplier;
 
 } pixbounce_context_t;
 
@@ -168,6 +169,7 @@ static void * pixbounce_create_context(unsigned ticks, unsigned num_cpus, til_se
 	ctxt->y_dir = 0;
 	ctxt->pix_num = rand() % num_pix;
 	ctxt->color = pick_color();
+	ctxt->multiplier = 1;
 
 	return ctxt;
 }
@@ -182,38 +184,40 @@ static void pixbounce_render_fragment(void *context, unsigned ticks, unsigned cp
 {
 	pixbounce_context_t *ctxt = context;
 
-	int	multiplier_x, multiplier_y, multiplier;
 	int	width = fragment->width, height = fragment->height;
 
 	/* check for very small fragment */
 	if(pix_width*2>width||pix_height*2>height)
 		return;
 
-	/* calculate multiplyer for the pixmap */
-	multiplier_x = width / pix_width;
-	multiplier_y = height / pix_height;
-
-	if(multiplier_x>=multiplier_y) {
-		multiplier = multiplier_y * 77 / 100;
-	} else if(multiplier_y>multiplier_x) {
-		multiplier = multiplier_x * 77 / 100;
-	}
-
-	/* randomly initialize location and direction of pixmap */
 	if(ctxt->x == -1) {
-		ctxt->x = rand() % (width - pix_width * multiplier) + 1;
-		ctxt->y = rand() % (height - pix_height * multiplier) + 1;
+		int	multiplier_x, multiplier_y;
+
+		/* calculate multiplyer for the pixmap */
+		multiplier_x = width / pix_width;
+		multiplier_y = height / pix_height;
+
+		if(multiplier_x>=multiplier_y) {
+			ctxt->multiplier = multiplier_y * (rand()%55 + 22 )/ 100;
+		} else {
+			ctxt->multiplier = multiplier_x * (rand()%55 + 22 ) / 100;
+		}
+
+		/* randomly initialize location and direction of pixmap */
+		ctxt->x = rand() % (width - pix_width * ctxt->multiplier) + 1;
+		ctxt->y = rand() % (height - pix_height * ctxt->multiplier) + 1;
 		ctxt->x_dir = (rand() % 3) - 1;
 		ctxt->y_dir = (rand() % 3) - 1;
+
 	}
 
 	/* blank the frame */
 	til_fb_fragment_clear(fragment);
 
 	/* translate pixmap to multiplier size and draw it to the fragment */
-	for(int cursor_y=0; cursor_y < pix_height*multiplier; cursor_y++) {
-		for(int cursor_x=0; cursor_x < pix_width*multiplier; cursor_x++) {
-			int pix_offset = ((cursor_y/multiplier)*pix_width) + (cursor_x/multiplier);
+	for(int cursor_y=0; cursor_y < pix_height*ctxt->multiplier; cursor_y++) {
+		for(int cursor_x=0; cursor_x < pix_width*ctxt->multiplier; cursor_x++) {
+			int pix_offset = ((cursor_y/ctxt->multiplier)*pix_width) + (cursor_x/ctxt->multiplier);
 			if(pix_map[ctxt->pix_num][pix_offset] == 0) continue;
 			til_fb_fragment_put_pixel_unchecked(
 					fragment, ctxt->x+cursor_x, ctxt->y+cursor_y,
@@ -228,7 +232,7 @@ static void pixbounce_render_fragment(void *context, unsigned ticks, unsigned cp
 		ctxt->pix_num = pick_pix(num_pix, ctxt->pix_num);
 		ctxt->color = pick_color();
 	}
-	if((ctxt->x+(pix_width*multiplier))+ctxt->x_dir > width) {
+	if((ctxt->x+(pix_width*ctxt->multiplier))+ctxt->x_dir > width) {
 		ctxt->x_dir = -1;
 		ctxt->pix_num = pick_pix(num_pix, ctxt->pix_num);
 		ctxt->color = pick_color();
@@ -238,7 +242,7 @@ static void pixbounce_render_fragment(void *context, unsigned ticks, unsigned cp
 		ctxt->pix_num = pick_pix(num_pix, ctxt->pix_num);
 		ctxt->color = pick_color();
 	}
-	if((ctxt->y+(pix_height*multiplier))+ctxt->y_dir > height) {
+	if((ctxt->y+(pix_height*ctxt->multiplier))+ctxt->y_dir > height) {
 		ctxt->y_dir = -1;
 		ctxt->pix_num = pick_pix(num_pix, ctxt->pix_num);
 		ctxt->color = pick_color();
