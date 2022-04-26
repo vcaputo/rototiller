@@ -17,11 +17,6 @@
  *   - Vito Caputo <vcaputo@pengaru.com> 10/13/2019
  */
 
-	/* These knobs affect how the simulated fluid behaves */
-#define DEFAULT_VISCOSITY	.000000001
-#define DEFAULT_DIFFUSION	.00001
-#define DEFAULT_DECAY		.0001
-
 #define ROOT		128	// Change this to vary the density field resolution
 #define SIZE		((ROOT + 2) * (ROOT + 2))
 #define IX(i, j)	((i) + (ROOT + 2) * (j))
@@ -174,23 +169,41 @@ static void vel_step(int N, float *u, float *v, float *u0, float *v0, float visc
 	project(N, u, v, u0, v0);
 }
 
-
-typedef struct flui2d_context_t {
-	flui2d_t	fluid;
-	float		xf, yf;
-} flui2d_context_t;
+typedef enum flui2d_emitters_t {
+	FLUI2D_EMITTERS_FIGURE8 = 0,	/* this is the original/classic figure eight */
+	FLUI2D_EMITTERS_CLOCKGRID,
+} flui2d_emitters_t;
 
 typedef struct flui2d_setup_t {
-	til_setup_t	til_setup;
-	float		viscosity;
-	float		diffusion;
-	float		decay;
+	til_setup_t		til_setup;
+	float			viscosity;
+	float			diffusion;
+	float			decay;
+	flui2d_emitters_t	emitters;
+	float			clockstep;
 } flui2d_setup_t;
 
+typedef struct flui2d_context_t {
+	flui2d_t		fluid;
+	flui2d_emitters_t	emitters;
+	float			clockstep;
+	float			xf, yf;
+} flui2d_context_t;
+
+#define FLUI2D_DEFAULT_EMITTERS		FLUI2D_EMITTERS_FIGURE8
+#define FLUI2D_DEFAULT_CLOCKSTEP	.5
+
+	/* These knobs affect how the simulated fluid behaves */
+#define FLUI2D_DEFAULT_VISCOSITY	.000000001
+#define FLUI2D_DEFAULT_DIFFUSION	.00001
+#define FLUI2D_DEFAULT_DECAY		.0001
+
+
 static flui2d_setup_t flui2d_default_setup = {
-	.viscosity = DEFAULT_VISCOSITY,
-	.diffusion = DEFAULT_DIFFUSION,
-	.decay = DEFAULT_DECAY,
+	.viscosity = FLUI2D_DEFAULT_VISCOSITY,
+	.diffusion = FLUI2D_DEFAULT_DIFFUSION,
+	.decay = FLUI2D_DEFAULT_DECAY,
+	.emitters = FLUI2D_DEFAULT_EMITTERS,
 };
 
 
@@ -208,6 +221,8 @@ static void * flui2d_create_context(unsigned ticks, unsigned num_cpus, til_setup
 	ctxt->fluid.visc = ((flui2d_setup_t *)setup)->viscosity;
 	ctxt->fluid.diff = ((flui2d_setup_t *)setup)->diffusion;
 	ctxt->fluid.decay = ((flui2d_setup_t *)setup)->decay;
+	ctxt->emitters = ((flui2d_setup_t *)setup)->emitters;
+	ctxt->clockstep = ((flui2d_setup_t *)setup)->clockstep;
 
 	return ctxt;
 }
@@ -230,19 +245,39 @@ static void flui2d_prepare_frame(void *context, unsigned ticks, unsigned n_cpus,
 {
 	flui2d_context_t	*ctxt = context;
 	float			r = (ticks % (unsigned)(2 * M_PI * 1000)) * .001f;
-	int			x = (cos(r) * .4f + .5f) * (float)ROOT;	/* figure eight pattern for the added densities */
-	int			y = (sin(r * 2.f) * .4f + .5f) * (float)ROOT;
 
 	*res_fragmenter = flui2d_fragmenter;
 
-	ctxt->fluid.dens_prev[IX(x, y)] = 1.f;
+	switch (ctxt->emitters) {
+	case FLUI2D_EMITTERS_FIGURE8: {
+		int	x = (cos(r) * .4f + .5f) * (float)ROOT;	/* figure eight pattern for the added densities */
+		int	y = (sin(r * 2.f) * .4f + .5f) * (float)ROOT;
 
-	/* This orientation for the added velocities at the added densities isn't trying to
-	 * emulate any sort of physical relationship to the movement - it's just creating a variety
-	 * of turbulence.  It'd be trivial to make it look like a rocket's jetstream or something.
-	 */
-	ctxt->fluid.u_prev[IX(x, y)] = cos(r * 3.f) * 10.f;
-	ctxt->fluid.v_prev[IX(x, y)] = sin(r * 3.f) * 10.f;
+		ctxt->fluid.dens_prev[IX(x, y)] = 1.f;
+
+		/* This orientation for the added velocities at the added densities isn't trying to
+		 * emulate any sort of physical relationship to the movement - it's just creating a variety
+		 * of turbulence.  It'd be trivial to make it look like a rocket's jetstream or something.
+		 */
+		ctxt->fluid.u_prev[IX(x, y)] = cos(r * 3.f) * 10.f;
+		ctxt->fluid.v_prev[IX(x, y)] = sin(r * 3.f) * 10.f;
+		break;
+	}
+
+	case FLUI2D_EMITTERS_CLOCKGRID: {
+#define FLUI2D_CLOCKGRID_SIZE	(ROOT>>4)
+#define FLUI2D_CLOCKGRID_STEP	(ROOT/FLUI2D_CLOCKGRID_SIZE)
+		for (int y = FLUI2D_CLOCKGRID_STEP; y < ROOT; y += FLUI2D_CLOCKGRID_STEP) {
+			for (int x = FLUI2D_CLOCKGRID_STEP; x < ROOT; x += FLUI2D_CLOCKGRID_STEP, r += ctxt->clockstep * M_PI * 2) {
+				ctxt->fluid.dens_prev[IX(x, y)] = 1.f;
+
+				ctxt->fluid.u_prev[IX(x, y)] = cos(r * 3.f);
+				ctxt->fluid.v_prev[IX(x, y)] = sin(r * 3.f);
+			}
+		}
+		break;
+	}
+	}
 
 	/* These are the core of the simulation, and can't currently be threaded using the paper's implementation, so they
 	 * must occur serialized here in prepare_frame.  It would be interesting to try refactor the API and tweak the
@@ -319,6 +354,24 @@ static int flui2d_setup(const til_settings_t *settings, til_setting_t **res_sett
 				".01",
 				NULL
 			};
+	const char	*emitters;
+	const char	*emitters_values[] = {
+				"figure8",
+				"clockgrid",
+				NULL
+			};
+	const char	*clockstep;
+	const char	*clockstep_values[] = {
+				".05",
+				".1",
+				".25",
+				".33",
+				".50",
+				".66",
+				".75",
+				".99",
+				NULL
+			};
 	int		r;
 
 	r = til_settings_get_and_describe_value(settings,
@@ -326,7 +379,7 @@ static int flui2d_setup(const til_settings_t *settings, til_setting_t **res_sett
 							.name = "Fluid viscosity",
 							.key = "viscosity",
 							.regex = "\\.[0-9]+",
-							.preferred = TIL_SETTINGS_STR(DEFAULT_VISCOSITY),
+							.preferred = TIL_SETTINGS_STR(FLUI2D_DEFAULT_VISCOSITY),
 							.values = values,
 							.annotations = NULL
 						},
@@ -341,7 +394,7 @@ static int flui2d_setup(const til_settings_t *settings, til_setting_t **res_sett
 							.name = "Fluid diffusion",
 							.key = "diffusion",
 							.regex = "\\.[0-9]+",
-							.preferred = TIL_SETTINGS_STR(DEFAULT_DIFFUSION),
+							.preferred = TIL_SETTINGS_STR(FLUI2D_DEFAULT_DIFFUSION),
 							.values = values,
 							.annotations = NULL
 						},
@@ -356,7 +409,7 @@ static int flui2d_setup(const til_settings_t *settings, til_setting_t **res_sett
 							.name = "Fluid decay",
 							.key = "decay",
 							.regex = "\\.[0-9]+",
-							.preferred = TIL_SETTINGS_STR(DEFAULT_DECAY),
+							.preferred = TIL_SETTINGS_STR(FLUI2D_DEFAULT_DECAY),
 							.values = decay_values,
 							.annotations = NULL
 						},
@@ -365,6 +418,38 @@ static int flui2d_setup(const til_settings_t *settings, til_setting_t **res_sett
 						res_desc);
 	if (r)
 		return r;
+
+	r = til_settings_get_and_describe_value(settings,
+						&(til_setting_desc_t){
+							.name = "Fluid emitters style",
+							.key = "emitters",
+							.regex = "^(figure8|clockgrid)",
+							.preferred = emitters_values[FLUI2D_DEFAULT_EMITTERS],
+							.values = emitters_values,
+							.annotations = NULL
+						},
+						&emitters,
+						res_setting,
+						res_desc);
+	if (r)
+		return r;
+
+	if (!strcasecmp(emitters, "clockgrid")) {
+		r = til_settings_get_and_describe_value(settings,
+							&(til_setting_desc_t){
+								.name = "Fluid clockgrid emitters clock step",
+								.key = "clockstep",
+								.regex = "\\.[0-9]+",
+								.preferred = TIL_SETTINGS_STR(FLUI2D_DEFAULT_CLOCKSTEP),
+								.values = clockstep_values,
+								.annotations = NULL
+							},
+							&clockstep,
+							res_setting,
+							res_desc);
+		if (r)
+			return r;
+	}
 
 	if (res_setup) {
 		flui2d_setup_t	*setup;
@@ -383,6 +468,17 @@ static int flui2d_setup(const til_settings_t *settings, til_setting_t **res_sett
 			free(setup);
 			return -EINVAL;
 		}
+
+		for (int i = 0; emitters_values[i]; i++) {
+			if (!strcasecmp(emitters, emitters_values[i])) {
+				setup->emitters = i;
+
+				break;
+			}
+		}
+
+		if (setup->emitters == FLUI2D_EMITTERS_CLOCKGRID)
+			 sscanf(clockstep, "%f", &setup->clockstep);
 
 		*res_setup = &setup->til_setup;
 	}
