@@ -240,11 +240,10 @@ static void roto_render_fragment(void *context, unsigned ticks, unsigned cpu, ti
 			x_sin_r += sin_r;
 		}
 
-		buf = ((void *)buf) + fragment->stride;
+		buf += fragment->stride;
 		y_cos_r += cos_r;
 		y_sin_r += sin_r;
 	}
-
 }
 
 

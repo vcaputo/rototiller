@@ -155,7 +155,7 @@ static void julia_render_fragment(void *context, unsigned ticks, unsigned cpu, t
 			*buf = colors[julia_iter(real, imag, ctxt->creal, ctxt->cimag, sizeof(colors) / sizeof(*colors), ctxt->threshold)];
 		}
 
-		buf = ((void *)buf) + fragment->stride;
+		buf += fragment->stride;
 	}
 }
 

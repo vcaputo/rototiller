@@ -395,12 +395,11 @@ int til_fb_fragment_slice_single(const til_fb_fragment_t *fragment, unsigned n_f
 {
 	unsigned	slice = fragment->height / n_fragments;
 	unsigned	yoff = slice * number;
-	unsigned	pitch;
 
 	if (yoff >= fragment->height)
 		return 0;
 
-	res_fragment->buf = ((void *)fragment->buf) + yoff * fragment->pitch;
+	res_fragment->buf = fragment->buf + yoff * fragment->pitch;
 	res_fragment->x = fragment->x;
 	res_fragment->y = yoff;
 	res_fragment->width = fragment->width;
@@ -436,14 +435,14 @@ int til_fb_fragment_tile_single(const til_fb_fragment_t *fragment, unsigned tile
 	xoff = x * tile_size;
 	yoff = y * tile_size;
 
-	res_fragment->buf = (void *)fragment->buf + (yoff * fragment->pitch) + (xoff * 4);
+	res_fragment->buf = fragment->buf + (yoff * fragment->pitch) + (xoff);
 	res_fragment->x = fragment->x + xoff;
 	res_fragment->y = fragment->y + yoff;
 	res_fragment->width = MIN(fragment->width - xoff, tile_size);
 	res_fragment->height = MIN(fragment->height - yoff, tile_size);
 	res_fragment->frame_width = fragment->frame_width;
 	res_fragment->frame_height = fragment->frame_height;
-	res_fragment->stride = fragment->stride + ((fragment->width - res_fragment->width) * 4);
+	res_fragment->stride = fragment->stride + (fragment->width - res_fragment->width);
 	res_fragment->pitch = fragment->pitch;
 	res_fragment->number = number;
 	res_fragment->cleared = fragment->cleared;

@@ -476,6 +476,12 @@ static void * drm_fb_page_alloc(til_fb_t *fb, void *context, til_fb_page_t *res_
 	pexit_if(drmModeAddFB(c->drm_fd, c->mode->hdisplay, c->mode->vdisplay, 24, 32, create_dumb.pitch, create_dumb.handle, &fb_id) < 0,
 		"unable to add dumb buffer");
 
+	/* prevent unaligned pitches, we're just simplifying everything in rototiller that wants
+	 * to do word-at-a-time operations without concern for arches that get angry when that happens
+	 * on unaligned addresses.
+	 */
+	assert(!(create_dumb.pitch & 0x3));
+
 	p->mmap = map;
 	p->mmap_size = create_dumb.size;
 	p->drm_dumb_handle = map_dumb.handle;
@@ -486,8 +492,8 @@ static void * drm_fb_page_alloc(til_fb_t *fb, void *context, til_fb_page_t *res_
 	res_page->fragment.frame_width = c->mode->hdisplay;
 	res_page->fragment.height = c->mode->vdisplay;
 	res_page->fragment.frame_height = c->mode->vdisplay;
-	res_page->fragment.stride = create_dumb.pitch - (c->mode->hdisplay * 4);
-	res_page->fragment.pitch = create_dumb.pitch;
+	res_page->fragment.pitch = create_dumb.pitch >> 2;
+	res_page->fragment.stride = res_page->fragment.pitch - (c->mode->hdisplay);
 
 	return p;
 }

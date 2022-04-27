@@ -213,7 +213,7 @@ void ray_render_trace_fragment(ray_render_t *render, til_fb_fragment_t *fb_fragm
 			buf++;
 		} while (ray_camera_fragment_x_step(&fragment));
 
-		buf = ((void *)buf) + fb_fragment->stride;
+		buf += fb_fragment->stride;
 	} while (ray_camera_fragment_y_step(&fragment));
 }
 

@@ -67,7 +67,7 @@ static inline void draw_blind_horizontal(til_fb_fragment_t *fragment, unsigned r
 	unsigned	height = roundf(t * (float)row_height);
 
 	for (unsigned y = 0; y < height; y++)
-		memset(fragment->buf + ((row * row_height) + y ) * (fragment->pitch >> 2), 0xff, fragment->width * 4);
+		memset(fragment->buf + ((row * row_height) + y ) * fragment->pitch, 0xff, fragment->width * 4);
 }
 
 
@@ -78,7 +78,7 @@ static inline void draw_blind_vertical(til_fb_fragment_t *fragment, unsigned col
 	unsigned	width = roundf(t * (float)column_width);
 
 	for (unsigned y = 0; y < fragment->height; y++)
-		memset(fragment->buf + y * (fragment->pitch >> 2) + column * column_width, 0xff, width * 4);
+		memset(fragment->buf + y * fragment->pitch + column * column_width, 0xff, width * 4);
 }
 
 

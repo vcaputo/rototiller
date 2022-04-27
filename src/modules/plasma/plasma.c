@@ -156,7 +156,7 @@ static void plasma_render_fragment(void *context, unsigned ticks, unsigned cpu, 
 			*buf = color2pixel(&c);
 		}
 
-		buf = ((void *)buf) + fragment->stride;
+		buf += fragment->stride;
 	}
 }
 

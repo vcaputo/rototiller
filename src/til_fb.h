@@ -17,8 +17,8 @@ typedef struct til_fb_fragment_t {
 	unsigned	width, height;	/* width and height of this fragment */
 	unsigned	frame_width;	/* width of the frame this fragment is part of */
 	unsigned	frame_height;	/* height of the frame this fragment is part of */
-	unsigned	stride;		/* number of bytes from the end of one row to the start of the next */
-	unsigned	pitch;		/* number of bytes separating y from y + 1, including any padding */
+	unsigned	stride;		/* number of 32-bit words from the end of one row to the start of the next */
+	unsigned	pitch;		/* number of 32-bit words separating y from y + 1, including any padding */
 	unsigned	number;		/* this fragment's number as produced by fragmenting */
 	unsigned	cleared:1;	/* if this fragment has been cleared since last flip */
 } til_fb_fragment_t;
@@ -73,7 +73,7 @@ static inline int til_fb_fragment_contains(til_fb_fragment_t *fragment, int x, i
 /* puts a pixel into the fragment, no bounds checking is performed. */
 static inline void til_fb_fragment_put_pixel_unchecked(til_fb_fragment_t *fragment, int x, int y, uint32_t pixel)
 {
-	uint32_t	*pixels = ((void *)fragment->buf) + (y - fragment->y) * fragment->pitch;
+	uint32_t	*pixels = fragment->buf + (y - fragment->y) * fragment->pitch;
 
 	pixels[x - fragment->x] = pixel;
 }
@@ -94,13 +94,13 @@ static inline int til_fb_fragment_put_pixel_checked(til_fb_fragment_t *fragment,
 /* fill a fragment with an arbitrary pixel */
 static inline void til_fb_fragment_fill(til_fb_fragment_t *fragment, uint32_t pixel)
 {
-	void	*buf = fragment->buf;
+	uint32_t	*buf = fragment->buf;
 
 	/* TODO: there should be a fast-path for non-divided fragments where there's no stride to skip */
 	for (int y = 0; y < fragment->height; y++, buf += fragment->pitch) {
 		/* TODO: this should use something memset-like for perf */
 		for (int x = 0; x < fragment->width; x++)
-			((uint32_t *)buf)[x] = pixel;
+			buf[x] = pixel;
 	}
 }
 
