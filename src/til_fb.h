@@ -97,8 +97,11 @@ static inline void til_fb_fragment_fill(til_fb_fragment_t *fragment, uint32_t pi
 	void	*buf = fragment->buf;
 
 	/* TODO: there should be a fast-path for non-divided fragments where there's no stride to skip */
-	for (int y = 0; y < fragment->height; y++, buf += fragment->pitch)
-		memset(buf, pixel, fragment->pitch - fragment->stride);
+	for (int y = 0; y < fragment->height; y++, buf += fragment->pitch) {
+		/* TODO: this should use something memset-like for perf */
+		for (int x = 0; x < fragment->width; x++)
+			((uint32_t *)buf)[x] = pixel;
+	}
 }
 
 
