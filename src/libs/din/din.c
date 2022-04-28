@@ -9,6 +9,7 @@
 
 typedef struct din_t {
 	int	width, height, depth;
+	int	W_x_H;
 	v3f_t	grid[];
 } din_t;
 
@@ -33,7 +34,7 @@ void din_randomize(din_t *din)
 				r.y = randf();
 				r.z = randf();
 
-				din->grid[z * din->width * din->height + y * din->width + x] = v3f_normalize(&r);
+				din->grid[z * din->W_x_H + y * din->width + x] = v3f_normalize(&r);
 			}
 		}
 	}
@@ -56,6 +57,9 @@ din_t * din_new(int width, int height, int depth)
 	din->height = height;
 	din->depth = depth;
 
+	/* premultiply this since we do it a lot in addressing din->grid[] */
+	din->W_x_H = width * height;
+
 	din_randomize(din);
 
 	return din;
@@ -76,7 +80,7 @@ static inline float dotgradient(const din_t *din, int x, int y, int z, const v3f
 	assert(y < din->height);
 	assert(z < din->depth);
 
-	return v3f_dot(&din->grid[z * din->width * din->height + y * din->width + x], &distance);
+	return v3f_dot(&din->grid[z * din->W_x_H + y * din->width + x], &distance);
 }
 
 
