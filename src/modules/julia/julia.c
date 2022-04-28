@@ -67,7 +67,15 @@ static uint32_t	colors[] = {
 
 static void * julia_create_context(unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
-	return calloc(1, sizeof(julia_context_t));
+	julia_context_t	*ctxt;
+
+	ctxt = calloc(1, sizeof(julia_context_t));
+	if (!ctxt)
+		return NULL;
+
+	ctxt->rr = ((float)rand()) / (float)RAND_MAX * 100.f;
+
+	return ctxt;
 }
 
 
