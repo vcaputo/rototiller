@@ -53,7 +53,8 @@ static void init_plasma(int32_t *costab, int32_t *sintab)
 
 static void * plasma_create_context(unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
-	static int	initialized;
+	static int		initialized;
+	plasma_context_t	*ctxt;
 
 	if (!initialized) {
 		initialized = 1;
@@ -61,7 +62,13 @@ static void * plasma_create_context(unsigned ticks, unsigned n_cpus, til_setup_t
 		init_plasma(costab, sintab);
 	}
 
-	return calloc(1, sizeof(plasma_context_t));
+	ctxt = calloc(1, sizeof(plasma_context_t));
+	if (!ctxt)
+		return NULL;
+
+	ctxt->rr = rand();
+
+	return ctxt;
 }
 
 
