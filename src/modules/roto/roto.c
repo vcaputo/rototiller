@@ -33,7 +33,16 @@ static color_t	palette[2];
 
 static void * roto_create_context(unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
-	return calloc(1, sizeof(roto_context_t));
+	roto_context_t	*ctxt;
+
+	ctxt = calloc(1, sizeof(roto_context_t));
+	if (!ctxt)
+		return NULL;
+
+	ctxt->r = rand();
+	ctxt->rr = rand();
+
+	return ctxt;
 }
 
 
