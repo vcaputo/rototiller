@@ -96,7 +96,7 @@ static int swab_fragmenter(void *context, const til_fb_fragment_t *fragment, uns
 {
 	swab_context_t	*ctxt = context;
 
-	return til_fb_fragment_slice_single(fragment, ctxt->n_cpus, number, res_fragment);
+	return til_fb_fragment_tile_single(fragment, 64, number, res_fragment);
 }
 
 
