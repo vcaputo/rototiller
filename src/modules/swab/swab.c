@@ -122,16 +122,19 @@ static void swab_render_fragment(void *context, unsigned ticks, unsigned cpu, ti
 	float		yscale = 1.f / (float)fragment->frame_height;
 
 	for (int y = fragment->y; y < fragment->y + fragment->height; y++) {
+		float	yscaled = (float)y * yscale;
+
 		for (int x = fragment->x; x < fragment->x + fragment->width; x++) {
+			float		xscaled = (float)x * xscale;
 			color_t		color;
 			uint32_t	pixel;
 			float		t;
 
-			t = din(ctxt->din, &(v3f_t){ .x = (float)x * xscale * .5f, .y = (float)y * yscale * .5f, .z = -z2 }) * 33.f;
+			t = din(ctxt->din, &(v3f_t){ .x = xscaled * .5f, .y = yscaled * .5f, .z = -z2 }) * 33.f;
 
-			color.r = din(ctxt->din, &(v3f_t){ .x = (float)x * xscale * .7f, .y = (float)y * yscale * .7f, .z = z1 }) * t;
-			color.g = din(ctxt->din, &(v3f_t){ .x = (float)x * xscale * .93f, .y = (float)y * yscale * .93f, .z = -z1 }) * t;
-			color.b = din(ctxt->din, &(v3f_t){ .x = (float)x * xscale * .81f, .y = (float)y * yscale * .81f, .z = z2 }) * t;
+			color.r = din(ctxt->din, &(v3f_t){ .x = xscaled * .7f, .y = yscaled * .7f, .z = z1 }) * t;
+			color.g = din(ctxt->din, &(v3f_t){ .x = xscaled * .93f, .y = yscaled * .93f, .z = -z1 }) * t;
+			color.b = din(ctxt->din, &(v3f_t){ .x = xscaled * .81f, .y = yscaled * .81f, .z = z2 }) * t;
 
 			pixel = color_to_uint32(color);
 			til_fb_fragment_put_pixel_unchecked(fragment, x, y, pixel);
