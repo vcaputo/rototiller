@@ -487,13 +487,15 @@ static void * drm_fb_page_alloc(til_fb_t *fb, void *context, til_fb_page_t *res_
 	p->drm_dumb_handle = map_dumb.handle;
 	p->drm_fb_id = fb_id;
 
-	res_page->fragment.buf = map;
-	res_page->fragment.width = c->mode->hdisplay;
-	res_page->fragment.frame_width = c->mode->hdisplay;
-	res_page->fragment.height = c->mode->vdisplay;
-	res_page->fragment.frame_height = c->mode->vdisplay;
-	res_page->fragment.pitch = create_dumb.pitch >> 2;
-	res_page->fragment.stride = res_page->fragment.pitch - (c->mode->hdisplay);
+	*res_page =	(til_fb_page_t){
+				.fragment.buf = map,
+				.fragment.width = c->mode->hdisplay,
+				.fragment.frame_width = c->mode->hdisplay,
+				.fragment.height = c->mode->vdisplay,
+				.fragment.frame_height = c->mode->vdisplay,
+				.fragment.pitch = create_dumb.pitch >> 2,
+				.fragment.stride = (create_dumb.pitch >> 2) - c->mode->hdisplay,
+			};
 
 	return p;
 }

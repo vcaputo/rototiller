@@ -399,17 +399,20 @@ int til_fb_fragment_slice_single(const til_fb_fragment_t *fragment, unsigned n_f
 	if (yoff >= fragment->height)
 		return 0;
 
-	res_fragment->buf = fragment->buf + yoff * fragment->pitch;
-	res_fragment->x = fragment->x;
-	res_fragment->y = yoff;
-	res_fragment->width = fragment->width;
-	res_fragment->height = MIN(fragment->height - yoff, slice);
-	res_fragment->frame_width = fragment->frame_width;
-	res_fragment->frame_height = fragment->frame_height;
-	res_fragment->stride = fragment->stride;
-	res_fragment->pitch = fragment->pitch;
-	res_fragment->number = number;
-	res_fragment->cleared = fragment->cleared;
+	*res_fragment = (til_fb_fragment_t){
+				.texture = fragment->texture,
+				.buf = fragment->buf + yoff * fragment->pitch,
+				.x = fragment->x,
+				.y = yoff,
+				.width = fragment->width,
+				.height = MIN(fragment->height - yoff, slice),
+				.frame_width = fragment->frame_width,
+				.frame_height = fragment->frame_height,
+				.stride = fragment->stride,
+				.pitch = fragment->pitch,
+				.number = number,
+				.cleared = fragment->cleared,
+			};
 
 	return 1;
 }
@@ -435,17 +438,20 @@ int til_fb_fragment_tile_single(const til_fb_fragment_t *fragment, unsigned tile
 	xoff = x * tile_size;
 	yoff = y * tile_size;
 
-	res_fragment->buf = fragment->buf + (yoff * fragment->pitch) + (xoff);
-	res_fragment->x = fragment->x + xoff;
-	res_fragment->y = fragment->y + yoff;
-	res_fragment->width = MIN(fragment->width - xoff, tile_size);
-	res_fragment->height = MIN(fragment->height - yoff, tile_size);
-	res_fragment->frame_width = fragment->frame_width;
-	res_fragment->frame_height = fragment->frame_height;
-	res_fragment->stride = fragment->stride + (fragment->width - res_fragment->width);
-	res_fragment->pitch = fragment->pitch;
-	res_fragment->number = number;
-	res_fragment->cleared = fragment->cleared;
+	*res_fragment = (til_fb_fragment_t){
+				.texture = fragment->texture,
+				.buf = fragment->buf + (yoff * fragment->pitch) + (xoff),
+				.x = fragment->x + xoff,
+				.y = fragment->y + yoff,
+				.width = MIN(fragment->width - xoff, tile_size),
+				.height = MIN(fragment->height - yoff, tile_size),
+				.frame_width = fragment->frame_width,
+				.frame_height = fragment->frame_height,
+				.stride = fragment->stride + (fragment->width - MIN(fragment->width - xoff, tile_size)),
+				.pitch = fragment->pitch,
+				.number = number,
+				.cleared = fragment->cleared,
+			};
 
 	return 1;
 }

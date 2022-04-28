@@ -66,8 +66,11 @@ static inline void draw_blind_horizontal(til_fb_fragment_t *fragment, unsigned r
 	unsigned	row_height = fragment->frame_height / count;
 	unsigned	height = roundf(t * (float)row_height);
 
-	for (unsigned y = 0; y < height; y++)
-		memset(fragment->buf + ((row * row_height) + y ) * fragment->pitch, 0xff, fragment->width * 4);
+/* XXX FIXME: use faster block style fill/copy if til_fb gets that */
+	for (unsigned y = 0; y < height; y++) {
+		for (unsigned x = 0; x < fragment->width; x++)
+			til_fb_fragment_put_pixel_unchecked(fragment, fragment->x + x, fragment->y + y + row * row_height, 0xffffffff);
+	}
 }
 
 
@@ -77,8 +80,11 @@ static inline void draw_blind_vertical(til_fb_fragment_t *fragment, unsigned col
 	unsigned	column_width = fragment->frame_width / count;
 	unsigned	width = roundf(t * (float)column_width);
 
-	for (unsigned y = 0; y < fragment->height; y++)
-		memset(fragment->buf + y * fragment->pitch + column * column_width, 0xff, width * 4);
+/* XXX FIXME: use faster block style fill/copy if til_fb gets that */
+	for (unsigned y = 0; y < fragment->height; y++) {
+		for (unsigned x = 0; x < width; x++)
+			til_fb_fragment_put_pixel_unchecked(fragment, fragment->x + x + column * column_width, fragment->y + y, 0xffffffff);
+	}
 }
 
 

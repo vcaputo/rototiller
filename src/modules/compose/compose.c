@@ -33,12 +33,15 @@ typedef struct compose_layer_t {
 typedef struct compose_context_t {
 	unsigned		n_cpus;
 
+	til_fb_fragment_t	texture_fb;
+	compose_layer_t		texture;
 	size_t			n_layers;
 	compose_layer_t		layers[];
 } compose_context_t;
 
 typedef struct compose_setup_t {
 	til_setup_t		til_setup;
+	char			*texture;
 	size_t			n_layers;
 	char			*layers[];
 } compose_setup_t;
@@ -93,6 +96,16 @@ static void * compose_create_context(unsigned ticks, unsigned n_cpus, til_setup_
 		ctxt->n_layers++;
 	}
 
+	if (((compose_setup_t *)setup)->texture) {
+		til_setup_t		*texture_setup = NULL;
+
+		ctxt->texture.module = til_lookup_module(((compose_setup_t *)setup)->texture);
+		(void) til_module_randomize_setup(ctxt->texture.module, &texture_setup, NULL);
+
+		(void) til_module_create_context(ctxt->texture.module, ticks, texture_setup, &ctxt->texture.module_ctxt);
+		til_setup_free(texture_setup);
+	}
+
 	return ctxt;
 }
 
@@ -103,6 +116,12 @@ static void compose_destroy_context(void *context)
 
 	for (int i = 0; i < ctxt->n_layers; i++)
 		til_module_destroy_context(ctxt->layers[i].module, ctxt->layers[i].module_ctxt);
+
+	if (ctxt->texture.module)
+		til_module_destroy_context(ctxt->texture.module, ctxt->texture.module_ctxt);
+
+	free(ctxt->texture_fb.buf);
+
 	free(context);
 }
 
@@ -113,8 +132,38 @@ static void compose_prepare_frame(void *context, unsigned ticks, unsigned n_cpus
 
 	til_fb_fragment_clear(fragment);
 
-	for (int i = 0; i < ctxt->n_layers; i++)
-		til_module_render(ctxt->layers[i].module, ctxt->layers[i].module_ctxt, ticks, fragment);
+	if (ctxt->texture.module) {
+		if (!ctxt->texture_fb.buf ||
+		    ctxt->texture_fb.frame_width != fragment->frame_width ||
+		    ctxt->texture_fb.frame_height != fragment->frame_height) {
+
+			ctxt->texture_fb =	(til_fb_fragment_t){
+							.buf = realloc(ctxt->texture_fb.buf, fragment->frame_height * fragment->frame_width * sizeof(uint32_t)),
+
+							.frame_width = fragment->frame_width,
+							.frame_height = fragment->frame_height,
+							.width = fragment->frame_width,
+							.height = fragment->frame_height,
+							.pitch = fragment->frame_width,
+						};
+		}
+
+		ctxt->texture_fb.cleared = 0;
+		til_module_render(ctxt->texture.module, ctxt->texture.module_ctxt, ticks, &ctxt->texture_fb);
+
+		til_module_render(ctxt->layers[0].module, ctxt->layers[0].module_ctxt, ticks, fragment);
+
+		for (size_t i = 1; i < ctxt->n_layers; i++) {
+			til_fb_fragment_t	textured = *fragment;
+
+			textured.texture = &ctxt->texture_fb;
+
+			til_module_render(ctxt->layers[i].module, ctxt->layers[i].module_ctxt, ticks, &textured);
+		}
+	} else {
+		for (size_t i = 0; i < ctxt->n_layers; i++)
+			til_module_render(ctxt->layers[i].module, ctxt->layers[i].module_ctxt, ticks, fragment);
+	}
 }
 
 
@@ -179,6 +228,21 @@ static char * compose_random_layers_setting(void)
 static int compose_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	const char	*layers;
+	const char	*texture;
+	const char	*texture_values[] = {
+				"none",
+				"blinds",
+				"checkers",
+				"drizzle",
+				"julia",
+				"plasma",
+				"roto",
+				"stars",
+				"submit",
+				"swab",
+				"voronoi",
+				NULL
+			};
 	int		r;
 
 	r = til_settings_get_and_describe_value(settings,
@@ -190,6 +254,20 @@ static int compose_setup(const til_settings_t *settings, til_setting_t **res_set
 							.random = compose_random_layers_setting,
 						},
 						&layers,
+						res_setting,
+						res_desc);
+	if (r)
+		return r;
+
+	r = til_settings_get_and_describe_value(settings,
+						&(til_setting_desc_t){
+							.name = "Module to use for source texture, \"none\" to disable",
+							.key = "texture",
+							.preferred = texture_values[0],
+							.annotations = NULL,
+							.values = texture_values,
+						},
+						&texture,
 						res_setting,
 						res_desc);
 	if (r)
@@ -256,6 +334,24 @@ static int compose_setup(const til_settings_t *settings, til_setting_t **res_set
 
 			setup = new;
 		} while (layer = strtok(NULL, ":"));
+
+		if (strcasecmp(texture, "none")) {
+			const til_module_t	*texture_module;
+
+			texture_module = til_lookup_module(texture);
+			if (!texture_module) {
+				til_setup_free(&setup->til_setup);
+
+				return -EINVAL;
+			}
+
+			setup->texture = strdup(texture);
+			if (!setup->texture) {
+				til_setup_free(&setup->til_setup);
+
+				return -ENOMEM;
+			}
+		}
 
 		*res_setup = &setup->til_setup;
 	}

@@ -141,17 +141,20 @@ static int montage_fragment_tile(const til_fb_fragment_t *fragment, unsigned til
 	xoff = x * tile_width;
 	yoff = y * tile_height;
 
-	res_fragment->buf = fragment->buf + (yoff * fragment->pitch) + xoff;
-	res_fragment->x = 0;					/* fragment is a new frame */
-	res_fragment->y = 0;					/* fragment is a new frame */
-	res_fragment->width = MIN(fragment->width - xoff, tile_width);
-	res_fragment->height = MIN(fragment->height - yoff, tile_height);
-	res_fragment->frame_width = res_fragment->width;	/* fragment is a new frame */
-	res_fragment->frame_height = res_fragment->height;	/* fragment is a new frame */
-	res_fragment->stride = fragment->stride + (fragment->width - res_fragment->width);
-	res_fragment->pitch = fragment->pitch;
-	res_fragment->number = number;
-	res_fragment->cleared = fragment->cleared;
+	*res_fragment = (til_fb_fragment_t){
+				.texture = fragment->texture,
+				.buf = fragment->buf + (yoff * fragment->pitch) + xoff,
+				.x = 0,								/* fragment is a new frame */
+				.y = 0,								/* fragment is a new frame */
+				.width = MIN(fragment->width - xoff, tile_width),
+				.height = MIN(fragment->height - yoff, tile_height),
+				.frame_width = MIN(fragment->width - xoff, tile_width),		/* fragment is a new frame */
+				.frame_height = MIN(fragment->height - yoff, tile_height),	/* fragment is a new frame */
+				.stride = fragment->stride + (fragment->width - MIN(fragment->width - xoff, tile_width)),
+				.pitch = fragment->pitch,
+				.number = number,
+				.cleared = fragment->cleared,
+			};
 
 	return 1;
 }

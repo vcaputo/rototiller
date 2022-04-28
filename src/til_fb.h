@@ -1,26 +1,31 @@
 #ifndef _TIL_FB_H
 #define _TIL_FB_H
 
+#include <assert.h>
 #include <stdint.h>
 #include <string.h>
 
 #include "til_settings.h"
 #include "til_setup.h"
+#include "til_util.h"
+
+typedef struct til_fb_fragment_t til_fb_fragment_t;
 
 /* All renderers should target fb_fragment_t, which may or may not represent
  * a full-screen mmap.  Helpers are provided for subdividing fragments for
  * concurrent renderers.
  */
 typedef struct til_fb_fragment_t {
-	uint32_t	*buf;		/* pointer to the first pixel in the fragment */
-	unsigned	x, y;		/* absolute coordinates of the upper left corner of this fragment */
-	unsigned	width, height;	/* width and height of this fragment */
-	unsigned	frame_width;	/* width of the frame this fragment is part of */
-	unsigned	frame_height;	/* height of the frame this fragment is part of */
-	unsigned	stride;		/* number of 32-bit words from the end of one row to the start of the next */
-	unsigned	pitch;		/* number of 32-bit words separating y from y + 1, including any padding */
-	unsigned	number;		/* this fragment's number as produced by fragmenting */
-	unsigned	cleared:1;	/* if this fragment has been cleared since last flip */
+	til_fb_fragment_t	*texture;	/* optional source texture when drawing to this fragment */
+	uint32_t		*buf;		/* pointer to the first pixel in the fragment */
+	unsigned		x, y;		/* absolute coordinates of the upper left corner of this fragment */
+	unsigned		width, height;	/* width and height of this fragment */
+	unsigned		frame_width;	/* width of the frame this fragment is part of */
+	unsigned		frame_height;	/* height of the frame this fragment is part of */
+	unsigned		stride;		/* number of 32-bit words from the end of one row to the start of the next */
+	unsigned		pitch;		/* number of 32-bit words separating y from y + 1, including any padding */
+	unsigned		number;		/* this fragment's number as produced by fragmenting */
+	unsigned		cleared:1;	/* if this fragment has been cleared since last flip */
 } til_fb_fragment_t;
 
 /* This is a page handle object for page flip submission/life-cycle.
@@ -70,12 +75,20 @@ static inline int til_fb_fragment_contains(til_fb_fragment_t *fragment, int x, i
 }
 
 
+/* gets a pixel from the fragment, no bounds checking is performed. */
+static inline uint32_t til_fb_fragment_get_pixel_unchecked(til_fb_fragment_t *fragment, int x, int y)
+{
+	return fragment->buf[(y - fragment->y) * fragment->pitch + x - fragment->x];
+}
+
+
 /* puts a pixel into the fragment, no bounds checking is performed. */
 static inline void til_fb_fragment_put_pixel_unchecked(til_fb_fragment_t *fragment, int x, int y, uint32_t pixel)
 {
-	uint32_t	*pixels = fragment->buf + (y - fragment->y) * fragment->pitch;
+	if (fragment->texture)
+		pixel = til_fb_fragment_get_pixel_unchecked(fragment->texture, x, y);
 
-	pixels[x - fragment->x] = pixel;
+	fragment->buf[(y - fragment->y) * fragment->pitch + x - fragment->x] = pixel;
 }
 
 
@@ -91,8 +104,31 @@ static inline int til_fb_fragment_put_pixel_checked(til_fb_fragment_t *fragment,
 }
 
 
-/* fill a fragment with an arbitrary pixel */
-static inline void til_fb_fragment_fill(til_fb_fragment_t *fragment, uint32_t pixel)
+/* copy a fragment, x,y,width,height are absolute coordinates within the frames, and will be clipped to the overlapping fragment areas */
+static inline void til_fb_fragment_copy(til_fb_fragment_t *dest, int x, int y, int width, int height, til_fb_fragment_t *src)
+{
+	int	X = MAX(dest->x, src->x);
+	int	Y = MAX(dest->y, src->y);
+	int	W = MIN(dest->x + dest->width, src->x + src->width) - X;
+	int	H = MIN(dest->y + dest->height, src->y + src->height) - Y;
+
+	assert(W >= 0 && H >= 0);
+
+	/* XXX FIXME TODO */
+	/* XXX FIXME TODO */
+	/* XXX FIXME TODO */
+	/* this is PoC fast and nasty code, optimize this to at least bulk copy rows of pixels */
+	/* XXX FIXME TODO */
+	/* XXX FIXME TODO */
+	/* XXX FIXME TODO */
+	for (int v = 0; v < H; v++) {
+		for (int u = 0; u < W; u++)
+			til_fb_fragment_put_pixel_unchecked(dest, X + u, Y + v, til_fb_fragment_get_pixel_unchecked(src, X + u, Y + v));
+	}
+}
+
+
+static inline void _til_fb_fragment_fill(til_fb_fragment_t *fragment, uint32_t pixel)
 {
 	uint32_t	*buf = fragment->buf;
 
@@ -105,13 +141,24 @@ static inline void til_fb_fragment_fill(til_fb_fragment_t *fragment, uint32_t pi
 }
 
 
+/* fill a fragment with an arbitrary pixel */
+static inline void til_fb_fragment_fill(til_fb_fragment_t *fragment, uint32_t pixel)
+{
+	if (!fragment->texture)
+		return _til_fb_fragment_fill(fragment, pixel);
+
+	/* when a texture is present, pixel is ignored and instead sourced from fragment->texture->buf[y*pitch+x] */
+	til_fb_fragment_copy(fragment, fragment->x, fragment->y, fragment->width, fragment->height, fragment->texture);
+}
+
+
 /* clear a fragment */
 static inline void til_fb_fragment_clear(til_fb_fragment_t *fragment)
 {
 	if (fragment->cleared)
 		return;
 
-	til_fb_fragment_fill(fragment, 0);
+	_til_fb_fragment_fill(fragment, 0);
 
 	fragment->cleared = 1;
 }
