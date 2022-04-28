@@ -92,10 +92,10 @@ static inline float lerp(float a, float b, float t)
 
 static inline float clamp(float x, float lowerlimit, float upperlimit) {
 	if (x < lowerlimit)
-		x = lowerlimit;
+		return lowerlimit;
 
 	if (x > upperlimit)
-		x = upperlimit;
+		return upperlimit;
 
 	return x;
 }
