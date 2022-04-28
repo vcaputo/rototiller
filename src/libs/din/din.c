@@ -76,10 +76,6 @@ static inline float dotgradient(const din_t *din, int x, int y, int z, const v3f
 {
 	v3f_t	distance = v3f_sub(coordinate, &(v3f_t){.x = x, .y = y, .z = z});
 
-	assert(x < din->width);
-	assert(y < din->height);
-	assert(z < din->depth);
-
 	return v3f_dot(&din->grid[z * din->W_x_H + y * din->width + x], &distance);
 }
 
