@@ -44,6 +44,7 @@ extern til_module_t	stars_module;
 extern til_module_t	submit_module;
 extern til_module_t	swab_module;
 extern til_module_t	swarm_module;
+extern til_module_t	voronoi_module;
 
 static const til_module_t	*modules[] = {
 	&blinds_module,
@@ -67,6 +68,7 @@ static const til_module_t	*modules[] = {
 	&submit_module,
 	&swab_module,
 	&swarm_module,
+	&voronoi_module,
 };
 
 

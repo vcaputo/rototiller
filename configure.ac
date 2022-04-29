@@ -62,5 +62,6 @@ AC_CONFIG_FILES([
  src/modules/submit/Makefile
  src/modules/swab/Makefile
  src/modules/swarm/Makefile
+ src/modules/voronoi/Makefile
 ])
 AC_OUTPUT
