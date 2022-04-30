@@ -51,13 +51,13 @@ typedef struct rtv_context_t {
 } rtv_context_t;
 
 typedef struct rtv_setup_t {
-	til_setup_t	til_setup;
-	unsigned	duration;
-	unsigned	context_duration;
-	unsigned	snow_duration;
-	unsigned	caption_duration;
-	char 		*snow_module;
-	char		*channels[];
+	til_setup_t		til_setup;
+	unsigned		duration;
+	unsigned		context_duration;
+	unsigned		snow_duration;
+	unsigned		caption_duration;
+	char			*snow_module;
+	char			*channels[];
 } rtv_setup_t;
 
 static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks);
