@@ -104,7 +104,7 @@ static void simple_draw(particles_t *particles, const particles_conf_t *conf, pa
 		/* immediately kill off stars that wander off screen */
 		return;
 
-	til_fb_fragment_put_pixel_unchecked(f, x, y, makergb(0xff, 0xff, 0xff, ((float)ctxt->longevity / ctxt->lifetime)));
+	til_fb_fragment_put_pixel_unchecked(f, 0, x, y, makergb(0xff, 0xff, 0xff, ((float)ctxt->longevity / ctxt->lifetime)));
 }
 
 

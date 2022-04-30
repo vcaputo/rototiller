@@ -200,7 +200,7 @@ static void draw_grid(submit_context_t *ctxt, til_fb_fragment_t *fragment)
 
 			/* TODO: this could be optimized a bit! i.e. don't recompute the y for every x etc. */
 			color = sample_grid(ctxt, .5f + ((float)(fragment->x + x)) * xscale, .5f + ((float)(fragment->y + y)) * yscale);
-			til_fb_fragment_put_pixel_unchecked(fragment, fragment->x + x, fragment->y + y, color);
+			til_fb_fragment_put_pixel_unchecked(fragment, 0, fragment->x + x, fragment->y + y, color);
 		}
 	}
 }
@@ -217,7 +217,7 @@ static void draw_grid_bilerp(submit_context_t *ctxt, til_fb_fragment_t *fragment
 
 			/* TODO: this could be optimized a bit! i.e. don't recompute the y for every x etc. */
 			color = sample_grid_bilerp(ctxt, .5f + ((float)(fragment->x + x)) * xscale, .5f + ((float)(fragment->y + y)) * yscale);
-			til_fb_fragment_put_pixel_unchecked(fragment, fragment->x + x, fragment->y + y, color);
+			til_fb_fragment_put_pixel_unchecked(fragment, 0, fragment->x + x, fragment->y + y, color);
 		}
 	}
 }

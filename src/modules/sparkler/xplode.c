@@ -72,7 +72,7 @@ static void xplode_draw(particles_t *particles, const particles_conf_t *conf, pa
 		color = makergb(0xff, 0xff, 0x00, ((float)ctxt->longevity / ctxt->lifetime));
 	}
 
-	til_fb_fragment_put_pixel_unchecked(f, x, y, color);
+	til_fb_fragment_put_pixel_unchecked(f, 0, x, y, color);
 }
 
 

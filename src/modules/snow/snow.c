@@ -60,7 +60,7 @@ static void snow_render_fragment(void *context, unsigned ticks, unsigned cpu, ti
 			uint32_t	pixel = rand_r(seed) % 256;
 #endif
 
-			til_fb_fragment_put_pixel_unchecked(fragment, x, y, pixel << 16 | pixel << 8 | pixel);
+			til_fb_fragment_put_pixel_unchecked(fragment, 0, x, y, pixel << 16 | pixel << 8 | pixel);
 		}
 	}
 }

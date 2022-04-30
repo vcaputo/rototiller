@@ -146,7 +146,7 @@ static void drizzle_render_fragment(void *context, unsigned ticks, unsigned cpu,
 			color.z = puddle_sample(ctxt->puddle, &coord);
 
 			pixel = color_to_uint32(color);
-			til_fb_fragment_put_pixel_unchecked(fragment, x, y, pixel);
+			til_fb_fragment_put_pixel_unchecked(fragment, 0, x, y, pixel);
 
 			coord.x += xf;
 		}

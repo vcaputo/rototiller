@@ -333,7 +333,7 @@ static void swarm_draw_as_points(swarm_context_t *ctxt, til_fb_fragment_t *fragm
 		boid_t	*b = &ctxt->boids[i];
 		v2f_t	nc = swarm_scale(swarm_project_point(ctxt, &b->position), scale);
 
-		til_fb_fragment_put_pixel_checked(fragment, nc.x, nc.y, color);
+		til_fb_fragment_put_pixel_checked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, nc.x, nc.y, color);
 	}
 }
 
@@ -357,7 +357,7 @@ static void draw_line_unchecked(til_fb_fragment_t *fragment, int x1, int y1, int
 				minor -= x_delta;
 			}
 			/* XXX FIXME: segfaults occasionally when _unchecked !!! */
-			til_fb_fragment_put_pixel_checked(fragment, x1, y1, color);
+			til_fb_fragment_put_pixel_checked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x1, y1, color);
 		}
 	} else {
 		/* Y-major */
@@ -368,7 +368,7 @@ static void draw_line_unchecked(til_fb_fragment_t *fragment, int x1, int y1, int
 			}
 
 			/* XXX FIXME: segfaults occasionally when _unchecked !!! */
-			til_fb_fragment_put_pixel_checked(fragment, x1, y1, color);
+			til_fb_fragment_put_pixel_checked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x1, y1, color);
 		}
 	}
 }

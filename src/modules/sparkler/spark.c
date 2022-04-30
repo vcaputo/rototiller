@@ -54,7 +54,7 @@ static void spark_draw(particles_t *particles, const particles_conf_t *conf, par
 		/* offscreen */
 		return;
 
-	til_fb_fragment_put_pixel_unchecked(f, x, y, makergb(0xff, 0xa0, 0x20, ((float)ctxt->longevity / ctxt->lifetime)));
+	til_fb_fragment_put_pixel_unchecked(f, 0, x, y, makergb(0xff, 0xa0, 0x20, ((float)ctxt->longevity / ctxt->lifetime)));
 }
 
 

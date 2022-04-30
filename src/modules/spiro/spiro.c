@@ -91,7 +91,7 @@ static void spiro_render_fragment(void *context, unsigned ticks, unsigned cpu, t
 		float my_y=((1.f-k)*sinf(t))-(l*k*sinf(((1.f-k)/k)*t));
 		int pos_x=display_origin_x+(my_x*display_R);
 		int pos_y=display_origin_y+(my_y*display_R);
-		til_fb_fragment_put_pixel_unchecked(fragment, pos_x, pos_y,
+		til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, pos_x, pos_y,
 			makergb(sinf(M_1_PI*t)*127+128,
 				sinf(M_1_PI*t+(2*M_PI*.333333333333f))*127+128,
 				sinf(M_1_PI*t+(4*M_PI*.333333333333f))*127+128,
@@ -100,31 +100,31 @@ static void spiro_render_fragment(void *context, unsigned ticks, unsigned cpu, t
 
 #ifdef DEBUG
 	/* plot the origin point */
-	til_fb_fragment_put_pixel_unchecked(fragment, display_origin_x, display_origin_y,
+	til_fb_fragment_put_pixel_unchecked(fragment, 0, display_origin_x, display_origin_y,
 		makergb(0xFF, 0xFF, 0x00, 1));
 
 	/* plot the fixed outer circle C0 */
 	for(float a=0.f; a<2*M_PI; a+= M_PI_2/display_R) {
 		int pos_x=display_origin_x+(cosf(a)*display_R);
 		int pos_y=display_origin_y+(sinf(a)*display_R);
-		til_fb_fragment_put_pixel_unchecked(fragment, pos_x, pos_y,
+		til_fb_fragment_put_pixel_unchecked(fragment, 0, pos_x, pos_y,
 			makergb(0xFF, 0xFF, 0x00, 1));
 	}
 
 	/* plot inner circle Ci */
-	til_fb_fragment_put_pixel_unchecked(fragment, display_origin_x+display_R-(ctxt->r*display_R),
+	til_fb_fragment_put_pixel_unchecked(fragment, 0, display_origin_x+display_R-(ctxt->r*display_R),
 		display_origin_y, makergb(0xFF, 0xFF, 0x00, 1));
 
 	for(float a=0.f; a<2*M_PI; a+= M_PI_2/display_R) {
 		int pos_x=display_origin_x+display_R-(ctxt->r*display_R)+
 			(cosf(a)*ctxt->r*display_R);
 		int pos_y=display_origin_y+(sinf(a)*ctxt->r*display_R);
-		til_fb_fragment_put_pixel_unchecked(fragment, pos_x, pos_y,
+		til_fb_fragment_put_pixel_unchecked(fragment, 0, pos_x, pos_y,
 			makergb(0xFF, 0xFF, 0x00, 1));
 	}
 
 	/* plot p */
-	til_fb_fragment_put_pixel_unchecked(fragment, display_origin_x+display_R-(ctxt->r*display_R)+
+	til_fb_fragment_put_pixel_unchecked(fragment, 0, display_origin_x+display_R-(ctxt->r*display_R)+
 		(ctxt->p*display_R), display_origin_y, makergb(0xFF, 0xFF, 0x00, 1));
 #endif
 

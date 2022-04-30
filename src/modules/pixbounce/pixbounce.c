@@ -218,7 +218,7 @@ static void pixbounce_render_fragment(void *context, unsigned ticks, unsigned cp
 			int pix_offset = ((cursor_y/ctxt->multiplier)*pix_width) + (cursor_x/ctxt->multiplier);
 			if(pix_map[ctxt->pix_num][pix_offset] == 0) continue;
 			til_fb_fragment_put_pixel_unchecked(
-					fragment, ctxt->x+cursor_x, ctxt->y+cursor_y,
+					fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, ctxt->x+cursor_x, ctxt->y+cursor_y,
 					ctxt->color
 				);
 		}

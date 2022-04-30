@@ -129,7 +129,7 @@ static void rocket_draw(particles_t *particles, const particles_conf_t *conf, pa
 		/* kill off parts that wander off screen */
 		return;
 
-	til_fb_fragment_put_pixel_unchecked(f, x, y, 0xff0000);
+	til_fb_fragment_put_pixel_unchecked(f, 0, x, y, 0xff0000);
 }
 
 

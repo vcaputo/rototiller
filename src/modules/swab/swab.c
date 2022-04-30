@@ -127,7 +127,7 @@ static void swab_render_fragment(void *context, unsigned ticks, unsigned cpu, ti
 			color.b = din(ctxt->din, &(v3f_t){ .x = xscaled * .81f, .y = yscaled * .81f, .z = z2 }) * t;
 
 			pixel = color_to_uint32(color);
-			til_fb_fragment_put_pixel_unchecked(fragment, x, y, pixel);
+			til_fb_fragment_put_pixel_unchecked(fragment, 0, x, y, pixel);
 		}
 	}
 }

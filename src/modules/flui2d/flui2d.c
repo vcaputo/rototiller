@@ -376,7 +376,7 @@ static void flui2d_render_fragment(void *context, unsigned ticks, unsigned cpu, 
 			dx1 += ctxt->fluid.dens_b[(int)IX(x1, y1)] * (X - x0);
 			b = dx0 * (1.f - (Y - y0)) + dx1 * (Y - y0);
 
-			til_fb_fragment_put_pixel_unchecked(fragment, x, y, gamma_color_to_uint32_rgb(r, g, b));
+			til_fb_fragment_put_pixel_unchecked(fragment, 0, x, y, gamma_color_to_uint32_rgb(r, g, b));
 		}
 	}
 }

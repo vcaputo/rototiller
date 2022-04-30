@@ -265,7 +265,7 @@ static void draw_line(til_fb_fragment_t *fragment, int x1, int y1, int x2, int y
 				minor -= x_delta;
 			}
 
-			til_fb_fragment_put_pixel_checked(fragment, x1, y1, 0xffffffff);
+			til_fb_fragment_put_pixel_checked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x1, y1, 0xffffffff);
 		}
 	} else {
 		/* Y-major */
@@ -275,7 +275,7 @@ static void draw_line(til_fb_fragment_t *fragment, int x1, int y1, int x2, int y
 				minor -= y_delta;
 			}
 
-			til_fb_fragment_put_pixel_checked(fragment, x1, y1, 0xffffffff);
+			til_fb_fragment_put_pixel_checked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x1, y1, 0xffffffff);
 		}
 	}
 }

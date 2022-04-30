@@ -11,6 +11,8 @@
 
 typedef struct til_fb_fragment_t til_fb_fragment_t;
 
+#define TIL_FB_DRAW_FLAG_TEXTURABLE	0x1
+
 /* All renderers should target fb_fragment_t, which may or may not represent
  * a full-screen mmap.  Helpers are provided for subdividing fragments for
  * concurrent renderers.
@@ -83,9 +85,9 @@ static inline uint32_t til_fb_fragment_get_pixel_unchecked(til_fb_fragment_t *fr
 
 
 /* puts a pixel into the fragment, no bounds checking is performed. */
-static inline void til_fb_fragment_put_pixel_unchecked(til_fb_fragment_t *fragment, int x, int y, uint32_t pixel)
+static inline void til_fb_fragment_put_pixel_unchecked(til_fb_fragment_t *fragment, uint32_t flags, int x, int y, uint32_t pixel)
 {
-	if (fragment->texture)
+	if (fragment->texture && (flags & TIL_FB_DRAW_FLAG_TEXTURABLE))
 		pixel = til_fb_fragment_get_pixel_unchecked(fragment->texture, x, y);
 
 	fragment->buf[(y - fragment->y) * fragment->pitch + x - fragment->x] = pixel;
@@ -93,19 +95,19 @@ static inline void til_fb_fragment_put_pixel_unchecked(til_fb_fragment_t *fragme
 
 
 /* puts a pixel into the fragment, bounds checking is performed with a draw performed return status */
-static inline int til_fb_fragment_put_pixel_checked(til_fb_fragment_t *fragment, int x, int y, uint32_t pixel)
+static inline int til_fb_fragment_put_pixel_checked(til_fb_fragment_t *fragment, uint32_t flags, int x, int y, uint32_t pixel)
 {
 	if (!til_fb_fragment_contains(fragment, x, y))
 		return 0;
 
-	til_fb_fragment_put_pixel_unchecked(fragment, x, y, pixel);
+	til_fb_fragment_put_pixel_unchecked(fragment, flags, x, y, pixel);
 
 	return 1;
 }
 
 
 /* copy a fragment, x,y,width,height are absolute coordinates within the frames, and will be clipped to the overlapping fragment areas */
-static inline void til_fb_fragment_copy(til_fb_fragment_t *dest, int x, int y, int width, int height, til_fb_fragment_t *src)
+static inline void til_fb_fragment_copy(til_fb_fragment_t *dest, uint32_t flags, int x, int y, int width, int height, til_fb_fragment_t *src)
 {
 	int	X = MAX(dest->x, src->x);
 	int	Y = MAX(dest->y, src->y);
@@ -123,7 +125,7 @@ static inline void til_fb_fragment_copy(til_fb_fragment_t *dest, int x, int y, i
 	/* XXX FIXME TODO */
 	for (int v = 0; v < H; v++) {
 		for (int u = 0; u < W; u++)
-			til_fb_fragment_put_pixel_unchecked(dest, X + u, Y + v, til_fb_fragment_get_pixel_unchecked(src, X + u, Y + v));
+			til_fb_fragment_put_pixel_unchecked(dest, flags, X + u, Y + v, til_fb_fragment_get_pixel_unchecked(src, X + u, Y + v));
 	}
 }
 
@@ -142,13 +144,13 @@ static inline void _til_fb_fragment_fill(til_fb_fragment_t *fragment, uint32_t p
 
 
 /* fill a fragment with an arbitrary pixel */
-static inline void til_fb_fragment_fill(til_fb_fragment_t *fragment, uint32_t pixel)
+static inline void til_fb_fragment_fill(til_fb_fragment_t *fragment, uint32_t flags, uint32_t pixel)
 {
-	if (!fragment->texture)
+	if (!(fragment->texture && (flags & TIL_FB_DRAW_FLAG_TEXTURABLE)))
 		return _til_fb_fragment_fill(fragment, pixel);
 
 	/* when a texture is present, pixel is ignored and instead sourced from fragment->texture->buf[y*pitch+x] */
-	til_fb_fragment_copy(fragment, fragment->x, fragment->y, fragment->width, fragment->height, fragment->texture);
+	til_fb_fragment_copy(fragment, flags, fragment->x, fragment->y, fragment->width, fragment->height, fragment->texture);
 }
 
 

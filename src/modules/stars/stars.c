@@ -159,7 +159,7 @@ static void stars_render_fragment(void *context, unsigned ticks, unsigned cpu, t
 			opacity = 1;
 
 		if (pos_x>0 && pos_x<width && pos_y>0 && pos_y<height)
-			til_fb_fragment_put_pixel_unchecked(fragment, pos_x, pos_y,
+			til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, pos_x, pos_y,
 				makergb(0xFF, 0xFF, 0xFF, opacity));
 
 		for(int my_y=floorf(pos_y-max_radius); my_y<=(int)ceilf(pos_y+max_radius); my_y++)
@@ -174,7 +174,7 @@ static void stars_render_fragment(void *context, unsigned ticks, unsigned cpu, t
 				continue;
 
 
-			til_fb_fragment_put_pixel_unchecked(fragment, my_x, my_y,
+			til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, my_x, my_y,
 				makergb(0xFF, 0xFF, 0xFF, opacity));
 
 		}

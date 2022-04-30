@@ -147,7 +147,7 @@ static void checkers_render_fragment(void *context, unsigned ticks, unsigned cpu
 	if (!state)
 		til_fb_fragment_clear(fragment);
 	else
-		til_fb_fragment_fill(fragment, 0xffffffff);
+		til_fb_fragment_fill(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, 0xffffffff);
 }
 
 

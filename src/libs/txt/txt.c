@@ -159,7 +159,7 @@ static inline void draw_char(til_fb_fragment_t *fragment, uint32_t color, int x,
 	for (int i = 0; i < ASCII_HEIGHT; i++) {
 		for (int j = 0; j < ASCII_WIDTH; j++) {
 			if (ascii_chars[c][i * ASCII_WIDTH + j])
-				til_fb_fragment_put_pixel_checked(fragment, x + j, y + i, color);
+				til_fb_fragment_put_pixel_checked(fragment, 0, x + j, y + i, color);
 		}
 	}
 }
