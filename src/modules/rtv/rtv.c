@@ -27,7 +27,7 @@ typedef struct rtv_channel_t {
 	void			*module_ctxt;
 	til_setup_t		*module_setup;
 	time_t			last_on_time, cumulative_time;
-	char			*settings;
+	char			*settings_as_arg;
 	txt_t			*caption;
 	unsigned		order;
 } rtv_channel_t;
@@ -125,8 +125,8 @@ static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks)
 
 			ctxt->channel->module_ctxt = til_module_destroy_context(ctxt->channel->module, ctxt->channel->module_ctxt);
 
-			free(ctxt->channel->settings);
-			ctxt->channel->settings = NULL;
+			free(ctxt->channel->settings_as_arg);
+			ctxt->channel->settings_as_arg = NULL;
 
 			ctxt->caption = ctxt->channel->caption = txt_free(ctxt->channel->caption);
 		}
@@ -155,21 +155,21 @@ static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks)
 
 		ctxt->channel = &ctxt->channels[i];
 
-		if (!ctxt->channel->settings) {
-			char	*settings = NULL;
+		if (!ctxt->channel->settings_as_arg) {
+			char	*settings_as_arg = NULL;
 			txt_t	*caption;
 
-			(void) til_module_randomize_setup(ctxt->channel->module, &ctxt->channel->module_setup, &settings);
+			(void) til_module_randomize_setup(ctxt->channel->module, &ctxt->channel->module_setup, &settings_as_arg);
 			caption = txt_newf("Title: %s%s%s\nDescription: %s%s%s",
 						 ctxt->channel->module->name,
 						 ctxt->channel->module->author ? "\nAuthor: " : "",
 						 ctxt->channel->module->author ? : "",
 						 ctxt->channel->module->description,
-						 settings ? "\nSettings: " : "",
-						 settings ? settings : "");
+						 settings_as_arg ? "\nSettings: " : "",
+						 settings_as_arg ? settings_as_arg : "");
 
 			ctxt->caption = ctxt->channel->caption = caption;
-			ctxt->channel->settings = settings ? settings : strdup("");
+			ctxt->channel->settings_as_arg = settings_as_arg ? settings_as_arg : strdup("");
 		}
 
 		ctxt->next_switch = now + ctxt->duration;
