@@ -76,6 +76,7 @@ static rtv_setup_t rtv_default_setup = {
 	.channels = { NULL }, /* NULL == "all" */
 };
 
+static til_module_t	rtv_none_module = {};
 
 til_module_t	rtv_module = {
 	.create_context = rtv_create_context,
@@ -132,7 +133,9 @@ static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks)
 		}
 	}
 
-	if (!ctxt->n_channels || ctxt->channel != &ctxt->snow_channel) {
+	if (!ctxt->n_channels ||
+	    (ctxt->channel != &ctxt->snow_channel && (ctxt->snow_channel.module != &rtv_none_module || ctxt->snow_duration))) {
+
 		ctxt->last_channel = ctxt->channel;
 		ctxt->channel = &ctxt->snow_channel;
 		ctxt->caption = NULL;
@@ -209,7 +212,6 @@ static void * rtv_create_context(unsigned ticks, unsigned num_cpus, til_setup_t 
 	rtv_context_t		*ctxt;
 	const til_module_t	**modules;
 	size_t			n_modules, n_channels = 0;
-	static til_module_t	none_module = {};
 
 	if (!setup)
 		setup = &rtv_default_setup.til_setup;
@@ -232,7 +234,7 @@ static void * rtv_create_context(unsigned ticks, unsigned num_cpus, til_setup_t 
 	ctxt->snow_duration = ((rtv_setup_t *)setup)->snow_duration;
 	ctxt->caption_duration = ((rtv_setup_t *)setup)->caption_duration;
 
-	ctxt->snow_channel.module = &none_module;
+	ctxt->snow_channel.module = &rtv_none_module;
 	if (((rtv_setup_t *)setup)->snow_module) {
 		ctxt->snow_channel.module = til_lookup_module(((rtv_setup_t *)setup)->snow_module);
 		(void) til_module_create_context(ctxt->snow_channel.module, ticks, NULL, &ctxt->snow_channel.module_ctxt);
