@@ -105,7 +105,7 @@ static void voronoi_destroy_context(void *context)
 }
 
 
-static int voronoi_fragmenter(void *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
+static int voronoi_fragmenter(void *context, unsigned n_cpus, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
 {
 	voronoi_context_t	*ctxt = context;
 

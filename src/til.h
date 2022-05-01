@@ -6,7 +6,7 @@
 
 /* til_fragmenter produces fragments from an input fragment, num being the desired fragment for the current call.
  * return value of 1 means a fragment has been produced, 0 means num is beyond the end of fragments. */
-typedef int (*til_fragmenter_t)(void *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment);
+typedef int (*til_fragmenter_t)(void *context, unsigned n_cpus, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment);
 
 typedef struct til_settings_t settings;
 typedef struct til_setting_desc_t til_setting_desc_t;

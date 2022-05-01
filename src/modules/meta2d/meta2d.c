@@ -100,7 +100,7 @@ static void meta2d_destroy_context(void *context)
 }
 
 
-static int meta2d_fragmenter(void *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
+static int meta2d_fragmenter(void *context, unsigned n_cpus, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
 {
 	meta2d_context_t	*ctxt = context;
 

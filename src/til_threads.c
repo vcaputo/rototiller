@@ -64,7 +64,7 @@ static void * thread_func(void *_thread)
 
 			frag_num = __sync_fetch_and_add(&threads->next_fragment, 1);
 
-			if (!threads->fragmenter(threads->context, threads->fragment, frag_num, &fragment))
+			if (!threads->fragmenter(threads->context, threads->n_threads, threads->fragment, frag_num, &fragment))
 				break;
 
 			threads->render_fragment_func(threads->context, threads->ticks, thread->id, &fragment);

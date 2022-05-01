@@ -43,7 +43,7 @@ static void snow_destroy_context(void *context)
 }
 
 
-static int snow_fragmenter(void *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
+static int snow_fragmenter(void *context, unsigned n_cpus, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
 {
 	snow_context_t	*ctxt = context;
 

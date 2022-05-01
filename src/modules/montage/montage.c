@@ -12,7 +12,6 @@ typedef struct montage_context_t {
 	const til_module_t	**modules;
 	void			**contexts;
 	size_t			n_modules;
-	unsigned		n_cpus;
 } montage_context_t;
 
 static void setup_next_module(montage_context_t *ctxt);
@@ -76,8 +75,6 @@ static void * montage_create_context(unsigned ticks, unsigned num_cpus, til_setu
 
 		ctxt->modules[ctxt->n_modules++] = module;
 	}
-
-	ctxt->n_cpus = num_cpus;
 
 	ctxt->contexts = calloc(ctxt->n_modules, sizeof(void *));
 	if (!ctxt->contexts) {
@@ -164,7 +161,7 @@ static int montage_fragment_tile(const til_fb_fragment_t *fragment, unsigned til
  * 1. it divides the frame into subfragments for threaded rendering
  * 2. it determines which modules will be rendered where via fragment->number
  */
-static int montage_fragmenter(void *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
+static int montage_fragmenter(void *context, unsigned n_cpus, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
 {
 	montage_context_t	*ctxt = context;
 	float			root = sqrtf(ctxt->n_modules);
@@ -215,7 +212,7 @@ static void montage_render_fragment(void *context, unsigned ticks, unsigned cpu,
 
 		module->prepare_frame(ctxt->contexts[fragment->number], ticks, 1, fragment, &fragmenter);
 
-		while (fragmenter(ctxt->contexts[fragment->number], fragment, fragnum++, &frag))
+		while (fragmenter(ctxt->contexts[fragment->number], 1, fragment, fragnum++, &frag))
 			module->render_fragment(ctxt->contexts[fragment->number], ticks, fragnum, &frag);
 	} else if (module->render_fragment)
 			module->render_fragment(ctxt->contexts[fragment->number], ticks, 0, fragment);
