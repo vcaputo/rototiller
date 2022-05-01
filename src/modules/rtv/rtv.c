@@ -33,8 +33,6 @@ typedef struct rtv_channel_t {
 } rtv_channel_t;
 
 typedef struct rtv_context_t {
-	unsigned		n_cpus;
-
 	time_t			next_switch, next_hide_caption;
 	rtv_channel_t		*channel, *last_channel;
 	txt_t			*caption;
@@ -61,7 +59,7 @@ typedef struct rtv_setup_t {
 } rtv_setup_t;
 
 static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks);
-static void * rtv_create_context(unsigned ticks, unsigned num_cpus, til_setup_t *setup);
+static void * rtv_create_context(unsigned ticks, unsigned n_cpus, til_setup_t *setup);
 static void rtv_destroy_context(void *context);
 static void rtv_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter);
 static void rtv_finish_frame(void *context, unsigned ticks, til_fb_fragment_t *fragment);
@@ -207,7 +205,7 @@ static int rtv_should_skip_module(const rtv_setup_t *setup, const til_module_t *
 }
 
 
-static void * rtv_create_context(unsigned ticks, unsigned num_cpus, til_setup_t *setup)
+static void * rtv_create_context(unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	rtv_context_t		*ctxt;
 	const til_module_t	**modules;
@@ -228,7 +226,6 @@ static void * rtv_create_context(unsigned ticks, unsigned num_cpus, til_setup_t 
 	if (!ctxt)
 		return NULL;
 
-	ctxt->n_cpus = num_cpus;
 	ctxt->duration = ((rtv_setup_t *)setup)->duration;
 	ctxt->context_duration = ((rtv_setup_t *)setup)->context_duration;
 	ctxt->snow_duration = ((rtv_setup_t *)setup)->snow_duration;

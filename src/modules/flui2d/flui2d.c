@@ -243,7 +243,7 @@ static void gamma_init(float gamma)
 }
 
 
-static void * flui2d_create_context(unsigned ticks, unsigned num_cpus, til_setup_t *setup)
+static void * flui2d_create_context(unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	static int		initialized;
 	flui2d_context_t	*ctxt;
@@ -276,19 +276,13 @@ static void flui2d_destroy_context(void *context)
 }
 
 
-static int flui2d_fragmenter(void *context, unsigned n_cpus, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
-{
-	return til_fb_fragment_tile_single(fragment, 64, number, res_fragment);
-}
-
-
 /* Prepare a frame for concurrent drawing of fragment using multiple fragments */
 static void flui2d_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
 {
 	flui2d_context_t	*ctxt = context;
 	float			r = (ticks % (unsigned)(2 * M_PI * 1000)) * .001f;
 
-	*res_fragmenter = flui2d_fragmenter;
+	*res_fragmenter = til_fragmenter_tile64;
 
 	switch (ctxt->emitters) {
 	case FLUI2D_EMITTERS_FIGURE8: {

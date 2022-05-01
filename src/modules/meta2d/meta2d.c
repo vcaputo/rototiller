@@ -39,7 +39,6 @@ typedef struct meta2d_context_t {
 	unsigned	n;
 	din_t		*din_a, *din_b;
 	float		din_t;
-	unsigned	n_cpus;
 	meta2d_ball_t	balls[META2D_NUM_BALLS];
 } meta2d_context_t;
 
@@ -66,7 +65,7 @@ static inline uint32_t color_to_uint32(v3f_t color) {
 }
 
 
-static void * meta2d_create_context(unsigned ticks, unsigned num_cpus, til_setup_t *setup)
+static void * meta2d_create_context(unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	meta2d_context_t	*ctxt;
 
@@ -75,8 +74,6 @@ static void * meta2d_create_context(unsigned ticks, unsigned num_cpus, til_setup
 	/* perlin noise is used for some organic-ish random movement of the balls */
 	ctxt->din_a = din_new(10, 10, META2D_NUM_BALLS + 2);
 	ctxt->din_b = din_new(10, 10, META2D_NUM_BALLS + 2);
-
-	ctxt->n_cpus = num_cpus;
 
 	for (int i = 0; i < META2D_NUM_BALLS; i++) {
 		meta2d_ball_t	*ball = &ctxt->balls[i];
@@ -100,19 +97,11 @@ static void meta2d_destroy_context(void *context)
 }
 
 
-static int meta2d_fragmenter(void *context, unsigned n_cpus, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
-{
-	meta2d_context_t	*ctxt = context;
-
-	return til_fb_fragment_slice_single(fragment, ctxt->n_cpus, number, res_fragment);
-}
-
-
 static void meta2d_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
 {
 	meta2d_context_t	*ctxt = context;
 
-	*res_fragmenter = meta2d_fragmenter;
+	*res_fragmenter = til_fragmenter_slice_per_cpu;
 
 	/* move the balls around */
 	for (int i = 0; i < META2D_NUM_BALLS; i++) {

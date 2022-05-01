@@ -32,7 +32,6 @@ static int32_t	costab[FIXED_TRIG_LUT_SIZE], sintab[FIXED_TRIG_LUT_SIZE];
 
 typedef struct plasma_context_t {
 	unsigned	rr;
-	unsigned	n_cpus;
 } plasma_context_t;
 
 
@@ -52,7 +51,7 @@ static void init_plasma(int32_t *costab, int32_t *sintab)
 }
 
 
-static void * plasma_create_context(unsigned ticks, unsigned num_cpus, til_setup_t *setup)
+static void * plasma_create_context(unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	static int	initialized;
 
@@ -72,21 +71,12 @@ static void plasma_destroy_context(void *context)
 }
 
 
-static int plasma_fragmenter(void *context, unsigned n_cpus, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
-{
-	plasma_context_t	*ctxt = context;
-
-	return til_fb_fragment_slice_single(fragment, ctxt->n_cpus, number, res_fragment);
-}
-
-
 /* Prepare a frame for concurrent drawing of fragment using multiple fragments */
 static void plasma_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
 {
 	plasma_context_t	*ctxt = context;
 
-	*res_fragmenter = plasma_fragmenter;
-	ctxt->n_cpus = n_cpus;
+	*res_fragmenter = til_fragmenter_slice_per_cpu;
 	ctxt->rr += 3;
 }
 

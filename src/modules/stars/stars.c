@@ -49,7 +49,7 @@ float get_random_unit_coord() {
 }
 
 
-static void * stars_create_context(unsigned ticks, unsigned num_cpus, til_setup_t *setup)
+static void * stars_create_context(unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	stars_context_t *ctxt;
 	float		z;

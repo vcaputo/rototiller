@@ -77,7 +77,7 @@ static void voronoi_randomize(voronoi_context_t *ctxt)
 }
 
 
-static void * voronoi_create_context(unsigned ticks, unsigned num_cpus, til_setup_t *setup)
+static void * voronoi_create_context(unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	voronoi_context_t	*ctxt;
 
@@ -102,14 +102,6 @@ static void voronoi_destroy_context(void *context)
 
 	free(ctxt->distances.buf);
 	free(ctxt);
-}
-
-
-static int voronoi_fragmenter(void *context, unsigned n_cpus, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
-{
-	voronoi_context_t	*ctxt = context;
-
-	return til_fb_fragment_tile_single(fragment, 64, number, res_fragment);
 }
 
 
@@ -289,7 +281,7 @@ static void voronoi_prepare_frame(void *context, unsigned ticks, unsigned n_cpus
 {
 	voronoi_context_t	*ctxt = context;
 
-	*res_fragmenter = voronoi_fragmenter;
+	*res_fragmenter = til_fragmenter_tile64;
 
 	if (!ctxt->distances.buf ||
 	    ctxt->distances.width != fragment->frame_width ||

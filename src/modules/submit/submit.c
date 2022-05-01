@@ -265,7 +265,7 @@ static void setup_grid(submit_context_t *ctxt)
 }
 
 
-static void * submit_create_context(unsigned ticks, unsigned num_cpus, til_setup_t *setup)
+static void * submit_create_context(unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	submit_context_t	*ctxt;
 
@@ -292,17 +292,11 @@ static void submit_destroy_context(void *context)
 }
 
 
-static int submit_fragmenter(void *context, unsigned n_cpus, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
-{
-	return til_fb_fragment_tile_single(fragment, 32, number, res_fragment);
-}
-
-
 static void submit_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
 {
 	submit_context_t	*ctxt = context;
 
-	*res_fragmenter = submit_fragmenter;
+	*res_fragmenter = til_fragmenter_tile64;
 
 	if (ctxt->game_winner)
 		setup_grid(ctxt);

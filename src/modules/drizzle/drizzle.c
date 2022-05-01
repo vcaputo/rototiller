@@ -42,7 +42,6 @@ typedef struct drizzle_setup_t {
 
 typedef struct drizzle_context_t {
 	puddle_t	*puddle;
-	unsigned	n_cpus;
 	drizzle_setup_t	setup;
 } drizzle_context_t;
 
@@ -73,7 +72,7 @@ static inline uint32_t color_to_uint32(v3f_t color) {
 }
 
 
-static void * drizzle_create_context(unsigned ticks, unsigned num_cpus, til_setup_t *setup)
+static void * drizzle_create_context(unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	drizzle_context_t	*ctxt;
 
@@ -90,7 +89,6 @@ static void * drizzle_create_context(unsigned ticks, unsigned num_cpus, til_setu
 		return NULL;
 	}
 
-	ctxt->n_cpus = num_cpus;
 	ctxt->setup = *(drizzle_setup_t *)setup;
 
 	return ctxt;
@@ -106,19 +104,11 @@ static void drizzle_destroy_context(void *context)
 }
 
 
-static int drizzle_fragmenter(void *context, unsigned n_cpus, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
-{
-	drizzle_context_t	*ctxt = context;
-
-	return til_fb_fragment_slice_single(fragment, ctxt->n_cpus, number, res_fragment);
-}
-
-
 static void drizzle_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
 {
 	drizzle_context_t	*ctxt = context;
 
-	*res_fragmenter = drizzle_fragmenter;
+	*res_fragmenter = til_fragmenter_slice_per_cpu;
 
 	for (int i = 0; i < DRIZZLE_CNT; i++) {
 		int	x = rand() % (PUDDLE_SIZE - 1);

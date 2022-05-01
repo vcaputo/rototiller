@@ -31,7 +31,6 @@
 typedef struct swab_context_t {
 	din_t		*din;
 	float		r;
-	unsigned	n_cpus;
 } swab_context_t;
 
 typedef struct color_t {
@@ -65,7 +64,7 @@ static inline uint32_t color_to_uint32(color_t color) {
 }
 
 
-static void * swab_create_context(unsigned ticks, unsigned num_cpus, til_setup_t *setup)
+static void * swab_create_context(unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	swab_context_t	*ctxt;
 
@@ -92,22 +91,13 @@ static void swab_destroy_context(void *context)
 }
 
 
-static int swab_fragmenter(void *context, unsigned n_cpus, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
-{
-	swab_context_t	*ctxt = context;
-
-	return til_fb_fragment_tile_single(fragment, 64, number, res_fragment);
-}
-
-
 static void swab_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
 {
 	swab_context_t	*ctxt = context;
 
-	*res_fragmenter = swab_fragmenter;
+	*res_fragmenter = til_fragmenter_tile64;
 
 	ctxt->r += .0001f;
-	ctxt->n_cpus = n_cpus;
 }
 
 

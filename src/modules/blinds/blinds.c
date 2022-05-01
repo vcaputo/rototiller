@@ -35,7 +35,7 @@ static blinds_setup_t blinds_default_setup = {
 };
 
 
-static void * blinds_create_context(unsigned ticks, unsigned num_cpus, til_setup_t *setup)
+static void * blinds_create_context(unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	blinds_context_t	*ctxt;
 

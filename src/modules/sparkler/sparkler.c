@@ -26,7 +26,6 @@ typedef struct sparkler_setup_t {
 
 typedef struct sparkler_context_t {
 	particles_t		*particles;
-	unsigned		n_cpus;
 	sparkler_setup_t	setup;
 } sparkler_context_t;
 
@@ -34,7 +33,7 @@ extern particle_ops_t	simple_ops;
 
 static sparkler_setup_t sparkler_default_setup;
 
-static void * sparkler_create_context(unsigned ticks, unsigned num_cpus, til_setup_t *setup)
+static void * sparkler_create_context(unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	sparkler_context_t	*ctxt;
 
@@ -73,19 +72,11 @@ static void sparkler_destroy_context(void *context)
 }
 
 
-static int sparkler_fragmenter(void *context, unsigned n_cpus, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
+static void sparkler_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
 {
 	sparkler_context_t	*ctxt = context;
 
-	return til_fb_fragment_slice_single(fragment, ctxt->n_cpus, number, res_fragment);
-}
-
-static void sparkler_prepare_frame(void *context, unsigned ticks, unsigned ncpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
-{
-	sparkler_context_t	*ctxt = context;
-
-	*res_fragmenter = sparkler_fragmenter;
-	ctxt->n_cpus = ncpus;
+	*res_fragmenter = til_fragmenter_slice_per_cpu;
 
 	if (ctxt->setup.show_bsp_matches)
 		til_fb_fragment_clear(fragment);

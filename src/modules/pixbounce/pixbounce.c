@@ -129,7 +129,6 @@ char pix_map[][16*16] = {
 };
 
 typedef struct pixbounce_context_t {
-	unsigned	n_cpus;
 	int		x, y;
 	int		x_dir, y_dir;
 	int		pix_num;
@@ -154,7 +153,7 @@ static uint32_t pick_color()
 	return makergb(rand()%256, rand()%256, rand()%256, 1);
 }
 
-static void * pixbounce_create_context(unsigned ticks, unsigned num_cpus, til_setup_t *setup)
+static void * pixbounce_create_context(unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	pixbounce_context_t *ctxt;
 
@@ -162,7 +161,6 @@ static void * pixbounce_create_context(unsigned ticks, unsigned num_cpus, til_se
 	if (!ctxt)
 		return NULL;
 
-	ctxt->n_cpus = num_cpus;
 	ctxt->x = -1;
 	ctxt->y = -1;
 	ctxt->x_dir = 0;

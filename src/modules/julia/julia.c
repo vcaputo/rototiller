@@ -19,7 +19,6 @@ typedef struct julia_context_t {
 	float		creal;
 	float		cimag;
 	float		threshold;
-	unsigned	n_cpus;
 } julia_context_t;
 
 static uint32_t	colors[] = {
@@ -66,7 +65,7 @@ static uint32_t	colors[] = {
 		};
 
 
-static void * julia_create_context(unsigned ticks, unsigned num_cpus, til_setup_t *setup)
+static void * julia_create_context(unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	return calloc(1, sizeof(julia_context_t));
 }
@@ -102,21 +101,12 @@ static inline unsigned julia_iter(float real, float imag, float creal, float cim
 }
 
 
-static int julia_fragmenter(void *context, unsigned n_cpus, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
-{
-	julia_context_t	*ctxt = context;
-
-	return til_fb_fragment_slice_single(fragment, ctxt->n_cpus, number, res_fragment);
-}
-
-
 /* Prepare a frame for concurrent drawing of fragment using multiple fragments */
 static void julia_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
 {
 	julia_context_t	*ctxt = context;
 
-	*res_fragmenter = julia_fragmenter;
-	ctxt->n_cpus = n_cpus;
+	*res_fragmenter = til_fragmenter_slice_per_cpu;
 
 	ctxt->rr += .01;
 			/* Rather than just sweeping creal,cimag from -2.0-+2.0, I try to keep things confined

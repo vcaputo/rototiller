@@ -61,7 +61,7 @@ static checkers_setup_t checkers_default_setup = {
 };
 
 
-static void * checkers_create_context(unsigned ticks, unsigned num_cpus, til_setup_t *setup)
+static void * checkers_create_context(unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	checkers_context_t	*ctxt;
 

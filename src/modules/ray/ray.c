@@ -130,7 +130,7 @@ typedef struct ray_context_t {
 } ray_context_t;
 
 
-static void * ray_create_context(unsigned ticks, unsigned num_cpus, til_setup_t *setup)
+static void * ray_create_context(unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	return calloc(1, sizeof(ray_context_t));
 }
@@ -142,18 +142,12 @@ static void ray_destroy_context(void *context)
 }
 
 
-static int ray_fragmenter(void *context, unsigned n_cpus, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
-{
-	return til_fb_fragment_tile_single(fragment, 64, number, res_fragment);
-}
-
-
 /* prepare a frame for concurrent rendering */
 static void ray_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
 {
 	ray_context_t	*ctxt = context;
 
-	*res_fragmenter = ray_fragmenter;
+	*res_fragmenter = til_fragmenter_tile64;
 #if 1
 	/* animated point light source */
 

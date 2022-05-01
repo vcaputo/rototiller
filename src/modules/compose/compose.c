@@ -43,7 +43,7 @@ typedef struct compose_setup_t {
 	char			*layers[];
 } compose_setup_t;
 
-static void * compose_create_context(unsigned ticks, unsigned num_cpus, til_setup_t *setup);
+static void * compose_create_context(unsigned ticks, unsigned n_cpus, til_setup_t *setup);
 static void compose_destroy_context(void *context);
 static void compose_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter);
 static int compose_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
@@ -63,7 +63,7 @@ til_module_t	compose_module = {
 };
 
 
-static void * compose_create_context(unsigned ticks, unsigned num_cpus, til_setup_t *setup)
+static void * compose_create_context(unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	compose_context_t	*ctxt;
 	size_t			n;
@@ -77,7 +77,7 @@ static void * compose_create_context(unsigned ticks, unsigned num_cpus, til_setu
 	if (!ctxt)
 		return NULL;
 
-	ctxt->n_cpus = num_cpus;
+	ctxt->n_cpus = n_cpus;
 
 	for (int i = 0; i < n; i++) {
 		const til_module_t	*layer_module;

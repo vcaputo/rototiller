@@ -49,7 +49,6 @@
 
 
 typedef struct plato_context_t {
-	unsigned	n_cpus;
 	float		r;
 } plato_context_t;
 
@@ -609,15 +608,13 @@ static void draw_polyhedron(const polyhedron_t *polyhedron, m4f_t *transform, ti
 }
 
 
-static void * plato_create_context(unsigned ticks, unsigned num_cpus, til_setup_t *setup)
+static void * plato_create_context(unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	plato_context_t	*ctxt;
 
 	ctxt = calloc(1, sizeof(plato_context_t));
 	if (!ctxt)
 		return NULL;
-
-	ctxt->n_cpus = num_cpus;
 
 	return ctxt;
 }
