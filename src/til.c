@@ -291,3 +291,17 @@ int til_module_randomize_setup(const til_module_t *module, til_setup_t **res_set
 
 	return r;
 }
+
+
+/* generic fragmenter using a horizontal slice per cpu according to n_cpus */
+int til_fragmenter_slice_per_cpu(void *context, unsigned n_cpus, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
+{
+	return til_fb_fragment_slice_single(fragment, n_cpus, number, res_fragment);
+}
+
+
+/* generic fragmenter using 64x64 tiles, ignores n_cpus */
+int til_fragmenter_tile64(void *context, unsigned n_cpus, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
+{
+	return til_fb_fragment_tile_single(fragment, 64, number, res_fragment);
+}
