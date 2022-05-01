@@ -103,13 +103,52 @@ void til_shutdown(void)
 }
 
 
+static void _blank_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
+{
+	*res_fragmenter = til_fragmenter_slice_per_cpu;
+}
+
+
+static void _blank_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
+{
+	til_fb_fragment_clear(fragment);
+}
+
+
+static til_module_t	_blank_module = {
+	.prepare_frame = _blank_prepare_frame,
+	.render_fragment = _blank_render_fragment,
+	.name = "blank",
+	.description = "built-in blanker",
+	.author = "built-in",
+};
+
+
 const til_module_t * til_lookup_module(const char *name)
 {
+	static const til_module_t	*builtins[] = {
+						&_blank_module,
+					};
+	static struct {
+		const til_module_t	**modules;
+		size_t			n_modules;
+	}				module_lists[] = {
+						{
+							builtins,
+							nelems(builtins),
+						},
+						{	modules,
+							nelems(modules),
+						}
+					};
+
 	assert(name);
 
-	for (size_t i = 0; i < nelems(modules); i++) {
-		if (!strcasecmp(name, modules[i]->name))
-			return modules[i];
+	for (size_t n = 0; n < nelems(module_lists); n++) {
+		for (size_t i = 0; i < module_lists[n].n_modules; i++) {
+			if (!strcasecmp(name, module_lists[n].modules[i]->name))
+				return module_lists[n].modules[i];
+		}
 	}
 
 	return NULL;
