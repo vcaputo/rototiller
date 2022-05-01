@@ -132,7 +132,7 @@ static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks)
 	}
 
 	if (!ctxt->n_channels ||
-	    (ctxt->channel != &ctxt->snow_channel && (ctxt->snow_channel.module != &rtv_none_module || ctxt->snow_duration))) {
+	    (ctxt->channel != &ctxt->snow_channel && ctxt->snow_channel.module != &rtv_none_module)) {
 
 		ctxt->last_channel = ctxt->channel;
 		ctxt->channel = &ctxt->snow_channel;
@@ -265,14 +265,7 @@ static void rtv_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, ti
 	if (now >= ctxt->next_hide_caption)
 		ctxt->caption = NULL;
 
-	/* there's a special-case "none" (or unconfigured) snow module, that just blanks,
-	 * it's a nil module so just implement it here.
-	 */
-	if (!ctxt->channel->module->render_fragment &&
-	    !ctxt->channel->module->prepare_frame)
-		til_fb_fragment_clear(fragment);
-	else
-		til_module_render(ctxt->channel->module, ctxt->channel->module_ctxt, ticks, fragment);
+	til_module_render(ctxt->channel->module, ctxt->channel->module_ctxt, ticks, fragment);
 }
 
 
@@ -379,7 +372,7 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 
 	r = til_settings_get_and_describe_value(settings,
 						&(til_setting_desc_t){
-							.name = "Module to use for snow (\"none\" for blank)",
+							.name = "Module for snow (\"blank\" for blanking, \"none\" to disable)",
 							.key = "snow_module",
 							.preferred = "snow",
 							.annotations = NULL
