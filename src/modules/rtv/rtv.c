@@ -447,7 +447,7 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 				n++;
 
 				setup = new;
-			} while (channel = strtok(NULL, ":"));
+			} while ((channel = strtok(NULL, ":")));
 		}
 
 		if (strcmp(snow_module, "none"))
