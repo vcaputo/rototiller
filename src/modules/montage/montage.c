@@ -216,7 +216,7 @@ static void montage_render_fragment(void *context, unsigned ticks, unsigned cpu,
 		module->prepare_frame(ctxt->contexts[fragment->number], ticks, 1, fragment, &fragmenter);
 
 		while (fragmenter(ctxt->contexts[fragment->number], 1, fragment, fragnum++, &frag))
-			module->render_fragment(ctxt->contexts[fragment->number], ticks, fragnum, &frag);
+			module->render_fragment(ctxt->contexts[fragment->number], ticks, 0, &frag);
 	} else if (module->render_fragment)
 			module->render_fragment(ctxt->contexts[fragment->number], ticks, 0, fragment);
 }
