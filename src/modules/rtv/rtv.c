@@ -110,6 +110,22 @@ static void randomize_channels(rtv_context_t *ctxt)
 }
 
 
+static void cleanup_channel(rtv_context_t *ctxt)
+{
+	if (!ctxt->channel)
+		return;
+
+	ctxt->channel->cumulative_time = 0;
+
+	ctxt->channel->module_ctxt = til_module_destroy_context(ctxt->channel->module, ctxt->channel->module_ctxt);
+
+	free(ctxt->channel->settings_as_arg);
+	ctxt->channel->settings_as_arg = NULL;
+
+	ctxt->caption = ctxt->channel->caption = txt_free(ctxt->channel->caption);
+}
+
+
 static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks)
 {
 	time_t	now = time(NULL);
@@ -119,16 +135,8 @@ static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks)
 	 */
 	if (ctxt->channel) {
 		ctxt->channel->cumulative_time += now - ctxt->channel->last_on_time;
-		if (ctxt->channel->cumulative_time >= ctxt->context_duration) {
-			ctxt->channel->cumulative_time = 0;
-
-			ctxt->channel->module_ctxt = til_module_destroy_context(ctxt->channel->module, ctxt->channel->module_ctxt);
-
-			free(ctxt->channel->settings_as_arg);
-			ctxt->channel->settings_as_arg = NULL;
-
-			ctxt->caption = ctxt->channel->caption = txt_free(ctxt->channel->caption);
-		}
+		if (ctxt->channel->cumulative_time >= ctxt->context_duration)
+			cleanup_channel(ctxt);
 	}
 
 	if (!ctxt->n_channels ||
@@ -250,6 +258,10 @@ static void * rtv_create_context(unsigned ticks, unsigned n_cpus, til_setup_t *s
 
 static void rtv_destroy_context(void *context)
 {
+	rtv_context_t	*ctxt = context;
+
+	/* TODO FIXME: cleanup better, snow module etc */
+	cleanup_channel(ctxt);
 	free(context);
 }
 
