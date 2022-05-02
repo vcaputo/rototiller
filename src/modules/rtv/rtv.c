@@ -16,11 +16,11 @@
  * - optionally persist module contexts so they resume rather than restart
  */
 
-#define RTV_SNOW_DURATION_SECS		1
-#define RTV_DURATION_SECS		15
-#define RTV_CAPTION_DURATION_SECS	5
-#define RTV_CONTEXT_DURATION_SECS	60
-#define RTV_DEFAULT_SNOW_MODULE		"snow"
+#define RTV_SNOW_DURATION_SECS		0
+#define RTV_DURATION_SECS		4
+#define RTV_CONTEXT_DURATION_SECS	4
+#define RTV_CAPTION_DURATION_SECS	2
+#define RTV_DEFAULT_SNOW_MODULE		"none"
 
 typedef struct rtv_channel_t {
 	const til_module_t	*module;
@@ -303,9 +303,9 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 
 	r = til_settings_get_and_describe_value(settings,
 						&(til_setting_desc_t){
-							.name = "Colon-separated list of channel modules",
+							.name = "Colon-separated list of channel modules, \"all\" for all",
 							.key = "channels",
-							.preferred = "all",
+							.preferred = "compose",
 							.annotations = NULL
 						},
 						&channels,
@@ -374,7 +374,7 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 						&(til_setting_desc_t){
 							.name = "Module for snow (\"blank\" for blanking, \"none\" to disable)",
 							.key = "snow_module",
-							.preferred = "snow",
+							.preferred = RTV_DEFAULT_SNOW_MODULE,
 							.annotations = NULL
 						},
 						&snow_module,
