@@ -208,15 +208,15 @@ static void draw_grid(submit_context_t *ctxt, til_fb_fragment_t *fragment)
 
 static void draw_grid_bilerp(submit_context_t *ctxt, til_fb_fragment_t *fragment)
 {
-	float	xscale = ((float)GRID_SIZE - 1.f) / (float)fragment->frame_width;
-	float	yscale = ((float)GRID_SIZE - 1.f) / (float)fragment->frame_height;
+	float	xscale = ((float)GRID_SIZE - 2.f) / (float)fragment->frame_width;
+	float	yscale = ((float)GRID_SIZE - 2.f) / (float)fragment->frame_height;
 
 	for (int y = 0; y < fragment->height; y++) {
 		for (int x = 0; x < fragment->width; x++) {
 			uint32_t	color;
 
 			/* TODO: this could be optimized a bit! i.e. don't recompute the y for every x etc. */
-			color = sample_grid_bilerp(ctxt, .5f + ((float)(fragment->x + x)) * xscale, .5f + ((float)(fragment->y + y)) * yscale);
+			color = sample_grid_bilerp(ctxt, 1.f + ((float)(fragment->x + x)) * xscale, 1.f + ((float)(fragment->y + y)) * yscale);
 			til_fb_fragment_put_pixel_unchecked(fragment, 0, fragment->x + x, fragment->y + y, color);
 		}
 	}
