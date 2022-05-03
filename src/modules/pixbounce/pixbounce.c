@@ -8,14 +8,24 @@
 /* Copyright (C) 2018-22 Philip J. Freeman <elektron@halo.nu> */
 
 #define DEFAULT_PIXMAP_SIZE  0.6
+#define DEFAULT_PIXMAP PIXBOUNCE_PIXMAP_SMILEY
+
+typedef enum pixbounce_pixmaps_t {
+	PIXBOUNCE_PIXMAP_SMILEY,
+	PIXBOUNCE_PIXMAP_CROSSHAIRS,
+	PIXBOUNCE_PIXMAP_NO,
+	PIXBOUNCE_PIXMAP_CIRCLES
+} pixbounce_pixmaps_t;
 
 typedef struct pixbounce_setup_t {
-	til_setup_t	til_setup;
-	float		pixmap_size;
+	til_setup_t		til_setup;
+	float			pixmap_size;
+	pixbounce_pixmaps_t	pixmap;
 } pixbounce_setup_t;
 
 static pixbounce_setup_t pixbounce_default_setup = {
         .pixmap_size = DEFAULT_PIXMAP_SIZE,
+	.pixmap = DEFAULT_PIXMAP
 };
 
 typedef struct pixbounce_pixmap_t {
@@ -135,7 +145,7 @@ static void * pixbounce_create_context(unsigned ticks, unsigned n_cpus, til_setu
 	ctxt->y = -1;
 	ctxt->x_dir = 0;
 	ctxt->y_dir = 0;
-	ctxt->pix = &pixbounce_pixmap[rand()%num_pix];
+	ctxt->pix = &pixbounce_pixmap[((pixbounce_setup_t *)setup)->pixmap];
 	ctxt->color = pick_color();
 	ctxt->pixmap_size_factor = ((((pixbounce_setup_t *)setup)->pixmap_size)*55 + 22 )/ 100;
 	ctxt->multiplier = 1;
@@ -220,6 +230,14 @@ int pixbounce_setup(const til_settings_t *settings, til_setting_t **res_setting,
 				"1",
 				NULL
 			};
+	const char	*pixmap;
+	const char	*pixmap_values[] = {
+				"smiley",
+				"crosshairs",
+				"no",
+				"circles",
+				NULL
+			};
 
 	int		r;
 
@@ -238,6 +256,21 @@ int pixbounce_setup(const til_settings_t *settings, til_setting_t **res_setting,
 	if (r)
 		return r;
 
+	r = til_settings_get_and_describe_value(settings,
+						&(til_setting_desc_t){
+							.name = "Pixmap",
+							.key = "pixmap",
+							.regex = ":[alnum]:+",
+							.preferred = pixmap_values[DEFAULT_PIXMAP],
+							.values = pixmap_values,
+							.annotations = NULL
+						},
+						&pixmap,
+						res_setting,
+						res_desc);
+	if (r)
+		return r;
+
 	if (res_setup) {
 		pixbounce_setup_t	*setup;
 
@@ -246,6 +279,20 @@ int pixbounce_setup(const til_settings_t *settings, til_setting_t **res_setting,
 			return -ENOMEM;
 
 		sscanf(pixmap_size, "%f", &setup->pixmap_size);
+
+		if (!strcasecmp(pixmap, "smiley")) {
+			setup->pixmap = PIXBOUNCE_PIXMAP_SMILEY;
+		} else if (!strcasecmp(pixmap, "crosshairs")) {
+			setup->pixmap = PIXBOUNCE_PIXMAP_CROSSHAIRS;
+		} else if (!strcasecmp(pixmap, "no")) {
+			setup->pixmap = PIXBOUNCE_PIXMAP_NO;
+		} else if (!strcasecmp(pixmap, "circles")) {
+			setup->pixmap = PIXBOUNCE_PIXMAP_CIRCLES;
+		} else {
+			til_setup_free(&setup->til_setup);
+
+			return -EINVAL;
+		}
 
 		*res_setup = &setup->til_setup;
 	}
