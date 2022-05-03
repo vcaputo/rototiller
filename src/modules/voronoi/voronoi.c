@@ -109,8 +109,8 @@ static inline size_t voronoi_cell_origin_to_distance_idx(const voronoi_context_t
 {
 	size_t	x, y;
 
-	x = (cell->origin.x * .5f + .5f) * (float)ctxt->distances.width;
-	y = (cell->origin.y * .5f + .5f) * (float)ctxt->distances.height;
+	x = (cell->origin.x * .5f + .5f) * (float)(ctxt->distances.width - 1);
+	y = (cell->origin.y * .5f + .5f) * (float)(ctxt->distances.height - 1);
 
 	return y * ctxt->distances.width + x;
 }
@@ -269,8 +269,8 @@ static void voronoi_sample_colors(voronoi_context_t *ctxt, til_fb_fragment_t *fr
 		voronoi_cell_t	*p = &ctxt->cells[i];
 		int		x, y;
 
-		x = (p->origin.x * .5f + .5f) * fragment->frame_width;
-		y = (p->origin.y * .5f + .5f) * fragment->frame_height;
+		x = (p->origin.x * .5f + .5f) * (fragment->frame_width - 1);
+		y = (p->origin.y * .5f + .5f) * (fragment->frame_height - 1);
 
 		p->color = fragment->buf[y * fragment->pitch + x];
 	}
