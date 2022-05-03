@@ -14,7 +14,8 @@ typedef enum pixbounce_pixmaps_t {
 	PIXBOUNCE_PIXMAP_SMILEY,
 	PIXBOUNCE_PIXMAP_CROSSHAIRS,
 	PIXBOUNCE_PIXMAP_NO,
-	PIXBOUNCE_PIXMAP_CIRCLES
+	PIXBOUNCE_PIXMAP_CIRCLES,
+	PIXBOUNCE_PIXMAP_QR_TIL
 } pixbounce_pixmaps_t;
 
 typedef struct pixbounce_setup_t {
@@ -30,10 +31,10 @@ static pixbounce_setup_t pixbounce_default_setup = {
 
 typedef struct pixbounce_pixmap_t {
 	int width, height;
-	int pix_map[16*16];
+	int pix_map[25*25];
 } pixbounce_pixmap_t;
 
-int num_pix = 4;
+int num_pix = 5;
 
 pixbounce_pixmap_t pixbounce_pixmap[] = {
 	{ 16, 16,
@@ -116,7 +117,37 @@ pixbounce_pixmap_t pixbounce_pixmap[] = {
 		1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1,
 		},
 	},
+	{ 25, 25,
+		{
+		1,1,1,1,1,1,1,0,0,0,1,1,0,1,0,1,0,0,1,1,1,1,1,1,1,
+		1,0,0,0,0,0,1,0,0,1,0,1,1,0,0,1,1,0,1,0,0,0,0,0,1,
+		1,0,1,1,1,0,1,0,1,0,1,1,0,0,1,1,0,0,1,0,1,1,1,0,1,
+		1,0,1,1,1,0,1,0,1,1,1,0,0,0,1,0,1,0,1,0,1,1,1,0,1,
+		1,0,1,1,1,0,1,0,0,0,0,1,0,1,0,1,0,0,1,0,1,1,1,0,1,
+		1,0,0,0,0,0,1,0,0,1,0,0,0,1,1,1,0,0,1,0,0,0,0,0,1,
+		1,1,1,1,1,1,1,0,1,0,1,0,1,0,1,0,1,0,1,1,1,1,1,1,1,
+		0,0,0,0,0,0,0,0,0,1,0,0,1,0,1,1,1,0,0,0,0,0,0,0,0,
+		0,0,0,1,1,0,1,1,0,0,0,0,0,1,0,1,1,0,0,0,0,1,1,0,0,
+		1,0,0,0,0,1,0,0,1,1,0,0,1,0,1,1,0,1,0,1,1,1,1,1,0,
+		1,1,1,0,1,1,1,0,1,0,1,1,1,0,0,1,1,1,1,1,1,1,0,0,1,
+		1,0,0,1,0,1,0,0,1,0,0,0,1,1,1,1,1,1,0,1,0,1,1,0,0,
+		1,0,0,0,1,0,1,1,0,1,1,1,1,1,1,0,0,1,1,1,0,1,0,0,0,
+		1,0,1,0,1,0,0,0,1,0,0,0,1,0,1,0,0,0,1,0,1,1,1,0,0,
+		1,1,0,0,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,0,0,1,1,
+		1,0,1,1,0,0,0,1,1,0,1,0,1,1,1,0,1,0,0,1,0,1,1,0,0,
+		1,0,1,1,0,1,1,1,1,0,0,1,0,0,0,1,1,1,1,1,1,0,1,1,1,
+		0,0,0,0,0,0,0,0,1,1,1,0,1,0,1,0,1,0,0,0,1,1,1,0,0,
+		1,1,1,1,1,1,1,0,1,0,0,1,1,0,0,1,1,0,1,0,1,1,1,0,1,
+		1,0,0,0,0,0,1,0,0,1,0,1,1,1,0,1,1,0,0,0,1,1,0,0,0,
+		1,0,1,1,1,0,1,0,1,1,1,0,1,1,0,0,1,1,1,1,1,1,0,0,0,
+		1,0,1,1,1,0,1,0,1,1,0,1,0,0,1,0,0,1,0,0,0,0,0,0,1,
+		1,0,1,1,1,0,1,0,0,1,1,1,0,1,1,0,1,1,1,1,1,0,0,1,1,
+		1,0,0,0,0,0,1,0,0,1,1,1,0,0,0,1,1,1,1,0,0,1,1,1,1,
+		1,1,1,1,1,1,1,0,0,0,1,1,1,0,0,1,1,0,1,0,0,1,0,0,1
+		},
+	},
 };
+
 
 typedef struct pixbounce_context_t {
 	int			x, y;
@@ -236,6 +267,7 @@ int pixbounce_setup(const til_settings_t *settings, til_setting_t **res_setting,
 				"crosshairs",
 				"no",
 				"circles",
+				"qr_til",
 				NULL
 			};
 
@@ -288,6 +320,8 @@ int pixbounce_setup(const til_settings_t *settings, til_setting_t **res_setting,
 			setup->pixmap = PIXBOUNCE_PIXMAP_NO;
 		} else if (!strcasecmp(pixmap, "circles")) {
 			setup->pixmap = PIXBOUNCE_PIXMAP_CIRCLES;
+		} else if (!strcasecmp(pixmap, "qr_til")) {
+			setup->pixmap = PIXBOUNCE_PIXMAP_QR_TIL;
 		} else {
 			til_setup_free(&setup->til_setup);
 
