@@ -7,6 +7,17 @@
 
 /* Copyright (C) 2018-22 Philip J. Freeman <elektron@halo.nu> */
 
+#define DEFAULT_PIXMAP_SIZE  0.6
+
+typedef struct pixbounce_setup_t {
+	til_setup_t	til_setup;
+	float		pixmap_size;
+} pixbounce_setup_t;
+
+static pixbounce_setup_t pixbounce_default_setup = {
+        .pixmap_size = DEFAULT_PIXMAP_SIZE,
+};
+
 typedef struct pixbounce_pixmap_t {
 	int width, height;
 	int pix_map[16*16];
@@ -142,6 +153,7 @@ typedef struct pixbounce_context_t {
 	int			x_dir, y_dir;
 	pixbounce_pixmap_t	*pix;
 	uint32_t		color;
+	float			pixmap_size_factor;
 	int			multiplier;
 
 } pixbounce_context_t;
@@ -165,6 +177,7 @@ static void * pixbounce_create_context(unsigned ticks, unsigned n_cpus, til_setu
 	ctxt->y_dir = 0;
 	ctxt->pix = &pixbounce_pixmap[rand()%num_pix];
 	ctxt->color = pick_color();
+	ctxt->pixmap_size_factor = ((((pixbounce_setup_t *)setup)->pixmap_size)*55 + 22 )/ 100;
 	ctxt->multiplier = 1;
 
 	return ctxt;
@@ -194,9 +207,9 @@ static void pixbounce_render_fragment(void *context, unsigned ticks, unsigned cp
 		multiplier_y = height / ctxt->pix->height;
 
 		if(multiplier_x>=multiplier_y) {
-			ctxt->multiplier = multiplier_y * (rand()%55 + 22 )/ 100;
+			ctxt->multiplier = multiplier_y * (ctxt->pixmap_size_factor*55 + 22 )/ 100;
 		} else {
-			ctxt->multiplier = multiplier_x * (rand()%55 + 22 ) / 100;
+			ctxt->multiplier = multiplier_x * (ctxt->pixmap_size_factor*55 + 22 ) / 100;
 		}
 
 		/* randomly initialize location and direction of pixmap */
@@ -235,10 +248,56 @@ static void pixbounce_render_fragment(void *context, unsigned ticks, unsigned cp
 	ctxt->y = ctxt->y+ctxt->y_dir;
 }
 
+int pixbounce_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
+{
+	const char	*pixmap_size;
+	const char	*pixmap_size_values[] = {
+				"0",
+				"0.2",
+				"0.4",
+				"0.6",
+				"0.8",
+				"1",
+				NULL
+			};
+
+	int		r;
+
+	r = til_settings_get_and_describe_value(settings,
+						&(til_setting_desc_t){
+							.name = "Pixmap size",
+							.key = "pixmap_size",
+							.regex = "(0|1|0\\.[0-9]{1,2})",
+							.preferred = TIL_SETTINGS_STR(DEFAULT_PIXMAP_SIZE),
+							.values = pixmap_size_values,
+							.annotations = NULL
+						},
+						&pixmap_size,
+						res_setting,
+						res_desc);
+	if (r)
+		return r;
+
+	if (res_setup) {
+		pixbounce_setup_t	*setup;
+
+		setup = til_setup_new(sizeof(*setup), (void(*)(til_setup_t *))free);
+		if (!setup)
+			return -ENOMEM;
+
+		sscanf(pixmap_size, "%f", &setup->pixmap_size);
+
+		*res_setup = &setup->til_setup;
+	}
+
+	return 0;
+}
+
 til_module_t	pixbounce_module = {
 	.create_context  = pixbounce_create_context,
 	.destroy_context = pixbounce_destroy_context,
 	.render_fragment = pixbounce_render_fragment,
+	.setup = pixbounce_setup,
 	.name = "pixbounce",
 	.description = "Pixmap bounce",
 	.author = "Philip J Freeman <elektron@halo.nu>",
