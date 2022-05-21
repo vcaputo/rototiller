@@ -37,6 +37,7 @@ extern til_module_t	plato_module;
 extern til_module_t	ray_module;
 extern til_module_t	roto_module;
 extern til_module_t	rtv_module;
+extern til_module_t	shapes_module;
 extern til_module_t	snow_module;
 extern til_module_t	sparkler_module;
 extern til_module_t	spiro_module;
@@ -61,6 +62,7 @@ static const til_module_t	*modules[] = {
 	&ray_module,
 	&roto_module,
 	&rtv_module,
+	&shapes_module,
 	&snow_module,
 	&sparkler_module,
 	&spiro_module,
