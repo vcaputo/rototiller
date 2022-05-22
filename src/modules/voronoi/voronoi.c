@@ -396,7 +396,7 @@ static int voronoi_setup(const til_settings_t *settings, til_setting_t **res_set
 		if (!setup)
 			return -ENOMEM;
 
-		sscanf(n_cells, "%u", &setup->n_cells);
+		sscanf(n_cells, "%zu", &setup->n_cells);
 
 		if (!strcasecmp(randomize, "on"))
 			setup->randomize = 1;
