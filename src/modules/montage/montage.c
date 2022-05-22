@@ -90,7 +90,7 @@ static void * montage_create_context(unsigned seed, unsigned ticks, unsigned n_c
 		(void) til_module_randomize_setup(module, &setup, NULL);
 
 		if (module->create_context)	/* FIXME errors */
-			ctxt->contexts[i] = module->create_context(rand(), ticks, 1, setup);
+			ctxt->contexts[i] = module->create_context(rand_r(&seed), ticks, 1, setup);
 
 		til_setup_free(setup);
 	}

@@ -73,7 +73,7 @@ static void * julia_create_context(unsigned seed, unsigned ticks, unsigned n_cpu
 	if (!ctxt)
 		return NULL;
 
-	ctxt->rr = ((float)rand()) / (float)RAND_MAX * 100.f;
+	ctxt->rr = ((float)rand_r(&seed)) / (float)RAND_MAX * 100.f;
 
 	return ctxt;
 }

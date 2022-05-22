@@ -10,8 +10,8 @@
 /* This implements white noise / snow just using rand() */
 
 typedef union snow_seed_t {
-	char	__padding[256];		/* prevent seeds sharing a cache-line */
-	int	seed;
+	char		__padding[256];		/* prevent seeds sharing a cache-line */
+	unsigned	seed;
 } snow_seed_t;
 
 typedef struct snow_context_t {
@@ -29,7 +29,7 @@ static void * snow_create_context(unsigned seed, unsigned ticks, unsigned n_cpus
 		return NULL;
 
 	for (unsigned i = 0; i < n_cpus; i++)
-		ctxt->seeds[i].seed = rand();
+		ctxt->seeds[i].seed = rand_r(&seed);
 
 	return ctxt;
 }
@@ -50,7 +50,7 @@ static void snow_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, t
 static void snow_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
 	snow_context_t	*ctxt = context;
-	int		*seed = &ctxt->seeds[cpu].seed;
+	unsigned	*seed = &ctxt->seeds[cpu].seed;
 
 	for (unsigned y = fragment->y; y < fragment->y + fragment->height; y++) {
 		for (unsigned x = fragment->x; x < fragment->x + fragment->width; x++) {

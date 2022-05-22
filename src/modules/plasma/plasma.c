@@ -66,7 +66,7 @@ static void * plasma_create_context(unsigned seed, unsigned ticks, unsigned n_cp
 	if (!ctxt)
 		return NULL;
 
-	ctxt->rr = rand();
+	ctxt->rr = rand_r(&seed);
 
 	return ctxt;
 }

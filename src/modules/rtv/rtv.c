@@ -242,7 +242,7 @@ static void * rtv_create_context(unsigned seed, unsigned ticks, unsigned n_cpus,
 	ctxt->snow_channel.module = &rtv_none_module;
 	if (((rtv_setup_t *)setup)->snow_module) {
 		ctxt->snow_channel.module = til_lookup_module(((rtv_setup_t *)setup)->snow_module);
-		(void) til_module_create_context(ctxt->snow_channel.module, rand(), ticks, NULL, &ctxt->snow_channel.module_ctxt);
+		(void) til_module_create_context(ctxt->snow_channel.module, rand_r(&seed), ticks, NULL, &ctxt->snow_channel.module_ctxt);
 	}
 
 	for (size_t i = 0; i < n_modules; i++) {

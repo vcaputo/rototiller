@@ -38,12 +38,12 @@ static void * spiro_create_context(unsigned seed, unsigned ticks, unsigned n_cpu
 	if (!ctxt)
 		return NULL;
 
-	ctxt->r=.25f+(rand()/(float)RAND_MAX)*.5f;
+	ctxt->r=.25f+(rand_r(&seed)/(float)RAND_MAX)*.5f;
 	if(ctxt->r>.5f)
 		ctxt->r_dir=-1;
 	else
 		ctxt->r_dir=1;
-	ctxt->p=(rand()/(float)RAND_MAX)*ctxt->r;
+	ctxt->p=(rand_r(&seed)/(float)RAND_MAX)*ctxt->r;
 	ctxt->p_dir=ctxt->r_dir*-1;
 #ifdef DEBUG
 	printf("spiro: initial context: r=%f, dir=%i, p=%f, dir=%i\n", ctxt->r, ctxt->r_dir, ctxt->p, ctxt->p_dir);

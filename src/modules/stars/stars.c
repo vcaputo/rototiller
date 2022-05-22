@@ -32,6 +32,7 @@ typedef struct stars_context_t {
 	float		offset_x;
 	float		offset_y;
 	float		offset_angle;
+	unsigned	seed;
 } stars_context_t;
 
 typedef struct stars_setup_t {
@@ -44,8 +45,8 @@ static stars_setup_t stars_default_setup = {
 };
 
 
-float get_random_unit_coord() {
-	return (((float)rand()/(float)RAND_MAX)*2.0)-1.0;
+float get_random_unit_coord(unsigned *seed) {
+	return (((float)rand_r(seed)/(float)RAND_MAX)*2.0)-1.0;
 }
 
 
@@ -63,6 +64,7 @@ static void * stars_create_context(unsigned seed, unsigned ticks, unsigned n_cpu
 		return NULL;
 
 	ctxt->points = NULL;
+	ctxt->seed = seed;
 	ctxt->rot_adj = ((stars_setup_t *)setup)->rot_adj;
 	ctxt->rot_rate = 0.00;
 	ctxt->rot_angle = 0;
@@ -72,12 +74,12 @@ static void * stars_create_context(unsigned seed, unsigned ticks, unsigned n_cpu
 
 	//add a bunch of points
 	for(z=0.01; z<1; z=z+0.01) {
-		for(int i=0; i<rand()%16; i++){
+		for(int i=0; i<rand_r(&ctxt->seed)%16; i++){
 			p_ptr = malloc(sizeof(struct points));
 			if (!p_ptr)
 				return NULL;
-			p_ptr->x = get_random_unit_coord();
-			p_ptr->y = get_random_unit_coord();
+			p_ptr->x = get_random_unit_coord(&ctxt->seed);
+			p_ptr->y = get_random_unit_coord(&ctxt->seed);
 			p_ptr->z = z;
 			p_ptr->next = ctxt->points;
 			ctxt->points = p_ptr;
@@ -185,12 +187,12 @@ static void stars_render_fragment(void *context, unsigned ticks, unsigned cpu, t
 	}
 
 	// add stars at horizon
-	for(int i=0; i<rand()%16; i++){
+	for(int i=0; i<rand_r(&ctxt->seed)%16; i++){
 		tmp_ptr = malloc(sizeof(struct points));
 		if (!tmp_ptr)
 			break;
-		tmp_ptr->x = get_random_unit_coord();
-		tmp_ptr->y = get_random_unit_coord();
+		tmp_ptr->x = get_random_unit_coord(&ctxt->seed);
+		tmp_ptr->y = get_random_unit_coord(&ctxt->seed);
 		tmp_ptr->z = 0.01;
 		tmp_ptr->next = ctxt->points;
 		ctxt->points = tmp_ptr;

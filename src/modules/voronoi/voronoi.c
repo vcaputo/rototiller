@@ -42,6 +42,7 @@ typedef struct voronoi_distances_t {
 } voronoi_distances_t;
 
 typedef struct voronoi_context_t {
+	unsigned		seed;
 	voronoi_setup_t		setup;
 	voronoi_distances_t	distances;
 	voronoi_cell_t		cells[];
@@ -67,12 +68,12 @@ static void voronoi_randomize(voronoi_context_t *ctxt)
 	for (size_t i = 0; i < ctxt->setup.n_cells; i++) {
 		voronoi_cell_t	*p = &ctxt->cells[i];
 
-		p->origin.x = ((float)rand() * inv_rand_max) * 2.f - 1.f;
-		p->origin.y = ((float)rand() * inv_rand_max) * 2.f - 1.f;
+		p->origin.x = ((float)rand_r(&ctxt->seed) * inv_rand_max) * 2.f - 1.f;
+		p->origin.y = ((float)rand_r(&ctxt->seed) * inv_rand_max) * 2.f - 1.f;
 
-		p->color = ((uint32_t)(rand() % 256)) << 16;
-		p->color |= ((uint32_t)(rand() % 256)) << 8;
-		p->color |= ((uint32_t)(rand() % 256));
+		p->color = ((uint32_t)(rand_r(&ctxt->seed) % 256)) << 16;
+		p->color |= ((uint32_t)(rand_r(&ctxt->seed) % 256)) << 8;
+		p->color |= ((uint32_t)(rand_r(&ctxt->seed) % 256));
 	}
 }
 
@@ -89,6 +90,7 @@ static void * voronoi_create_context(unsigned seed, unsigned ticks, unsigned n_c
 		return NULL;
 
 	ctxt->setup = *(voronoi_setup_t *)setup;
+	ctxt->seed = seed;
 
 	voronoi_randomize(ctxt);
 

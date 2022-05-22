@@ -39,8 +39,8 @@ static void * roto_create_context(unsigned seed, unsigned ticks, unsigned n_cpus
 	if (!ctxt)
 		return NULL;
 
-	ctxt->r = rand();
-	ctxt->rr = rand();
+	ctxt->r = rand_r(&seed);
+	ctxt->rr = rand_r(&seed);
 
 	return ctxt;
 }
