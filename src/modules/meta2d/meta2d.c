@@ -65,7 +65,7 @@ static inline uint32_t color_to_uint32(v3f_t color) {
 }
 
 
-static void * meta2d_create_context(unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static void * meta2d_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	meta2d_context_t	*ctxt;
 

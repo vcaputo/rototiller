@@ -608,7 +608,7 @@ static void draw_polyhedron(const polyhedron_t *polyhedron, m4f_t *transform, ti
 }
 
 
-static void * plato_create_context(unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static void * plato_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	plato_context_t	*ctxt;
 

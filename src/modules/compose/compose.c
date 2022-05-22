@@ -46,7 +46,7 @@ typedef struct compose_setup_t {
 	char			*layers[];
 } compose_setup_t;
 
-static void * compose_create_context(unsigned ticks, unsigned n_cpus, til_setup_t *setup);
+static void * compose_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup);
 static void compose_destroy_context(void *context);
 static void compose_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter);
 static int compose_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
@@ -66,7 +66,7 @@ til_module_t	compose_module = {
 };
 
 
-static void * compose_create_context(unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static void * compose_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	compose_context_t	*ctxt;
 	size_t			n;
@@ -82,7 +82,7 @@ static void * compose_create_context(unsigned ticks, unsigned n_cpus, til_setup_
 
 	ctxt->n_cpus = n_cpus;
 
-	for (int i = 0; i < n; i++) {
+	for (size_t i = 0; i < n; i++) {
 		const til_module_t	*layer_module;
 		til_setup_t		*layer_setup = NULL;
 
@@ -90,19 +90,19 @@ static void * compose_create_context(unsigned ticks, unsigned n_cpus, til_setup_
 		(void) til_module_randomize_setup(layer_module, &layer_setup, NULL);
 
 		ctxt->layers[i].module = layer_module;
-		(void) til_module_create_context(layer_module, ticks, layer_setup, &ctxt->layers[i].module_ctxt);
+		(void) til_module_create_context(layer_module, rand(), ticks, layer_setup, &ctxt->layers[i].module_ctxt);
 		til_setup_free(layer_setup);
 
 		ctxt->n_layers++;
 	}
 
 	if (((compose_setup_t *)setup)->texture) {
-		til_setup_t		*texture_setup = NULL;
+		til_setup_t	*texture_setup = NULL;
 
 		ctxt->texture.module = til_lookup_module(((compose_setup_t *)setup)->texture);
 		(void) til_module_randomize_setup(ctxt->texture.module, &texture_setup, NULL);
 
-		(void) til_module_create_context(ctxt->texture.module, ticks, texture_setup, &ctxt->texture.module_ctxt);
+		(void) til_module_create_context(ctxt->texture.module, rand(), ticks, texture_setup, &ctxt->texture.module_ctxt);
 		til_setup_free(texture_setup);
 	}
 

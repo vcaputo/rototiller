@@ -239,7 +239,7 @@ static uint32_t pick_color()
 	return makergb(rand()%256, rand()%256, rand()%256, 1);
 }
 
-static void * pixbounce_create_context(unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static void * pixbounce_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	pixbounce_context_t *ctxt;
 

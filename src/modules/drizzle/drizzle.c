@@ -72,7 +72,7 @@ static inline uint32_t color_to_uint32(v3f_t color) {
 }
 
 
-static void * drizzle_create_context(unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static void * drizzle_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	drizzle_context_t	*ctxt;
 

@@ -272,7 +272,7 @@ int main(int argc, const char *argv[])
 
 	gettimeofday(&rototiller.start_tv, NULL);
 	exit_if((r = til_module_create_context(
-						rototiller.module,
+						rototiller.module, 0,
 						get_ticks(&rototiller.start_tv,
 							&rototiller.start_tv,
 							rototiller.ticks_offset),

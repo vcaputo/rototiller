@@ -64,7 +64,7 @@ static inline uint32_t color_to_uint32(color_t color) {
 }
 
 
-static void * swab_create_context(unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static void * swab_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	swab_context_t	*ctxt;
 

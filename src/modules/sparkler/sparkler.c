@@ -33,7 +33,7 @@ extern particle_ops_t	simple_ops;
 
 static sparkler_setup_t sparkler_default_setup;
 
-static void * sparkler_create_context(unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static void * sparkler_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	sparkler_context_t	*ctxt;
 

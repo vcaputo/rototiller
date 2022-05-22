@@ -265,7 +265,7 @@ static void setup_grid(submit_context_t *ctxt)
 }
 
 
-static void * submit_create_context(unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static void * submit_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	submit_context_t	*ctxt;
 

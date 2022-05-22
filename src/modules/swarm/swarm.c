@@ -179,7 +179,7 @@ static inline uint32_t color_to_uint32(v3f_t color) {
 }
 
 
-static void * swarm_create_context(unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static void * swarm_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	swarm_context_t	*ctxt;
 

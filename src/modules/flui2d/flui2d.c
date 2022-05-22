@@ -243,7 +243,7 @@ static void gamma_init(float gamma)
 }
 
 
-static void * flui2d_create_context(unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static void * flui2d_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	static int		initialized;
 	flui2d_context_t	*ctxt;

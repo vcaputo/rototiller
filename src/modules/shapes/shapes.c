@@ -89,7 +89,7 @@ static shapes_setup_t shapes_default_setup = {
 };
 
 
-static void * shapes_create_context(unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static void * shapes_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	shapes_context_t	*ctxt;
 

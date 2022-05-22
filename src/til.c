@@ -200,7 +200,7 @@ void til_module_render(const til_module_t *module, void *context, unsigned ticks
 }
 
 
-int til_module_create_context(const til_module_t *module, unsigned ticks, til_setup_t *setup, void **res_context)
+int til_module_create_context(const til_module_t *module, unsigned seed, unsigned ticks, til_setup_t *setup, void **res_context)
 {
 	void	*context;
 
@@ -210,7 +210,7 @@ int til_module_create_context(const til_module_t *module, unsigned ticks, til_se
 	if (!module->create_context)
 		return 0;
 
-	context = module->create_context(ticks, til_threads_num_threads(til_threads), setup);
+	context = module->create_context(seed, ticks, til_threads_num_threads(til_threads), setup);
 	if (!context)
 		return -ENOMEM;
 

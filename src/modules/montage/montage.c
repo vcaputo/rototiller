@@ -15,7 +15,7 @@ typedef struct montage_context_t {
 } montage_context_t;
 
 static void setup_next_module(montage_context_t *ctxt);
-static void * montage_create_context(unsigned ticks, unsigned n_cpus, til_setup_t *setup);
+static void * montage_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup);
 static void montage_destroy_context(void *context);
 static void montage_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter);
 static void montage_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment);
@@ -31,7 +31,7 @@ til_module_t	montage_module = {
 };
 
 
-static void * montage_create_context(unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static void * montage_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	const til_module_t	**modules, *rtv_module, *compose_module;
 	size_t			n_modules;
@@ -90,7 +90,7 @@ static void * montage_create_context(unsigned ticks, unsigned n_cpus, til_setup_
 		(void) til_module_randomize_setup(module, &setup, NULL);
 
 		if (module->create_context)	/* FIXME errors */
-			ctxt->contexts[i] = module->create_context(ticks, 1, setup);
+			ctxt->contexts[i] = module->create_context(rand(), ticks, 1, setup);
 
 		til_setup_free(setup);
 	}

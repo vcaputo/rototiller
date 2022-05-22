@@ -77,7 +77,7 @@ static void voronoi_randomize(voronoi_context_t *ctxt)
 }
 
 
-static void * voronoi_create_context(unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static void * voronoi_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	voronoi_context_t	*ctxt;
 

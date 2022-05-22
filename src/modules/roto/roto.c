@@ -31,7 +31,7 @@ static int32_t	costab[FIXED_TRIG_LUT_SIZE], sintab[FIXED_TRIG_LUT_SIZE];
 static uint8_t	texture[256][256];
 static color_t	palette[2];
 
-static void * roto_create_context(unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static void * roto_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	roto_context_t	*ctxt;
 
