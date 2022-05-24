@@ -130,8 +130,6 @@ static void compose_prepare_frame(void *context, unsigned ticks, unsigned n_cpus
 {
 	compose_context_t	*ctxt = context;
 
-	til_fb_fragment_clear(fragment);
-
 	if (ctxt->texture.module) {
 		if (!ctxt->texture_fb.buf ||
 		    ctxt->texture_fb.frame_width != fragment->frame_width ||
