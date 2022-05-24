@@ -15,7 +15,7 @@
  */
 
 /* The impetus for adding this is a desire for adding a variety of shapes
- * to modueles/checkers.  I had started open-coding shapes like circle,
+ * to modules/checkers.  I had started open-coding shapes like circle,
  * rhombus, pinwheel, and star, directly into checkers with a new style=
  * setting for choosing which to use instead of the plain filled square.
  *
@@ -54,7 +54,6 @@
  *   assumption is as more parameterizing is added, all the shapes will
  *   become dynamic.  So there's no sense adding a cache.
  */
-
 
 
 #include <errno.h>
@@ -121,6 +120,28 @@ static void shapes_render_fragment(void *context, unsigned ticks, unsigned cpu, 
 	unsigned		xoff = (fragment->width - size) >> 1;
 	unsigned		yoff = (fragment->height - size) >> 1;
 
+	if (!fragment->cleared) {
+		/* when {letter,pillar}boxed we need to clear the padding */
+		if (xoff) {
+			for (int y = 0; y < fragment->height; y++) {
+				for (int x = 0; x < xoff; x++)
+					til_fb_fragment_put_pixel_unchecked(fragment, 0, fragment->x + x, fragment->y + y, 0x0);
+				for (int x = fragment->width - (size + xoff); x < fragment->width; x++)
+					til_fb_fragment_put_pixel_unchecked(fragment, 0, fragment->x + x, fragment->y + y, 0x0);
+			}
+		}
+
+		if (yoff) {
+			for (int y = 0; y < yoff; y++)
+				for (int x = 0; x < fragment->width; x++)
+					til_fb_fragment_put_pixel_unchecked(fragment, 0, fragment->x + x, fragment->y + y, 0x0);
+
+			for (int y = fragment->height - (size + yoff); y < fragment->height; y++)
+				for (int x = 0; x < fragment->width; x++)
+					til_fb_fragment_put_pixel_unchecked(fragment, 0, fragment->x + x, fragment->y + y, 0x0);
+		}
+	}
+
 	/* eventually these should probably get broken out into functions,
 	 * but it's not too unwieldy for now.
 	 */
@@ -130,9 +151,9 @@ static void shapes_render_fragment(void *context, unsigned ticks, unsigned cpu, 
 
 		r_sq *= r_sq;
 
-		for (int y = yoff, Y = -(size >> 1); y < fragment->height; y++, Y++) {
-			for (int x = xoff, X = -(size >> 1); x < fragment->width; x++, X++) {
-				if (Y*Y+X*X <= r_sq)
+		for (int y = yoff, Y = -(size >> 1); y < yoff + size; y++, Y++) {
+			for (int x = xoff, X = -(size >> 1); x < xoff + size; x++, X++) {
+				if (Y*Y+X*X < r_sq)
 					til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, fragment->x + x, fragment->y + y, 0xffffffff);
 				else if (!fragment->cleared)
 					til_fb_fragment_put_pixel_unchecked(fragment, 0, fragment->x + x, fragment->y + y, 0x0);
@@ -147,9 +168,9 @@ static void shapes_render_fragment(void *context, unsigned ticks, unsigned cpu, 
 			float	X, Y;
 
 			Y = -1.f;
-			for (unsigned y = yoff; y < fragment->height; y++, Y += s) {
+			for (unsigned y = yoff; y < yoff + size; y++, Y += s) {
 				X = -1.f;
-				for (unsigned x = xoff; x < fragment->width; x++, X += s) {
+				for (unsigned x = xoff; x < xoff + size; x++, X += s) {
 					float	rad = atan2f(Y, X) + (float)ticks * .001f;
 					float	r = cosf(5.f * rad) * .5f + .5f;
 
@@ -165,10 +186,13 @@ static void shapes_render_fragment(void *context, unsigned ticks, unsigned cpu, 
 
 	case SHAPES_TYPE_RHOMBUS: {
 		int	r = (size >> 1);
+		int	X, Y;
 
-		for (unsigned y = yoff, Y = -(size >> 1); y < fragment->height; y++, Y++) {
-			for (unsigned x = xoff, X = -(size >> 1); x < fragment->width; x++, X++) {
-				if (abs(Y)+abs(X) <= r)
+		Y = -(size >> 1);
+		for (unsigned y = yoff; y < yoff + size; y++, Y++) {
+			X = -(size >> 1);
+			for (unsigned x = xoff; x < xoff + size; x++, X++) {
+				if (abs(Y) + abs(X) < r)
 					til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, fragment->x + x, fragment->y + y, 0xffffffff);
 				else if (!fragment->cleared)
 					til_fb_fragment_put_pixel_unchecked(fragment, 0, fragment->x + x, fragment->y + y, 0x0);
@@ -183,9 +207,9 @@ static void shapes_render_fragment(void *context, unsigned ticks, unsigned cpu, 
 			float	X, Y;
 
 			Y = -1.f;
-			for (unsigned y = yoff; y < fragment->height; y++, Y += s) {
+			for (unsigned y = yoff; y < yoff + size; y++, Y += s) {
 				X = -1.f;
-				for (unsigned x = xoff; x < fragment->width; x++, X += s) {
+				for (unsigned x = xoff; x < xoff + size; x++, X += s) {
 					float	rad = atan2f(Y, X) + (float)ticks * .001f;
 					float	r = (M_2_PI * asinf(sinf(5 * rad) * .5f + .5f)) * .5f + .5f;
 						/*   ^^^^^^^^^^^^^^^^^^^ approximates a triangle wave */
