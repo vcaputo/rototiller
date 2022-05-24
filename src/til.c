@@ -188,6 +188,8 @@ static void module_render_fragment(const til_module_t *module, void *context, ti
 
 	if (module->finish_frame)
 		module->finish_frame(context, ticks, fragment);
+
+	fragment->cleared = 1;
 }
 
 
