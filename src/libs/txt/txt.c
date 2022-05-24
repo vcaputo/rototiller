@@ -24,7 +24,7 @@ static void measure_str(const char *str, int *res_width, int *res_height)
 	assert(res_width);
 	assert(res_height);
 
-	while (c = *str) {
+	while ((c = *str)) {
 		switch (c) {
 		case ' '...'~':
 			col++;

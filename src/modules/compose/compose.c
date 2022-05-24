@@ -331,7 +331,7 @@ static int compose_setup(const til_settings_t *settings, til_setting_t **res_set
 			n++;
 
 			setup = new;
-		} while (layer = strtok(NULL, ":"));
+		} while ((layer = strtok(NULL, ":")));
 
 		if (strcasecmp(texture, "none")) {
 			const til_module_t	*texture_module;
