@@ -35,11 +35,11 @@
  *
  * - Add more interesting shapes
  *
- * - Expose parameters as settings
- *
  * - Parameterize more things, stuff like twist for the radial shapes
- *   comes to mind.  The simplistic CCW rotation of star/pinwheel should be
- *   more variable and exposed as settings, etc.
+ *   comes to mind.  Twist at glance seems substantially complicated
+ *   actually, since things are no longer just pinched/stretch circles with
+ *   a single radial test to check.  It's like the non-convex polygon
+ *   problem...
  *
  * - Go threaded, for ease of implementation this is currently simple
  *   non-threaded code.  In the checkers use case, the individual checkers
@@ -47,12 +47,6 @@
  *   threaded there.  It's just full-frame shapes situations where it
  *   hurts.
  *
- * - The presently static shapes like circle and rhombus could be simply
- *   rendered once @ context_create() into a dense buffer then copied at
- *   render_fragment() time.  The current implementation is very naive and
- *   slow procedurally redrawing even these constant shapes.  But the
- *   assumption is as more parameterizing is added, all the shapes will
- *   become dynamic.  So there's no sense adding a cache.
  */
 
 
