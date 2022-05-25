@@ -64,10 +64,13 @@
 #include "til.h"
 #include "til_fb.h"
 
-#define SHAPES_DEFAULT_TYPE	SHAPES_TYPE_PINWHEEL
-#define SHAPES_DEFAULT_SCALE	1
-#define SHAPES_DEFAULT_POINTS	5
-#define SHAPES_DEFAULT_SPIN	.1
+#define SHAPES_DEFAULT_TYPE		SHAPES_TYPE_PINWHEEL
+#define SHAPES_DEFAULT_SCALE		1
+#define SHAPES_DEFAULT_POINTS		5
+#define SHAPES_DEFAULT_SPIN		.1
+#define SHAPES_DEFAULT_PINCH		0
+#define SHAPES_DEFAULT_PINCH_SPIN	.5
+#define SHAPES_DEFAULT_PINCHES		2
 
 typedef enum shapes_type_t {
 	SHAPES_TYPE_CIRCLE,
@@ -80,6 +83,9 @@ typedef struct shapes_setup_t {
 	til_setup_t	til_setup;
 	shapes_type_t	type;
 	float		scale;
+	float		pinch;
+	float		pinch_spin;
+	unsigned	n_pinches;
 	unsigned	n_points;
 	float		spin;
 } shapes_setup_t;
@@ -154,12 +160,18 @@ static void shapes_render_fragment(void *context, unsigned ticks, unsigned cpu, 
 	switch (ctxt->setup.type) {
 	case SHAPES_TYPE_CIRCLE: {
 		int	r_sq = (size >> 1);
+		float	s = 2.f / (float)size;
+		float	XX, YY;
 
 		r_sq *= r_sq;
 
-		for (int y = yoff, Y = -(size >> 1); y < yoff + size; y++, Y++) {
-			for (int x = xoff, X = -(size >> 1); x < xoff + size; x++, X++) {
-				if (Y*Y+X*X < r_sq)
+		YY = -1.f;
+		for (int y = yoff, Y = -(size >> 1); y < yoff + size; y++, Y++, YY += s) {
+			XX = -1.f;
+			for (int x = xoff, X = -(size >> 1); x < xoff + size; x++, X++, XX += s) {
+				float	rad = atan2f(YY, XX);
+
+				if (Y*Y+X*X < r_sq * (1.f - fabsf(cosf(ctxt->setup.n_pinches * rad + (float)ticks * ctxt->setup.pinch_spin * .01f)) * ctxt->setup.pinch))
 					til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, fragment->x + x, fragment->y + y, 0xffffffff);
 				else if (!fragment->cleared)
 					til_fb_fragment_put_pixel_unchecked(fragment, 0, fragment->x + x, fragment->y + y, 0x0);
@@ -177,8 +189,10 @@ static void shapes_render_fragment(void *context, unsigned ticks, unsigned cpu, 
 		for (unsigned y = yoff; y < yoff + size; y++, Y += s) {
 			X = -1.f;
 			for (unsigned x = xoff; x < xoff + size; x++, X += s) {
-				float	rad = atan2f(Y, X) + (float)ticks * ctxt->setup.spin * .01f;
-				float	r = cosf((float)ctxt->setup.n_points * rad) * .5f + .5f;
+				float	rad = atan2f(Y, X);
+				float	r = cosf((float)ctxt->setup.n_points * (rad + (float)ticks * ctxt->setup.spin * .01f)) * .5f + .5f;
+
+				r *= 1.f - fabsf(cosf(ctxt->setup.n_pinches * rad + (float)ticks * ctxt->setup.pinch_spin * .01f)) * ctxt->setup.pinch;
 
 				if (X * X + Y * Y < r * r)
 					til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, fragment->x + x, fragment->y + y, 0xffffffff);
@@ -192,13 +206,19 @@ static void shapes_render_fragment(void *context, unsigned ticks, unsigned cpu, 
 
 	case SHAPES_TYPE_RHOMBUS: {
 		int	r = (size >> 1);
+		float	s = 2.f / (float)size;
+		float	XX, YY;
 		int	X, Y;
 
+		YY = -1.f;
 		Y = -(size >> 1);
-		for (unsigned y = yoff; y < yoff + size; y++, Y++) {
+		for (unsigned y = yoff; y < yoff + size; y++, Y++, YY += s) {
+			XX = -1.f;
 			X = -(size >> 1);
-			for (unsigned x = xoff; x < xoff + size; x++, X++) {
-				if (abs(Y) + abs(X) < r)
+			for (unsigned x = xoff; x < xoff + size; x++, X++, XX += s) {
+				float	rad = atan2f(YY, XX);
+
+				if (abs(Y) + abs(X) < r * (1.f - fabsf(cosf(ctxt->setup.n_pinches * rad + (float)ticks * ctxt->setup.pinch_spin * .01f)) * ctxt->setup.pinch))
 					til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, fragment->x + x, fragment->y + y, 0xffffffff);
 				else if (!fragment->cleared)
 					til_fb_fragment_put_pixel_unchecked(fragment, 0, fragment->x + x, fragment->y + y, 0x0);
@@ -216,9 +236,11 @@ static void shapes_render_fragment(void *context, unsigned ticks, unsigned cpu, 
 		for (unsigned y = yoff; y < yoff + size; y++, Y += s) {
 			X = -1.f;
 			for (unsigned x = xoff; x < xoff + size; x++, X += s) {
-				float	rad = atan2f(Y, X) + (float)ticks * ctxt->setup.spin * .01f;
-				float	r = (M_2_PI * asinf(sinf((float)ctxt->setup.n_points * rad) * .5f + .5f)) * .5f + .5f;
+				float	rad = atan2f(Y, X);
+				float	r = (M_2_PI * asinf(sinf((float)ctxt->setup.n_points * (rad + (float)ticks * ctxt->setup.spin * .01f)) * .5f + .5f)) * .5f + .5f;
 					/*   ^^^^^^^^^^^^^^^^^^^ approximates a triangle wave */
+
+				r *= 1.f - fabsf(cosf(ctxt->setup.n_pinches * rad + (float)ticks * ctxt->setup.pinch_spin * .01f)) * ctxt->setup.pinch;
 
 				if (X * X + Y * Y < r * r)
 					til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, fragment->x + x, fragment->y + y, 0xffffffff);
@@ -238,6 +260,9 @@ static int shapes_setup(const til_settings_t *settings, til_setting_t **res_sett
 	const char	*points;
 	const char	*spin;
 	const char	*scale;
+	const char	*pinch;
+	const char	*pinch_spin;
+	const char	*pinches;
 	const char	*type_values[] = {
 				"circle",
 				"pinwheel",
@@ -296,6 +321,31 @@ static int shapes_setup(const til_settings_t *settings, til_setting_t **res_sett
 				"1",
 				NULL
 			};
+	const char	*pinch_values[] = {
+				"0",
+				".1",
+				".25",
+				".33",
+				".5",
+				".66",
+				".75",
+				".9",
+				"1",
+				NULL
+			};
+	const char	*pinches_values[] = {
+				"1",
+				"2",
+				"3",
+				"4",
+				"5",
+				"6",
+				"7",
+				"8",
+				"9",
+				"10",
+				NULL
+			};
 	int		r;
 
 	r = til_settings_get_and_describe_value(settings,
@@ -327,6 +377,53 @@ static int shapes_setup(const til_settings_t *settings, til_setting_t **res_sett
 						res_desc);
 	if (r)
 		return r;
+
+	r = til_settings_get_and_describe_value(settings,
+						&(til_setting_desc_t){
+							.name = "Pinch factor",
+							.key = "pinch",
+							.regex = "(1|0?\\.[0-9]{1,2})",
+							.preferred = TIL_SETTINGS_STR(SHAPES_DEFAULT_PINCH),
+							.values = pinch_values,
+							.annotations = NULL
+						},
+						&pinch,
+						res_setting,
+						res_desc);
+	if (r)
+		return r;
+
+	if (strcmp(pinch, "0")) {
+		r = til_settings_get_and_describe_value(settings,
+							&(til_setting_desc_t){
+								.name = "Pinch spin factor",
+								.key = "pinch_spin",
+								.regex = "-?(0|1|0?\\.[0-9]{1,2})",
+								.preferred = TIL_SETTINGS_STR(SHAPES_DEFAULT_PINCH_SPIN),
+								.values = spin_values,
+								.annotations = NULL
+							},
+							&pinch_spin,
+							res_setting,
+							res_desc);
+		if (r)
+			return r;
+
+		r = til_settings_get_and_describe_value(settings,
+							&(til_setting_desc_t){
+								.name = "Number of pinches",
+								.key = "pinches",
+								.regex = "[0-9]+",
+								.preferred = TIL_SETTINGS_STR(SHAPES_DEFAULT_PINCHES),
+								.values = pinches_values,
+								.annotations = NULL
+							},
+							&pinches,
+							res_setting,
+							res_desc);
+		if (r)
+			return r;
+	}
 
 	if (!strcasecmp(type, "star") || !strcasecmp(type, "pinwheel")) {
 		r = til_settings_get_and_describe_value(settings,
@@ -382,6 +479,11 @@ static int shapes_setup(const til_settings_t *settings, til_setting_t **res_sett
 		}
 
 		sscanf(scale, "%f", &setup->scale); /* TODO: -EINVAL parse errors */
+		sscanf(pinch, "%f", &setup->pinch); /* TODO: -EINVAL parse errors */
+		if (setup->pinch != 0) {
+			sscanf(pinch_spin, "%f", &setup->pinch_spin); /* TODO: -EINVAL parse errors */
+			sscanf(pinches, "%u", &setup->n_pinches); /* TODO: -EINVAL parse errors */
+		}
 
 		if (setup->type == SHAPES_TYPE_STAR || setup->type == SHAPES_TYPE_PINWHEEL) {
 			sscanf(points, "%u", &setup->n_points); /* TODO: -EINVAL parse errors */
