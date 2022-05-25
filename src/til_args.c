@@ -48,6 +48,8 @@ static int args_parse(int argc, const char *argv[], til_args_t *res_args, int *r
 			res_args->use_defaults = 1;
 		} else if (!strcasecmp("--help", argv[i])) {
 			res_args->help = 1;
+		} else if (!strcasecmp("--go", argv[i])) {
+			res_args->gogogo = 1;
 		} else {
 			if (!res_argv)
 				return -EINVAL;

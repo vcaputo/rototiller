@@ -177,7 +177,7 @@ static int print_setup_as_args(setup_t *setup)
 		goto _out_module;
 	}
 
-	r = printf("\nConfigured settings as flags:\n  --module=%s --video=%s\n\nPress enter to continue...\n",
+	r = printf("\nConfigured settings as flags:\n  --module=%s --video=%s\n\nPress enter to continue, add --go to disable this notice...\n",
 		module_args,
 		video_args);
 
@@ -258,7 +258,7 @@ int main(int argc, const char *argv[])
 	exit_if((r = setup_from_args(&args, &setup)) < 0,
 		"unable to setup: %s", strerror(-r));
 
-	exit_if(r && print_setup_as_args(&setup) < 0,
+	exit_if(!args.gogogo && r && print_setup_as_args(&setup) < 0,
 		"unable to print setup");
 
 	exit_if(!(rototiller.module = til_lookup_module(til_settings_get_key(setup.module, 0, NULL))),
