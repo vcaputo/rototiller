@@ -170,23 +170,23 @@ static void shapes_render_fragment(void *context, unsigned ticks, unsigned cpu, 
 	}
 
 	case SHAPES_TYPE_PINWHEEL: {
-			float	s = 2.f / (float)size;
-			float	X, Y;
+		float	s = 2.f / (float)size;
+		float	X, Y;
 
-			Y = -1.f;
-			for (unsigned y = yoff; y < yoff + size; y++, Y += s) {
-				X = -1.f;
-				for (unsigned x = xoff; x < xoff + size; x++, X += s) {
-					float	rad = atan2f(Y, X) + (float)ticks * ctxt->setup.spin * .01f;
-					float	r = cosf((float)ctxt->setup.n_points * rad) * .5f + .5f;
+		Y = -1.f;
+		for (unsigned y = yoff; y < yoff + size; y++, Y += s) {
+			X = -1.f;
+			for (unsigned x = xoff; x < xoff + size; x++, X += s) {
+				float	rad = atan2f(Y, X) + (float)ticks * ctxt->setup.spin * .01f;
+				float	r = cosf((float)ctxt->setup.n_points * rad) * .5f + .5f;
 
-					if (X * X + Y * Y < r * r)
-						til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, fragment->x + x, fragment->y + y, 0xffffffff);
-					else if (!fragment->cleared)
-						til_fb_fragment_put_pixel_unchecked(fragment, 0, fragment->x + x, fragment->y + y, 0x0);
+				if (X * X + Y * Y < r * r)
+					til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, fragment->x + x, fragment->y + y, 0xffffffff);
+				else if (!fragment->cleared)
+					til_fb_fragment_put_pixel_unchecked(fragment, 0, fragment->x + x, fragment->y + y, 0x0);
 
-				}
 			}
+		}
 		break;
 	}
 
@@ -209,23 +209,23 @@ static void shapes_render_fragment(void *context, unsigned ticks, unsigned cpu, 
 	}
 
 	case SHAPES_TYPE_STAR: {
-			float	s = 2.f / (float)size;
-			float	X, Y;
+		float	s = 2.f / (float)size;
+		float	X, Y;
 
-			Y = -1.f;
-			for (unsigned y = yoff; y < yoff + size; y++, Y += s) {
-				X = -1.f;
-				for (unsigned x = xoff; x < xoff + size; x++, X += s) {
-					float	rad = atan2f(Y, X) + (float)ticks * ctxt->setup.spin * .01f;
-					float	r = (M_2_PI * asinf(sinf((float)ctxt->setup.n_points * rad) * .5f + .5f)) * .5f + .5f;
-						/*   ^^^^^^^^^^^^^^^^^^^ approximates a triangle wave */
+		Y = -1.f;
+		for (unsigned y = yoff; y < yoff + size; y++, Y += s) {
+			X = -1.f;
+			for (unsigned x = xoff; x < xoff + size; x++, X += s) {
+				float	rad = atan2f(Y, X) + (float)ticks * ctxt->setup.spin * .01f;
+				float	r = (M_2_PI * asinf(sinf((float)ctxt->setup.n_points * rad) * .5f + .5f)) * .5f + .5f;
+					/*   ^^^^^^^^^^^^^^^^^^^ approximates a triangle wave */
 
-					if (X * X + Y * Y < r * r)
-						til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, fragment->x + x, fragment->y + y, 0xffffffff);
-					else if (!fragment->cleared)
-						til_fb_fragment_put_pixel_unchecked(fragment, 0, fragment->x + x, fragment->y + y, 0x0);
-				}
+				if (X * X + Y * Y < r * r)
+					til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, fragment->x + x, fragment->y + y, 0xffffffff);
+				else if (!fragment->cleared)
+					til_fb_fragment_put_pixel_unchecked(fragment, 0, fragment->x + x, fragment->y + y, 0x0);
 			}
+		}
 		break;
 	}
 	}
