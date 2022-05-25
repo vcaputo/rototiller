@@ -65,6 +65,7 @@
 #include "til_fb.h"
 
 #define SHAPES_DEFAULT_TYPE	SHAPES_TYPE_PINWHEEL
+#define SHAPES_DEFAULT_SCALE	1
 #define SHAPES_DEFAULT_POINTS	5
 #define SHAPES_DEFAULT_SPIN	.1
 
@@ -78,6 +79,7 @@ typedef enum shapes_type_t {
 typedef struct shapes_setup_t {
 	til_setup_t	til_setup;
 	shapes_type_t	type;
+	float		scale;
 	unsigned	n_points;
 	float		spin;
 } shapes_setup_t;
@@ -120,7 +122,7 @@ static void shapes_destroy_context(void *context)
 static void shapes_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
 	shapes_context_t	*ctxt = context;
-	unsigned		size = MIN(fragment->width, fragment->height);
+	unsigned		size = MIN(fragment->width, fragment->height) * ctxt->setup.scale;
 	unsigned		xoff = (fragment->width - size) >> 1;
 	unsigned		yoff = (fragment->height - size) >> 1;
 
@@ -235,6 +237,7 @@ static int shapes_setup(const til_settings_t *settings, til_setting_t **res_sett
 	const char	*type;
 	const char	*points;
 	const char	*spin;
+	const char	*scale;
 	const char	*type_values[] = {
 				"circle",
 				"pinwheel",
@@ -281,6 +284,18 @@ static int shapes_setup(const til_settings_t *settings, til_setting_t **res_sett
 				"1",
 				NULL
 			};
+	const char	*scale_values[] = {
+				/* It's unclear to me if this even makes sense, but I can see some
+				 * value in permitting something of a margin to exist around the shape.
+				 * For that reason I'm not going smaller than 50%.
+				 */
+				".5",
+				".66",
+				".75",
+				".9",
+				"1",
+				NULL
+			};
 	int		r;
 
 	r = til_settings_get_and_describe_value(settings,
@@ -293,6 +308,21 @@ static int shapes_setup(const til_settings_t *settings, til_setting_t **res_sett
 							.annotations = NULL
 						},
 						&type,
+						res_setting,
+						res_desc);
+	if (r)
+		return r;
+
+	r = til_settings_get_and_describe_value(settings,
+						&(til_setting_desc_t){
+							.name = "Scaling factor",
+							.key = "scale",
+							.regex = "(1|0?\\.[0-9]{1,2})",
+							.preferred = TIL_SETTINGS_STR(SHAPES_DEFAULT_SCALE),
+							.values = scale_values,
+							.annotations = NULL
+						},
+						&scale,
 						res_setting,
 						res_desc);
 	if (r)
@@ -318,7 +348,7 @@ static int shapes_setup(const til_settings_t *settings, til_setting_t **res_sett
 							&(til_setting_desc_t){
 								.name = "Spin factor",
 								.key = "spin",
-								.regex = "-?(0|1|0\\.[0-9]{1,2})", /* Derived from pixbounce, I'm sure when regexes start getting actually applied we're going to have to revisit all of these and fix them with plenty of lols. */
+								.regex = "-?(0|1|0?\\.[0-9]{1,2})", /* Derived from pixbounce, I'm sure when regexes start getting actually applied we're going to have to revisit all of these and fix them with plenty of lols. */
 								.preferred = TIL_SETTINGS_STR(SHAPES_DEFAULT_SPIN),
 								.values = spin_values,
 								.annotations = NULL
@@ -350,6 +380,8 @@ static int shapes_setup(const til_settings_t *settings, til_setting_t **res_sett
 			til_setup_free(&setup->til_setup);
 			return -EINVAL;
 		}
+
+		sscanf(scale, "%f", &setup->scale); /* TODO: -EINVAL parse errors */
 
 		if (setup->type == SHAPES_TYPE_STAR || setup->type == SHAPES_TYPE_PINWHEEL) {
 			sscanf(points, "%u", &setup->n_points); /* TODO: -EINVAL parse errors */
