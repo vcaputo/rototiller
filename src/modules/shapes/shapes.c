@@ -65,6 +65,7 @@
 #include "til_fb.h"
 
 #define SHAPES_DEFAULT_TYPE	SHAPES_TYPE_PINWHEEL
+#define SHAPES_DEFAULT_POINTS	5
 
 typedef enum shapes_type_t {
 	SHAPES_TYPE_CIRCLE,
@@ -76,6 +77,7 @@ typedef enum shapes_type_t {
 typedef struct shapes_setup_t {
 	til_setup_t	til_setup;
 	shapes_type_t	type;
+	unsigned	n_points;
 } shapes_setup_t;
 
 typedef struct shapes_context_t {
@@ -172,7 +174,7 @@ static void shapes_render_fragment(void *context, unsigned ticks, unsigned cpu, 
 				X = -1.f;
 				for (unsigned x = xoff; x < xoff + size; x++, X += s) {
 					float	rad = atan2f(Y, X) + (float)ticks * .001f;
-					float	r = cosf(5.f * rad) * .5f + .5f;
+					float	r = cosf((float)ctxt->setup.n_points * rad) * .5f + .5f;
 
 					if (X * X + Y * Y < r * r)
 						til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, fragment->x + x, fragment->y + y, 0xffffffff);
@@ -211,7 +213,7 @@ static void shapes_render_fragment(void *context, unsigned ticks, unsigned cpu, 
 				X = -1.f;
 				for (unsigned x = xoff; x < xoff + size; x++, X += s) {
 					float	rad = atan2f(Y, X) + (float)ticks * .001f;
-					float	r = (M_2_PI * asinf(sinf(5 * rad) * .5f + .5f)) * .5f + .5f;
+					float	r = (M_2_PI * asinf(sinf((float)ctxt->setup.n_points * rad) * .5f + .5f)) * .5f + .5f;
 						/*   ^^^^^^^^^^^^^^^^^^^ approximates a triangle wave */
 
 					if (X * X + Y * Y < r * r)
@@ -229,11 +231,33 @@ static void shapes_render_fragment(void *context, unsigned ticks, unsigned cpu, 
 static int shapes_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	const char	*type;
+	const char	*points;
 	const char	*type_values[] = {
 				"circle",
 				"pinwheel",
 				"rhombus",
 				"star",
+				NULL
+			};
+	const char	*points_values[] = {
+				"3",
+				"4",
+				"5",
+				"6",
+				"7",
+				"8",
+				"9",
+				"10",
+				"11",
+				"12",
+				"13",
+				"14",
+				"15",
+				"16",
+				"17",
+				"18",
+				"19",
+				"20",
 				NULL
 			};
 	int		r;
@@ -252,6 +276,24 @@ static int shapes_setup(const til_settings_t *settings, til_setting_t **res_sett
 						res_desc);
 	if (r)
 		return r;
+
+	if (!strcasecmp(type, "star") || !strcasecmp(type, "pinwheel")) {
+		r = til_settings_get_and_describe_value(settings,
+							&(til_setting_desc_t){
+								.name = "Number of points",
+								.key = "points",
+								.regex = "[0-9]+",
+								.preferred = TIL_SETTINGS_STR(SHAPES_DEFAULT_POINTS),
+								.values = points_values,
+								.annotations = NULL
+							},
+							&points,
+							res_setting,
+							res_desc);
+		if (r)
+			return r;
+
+	}
 
 	if (res_setup) {
 		int	i;
@@ -273,6 +315,9 @@ static int shapes_setup(const til_settings_t *settings, til_setting_t **res_sett
 			til_setup_free(&setup->til_setup);
 			return -EINVAL;
 		}
+
+		if (setup->type == SHAPES_TYPE_STAR || setup->type == SHAPES_TYPE_PINWHEEL)
+			sscanf(points, "%u", &setup->n_points); /* TODO: -EINVAL parse errors */
 
 		*res_setup = &setup->til_setup;
 	}
