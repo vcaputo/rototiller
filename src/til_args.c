@@ -81,6 +81,7 @@ int til_args_help(FILE *out)
 {
 	return fprintf(out,
 		"  --defaults	use defaults for unspecified settings\n"
+		"  --go		start rendering immediately upon fulfilling all required settings\n"
 		"  --help	this help\n"
 		"  --module=	module settings\n"
 		"  --video=	video settings\n"
