@@ -66,6 +66,7 @@
 
 #define SHAPES_DEFAULT_TYPE	SHAPES_TYPE_PINWHEEL
 #define SHAPES_DEFAULT_POINTS	5
+#define SHAPES_DEFAULT_SPIN	.1
 
 typedef enum shapes_type_t {
 	SHAPES_TYPE_CIRCLE,
@@ -78,6 +79,7 @@ typedef struct shapes_setup_t {
 	til_setup_t	til_setup;
 	shapes_type_t	type;
 	unsigned	n_points;
+	float		spin;
 } shapes_setup_t;
 
 typedef struct shapes_context_t {
@@ -173,7 +175,7 @@ static void shapes_render_fragment(void *context, unsigned ticks, unsigned cpu, 
 			for (unsigned y = yoff; y < yoff + size; y++, Y += s) {
 				X = -1.f;
 				for (unsigned x = xoff; x < xoff + size; x++, X += s) {
-					float	rad = atan2f(Y, X) + (float)ticks * .001f;
+					float	rad = atan2f(Y, X) + (float)ticks * ctxt->setup.spin * .01f;
 					float	r = cosf((float)ctxt->setup.n_points * rad) * .5f + .5f;
 
 					if (X * X + Y * Y < r * r)
@@ -212,7 +214,7 @@ static void shapes_render_fragment(void *context, unsigned ticks, unsigned cpu, 
 			for (unsigned y = yoff; y < yoff + size; y++, Y += s) {
 				X = -1.f;
 				for (unsigned x = xoff; x < xoff + size; x++, X += s) {
-					float	rad = atan2f(Y, X) + (float)ticks * .001f;
+					float	rad = atan2f(Y, X) + (float)ticks * ctxt->setup.spin * .01f;
 					float	r = (M_2_PI * asinf(sinf((float)ctxt->setup.n_points * rad) * .5f + .5f)) * .5f + .5f;
 						/*   ^^^^^^^^^^^^^^^^^^^ approximates a triangle wave */
 
@@ -232,6 +234,7 @@ static int shapes_setup(const til_settings_t *settings, til_setting_t **res_sett
 {
 	const char	*type;
 	const char	*points;
+	const char	*spin;
 	const char	*type_values[] = {
 				"circle",
 				"pinwheel",
@@ -258,6 +261,24 @@ static int shapes_setup(const til_settings_t *settings, til_setting_t **res_sett
 				"18",
 				"19",
 				"20",
+				NULL
+			};
+	const char	*spin_values[] = {
+				"-1",
+				"-.9",
+				"-.75",
+				"-.5",
+				"-.25",
+				"-.1",
+				"-.01",
+				"0",
+				".01",
+				".1",
+				".25",
+				".5",
+				".75",
+				".9",
+				"1",
 				NULL
 			};
 	int		r;
@@ -293,6 +314,20 @@ static int shapes_setup(const til_settings_t *settings, til_setting_t **res_sett
 		if (r)
 			return r;
 
+		r = til_settings_get_and_describe_value(settings,
+							&(til_setting_desc_t){
+								.name = "Spin factor",
+								.key = "spin",
+								.regex = "-?(0|1|0\\.[0-9]{1,2})", /* Derived from pixbounce, I'm sure when regexes start getting actually applied we're going to have to revisit all of these and fix them with plenty of lols. */
+								.preferred = TIL_SETTINGS_STR(SHAPES_DEFAULT_SPIN),
+								.values = spin_values,
+								.annotations = NULL
+							},
+							&spin,
+							res_setting,
+							res_desc);
+		if (r)
+			return r;
 	}
 
 	if (res_setup) {
@@ -316,8 +351,10 @@ static int shapes_setup(const til_settings_t *settings, til_setting_t **res_sett
 			return -EINVAL;
 		}
 
-		if (setup->type == SHAPES_TYPE_STAR || setup->type == SHAPES_TYPE_PINWHEEL)
+		if (setup->type == SHAPES_TYPE_STAR || setup->type == SHAPES_TYPE_PINWHEEL) {
 			sscanf(points, "%u", &setup->n_points); /* TODO: -EINVAL parse errors */
+			sscanf(spin, "%f", &setup->spin); /* TODO: -EINVAL parse errors */
+		}
 
 		*res_setup = &setup->til_setup;
 	}
