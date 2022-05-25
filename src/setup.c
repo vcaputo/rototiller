@@ -78,7 +78,7 @@ int setup_interactively(til_settings_t *settings, int (*setup_func)(til_settings
 						desc->annotations ? ": " : "",
 						desc->annotations ? desc->annotations[i] : "");
 
-				if (!strcmp(desc->preferred, desc->values[i]))
+				if (!strcasecmp(desc->preferred, desc->values[i]))
 					preferred = i;
 			}
 

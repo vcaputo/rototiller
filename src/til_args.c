@@ -40,13 +40,13 @@ static int args_parse(int argc, const char *argv[], til_args_t *res_args, int *r
 	/* this is intentionally being kept very simple, no new dependencies like getopt. */
 
 	for (int i = 1; i < argc; i++) {
-		if (!strncmp("--video=", argv[i], 8)) {
+		if (!strncasecmp("--video=", argv[i], 8)) {
 			res_args->video = &argv[i][8];
-		} else if (!strncmp("--module=", argv[i], 9)) {
+		} else if (!strncasecmp("--module=", argv[i], 9)) {
 			res_args->module = &argv[i][9];
-		} else if (!strcmp("--defaults", argv[i])) {
+		} else if (!strcasecmp("--defaults", argv[i])) {
 			res_args->use_defaults = 1;
-		} else if (!strcmp("--help", argv[i])) {
+		} else if (!strcasecmp("--help", argv[i])) {
 			res_args->help = 1;
 		} else {
 			if (!res_argv)

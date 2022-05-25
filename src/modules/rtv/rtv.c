@@ -195,7 +195,7 @@ static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks)
 static int rtv_should_skip_module(const rtv_setup_t *setup, const til_module_t *module)
 {
 	if (module == &rtv_module ||
-	    (setup->snow_module && !strcmp(module->name, setup->snow_module)))
+	    (setup->snow_module && !strcasecmp(module->name, setup->snow_module)))
 		return 1;
 
 	/* An empty channels list is a special case for representing "all", an
@@ -205,7 +205,7 @@ static int rtv_should_skip_module(const rtv_setup_t *setup, const til_module_t *
 		return 0;
 
 	for (char * const *channel = setup->channels; *channel; channel++) {
-		if (!strcmp(module->name, *channel))
+		if (!strcasecmp(module->name, *channel))
 			return 0;
 	}
 
@@ -404,7 +404,7 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 			return -ENOMEM;
 
 		/* turn channels colon-separated list into a null-terminated array of strings */
-		if (strcmp(channels, "all")) {
+		if (strcasecmp(channels, "all")) {
 			const til_module_t	**modules;
 			size_t			n_modules;
 			char			*tokchannels, *channel;
@@ -425,7 +425,7 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 				size_t		i;
 
 				for (i = 0; i < n_modules; i++) {
-					if (!strcmp(channel, modules[i]->name))
+					if (!strcasecmp(channel, modules[i]->name))
 						break;
 				}
 
@@ -450,7 +450,7 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 			} while ((channel = strtok(NULL, ":")));
 		}
 
-		if (strcmp(snow_module, "none"))
+		if (strcasecmp(snow_module, "none"))
 			setup->snow_module = strdup(snow_module);
 
 		/* TODO FIXME: parse errors */

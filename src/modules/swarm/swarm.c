@@ -456,7 +456,7 @@ static int swarm_setup(const til_settings_t *settings, til_setting_t **res_setti
 			return -ENOMEM;
 
 		for (int i = 0; styles[i]; i++) {
-			if (!strcmp(styles[i], style))
+			if (!strcasecmp(styles[i], style))
 				setup->draw_style = i;
 		}
 

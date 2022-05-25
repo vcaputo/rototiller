@@ -302,14 +302,14 @@ static int compose_setup(const til_settings_t *settings, til_setting_t **res_set
 			 * going to let the user potentially compose with montage
 			 * or rtv as one of the layers.
 			 */
-			if (!strcmp(layer, "compose")) { /* XXX: prevent infinite recursion */
+			if (!strcasecmp(layer, "compose")) { /* XXX: prevent infinite recursion */
 				til_setup_free(&setup->til_setup);
 
 				return -EINVAL;
 			}
 
 			for (i = 0; i < n_modules; i++) {
-				if (!strcmp(layer, modules[i]->name))
+				if (!strcasecmp(layer, modules[i]->name))
 					break;
 			}
 

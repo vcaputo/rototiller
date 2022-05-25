@@ -389,7 +389,7 @@ static int shapes_setup(const til_settings_t *settings, til_setting_t **res_sett
 	if (r)
 		return r;
 
-	if (strcmp(pinch, "0")) {
+	if (strcasecmp(pinch, "0")) {
 		r = til_settings_get_and_describe_value(settings,
 							&(til_setting_desc_t){
 								.name = "Pinch spin factor",

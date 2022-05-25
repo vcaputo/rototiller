@@ -259,22 +259,22 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 
 		sscanf(size, "%u", &setup->size);
 
-		if (!strcmp(pattern, "checkered"))
+		if (!strcasecmp(pattern, "checkered"))
 			setup->pattern = CHECKERS_PATTERN_CHECKERED;
-		else if (!strcmp(pattern, "random"))
+		else if (!strcasecmp(pattern, "random"))
 			setup->pattern = CHECKERS_PATTERN_RANDOM;
 		else {
 			free(setup);
 			return -EINVAL;
 		}
 
-		if (!strcmp(dynamics, "odd"))
+		if (!strcasecmp(dynamics, "odd"))
 			setup->dynamics = CHECKERS_DYNAMICS_ODD;
-		else if (!strcmp(dynamics, "even"))
+		else if (!strcasecmp(dynamics, "even"))
 			setup->dynamics = CHECKERS_DYNAMICS_EVEN;
-		else if (!strcmp(dynamics, "alternating"))
+		else if (!strcasecmp(dynamics, "alternating"))
 			setup->dynamics = CHECKERS_DYNAMICS_ALTERNATING;
-		else if (!strcmp(dynamics, "random"))
+		else if (!strcasecmp(dynamics, "random"))
 			setup->dynamics = CHECKERS_DYNAMICS_RANDOM;
 		else {
 			free(setup);

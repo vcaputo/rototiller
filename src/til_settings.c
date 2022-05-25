@@ -146,7 +146,7 @@ const char * til_settings_get_value(const til_settings_t *settings, const char *
 	assert(key);
 
 	for (int i = 0; i < settings->num; i++) {
-		if (!strcmp(key, settings->settings[i]->key)) {
+		if (!strcasecmp(key, settings->settings[i]->key)) {
 			if (res_setting)
 				*res_setting = settings->settings[i];
 
