@@ -1,3 +1,29 @@
+
+rototiller implements a corpus of software-rendered graphics modules,
+integrated into a single program.
+
+It can be used as a static library (libtil.a) embedded in other programs,
+or it can be used standalone to display stuff realtime via libdrm and/or
+SDL2.
+
+If you wish to see some eye candy, just build it in the conventional
+autotools project fashion:
+
+`./bootstrap; mkdir build; cd build; ../configure; make`
+
+If successful, run build/src/rototiller with no arguments for an
+interactive dialog to choose what to see.  You can just smash enter a bunch
+for defaults and it will probably work.  You can also just pass --defaults
+to achieve the same thing non-interactively.
+
+If you wish to hack on rototiller check out HACKING.txt in this tree.
+
+See https://rototiller.pengaru.com for more information.
+
+Everything below is out of date vestigial stuff from simpler times.
+
+-------------------------------------------------------------------------------
+
 rototiller is, rendered entirely in software:
 	drizzle: a 2D raindrops visualization
 	flui2d: a 2D fluid dynamics simulation
