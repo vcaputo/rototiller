@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdio.h>
 
+#include "setup.h"
 #include "til_settings.h"
 #include "til_setup.h"
 #include "til_util.h"
@@ -22,7 +23,7 @@ static int add_value(til_settings_t *settings, const char *key, const char *valu
 
 
 /* returns negative on error, otherwise number of additions made to settings */
-int setup_interactively(til_settings_t *settings, int (*setup_func)(til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup), int defaults, til_setup_t **res_setup)
+int setup_interactively(til_settings_t *settings, int (*setup_func)(til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup), int defaults, til_setup_t **res_setup, const til_setting_desc_t **res_failed_desc)
 {
 	unsigned			additions = 0;
 	char				buf[256] = "\n";
@@ -44,8 +45,12 @@ int setup_interactively(til_settings_t *settings, int (*setup_func)(til_settings
 		if (setting && !setting->desc) {
 			 /* XXX FIXME: this key as value exception is janky, make a helper to access the value or stop doing that. */
 			r = til_setting_desc_check(desc, setting->value ? : setting->key);
-			if (r < 0)
+			if (r < 0) {
+				/* TODO: send back desc to caller, caller must free. */
+				*res_failed_desc = desc;
+
 				return r;
+			}
 
 			/* XXX FIXME everything's constified necessitating this fuckery, revisit and cleanup later, prolly another til_settings helper */
 			((til_setting_t *)setting)->desc = desc;

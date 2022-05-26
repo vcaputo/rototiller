@@ -120,7 +120,8 @@ static int setup_video(til_settings_t *settings, til_setting_t **res_setting, co
 
 /* turn args into settings, automatically applying defaults if appropriate, or interactively if appropriate. */
 /* returns negative value on error, 0 when settings unchanged from args, 1 when changed */
-static int setup_from_args(til_args_t *args, setup_t *res_setup)
+/* on error, *res_failed_desc _may_ be assigned with something useful. */
+static int setup_from_args(til_args_t *args, setup_t *res_setup, const til_setting_desc_t **res_failed_desc)
 {
 	int	r = -ENOMEM, changes = 0;
 	setup_t	setup = {};
@@ -133,13 +134,13 @@ static int setup_from_args(til_args_t *args, setup_t *res_setup)
 	if (!setup.video)
 		goto _err;
 
-	r = setup_interactively(setup.module, til_module_setup, args->use_defaults, &setup.module_setup);
+	r = setup_interactively(setup.module, til_module_setup, args->use_defaults, &setup.module_setup, res_failed_desc);
 	if (r < 0)
 		goto _err;
 	if (r)
 		changes = 1;
 
-	r = setup_interactively(setup.video, setup_video, args->use_defaults, &setup.video_setup);
+	r = setup_interactively(setup.video, setup_video, args->use_defaults, &setup.video_setup, res_failed_desc);
 	if (r < 0)
 		goto _err;
 	if (r)
@@ -242,9 +243,10 @@ static void * rototiller_thread(void *_rt)
  */
 int main(int argc, const char *argv[])
 {
-	setup_t		setup = {};
-	til_args_t	args = {};
-	int		r;
+	const til_setting_desc_t	*failed_desc = NULL;
+	setup_t				setup = {};
+	til_args_t			args = {};
+	int				r;
 
 	exit_if((r = til_init()) < 0,
 		"unable to initialize libtil: %s", strerror(-r));
@@ -255,8 +257,12 @@ int main(int argc, const char *argv[])
 	if (args.help)
 		return print_help() < 0 ? EXIT_FAILURE : EXIT_SUCCESS;
 
-	exit_if((r = setup_from_args(&args, &setup)) < 0,
-		"unable to setup: %s", strerror(-r));
+	exit_if((r = setup_from_args(&args, &setup, &failed_desc)) < 0,
+		"unable to use args%s%s%s: %s",
+		failed_desc ? " for setting \"" : "",
+		failed_desc ? failed_desc->key : "",
+		failed_desc ? "\"" : "",
+		strerror(-r));
 
 	exit_if(!args.gogogo && r && print_setup_as_args(&setup) < 0,
 		"unable to print setup");
