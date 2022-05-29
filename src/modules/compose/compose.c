@@ -4,6 +4,7 @@
 
 #include "til.h"
 #include "til_fb.h"
+#include "til_module_context.h"
 #include "til_settings.h"
 #include "til_util.h"
 
@@ -26,12 +27,12 @@
 
 typedef struct compose_layer_t {
 	const til_module_t	*module;
-	void			*module_ctxt;
+	til_module_context_t	*module_ctxt;
 	char			*settings;
 } compose_layer_t;
 
 typedef struct compose_context_t {
-	unsigned		n_cpus;
+	til_module_context_t	til_module_context;
 
 	til_fb_fragment_t	texture_fb;
 	compose_layer_t		texture;
@@ -46,9 +47,9 @@ typedef struct compose_setup_t {
 	char			*layers[];
 } compose_setup_t;
 
-static void * compose_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup);
-static void compose_destroy_context(void *context);
-static void compose_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter);
+static til_module_context_t * compose_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup);
+static void compose_destroy_context(til_module_context_t *context);
+static void compose_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter);
 static int compose_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
 
 static compose_setup_t compose_default_setup = {
@@ -66,7 +67,7 @@ til_module_t	compose_module = {
 };
 
 
-static void * compose_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static til_module_context_t * compose_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	compose_context_t	*ctxt;
 	size_t			n;
@@ -76,11 +77,9 @@ static void * compose_create_context(unsigned seed, unsigned ticks, unsigned n_c
 
 	for (n = 0; ((compose_setup_t *)setup)->layers[n]; n++);
 
-	ctxt = calloc(1, sizeof(compose_context_t) + n * sizeof(compose_layer_t));
+	ctxt = til_module_context_new(sizeof(compose_context_t) + n * sizeof(compose_layer_t), seed, n_cpus);
 	if (!ctxt)
 		return NULL;
-
-	ctxt->n_cpus = n_cpus;
 
 	for (size_t i = 0; i < n; i++) {
 		const til_module_t	*layer_module;
@@ -90,7 +89,7 @@ static void * compose_create_context(unsigned seed, unsigned ticks, unsigned n_c
 		(void) til_module_randomize_setup(layer_module, &layer_setup, NULL);
 
 		ctxt->layers[i].module = layer_module;
-		(void) til_module_create_context(layer_module, rand_r(&seed), ticks, layer_setup, &ctxt->layers[i].module_ctxt);
+		(void) til_module_create_context(layer_module, rand_r(&seed), ticks, 0, layer_setup, &ctxt->layers[i].module_ctxt);
 		til_setup_free(layer_setup);
 
 		ctxt->n_layers++;
@@ -102,23 +101,23 @@ static void * compose_create_context(unsigned seed, unsigned ticks, unsigned n_c
 		ctxt->texture.module = til_lookup_module(((compose_setup_t *)setup)->texture);
 		(void) til_module_randomize_setup(ctxt->texture.module, &texture_setup, NULL);
 
-		(void) til_module_create_context(ctxt->texture.module, rand_r(&seed), ticks, texture_setup, &ctxt->texture.module_ctxt);
+		(void) til_module_create_context(ctxt->texture.module, rand_r(&seed), ticks, 0, texture_setup, &ctxt->texture.module_ctxt);
 		til_setup_free(texture_setup);
 	}
 
-	return ctxt;
+	return &ctxt->til_module_context;
 }
 
 
-static void compose_destroy_context(void *context)
+static void compose_destroy_context(til_module_context_t *context)
 {
-	compose_context_t	*ctxt = context;
+	compose_context_t	*ctxt = (compose_context_t *)context;
 
 	for (int i = 0; i < ctxt->n_layers; i++)
-		til_module_destroy_context(ctxt->layers[i].module, ctxt->layers[i].module_ctxt);
+		til_module_context_free(ctxt->layers[i].module_ctxt);
 
 	if (ctxt->texture.module)
-		til_module_destroy_context(ctxt->texture.module, ctxt->texture.module_ctxt);
+		til_module_context_free(ctxt->texture.module_ctxt);
 
 	free(ctxt->texture_fb.buf);
 
@@ -126,9 +125,9 @@ static void compose_destroy_context(void *context)
 }
 
 
-static void compose_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
+static void compose_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
 {
-	compose_context_t	*ctxt = context;
+	compose_context_t	*ctxt = (compose_context_t *)context;
 
 	if (ctxt->texture.module) {
 		if (!ctxt->texture_fb.buf ||
@@ -147,20 +146,20 @@ static void compose_prepare_frame(void *context, unsigned ticks, unsigned n_cpus
 		}
 
 		ctxt->texture_fb.cleared = 0;
-		til_module_render(ctxt->texture.module, ctxt->texture.module_ctxt, ticks, &ctxt->texture_fb);
+		til_module_render(ctxt->texture.module_ctxt, ticks, &ctxt->texture_fb);
 
-		til_module_render(ctxt->layers[0].module, ctxt->layers[0].module_ctxt, ticks, fragment);
+		til_module_render(ctxt->layers[0].module_ctxt, ticks, fragment);
 
 		for (size_t i = 1; i < ctxt->n_layers; i++) {
 			til_fb_fragment_t	textured = *fragment;
 
 			textured.texture = &ctxt->texture_fb;
 
-			til_module_render(ctxt->layers[i].module, ctxt->layers[i].module_ctxt, ticks, &textured);
+			til_module_render(ctxt->layers[i].module_ctxt, ticks, &textured);
 		}
 	} else {
 		for (size_t i = 0; i < ctxt->n_layers; i++)
-			til_module_render(ctxt->layers[i].module, ctxt->layers[i].module_ctxt, ticks, fragment);
+			til_module_render(ctxt->layers[i].module_ctxt, ticks, fragment);
 	}
 }
 

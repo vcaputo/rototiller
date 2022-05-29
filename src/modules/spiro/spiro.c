@@ -6,6 +6,7 @@
 
 #include "til.h"
 #include "til_fb.h"
+#include "til_module_context.h"
 
 #include "draw.h"
 
@@ -22,19 +23,20 @@ Spirograph Emulator
 */
 
 typedef struct spiro_context_t {
-	float r;
-	int r_dir;
-	float p;
-	int p_dir;
+	til_module_context_t	til_module_context;
+	float			r;
+	int			r_dir;
+	float			p;
+	int			p_dir;
 } spiro_context_t;
 
 
-static void * spiro_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static til_module_context_t * spiro_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	spiro_context_t *ctxt;
 	float		z;
 
-	ctxt = malloc(sizeof(spiro_context_t));
+	ctxt = til_module_context_new(sizeof(spiro_context_t), seed, n_cpus);
 	if (!ctxt)
 		return NULL;
 
@@ -48,20 +50,12 @@ static void * spiro_create_context(unsigned seed, unsigned ticks, unsigned n_cpu
 #ifdef DEBUG
 	printf("spiro: initial context: r=%f, dir=%i, p=%f, dir=%i\n", ctxt->r, ctxt->r_dir, ctxt->p, ctxt->p_dir);
 #endif
-	return ctxt;
+	return &ctxt->til_module_context;
 }
 
-static void spiro_destroy_context(void *context)
+static void spiro_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
-	spiro_context_t *ctxt = context;
-
-	free(context);
-}
-
-
-static void spiro_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
-{
-	spiro_context_t	*ctxt = context;
+	spiro_context_t	*ctxt = (spiro_context_t *)context;
 
 	int		width = fragment->width, height = fragment->height;
 
@@ -145,7 +139,6 @@ static void spiro_render_fragment(void *context, unsigned ticks, unsigned cpu, t
 
 til_module_t	spiro_module = {
 	.create_context  = spiro_create_context,
-	.destroy_context = spiro_destroy_context,
 	.render_fragment = spiro_render_fragment,
 	.name = "spiro",
 	.description = "Spirograph emulator",

@@ -5,6 +5,7 @@
 
 #include "til.h"
 #include "til_fb.h"
+#include "til_module_context.h"
 #include "til_util.h"
 
 #include "v2f.h"
@@ -42,6 +43,7 @@ typedef struct voronoi_distances_t {
 } voronoi_distances_t;
 
 typedef struct voronoi_context_t {
+	til_module_context_t	til_module_context;
 	unsigned		seed;
 	voronoi_setup_t		setup;
 	voronoi_distances_t	distances;
@@ -78,14 +80,14 @@ static void voronoi_randomize(voronoi_context_t *ctxt)
 }
 
 
-static void * voronoi_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static til_module_context_t * voronoi_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	voronoi_context_t	*ctxt;
 
 	if (!setup)
 		setup = &voronoi_default_setup.til_setup;
 
-	ctxt = calloc(1, sizeof(voronoi_context_t) + ((voronoi_setup_t *)setup)->n_cells * sizeof(voronoi_cell_t));
+	ctxt = til_module_context_new(sizeof(voronoi_context_t) + ((voronoi_setup_t *)setup)->n_cells * sizeof(voronoi_cell_t), seed, n_cpus);
 	if (!ctxt)
 		return NULL;
 
@@ -94,13 +96,13 @@ static void * voronoi_create_context(unsigned seed, unsigned ticks, unsigned n_c
 
 	voronoi_randomize(ctxt);
 
-	return ctxt;
+	return &ctxt->til_module_context;
 }
 
 
-static void voronoi_destroy_context(void *context)
+static void voronoi_destroy_context(til_module_context_t *context)
 {
-	voronoi_context_t	*ctxt = context;
+	voronoi_context_t	*ctxt = (voronoi_context_t *)context;
 
 	free(ctxt->distances.buf);
 	free(ctxt);
@@ -279,9 +281,9 @@ static void voronoi_sample_colors(voronoi_context_t *ctxt, til_fb_fragment_t *fr
 }
 
 
-static void voronoi_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
+static void voronoi_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
 {
-	voronoi_context_t	*ctxt = context;
+	voronoi_context_t	*ctxt = (voronoi_context_t *)context;
 
 	*res_fragmenter = til_fragmenter_tile64;
 
@@ -312,9 +314,9 @@ static void voronoi_prepare_frame(void *context, unsigned ticks, unsigned n_cpus
 }
 
 
-static void voronoi_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
+static void voronoi_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
-	voronoi_context_t	*ctxt = context;
+	voronoi_context_t	*ctxt = (voronoi_context_t *)context;
 
 	for (int y = 0; y < fragment->height; y++) {
 		for (int x = 0; x < fragment->width; x++) {

@@ -27,6 +27,7 @@
 
 #include "til.h"
 #include "til_fb.h"
+#include "til_module_context.h"
 
 typedef struct v3f_t {
 	float	x, y, z;
@@ -53,10 +54,11 @@ typedef struct swarm_setup_t {
 } swarm_setup_t;
 
 typedef struct swarm_context_t {
-	v3f_t		color;
-	float		ztweak;
-	swarm_setup_t	setup;
-	boid_t		boids[];
+	til_module_context_t	til_module_context;
+	v3f_t			color;
+	float			ztweak;
+	swarm_setup_t		setup;
+	boid_t			boids[];
 } swarm_context_t;
 
 #define SWARM_SIZE		(32 * 1024)
@@ -179,14 +181,14 @@ static inline uint32_t color_to_uint32(v3f_t color) {
 }
 
 
-static void * swarm_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static til_module_context_t * swarm_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	swarm_context_t	*ctxt;
 
 	if (!setup)
 		setup = &swarm_default_setup.til_setup;
 
-	ctxt = calloc(1, sizeof(swarm_context_t) + sizeof(*(ctxt->boids)) * SWARM_SIZE);
+	ctxt = til_module_context_new(sizeof(swarm_context_t) + sizeof(*(ctxt->boids)) * SWARM_SIZE, seed, n_cpus);
 	if (!ctxt)
 		return NULL;
 
@@ -195,15 +197,7 @@ static void * swarm_create_context(unsigned seed, unsigned ticks, unsigned n_cpu
 	for (unsigned i = 0; i < SWARM_SIZE; i++)
 		boid_randomize(&ctxt->boids[i]);
 
-	return ctxt;
-}
-
-
-static void swarm_destroy_context(void *context)
-{
-	swarm_context_t	*ctxt = context;
-
-	free(ctxt);
+	return &ctxt->til_module_context;
 }
 
 
@@ -407,9 +401,9 @@ static void swarm_draw_as_lines(swarm_context_t *ctxt, til_fb_fragment_t *fragme
 }
 
 
-static void swarm_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
+static void swarm_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
-	swarm_context_t	*ctxt = context;
+	swarm_context_t	*ctxt = (swarm_context_t *)context;
 
 	swarm_update(ctxt, ticks);
 
@@ -469,7 +463,6 @@ static int swarm_setup(const til_settings_t *settings, til_setting_t **res_setti
 
 til_module_t	swarm_module = {
 	.create_context = swarm_create_context,
-	.destroy_context = swarm_destroy_context,
 	.render_fragment = swarm_render_fragment,
 	.setup = swarm_setup,
 	.name = "swarm",

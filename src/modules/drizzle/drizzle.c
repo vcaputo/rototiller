@@ -20,6 +20,7 @@
 
 #include "til.h"
 #include "til_fb.h"
+#include "til_module_context.h"
 
 #include "puddle/puddle.h"
 
@@ -41,8 +42,9 @@ typedef struct drizzle_setup_t {
 } drizzle_setup_t;
 
 typedef struct drizzle_context_t {
-	puddle_t	*puddle;
-	drizzle_setup_t	setup;
+	til_module_context_t	til_module_context;
+	puddle_t		*puddle;
+	drizzle_setup_t		setup;
 } drizzle_context_t;
 
 static drizzle_setup_t drizzle_default_setup = {
@@ -72,14 +74,14 @@ static inline uint32_t color_to_uint32(v3f_t color) {
 }
 
 
-static void * drizzle_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static til_module_context_t * drizzle_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	drizzle_context_t	*ctxt;
 
 	if (!setup)
 		setup = &drizzle_default_setup.til_setup;
 
-	ctxt = calloc(1, sizeof(drizzle_context_t));
+	ctxt = til_module_context_new(sizeof(drizzle_context_t), seed, n_cpus);
 	if (!ctxt)
 		return NULL;
 
@@ -91,22 +93,22 @@ static void * drizzle_create_context(unsigned seed, unsigned ticks, unsigned n_c
 
 	ctxt->setup = *(drizzle_setup_t *)setup;
 
-	return ctxt;
+	return &ctxt->til_module_context;
 }
 
 
-static void drizzle_destroy_context(void *context)
+static void drizzle_destroy_context(til_module_context_t *context)
 {
-	drizzle_context_t	*ctxt = context;
+	drizzle_context_t	*ctxt = (drizzle_context_t *)context;
 
 	puddle_free(ctxt->puddle);
 	free(ctxt);
 }
 
 
-static void drizzle_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
+static void drizzle_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
 {
-	drizzle_context_t	*ctxt = context;
+	drizzle_context_t	*ctxt = (drizzle_context_t *)context;
 
 	*res_fragmenter = til_fragmenter_slice_per_cpu;
 
@@ -128,9 +130,9 @@ static void drizzle_prepare_frame(void *context, unsigned ticks, unsigned n_cpus
 }
 
 
-static void drizzle_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
+static void drizzle_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
-	drizzle_context_t	*ctxt = context;
+	drizzle_context_t	*ctxt = (drizzle_context_t *)context;
 	float			xf = 1.f / (float)fragment->frame_width;
 	float			yf = 1.f / (float)fragment->frame_height;
 	v2f_t			coord;

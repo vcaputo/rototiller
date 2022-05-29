@@ -4,6 +4,7 @@
 
 #include "til.h"
 #include "til_fb.h"
+#include "til_module_context.h"
 #include "til_util.h"
 
 #include "ray/ray_camera.h"
@@ -126,26 +127,27 @@ static float	r;
 
 
 typedef struct ray_context_t {
-	ray_render_t	*render;
+	til_module_context_t	til_module_context;
+	ray_render_t		*render;
 } ray_context_t;
 
 
-static void * ray_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static til_module_context_t * ray_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
-	return calloc(1, sizeof(ray_context_t));
-}
+	ray_context_t	*ctxt;
 
+	ctxt = til_module_context_new(sizeof(ray_context_t), seed, n_cpus);
+	if (!ctxt)
+		return NULL;
 
-static void ray_destroy_context(void *context)
-{
-	free(context);
+	return &ctxt->til_module_context;
 }
 
 
 /* prepare a frame for concurrent rendering */
-static void ray_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
+static void ray_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
 {
-	ray_context_t	*ctxt = context;
+	ray_context_t	*ctxt = (ray_context_t *)context;
 
 	*res_fragmenter = til_fragmenter_tile64;
 #if 1
@@ -175,17 +177,17 @@ static void ray_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, ti
 
 
 /* ray trace a simple scene into the fragment */
-static void ray_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
+static void ray_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
-	ray_context_t	*ctxt = context;
+	ray_context_t	*ctxt = (ray_context_t *)context;
 
 	ray_render_trace_fragment(ctxt->render, fragment);
 }
 
 
-static void ray_finish_frame(void *context, unsigned ticks, til_fb_fragment_t *fragment)
+static void ray_finish_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment)
 {
-	ray_context_t	*ctxt = context;
+	ray_context_t	*ctxt = (ray_context_t *)context;
 
 	ray_render_free(ctxt->render);
 }
@@ -193,7 +195,6 @@ static void ray_finish_frame(void *context, unsigned ticks, til_fb_fragment_t *f
 
 til_module_t	ray_module = {
 	.create_context = ray_create_context,
-	.destroy_context = ray_destroy_context,
 	.prepare_frame = ray_prepare_frame,
 	.render_fragment = ray_render_fragment,
 	.finish_frame = ray_finish_frame,

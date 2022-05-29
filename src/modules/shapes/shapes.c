@@ -57,6 +57,7 @@
 
 #include "til.h"
 #include "til_fb.h"
+#include "til_module_context.h"
 
 #define SHAPES_DEFAULT_TYPE		SHAPES_TYPE_PINWHEEL
 #define SHAPES_DEFAULT_SCALE		1
@@ -76,18 +77,19 @@ typedef enum shapes_type_t {
 } shapes_type_t;
 
 typedef struct shapes_setup_t {
-	til_setup_t	til_setup;
-	shapes_type_t	type;
-	float		scale;
-	float		pinch;
-	float		pinch_spin;
-	unsigned	n_pinches;
-	unsigned	n_points;
-	float		spin;
+	til_setup_t		til_setup;
+	shapes_type_t		type;
+	float			scale;
+	float			pinch;
+	float			pinch_spin;
+	unsigned		n_pinches;
+	unsigned		n_points;
+	float			spin;
 } shapes_setup_t;
 
 typedef struct shapes_context_t {
-	shapes_setup_t	setup;
+	til_module_context_t	til_module_context;
+	shapes_setup_t		setup;
 } shapes_context_t;
 
 
@@ -96,34 +98,26 @@ static shapes_setup_t shapes_default_setup = {
 };
 
 
-static void * shapes_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static til_module_context_t * shapes_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	shapes_context_t	*ctxt;
 
 	if (!setup)
 		setup = &shapes_default_setup.til_setup;
 
-	ctxt = calloc(1, sizeof(shapes_context_t));
+	ctxt = til_module_context_new(sizeof(shapes_context_t), seed, n_cpus);
 	if (!ctxt)
 		return NULL;
 
 	ctxt->setup = *(shapes_setup_t *)setup;
 
-	return ctxt;
+	return &ctxt->til_module_context;
 }
 
 
-static void shapes_destroy_context(void *context)
+static void shapes_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
-	shapes_context_t	*ctxt = context;
-
-	free(ctxt);
-}
-
-
-static void shapes_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
-{
-	shapes_context_t	*ctxt = context;
+	shapes_context_t	*ctxt = (shapes_context_t *)context;
 	unsigned		size = MIN(fragment->width, fragment->height) * ctxt->setup.scale;
 	unsigned		xoff = (fragment->width - size) >> 1;
 	unsigned		yoff = (fragment->height - size) >> 1;
@@ -495,7 +489,6 @@ static int shapes_setup(const til_settings_t *settings, til_setting_t **res_sett
 
 til_module_t	shapes_module = {
 	.create_context = shapes_create_context,
-	.destroy_context = shapes_destroy_context,
 	.render_fragment = shapes_render_fragment,
 	.setup = shapes_setup,
 	.name = "shapes",

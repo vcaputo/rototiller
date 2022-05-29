@@ -22,6 +22,7 @@
 
 #include "til.h"
 #include "til_fb.h"
+#include "til_module_context.h"
 #include "til_settings.h"
 #include "til_util.h"
 
@@ -49,12 +50,13 @@ static color_t colors[NUM_PLAYERS + 1] = {
 
 
 typedef struct submit_context_t {
-	grid_t		*grid;
-	grid_player_t	*players[NUM_PLAYERS];
-	uint32_t	seq;
-	uint32_t	game_winner;
-	unsigned	bilerp:1;
-	uint8_t		cells[GRID_SIZE * GRID_SIZE];
+	til_module_context_t	til_module_context;
+	grid_t			*grid;
+	grid_player_t		*players[NUM_PLAYERS];
+	uint32_t		seq;
+	uint32_t		game_winner;
+	unsigned		bilerp:1;
+	uint8_t			cells[GRID_SIZE * GRID_SIZE];
 } submit_context_t;
 
 typedef struct submit_setup_t {
@@ -265,36 +267,36 @@ static void setup_grid(submit_context_t *ctxt)
 }
 
 
-static void * submit_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static til_module_context_t * submit_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	submit_context_t	*ctxt;
 
 	if (!setup)
 		setup = &submit_default_setup.til_setup;
 
-	ctxt = calloc(1, sizeof(submit_context_t));
+	ctxt = til_module_context_new(sizeof(submit_context_t), seed, n_cpus);
 	if (!ctxt)
 		return NULL;
 
 	ctxt->bilerp = ((submit_setup_t *)setup)->bilerp;
 	setup_grid(ctxt);
 
-	return ctxt;
+	return &ctxt->til_module_context;
 }
 
 
-static void submit_destroy_context(void *context)
+static void submit_destroy_context(til_module_context_t *context)
 {
-	submit_context_t	*ctxt = context;
+	submit_context_t	*ctxt = (submit_context_t *)context;
 
 	grid_free(ctxt->grid);
 	free(ctxt);
 }
 
 
-static void submit_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
+static void submit_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
 {
-	submit_context_t	*ctxt = context;
+	submit_context_t	*ctxt = (submit_context_t *)context;
 
 	*res_fragmenter = til_fragmenter_tile64;
 
@@ -313,9 +315,9 @@ static void submit_prepare_frame(void *context, unsigned ticks, unsigned n_cpus,
 }
 
 
-static void submit_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
+static void submit_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
-	submit_context_t	*ctxt = context;
+	submit_context_t	*ctxt = (submit_context_t *)context;
 
 	if (!ctxt->bilerp)
 		draw_grid(ctxt, fragment);

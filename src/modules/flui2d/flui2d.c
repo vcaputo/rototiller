@@ -6,6 +6,7 @@
 
 #include "til.h"
 #include "til_fb.h"
+#include "til_module_context.h"
 #include "til_settings.h"
 
 
@@ -186,6 +187,7 @@ typedef struct flui2d_setup_t {
 } flui2d_setup_t;
 
 typedef struct flui2d_context_t {
+	til_module_context_t	til_module_context;
 	flui2d_t		fluid;
 	flui2d_emitters_t	emitters;
 	float			clockstep;
@@ -243,7 +245,7 @@ static void gamma_init(float gamma)
 }
 
 
-static void * flui2d_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static til_module_context_t * flui2d_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	static int		initialized;
 	flui2d_context_t	*ctxt;
@@ -251,7 +253,7 @@ static void * flui2d_create_context(unsigned seed, unsigned ticks, unsigned n_cp
 	if (!setup)
 		setup = &flui2d_default_setup.til_setup;
 
-	ctxt = calloc(1, sizeof(flui2d_context_t));
+	ctxt = til_module_context_new(sizeof(flui2d_context_t), seed, n_cpus);
 	if (!ctxt)
 		return NULL;
 
@@ -266,20 +268,14 @@ static void * flui2d_create_context(unsigned seed, unsigned ticks, unsigned n_cp
 	ctxt->emitters = ((flui2d_setup_t *)setup)->emitters;
 	ctxt->clockstep = ((flui2d_setup_t *)setup)->clockstep;
 
-	return ctxt;
-}
-
-
-static void flui2d_destroy_context(void *context)
-{
-	free(context);
+	return &ctxt->til_module_context;
 }
 
 
 /* Prepare a frame for concurrent drawing of fragment using multiple fragments */
-static void flui2d_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
+static void flui2d_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
 {
-	flui2d_context_t	*ctxt = context;
+	flui2d_context_t	*ctxt = (flui2d_context_t *)context;
 	float			r = (ticks % (unsigned)(2 * M_PI * 1000)) * .001f;
 
 	*res_fragmenter = til_fragmenter_tile64;
@@ -336,9 +332,9 @@ static void flui2d_prepare_frame(void *context, unsigned ticks, unsigned n_cpus,
 
 
 /* Draw a the flui2d densities */
-static void flui2d_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
+static void flui2d_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
-	flui2d_context_t	*ctxt = context;
+	flui2d_context_t	*ctxt = (flui2d_context_t *)context;
 
 	for (int y = fragment->y; y < fragment->y + fragment->height; y++) {
 		int	y0, y1;
@@ -542,11 +538,10 @@ static int flui2d_setup(const til_settings_t *settings, til_setting_t **res_sett
 
 til_module_t	flui2d_module = {
 	.create_context = flui2d_create_context,
-	.destroy_context = flui2d_destroy_context,
 	.prepare_frame = flui2d_prepare_frame,
 	.render_fragment = flui2d_render_fragment,
+	.setup = flui2d_setup,
 	.name = "flui2d",
 	.description = "Fluid dynamics simulation in 2D (threaded (poorly))",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",
-	.setup = flui2d_setup,
 };

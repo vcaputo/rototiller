@@ -3,6 +3,7 @@
 #include <unistd.h>
 
 #include "til.h"
+#include "til_module_context.h"
 #include "draw.h"
 
 /* Copyright (C) 2018-22 Philip J. Freeman <elektron@halo.nu> */
@@ -225,13 +226,13 @@ pixbounce_pixmap_t pixbounce_pixmap[] = {
 
 
 typedef struct pixbounce_context_t {
+	til_module_context_t	til_module_context;
 	int			x, y;
 	int			x_dir, y_dir;
 	pixbounce_pixmap_t	*pix;
 	uint32_t		color;
 	float			pixmap_size_factor;
 	int			multiplier;
-
 } pixbounce_context_t;
 
 static uint32_t pick_color()
@@ -239,11 +240,11 @@ static uint32_t pick_color()
 	return makergb(rand()%256, rand()%256, rand()%256, 1);
 }
 
-static void * pixbounce_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static til_module_context_t * pixbounce_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	pixbounce_context_t *ctxt;
 
-	ctxt = malloc(sizeof(pixbounce_context_t));
+	ctxt = til_module_context_new(sizeof(pixbounce_context_t), seed, n_cpus);
 	if (!ctxt)
 		return NULL;
 
@@ -256,18 +257,12 @@ static void * pixbounce_create_context(unsigned seed, unsigned ticks, unsigned n
 	ctxt->pixmap_size_factor = ((((pixbounce_setup_t *)setup)->pixmap_size)*55 + 22 )/ 100;
 	ctxt->multiplier = 1;
 
-	return ctxt;
+	return &ctxt->til_module_context;
 }
 
-static void pixbounce_destroy_context(void *context)
+static void pixbounce_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
-	pixbounce_context_t *ctxt = context;
-	free(context);
-}
-
-static void pixbounce_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
-{
-	pixbounce_context_t *ctxt = context;
+	pixbounce_context_t *ctxt = (pixbounce_context_t *)context;
 
 	int	width = fragment->width, height = fragment->height;
 
@@ -417,7 +412,6 @@ int pixbounce_setup(const til_settings_t *settings, til_setting_t **res_setting,
 
 til_module_t	pixbounce_module = {
 	.create_context  = pixbounce_create_context,
-	.destroy_context = pixbounce_destroy_context,
 	.render_fragment = pixbounce_render_fragment,
 	.setup = pixbounce_setup,
 	.name = "pixbounce",

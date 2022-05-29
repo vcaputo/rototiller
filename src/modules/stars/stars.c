@@ -10,6 +10,7 @@
 
 #include "til.h"
 #include "til_fb.h"
+#include "til_module_context.h"
 #include "til_settings.h"
 
 #include "draw.h"
@@ -18,26 +19,26 @@
 
 #define DEFAULT_ROT_ADJ	.00003
 
-struct points
-{
-	float x, y, z;
-	struct points *next;
+struct points {
+	float			x, y, z;
+	struct			points *next;
 };
 
 typedef struct stars_context_t {
-	struct		points* points;
-	float		rot_adj;
-	float		rot_rate;
-	float		rot_angle;
-	float		offset_x;
-	float		offset_y;
-	float		offset_angle;
-	unsigned	seed;
+	til_module_context_t	til_module_context;
+	struct			points* points;
+	float			rot_adj;
+	float			rot_rate;
+	float			rot_angle;
+	float			offset_x;
+	float			offset_y;
+	float			offset_angle;
+	unsigned		seed;
 } stars_context_t;
 
 typedef struct stars_setup_t {
-	til_setup_t	til_setup;
-	float		rot_adj;
+	til_setup_t		til_setup;
+	float			rot_adj;
 } stars_setup_t;
 
 static stars_setup_t stars_default_setup = {
@@ -50,7 +51,7 @@ float get_random_unit_coord(unsigned *seed) {
 }
 
 
-static void * stars_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static til_module_context_t * stars_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	stars_context_t *ctxt;
 	float		z;
@@ -59,7 +60,7 @@ static void * stars_create_context(unsigned seed, unsigned ticks, unsigned n_cpu
 	if (!setup)
 		setup = &stars_default_setup.til_setup;
 
-	ctxt = malloc(sizeof(stars_context_t));
+	ctxt = til_module_context_new(sizeof(stars_context_t), seed, n_cpus);
 	if (!ctxt)
 		return NULL;
 
@@ -85,12 +86,12 @@ static void * stars_create_context(unsigned seed, unsigned ticks, unsigned n_cpu
 			ctxt->points = p_ptr;
 		}
 	}
-	return ctxt;
+	return &ctxt->til_module_context;
 }
 
-static void stars_destroy_context(void *context)
+static void stars_destroy_context(til_module_context_t *context)
 {
-	stars_context_t *ctxt = context;
+	stars_context_t *ctxt = (stars_context_t *)context;
 	struct points* p_ptr;
 	struct points* last_ptr=NULL;
 
@@ -108,9 +109,9 @@ static void stars_destroy_context(void *context)
 }
 
 
-static void stars_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
+static void stars_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
-	stars_context_t	*ctxt = context;
+	stars_context_t	*ctxt = (stars_context_t *)context;
 	struct points* iterator;
 	struct points* tmp_ptr;
 	struct points* last_ptr=NULL;

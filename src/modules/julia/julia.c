@@ -5,6 +5,7 @@
 
 #include "til.h"
 #include "til_fb.h"
+#include "til_module_context.h"
 
 /* Copyright (C) 2017 Vito Caputo <vcaputo@pengaru.com> */
 
@@ -13,12 +14,13 @@
 /* TODO: explore using C99 complex.h and its types? */
 
 typedef struct julia_context_t {
-	float		rr;
-	float		realscale;
-	float		imagscale;
-	float		creal;
-	float		cimag;
-	float		threshold;
+	til_module_context_t	til_module_context;
+	float			rr;
+	float			realscale;
+	float			imagscale;
+	float			creal;
+	float			cimag;
+	float			threshold;
 } julia_context_t;
 
 static uint32_t	colors[] = {
@@ -65,25 +67,19 @@ static uint32_t	colors[] = {
 		};
 
 
-static void * julia_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static til_module_context_t * julia_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	julia_context_t	*ctxt;
 
-	ctxt = calloc(1, sizeof(julia_context_t));
+	ctxt = til_module_context_new(sizeof(julia_context_t), seed, n_cpus);
 	if (!ctxt)
 		return NULL;
 
 	ctxt->rr = ((float)rand_r(&seed)) / (float)RAND_MAX * 100.f;
 
-	return ctxt;
+	return &ctxt->til_module_context;
 }
 
-
-static void julia_destroy_context(void *context)
-{
-	free(context);
-
-}
 
 static inline unsigned julia_iter(float real, float imag, float creal, float cimag, unsigned max_iters, float threshold)
 {
@@ -110,9 +106,9 @@ static inline unsigned julia_iter(float real, float imag, float creal, float cim
 
 
 /* Prepare a frame for concurrent drawing of fragment using multiple fragments */
-static void julia_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
+static void julia_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
 {
-	julia_context_t	*ctxt = context;
+	julia_context_t	*ctxt = (julia_context_t *)context;
 
 	*res_fragmenter = til_fragmenter_slice_per_cpu;
 
@@ -137,9 +133,9 @@ static void julia_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, 
 
 
 /* Draw a morphing Julia set */
-static void julia_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
+static void julia_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
-	julia_context_t	*ctxt = context;
+	julia_context_t	*ctxt = (julia_context_t *)context;
 	unsigned	x, y;
 	unsigned	width = fragment->width, height = fragment->height;
 	uint32_t	*buf = fragment->buf;
@@ -160,7 +156,6 @@ static void julia_render_fragment(void *context, unsigned ticks, unsigned cpu, t
 
 til_module_t	julia_module = {
 	.create_context = julia_create_context,
-	.destroy_context = julia_destroy_context,
 	.prepare_frame = julia_prepare_frame,
 	.render_fragment = julia_render_fragment,
 	.name = "julia",

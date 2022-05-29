@@ -6,6 +6,7 @@
 
 #include "til.h"
 #include "til_fb.h"
+#include "til_module_context.h"
 
 /* Copyright (C) 2017-2022 Vito Caputo <vcaputo@pengaru.com> */
 
@@ -25,7 +26,8 @@ typedef struct blinds_setup_t {
 } blinds_setup_t;
 
 typedef struct blinds_context_t {
-	blinds_setup_t	setup;
+	til_module_context_t	til_module_context;
+	blinds_setup_t		setup;
 } blinds_context_t;
 
 
@@ -35,28 +37,20 @@ static blinds_setup_t blinds_default_setup = {
 };
 
 
-static void * blinds_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static til_module_context_t * blinds_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	blinds_context_t	*ctxt;
 
 	if (!setup)
 		setup = &blinds_default_setup.til_setup;
 
-	ctxt = calloc(1, sizeof(blinds_context_t));
+	ctxt = til_module_context_new(sizeof(blinds_context_t), seed, n_cpus);
 	if (!ctxt)
 		return NULL;
 
 	ctxt->setup = *(blinds_setup_t *)setup;
 
-	return ctxt;
-}
-
-
-static void blinds_destroy_context(void *context)
-{
-	blinds_context_t	*ctxt = context;
-
-	free(ctxt);
+	return &ctxt->til_module_context;
 }
 
 
@@ -89,9 +83,9 @@ static inline void draw_blind_vertical(til_fb_fragment_t *fragment, unsigned col
 
 
 /* draw blinds over the fragment */
-static void blinds_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
+static void blinds_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
-	blinds_context_t	*ctxt = context;
+	blinds_context_t	*ctxt = (blinds_context_t *)context;
 
 	static float rr;
 
@@ -194,7 +188,6 @@ static int blinds_setup(const til_settings_t *settings, til_setting_t **res_sett
 
 til_module_t	blinds_module = {
 	.create_context = blinds_create_context,
-	.destroy_context = blinds_destroy_context,
 	.render_fragment = blinds_render_fragment,
 	.setup = blinds_setup,
 	.name = "blinds",

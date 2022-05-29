@@ -39,7 +39,7 @@ static til_fb_ops_t	*fb_ops;
 
 typedef struct rototiller_t {
 	const til_module_t	*module;
-	void			*module_context;
+	til_module_context_t	*module_context;
 	pthread_t		thread;
 	til_fb_t		*fb;
 	struct timeval		start_tv;
@@ -226,7 +226,7 @@ static void * rototiller_thread(void *_rt)
 		gettimeofday(&now, NULL);
 		ticks = get_ticks(&rt->start_tv, &now, rt->ticks_offset);
 
-		til_module_render(rt->module, rt->module_context, ticks, &page->fragment);
+		til_module_render(rt->module_context, ticks, &page->fragment);
 
 		til_fb_page_put(rt->fb, page);
 	}
@@ -282,6 +282,7 @@ int main(int argc, const char *argv[])
 						get_ticks(&rototiller.start_tv,
 							&rototiller.start_tv,
 							rototiller.ticks_offset),
+						0,
 						setup.module_setup,
 						&rototiller.module_context)) < 0,
 		"unable to create module context: %s", strerror(-r));
@@ -299,7 +300,7 @@ int main(int argc, const char *argv[])
 	pthread_cancel(rototiller.thread);
 	pthread_join(rototiller.thread, NULL);
 	til_shutdown();
-	til_module_destroy_context(rototiller.module, rototiller.module_context);
+	til_module_context_free(rototiller.module_context);
 	til_fb_free(rototiller.fb);
 
 	return EXIT_SUCCESS;

@@ -4,21 +4,22 @@
 
 #include "til.h"
 #include "til_fb.h"
+#include "til_module_context.h"
 #include "til_util.h"
 
 /* Copyright (C) 2019 - Vito Caputo <vcaputo@pengaru.com> */
 
 typedef struct montage_context_t {
+	til_module_context_t	til_module_context;
 	const til_module_t	**modules;
-	void			**contexts;
+	til_module_context_t	**contexts;
 	size_t			n_modules;
 } montage_context_t;
 
-static void setup_next_module(montage_context_t *ctxt);
-static void * montage_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup);
-static void montage_destroy_context(void *context);
-static void montage_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter);
-static void montage_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment);
+static til_module_context_t * montage_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup);
+static void montage_destroy_context(til_module_context_t *context);
+static void montage_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter);
+static void montage_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment);
 
 
 til_module_t	montage_module = {
@@ -31,13 +32,13 @@ til_module_t	montage_module = {
 };
 
 
-static void * montage_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static til_module_context_t * montage_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	const til_module_t	**modules, *rtv_module, *compose_module;
 	size_t			n_modules;
 	montage_context_t	*ctxt;
 
-	ctxt = calloc(1, sizeof(montage_context_t));
+	ctxt = til_module_context_new(sizeof(montage_context_t), seed, n_cpus);
 	if (!ctxt)
 		return NULL;
 
@@ -89,28 +90,27 @@ static void * montage_create_context(unsigned seed, unsigned ticks, unsigned n_c
 
 		(void) til_module_randomize_setup(module, &setup, NULL);
 
-		if (module->create_context)	/* FIXME errors */
-			ctxt->contexts[i] = module->create_context(rand_r(&seed), ticks, 1, setup);
+		/* FIXME errors */
+		(void) til_module_create_context(module, rand_r(&seed), ticks, 1, setup, &ctxt->contexts[i]);
 
 		til_setup_free(setup);
 	}
 
-	return ctxt;
+	return &ctxt->til_module_context;
 }
 
 
-static void montage_destroy_context(void *context)
+static void montage_destroy_context(til_module_context_t *context)
 {
-	montage_context_t	*ctxt = context;
+	montage_context_t	*ctxt = (montage_context_t *)context;
 
 	for (int i = 0; i < ctxt->n_modules; i++)
-		til_module_destroy_context(ctxt->modules[i], ctxt->contexts[i]);
+		til_module_context_free(ctxt->contexts[i]);
 
 	free(ctxt->contexts);
 	free(ctxt->modules);
 	free(ctxt);
 }
-
 
 
 /* this is a hacked up derivative of til_fb_fragment_tile_single() */
@@ -164,9 +164,9 @@ static int montage_fragment_tile(const til_fb_fragment_t *fragment, unsigned til
  * 1. it divides the frame into subfragments for threaded rendering
  * 2. it determines which modules will be rendered where via fragment->number
  */
-static int montage_fragmenter(void *context, unsigned n_cpus, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
+static int montage_fragmenter(til_module_context_t *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
 {
-	montage_context_t	*ctxt = context;
+	montage_context_t	*ctxt = (montage_context_t *)context;
 	float			root = sqrtf(ctxt->n_modules);
 	unsigned		tile_width = fragment->frame_width / ceilf(root);	/* screens are wide, always give excess to the width */
 	unsigned		tile_height = fragment->frame_height / rintf(root);	/* only give to the height when fraction is >= .5f */
@@ -183,18 +183,15 @@ static int montage_fragmenter(void *context, unsigned n_cpus, const til_fb_fragm
 }
 
 
-
-static void montage_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
+static void montage_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
 {
-	montage_context_t	*ctxt = context;
-
 	*res_fragmenter = montage_fragmenter;
 }
 
 
-static void montage_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
+static void montage_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
-	montage_context_t	*ctxt = context;
+	montage_context_t	*ctxt = (montage_context_t *)context;
 	const til_module_t	*module = ctxt->modules[fragment->number];
 
 	if (fragment->number >= ctxt->n_modules) {
@@ -203,21 +200,5 @@ static void montage_render_fragment(void *context, unsigned ticks, unsigned cpu,
 		return;
 	}
 
-	/* since we're *already* in a threaded render of tiles, no further
-	 * threading within the montage tiles is desirable, so the per-module
-	 * render is done explicitly serially here in an open-coded ad-hoc
-	 * fashion for now. FIXME TODO: move this into rototiller.c
-	 */
-	if (module->prepare_frame) {
-		til_fragmenter_t	fragmenter;
-		unsigned		fragnum = 0;
-		til_fb_fragment_t	frag;
-
-		module->prepare_frame(ctxt->contexts[fragment->number], ticks, 1, fragment, &fragmenter);
-
-		while (fragmenter(ctxt->contexts[fragment->number], 1, fragment, fragnum++, &frag))
-			module->render_fragment(ctxt->contexts[fragment->number], ticks, 0, &frag);
-	} else if (module->render_fragment)
-			module->render_fragment(ctxt->contexts[fragment->number], ticks, 0, fragment);
+	til_module_render(ctxt->contexts[fragment->number], ticks, fragment);
 }
-

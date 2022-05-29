@@ -46,21 +46,23 @@
 
 #include "til.h"
 #include "til_fb.h"
+#include "til_module_context.h"
 
 
 typedef struct plato_context_t {
-	float		r;
+	til_module_context_t	til_module_context;
+	float			r;
 } plato_context_t;
 
 typedef struct v3f_t {
-	float	x, y, z;
+	float			x, y, z;
 } v3f_t;
 
 typedef struct polyhedron_t {
-	const char	*name;
-	unsigned	edge_cnt, vertex_cnt;
-	unsigned	n_vertices;		/* size of vertices[] which enumerates all vertices in face order */
-	v3f_t		vertices[];
+	const char		*name;
+	unsigned		edge_cnt, vertex_cnt;
+	unsigned		n_vertices;		/* size of vertices[] which enumerates all vertices in face order */
+	v3f_t			vertices[];
 } polyhedron_t;
 
 
@@ -608,29 +610,21 @@ static void draw_polyhedron(const polyhedron_t *polyhedron, m4f_t *transform, ti
 }
 
 
-static void * plato_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static til_module_context_t * plato_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	plato_context_t	*ctxt;
 
-	ctxt = calloc(1, sizeof(plato_context_t));
+	ctxt = til_module_context_new(sizeof(plato_context_t), seed, n_cpus);
 	if (!ctxt)
 		return NULL;
 
-	return ctxt;
+	return &ctxt->til_module_context;
 }
 
 
-static void plato_destroy_context(void *context)
+static void plato_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
-	plato_context_t	*ctxt = context;
-
-	free(ctxt);
-}
-
-
-static void plato_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
-{
-	plato_context_t	*ctxt = context;
+	plato_context_t	*ctxt = (plato_context_t *)context;
 
 	ctxt->r += .015f;
 	til_fb_fragment_clear(fragment);
@@ -666,7 +660,6 @@ static void plato_render_fragment(void *context, unsigned ticks, unsigned cpu, t
 
 til_module_t	plato_module = {
 	.create_context = plato_create_context,
-	.destroy_context = plato_destroy_context,
 	.render_fragment = plato_render_fragment,
 	.name = "plato",
 	.description = "Platonic solids rendered in 3D",

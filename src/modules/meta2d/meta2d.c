@@ -21,6 +21,7 @@
 
 #include "til.h"
 #include "til_fb.h"
+#include "til_module_context.h"
 
 #include "din/din.h"
 
@@ -30,16 +31,17 @@
 #define	META2D_NUM_BALLS	10
 
 typedef struct meta2d_ball_t {
-	v2f_t		position;
-	float		radius;
-	v3f_t		color;
+	v2f_t			position;
+	float			radius;
+	v3f_t			color;
 } meta2d_ball_t;
 
 typedef struct meta2d_context_t {
-	unsigned	n;
-	din_t		*din_a, *din_b;
-	float		din_t;
-	meta2d_ball_t	balls[META2D_NUM_BALLS];
+	til_module_context_t	til_module_context;
+	unsigned		n;
+	din_t			*din_a, *din_b;
+	float			din_t;
+	meta2d_ball_t		balls[META2D_NUM_BALLS];
 } meta2d_context_t;
 
 
@@ -65,11 +67,13 @@ static inline uint32_t color_to_uint32(v3f_t color) {
 }
 
 
-static void * meta2d_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static til_module_context_t * meta2d_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	meta2d_context_t	*ctxt;
 
-	ctxt = calloc(1, sizeof(meta2d_context_t));
+	ctxt = til_module_context_new(sizeof(meta2d_context_t), seed, n_cpus);
+	if (!ctxt)
+		return NULL;
 
 	/* perlin noise is used for some organic-ish random movement of the balls */
 	ctxt->din_a = din_new(10, 10, META2D_NUM_BALLS + 2);
@@ -84,13 +88,13 @@ static void * meta2d_create_context(unsigned seed, unsigned ticks, unsigned n_cp
 		v3f_rand(&ball->color, &(v3f_t){0.f, 0.f, 0.f}, &(v3f_t){1.f, 1.f, 1.f});
 	}
 
-	return ctxt;
+	return &ctxt->til_module_context;
 }
 
 
-static void meta2d_destroy_context(void *context)
+static void meta2d_destroy_context(til_module_context_t *context)
 {
-	meta2d_context_t	*ctxt = context;
+	meta2d_context_t	*ctxt = (meta2d_context_t *)context;
 
 	din_free(ctxt->din_a);
 	din_free(ctxt->din_b);
@@ -98,9 +102,9 @@ static void meta2d_destroy_context(void *context)
 }
 
 
-static void meta2d_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
+static void meta2d_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
 {
-	meta2d_context_t	*ctxt = context;
+	meta2d_context_t	*ctxt = (meta2d_context_t *)context;
 
 	*res_fragmenter = til_fragmenter_slice_per_cpu;
 
@@ -175,9 +179,9 @@ static void meta2d_prepare_frame(void *context, unsigned ticks, unsigned n_cpus,
 }
 
 
-static void meta2d_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
+static void meta2d_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
-	meta2d_context_t	*ctxt = context;
+	meta2d_context_t	*ctxt = (meta2d_context_t *)context;
 	float			xf = 2.f / (float)fragment->frame_width;
 	float			yf = 2.f / (float)fragment->frame_height;
 	v2f_t			coord;

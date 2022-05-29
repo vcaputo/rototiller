@@ -6,6 +6,7 @@
 
 #include "til.h"
 #include "til_fb.h"
+#include "til_module_context.h"
 #include "til_util.h"
 
 #include "particles.h"
@@ -25,6 +26,7 @@ typedef struct sparkler_setup_t {
 } sparkler_setup_t;
 
 typedef struct sparkler_context_t {
+	til_module_context_t	til_module_context;
 	particles_t		*particles;
 	sparkler_setup_t	setup;
 } sparkler_context_t;
@@ -33,14 +35,14 @@ extern particle_ops_t	simple_ops;
 
 static sparkler_setup_t sparkler_default_setup;
 
-static void * sparkler_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static til_module_context_t * sparkler_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	sparkler_context_t	*ctxt;
 
 	if (!setup)
 		setup = &sparkler_default_setup.til_setup;
 
-	ctxt = calloc(1, sizeof(sparkler_context_t));
+	ctxt = til_module_context_new(sizeof(sparkler_context_t), seed, n_cpus);
 	if (!ctxt)
 		return NULL;
 
@@ -59,22 +61,22 @@ static void * sparkler_create_context(unsigned seed, unsigned ticks, unsigned n_
 
 	particles_add_particles(ctxt->particles, NULL, &simple_ops, INIT_PARTS);
 
-	return ctxt;
+	return &ctxt->til_module_context;
 }
 
 
-static void sparkler_destroy_context(void *context)
+static void sparkler_destroy_context(til_module_context_t *context)
 {
-	sparkler_context_t	*ctxt = context;
+	sparkler_context_t	*ctxt = (sparkler_context_t *)context;
 
 	particles_free(ctxt->particles);
 	free(ctxt);
 }
 
 
-static void sparkler_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
+static void sparkler_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
 {
-	sparkler_context_t	*ctxt = context;
+	sparkler_context_t	*ctxt = (sparkler_context_t *)context;
 
 	*res_fragmenter = til_fragmenter_slice_per_cpu;
 
@@ -88,9 +90,9 @@ static void sparkler_prepare_frame(void *context, unsigned ticks, unsigned n_cpu
 
 
 /* Render a 3D particle system */
-static void sparkler_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
+static void sparkler_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
-	sparkler_context_t	*ctxt = context;
+	sparkler_context_t	*ctxt = (sparkler_context_t *)context;
 
 	if (!ctxt->setup.show_bsp_matches)
 		til_fb_fragment_clear(fragment);

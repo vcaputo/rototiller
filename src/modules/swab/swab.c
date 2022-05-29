@@ -23,22 +23,24 @@
 
 #include "til.h"
 #include "til_fb.h"
+#include "til_module_context.h"
 #include "til_util.h"
 
 #include "din/din.h"
 
 
 typedef struct swab_context_t {
-	din_t		*din;
-	float		r;
+	til_module_context_t	til_module_context;
+	din_t			*din;
+	float			r;
 } swab_context_t;
 
 typedef struct color_t {
-	float	r,g,b;
+	float			r,g,b;
 } color_t;
 
 typedef struct v3f_t {
-	float	x, y, z;
+	float			x, y, z;
 } v3f_t;
 
 
@@ -64,11 +66,11 @@ static inline uint32_t color_to_uint32(color_t color) {
 }
 
 
-static void * swab_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static til_module_context_t * swab_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	swab_context_t	*ctxt;
 
-	ctxt = calloc(1, sizeof(swab_context_t));
+	ctxt = til_module_context_new(sizeof(swab_context_t), seed, n_cpus);
 	if (!ctxt)
 		return NULL;
 
@@ -78,22 +80,22 @@ static void * swab_create_context(unsigned seed, unsigned ticks, unsigned n_cpus
 		return NULL;
 	}
 
-	return ctxt;
+	return &ctxt->til_module_context;
 }
 
 
-static void swab_destroy_context(void *context)
+static void swab_destroy_context(til_module_context_t *context)
 {
-	swab_context_t	*ctxt = context;
+	swab_context_t	*ctxt = (swab_context_t *)context;
 
 	din_free(ctxt->din);
 	free(ctxt);
 }
 
 
-static void swab_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
+static void swab_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
 {
-	swab_context_t	*ctxt = context;
+	swab_context_t	*ctxt = (swab_context_t *)context;
 
 	*res_fragmenter = til_fragmenter_tile64;
 
@@ -101,9 +103,9 @@ static void swab_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, t
 }
 
 
-static void swab_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
+static void swab_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
-	swab_context_t	*ctxt = context;
+	swab_context_t	*ctxt = (swab_context_t *)context;
 	float		cos_r = cos(ctxt->r);
 	float		sin_r = sin(ctxt->r);
 	float		z1 = cos_r;

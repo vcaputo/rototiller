@@ -20,6 +20,7 @@
 
 #include "til.h"
 #include "til_fb.h"
+#include "til_module_context.h"
 
 
 #define CHECKERS_DEFAULT_SIZE		32
@@ -49,6 +50,7 @@ typedef struct checkers_setup_t {
 } checkers_setup_t;
 
 typedef struct checkers_context_t {
+	til_module_context_t	til_module_context;
 	checkers_setup_t	setup;
 } checkers_context_t;
 
@@ -61,38 +63,32 @@ static checkers_setup_t checkers_default_setup = {
 };
 
 
-static void * checkers_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static til_module_context_t * checkers_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	checkers_context_t	*ctxt;
 
 	if (!setup)
 		setup = &checkers_default_setup.til_setup;
 
-	ctxt = calloc(1, sizeof(checkers_context_t));
+	ctxt = til_module_context_new(sizeof(checkers_context_t), seed, n_cpus);
 	if (!ctxt)
 		return NULL;
 
 	ctxt->setup = *(checkers_setup_t *)setup;
 
-	return ctxt;
+	return &ctxt->til_module_context;
 }
 
 
-static void checkers_destroy_context(void *context)
+static int checkers_fragmenter(til_module_context_t *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
 {
-	free(context);
-}
-
-
-static int checkers_fragmenter(void *context, unsigned n_cpus, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
-{
-	checkers_context_t	*ctxt = context;
+	checkers_context_t	*ctxt = (checkers_context_t *)context;
 
 	return til_fb_fragment_tile_single(fragment, ctxt->setup.size, number, res_fragment);
 }
 
 
-static void checkers_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
+static void checkers_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
 {
 	*res_fragmenter = checkers_fragmenter;
 }
@@ -109,9 +105,9 @@ static inline unsigned hash(unsigned x)
 }
 
 
-static void checkers_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
+static void checkers_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
-	checkers_context_t	*ctxt = context;
+	checkers_context_t	*ctxt = (checkers_context_t *)context;
 	int			state;
 
 	switch (ctxt->setup.pattern) {
@@ -293,7 +289,6 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 
 til_module_t	checkers_module = {
 	.create_context = checkers_create_context,
-	.destroy_context = checkers_destroy_context,
 	.prepare_frame = checkers_prepare_frame,
 	.render_fragment = checkers_render_fragment,
 	.setup = checkers_setup,

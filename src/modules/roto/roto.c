@@ -5,6 +5,7 @@
 
 #include "til.h"
 #include "til_fb.h"
+#include "til_module_context.h"
 
 /* Copyright (C) 2016 Vito Caputo <vcaputo@pengaru.com> */
 
@@ -24,31 +25,26 @@ typedef struct color_t {
 } color_t;
 
 typedef struct roto_context_t {
-	unsigned	r, rr;
+	til_module_context_t	til_module_context;
+	unsigned		r, rr;
 } roto_context_t;
 
 static int32_t	costab[FIXED_TRIG_LUT_SIZE], sintab[FIXED_TRIG_LUT_SIZE];
 static uint8_t	texture[256][256];
 static color_t	palette[2];
 
-static void * roto_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static til_module_context_t * roto_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	roto_context_t	*ctxt;
 
-	ctxt = calloc(1, sizeof(roto_context_t));
+	ctxt = til_module_context_new(sizeof(roto_context_t), seed, n_cpus);
 	if (!ctxt)
 		return NULL;
 
 	ctxt->r = rand_r(&seed);
 	ctxt->rr = rand_r(&seed);
 
-	return ctxt;
-}
-
-
-static void roto_destroy_context(void *context)
-{
-	free(context);
+	return &ctxt->til_module_context;
 }
 
 
@@ -178,9 +174,9 @@ static void init_roto(uint8_t texture[256][256], int32_t *costab, int32_t *sinta
 
 
 /* prepare a frame for concurrent rendering */
-static void roto_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
+static void roto_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
 {
-	roto_context_t	*ctxt = context;
+	roto_context_t	*ctxt = (roto_context_t *)context;
 	static int	initialized;
 
 	if (!initialized) {
@@ -198,9 +194,9 @@ static void roto_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, t
 
 
 /* Draw a rotating checkered 256x256 texture into fragment. */
-static void roto_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
+static void roto_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
-	roto_context_t	*ctxt = context;
+	roto_context_t	*ctxt = (roto_context_t *)context;
 	int		y_cos_r, y_sin_r, x_cos_r, x_sin_r, x_cos_r_init, x_sin_r_init, cos_r, sin_r;
 	int		x, y, frame_width = fragment->frame_width, frame_height = fragment->frame_height;
 	uint32_t	*buf = fragment->buf;
@@ -248,7 +244,6 @@ static void roto_render_fragment(void *context, unsigned ticks, unsigned cpu, ti
 
 til_module_t	roto_module = {
 	.create_context = roto_create_context,
-	.destroy_context = roto_destroy_context,
 	.prepare_frame = roto_prepare_frame,
 	.render_fragment = roto_render_fragment,
 	.name = "roto",

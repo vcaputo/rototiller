@@ -5,6 +5,7 @@
 
 #include "til.h"
 #include "til_fb.h"
+#include "til_module_context.h"
 
 /* Copyright (C) 2017 Vito Caputo <vcaputo@pengaru.com> */
 
@@ -31,7 +32,8 @@ typedef struct color_t {
 static int32_t	costab[FIXED_TRIG_LUT_SIZE], sintab[FIXED_TRIG_LUT_SIZE];
 
 typedef struct plasma_context_t {
-	unsigned	rr;
+	til_module_context_t	til_module_context;
+	unsigned		rr;
 } plasma_context_t;
 
 
@@ -51,7 +53,7 @@ static void init_plasma(int32_t *costab, int32_t *sintab)
 }
 
 
-static void * plasma_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static til_module_context_t * plasma_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	static int		initialized;
 	plasma_context_t	*ctxt;
@@ -62,26 +64,20 @@ static void * plasma_create_context(unsigned seed, unsigned ticks, unsigned n_cp
 		init_plasma(costab, sintab);
 	}
 
-	ctxt = calloc(1, sizeof(plasma_context_t));
+	ctxt = til_module_context_new(sizeof(plasma_context_t), seed, n_cpus);
 	if (!ctxt)
 		return NULL;
 
 	ctxt->rr = rand_r(&seed);
 
-	return ctxt;
-}
-
-
-static void plasma_destroy_context(void *context)
-{
-	free(context);
+	return &ctxt->til_module_context;
 }
 
 
 /* Prepare a frame for concurrent drawing of fragment using multiple fragments */
-static void plasma_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
+static void plasma_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
 {
-	plasma_context_t	*ctxt = context;
+	plasma_context_t	*ctxt = (plasma_context_t *)context;
 
 	*res_fragmenter = til_fragmenter_slice_per_cpu;
 	ctxt->rr += 3;
@@ -89,9 +85,9 @@ static void plasma_prepare_frame(void *context, unsigned ticks, unsigned n_cpus,
 
 
 /* Draw a plasma effect */
-static void plasma_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
+static void plasma_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
-	plasma_context_t	*ctxt = context;
+	plasma_context_t	*ctxt = (plasma_context_t *)context;
 	int			xstep = PLASMA_WIDTH / fragment->frame_width;
 	int			ystep = PLASMA_HEIGHT / fragment->frame_height;
 	unsigned		width = fragment->width * xstep, height = fragment->height * ystep;
@@ -160,7 +156,6 @@ static void plasma_render_fragment(void *context, unsigned ticks, unsigned cpu, 
 
 til_module_t	plasma_module = {
 	.create_context = plasma_create_context,
-	.destroy_context = plasma_destroy_context,
 	.prepare_frame = plasma_prepare_frame,
 	.render_fragment = plasma_render_fragment,
 	.name = "plasma",

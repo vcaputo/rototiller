@@ -22,7 +22,7 @@ typedef struct til_threads_t {
 
 	pthread_mutex_t		frame_mutex;
 	pthread_cond_t		frame_cond;
-	void			(*render_fragment_func)(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment);
+	void			(*render_fragment_func)(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment);
 	void			*context;
 	til_fb_fragment_t	*fragment;
 	til_fragmenter_t	fragmenter;
@@ -62,7 +62,7 @@ static void * thread_func(void *_thread)
 
 			frag_num = __sync_fetch_and_add(&threads->next_fragment, 1);
 
-			if (!threads->fragmenter(threads->context, threads->n_threads, threads->fragment, frag_num, &fragment))
+			if (!threads->fragmenter(threads->context, threads->fragment, frag_num, &fragment))
 				break;
 
 			threads->render_fragment_func(threads->context, threads->ticks, thread->id, &fragment);
@@ -94,7 +94,7 @@ void til_threads_wait_idle(til_threads_t *threads)
 
 
 /* submit a frame's fragments to the threads */
-void til_threads_frame_submit(til_threads_t *threads, til_fb_fragment_t *fragment, til_fragmenter_t fragmenter, void (*render_fragment_func)(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment), void *context, unsigned ticks)
+void til_threads_frame_submit(til_threads_t *threads, til_fb_fragment_t *fragment, til_fragmenter_t fragmenter, void (*render_fragment_func)(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment), til_module_context_t *context, unsigned ticks)
 {
 	til_threads_wait_idle(threads);	/* XXX: likely non-blocking; already happens pre page flip */
 

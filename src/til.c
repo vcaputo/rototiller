@@ -13,6 +13,7 @@
 
 #include "til.h"
 #include "til_fb.h"
+#include "til_module_context.h"
 #include "til_settings.h"
 #include "til_threads.h"
 #include "til_util.h"
@@ -105,13 +106,13 @@ void til_shutdown(void)
 }
 
 
-static void _blank_prepare_frame(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
+static void _blank_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
 {
 	*res_fragmenter = til_fragmenter_slice_per_cpu;
 }
 
 
-static void _blank_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
+static void _blank_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
 	til_fb_fragment_clear(fragment);
 }
@@ -167,22 +168,35 @@ void til_get_modules(const til_module_t ***res_modules, size_t *res_n_modules)
 }
 
 
-static void module_render_fragment(const til_module_t *module, void *context, til_threads_t *threads, unsigned ticks, til_fb_fragment_t *fragment)
+static void module_render_fragment(til_module_context_t *context, til_threads_t *threads, unsigned ticks, til_fb_fragment_t *fragment)
 {
-	assert(module);
+	const til_module_t	*module;
+
+	assert(context);
+	assert(context->module);
 	assert(threads);
 	assert(fragment);
 
-	if (module->prepare_frame) {
+	module = context->module;
+
+	if (context->n_cpus > 1 && module->prepare_frame) {
 		til_fragmenter_t	fragmenter;
 
-		module->prepare_frame(context, ticks, til_threads_num_threads(threads), fragment, &fragmenter);
+		module->prepare_frame(context, ticks, fragment, &fragmenter);
 
 		if (module->render_fragment) {
 			til_threads_frame_submit(threads, fragment, fragmenter, module->render_fragment, context, ticks);
 			til_threads_wait_idle(threads);
 		}
+	} else if (module->prepare_frame) {
+		til_fragmenter_t	fragmenter;
+		unsigned		fragnum = 0;
+		til_fb_fragment_t	frag;
 
+		module->prepare_frame(context, ticks, fragment, &fragmenter);
+
+		while (fragmenter(context, fragment, fragnum++, &frag))
+			module->render_fragment(context, ticks, 0, &frag);
 	} else if (module->render_fragment)
 		module->render_fragment(context, ticks, 0, fragment);
 
@@ -196,42 +210,40 @@ static void module_render_fragment(const til_module_t *module, void *context, ti
 /* This is a public interface to the threaded module rendering intended for use by
  * modules that wish to get the output of other modules for their own use.
  */
-void til_module_render(const til_module_t *module, void *context, unsigned ticks, til_fb_fragment_t *fragment)
+void til_module_render(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment)
 {
-	module_render_fragment(module, context, til_threads, ticks, fragment);
+	module_render_fragment(context, til_threads, ticks, fragment);
 }
 
 
-int til_module_create_context(const til_module_t *module, unsigned seed, unsigned ticks, til_setup_t *setup, void **res_context)
+/* if n_cpus == 0, it will be automatically set to n_threads.
+ * to explicitly set n_cpus, just pass the value.  This is primarily intended for
+ * the purpose of explicitly constraining rendering parallelization to less than n_threads,
+ * if n_cpus is specified > n_threads it won't increase n_threads...
+ */
+int til_module_create_context(const til_module_t *module, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup, til_module_context_t **res_context)
 {
-	void	*context;
+	til_module_context_t	*context;
 
 	assert(module);
 	assert(res_context);
 
-	if (!module->create_context)
-		return 0;
+	if (!n_cpus)
+		n_cpus = til_threads_num_threads(til_threads);
 
-	context = module->create_context(seed, ticks, til_threads_num_threads(til_threads), setup);
+	if (!module->create_context)
+		context = til_module_context_new(sizeof(til_module_context_t), seed, n_cpus);
+	else
+		context = module->create_context(seed, ticks, n_cpus, setup);
+
 	if (!context)
 		return -ENOMEM;
+
+	context->module = module;
 
 	*res_context = context;
 
 	return 0;
-}
-
-
-void * til_module_destroy_context(const til_module_t *module, void *context)
-{
-	assert(module);
-
-	if (!module->destroy_context)
-		return NULL;
-
-	module->destroy_context(context);
-
-	return NULL;
 }
 
 
@@ -336,15 +348,15 @@ int til_module_randomize_setup(const til_module_t *module, til_setup_t **res_set
 }
 
 
-/* generic fragmenter using a horizontal slice per cpu according to n_cpus */
-int til_fragmenter_slice_per_cpu(void *context, unsigned n_cpus, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
+/* generic fragmenter using a horizontal slice per cpu according to context->n_cpus */
+int til_fragmenter_slice_per_cpu(til_module_context_t *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
 {
-	return til_fb_fragment_slice_single(fragment, n_cpus, number, res_fragment);
+	return til_fb_fragment_slice_single(fragment, context->n_cpus, number, res_fragment);
 }
 
 
-/* generic fragmenter using 64x64 tiles, ignores n_cpus */
-int til_fragmenter_tile64(void *context, unsigned n_cpus, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
+/* generic fragmenter using 64x64 tiles */
+int til_fragmenter_tile64(til_module_context_t *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
 {
 	return til_fb_fragment_tile_single(fragment, 64, number, res_fragment);
 }
