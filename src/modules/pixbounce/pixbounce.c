@@ -299,7 +299,7 @@ static void pixbounce_render_fragment(til_module_context_t *context, unsigned ti
 		for(int cursor_x=0; cursor_x < ctxt->pix->width*ctxt->multiplier; cursor_x++) {
 			int pix_offset = ((cursor_y/ctxt->multiplier)*ctxt->pix->width) + (cursor_x/ctxt->multiplier);
 			if(ctxt->pix->pix_map[pix_offset] == 0) continue;
-			til_fb_fragment_put_pixel_unchecked(
+			til_fb_fragment_put_pixel_checked(
 					fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, ctxt->x+cursor_x, ctxt->y+cursor_y,
 					ctxt->color
 				);
