@@ -192,7 +192,6 @@ static void montage_prepare_frame(til_module_context_t *context, unsigned ticks,
 static void montage_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
 	montage_context_t	*ctxt = (montage_context_t *)context;
-	const til_module_t	*module = ctxt->modules[fragment->number];
 
 	if (fragment->number >= ctxt->n_modules) {
 		til_fb_fragment_clear(fragment);
