@@ -63,7 +63,7 @@ static inline void draw_blind_horizontal(til_fb_fragment_t *fragment, unsigned r
 /* XXX FIXME: use faster block style fill/copy if til_fb gets that */
 	for (unsigned y = 0; y < height; y++) {
 		for (unsigned x = 0; x < fragment->width; x++)
-			til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, fragment->x + x, fragment->y + y + row * row_height, 0xffffffff);
+			til_fb_fragment_put_pixel_checked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, fragment->x + x, fragment->y + y + row * row_height, 0xffffffff); /* FIXME: use _unchecked() variant, but must not assume frame_height == height */
 	}
 }
 
@@ -77,7 +77,7 @@ static inline void draw_blind_vertical(til_fb_fragment_t *fragment, unsigned col
 /* XXX FIXME: use faster block style fill/copy if til_fb gets that */
 	for (unsigned y = 0; y < fragment->height; y++) {
 		for (unsigned x = 0; x < width; x++)
-			til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, fragment->x + x + column * column_width, fragment->y + y, 0xffffffff);
+			til_fb_fragment_put_pixel_checked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, fragment->x + x + column * column_width, fragment->y + y, 0xffffffff); /* FIXME: use _unchecked() variant, but must not assume frame_width == width */
 	}
 }
 
