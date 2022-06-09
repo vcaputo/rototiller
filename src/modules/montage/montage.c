@@ -77,8 +77,9 @@ static til_module_context_t * montage_create_context(unsigned seed, unsigned tic
 		ctxt->modules[ctxt->n_modules++] = module;
 	}
 
-	ctxt->contexts = calloc(ctxt->n_modules, sizeof(void *));
+	ctxt->contexts = calloc(ctxt->n_modules, sizeof(til_module_context_t *));
 	if (!ctxt->contexts) {
+		free(ctxt->modules);
 		free(ctxt);
 
 		return NULL;
