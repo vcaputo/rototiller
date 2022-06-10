@@ -71,7 +71,7 @@ static til_module_context_t * meta2d_create_context(unsigned seed, unsigned tick
 {
 	meta2d_context_t	*ctxt;
 
-	ctxt = til_module_context_new(sizeof(meta2d_context_t), seed, n_cpus);
+	ctxt = til_module_context_new(sizeof(meta2d_context_t), seed, ticks, n_cpus);
 	if (!ctxt)
 		return NULL;
 

@@ -234,7 +234,7 @@ int til_module_create_context(const til_module_t *module, unsigned seed, unsigne
 		n_cpus = til_threads_num_threads(til_threads);
 
 	if (!module->create_context)
-		context = til_module_context_new(sizeof(til_module_context_t), seed, n_cpus);
+		context = til_module_context_new(sizeof(til_module_context_t), seed, ticks, n_cpus);
 	else
 		context = module->create_context(seed, ticks, n_cpus, setup);
 

@@ -44,7 +44,7 @@ static til_module_context_t * blinds_create_context(unsigned seed, unsigned tick
 	if (!setup)
 		setup = &blinds_default_setup.til_setup;
 
-	ctxt = til_module_context_new(sizeof(blinds_context_t), seed, n_cpus);
+	ctxt = til_module_context_new(sizeof(blinds_context_t), seed, ticks, n_cpus);
 	if (!ctxt)
 		return NULL;
 

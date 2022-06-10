@@ -64,7 +64,7 @@ static til_module_context_t * plasma_create_context(unsigned seed, unsigned tick
 		init_plasma(costab, sintab);
 	}
 
-	ctxt = til_module_context_new(sizeof(plasma_context_t), seed, n_cpus);
+	ctxt = til_module_context_new(sizeof(plasma_context_t), seed, ticks, n_cpus);
 	if (!ctxt)
 		return NULL;
 

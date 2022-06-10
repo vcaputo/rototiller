@@ -274,7 +274,7 @@ static til_module_context_t * submit_create_context(unsigned seed, unsigned tick
 	if (!setup)
 		setup = &submit_default_setup.til_setup;
 
-	ctxt = til_module_context_new(sizeof(submit_context_t), seed, n_cpus);
+	ctxt = til_module_context_new(sizeof(submit_context_t), seed, ticks, n_cpus);
 	if (!ctxt)
 		return NULL;
 

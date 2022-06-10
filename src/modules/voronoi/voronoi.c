@@ -87,7 +87,7 @@ static til_module_context_t * voronoi_create_context(unsigned seed, unsigned tic
 	if (!setup)
 		setup = &voronoi_default_setup.til_setup;
 
-	ctxt = til_module_context_new(sizeof(voronoi_context_t) + ((voronoi_setup_t *)setup)->n_cells * sizeof(voronoi_cell_t), seed, n_cpus);
+	ctxt = til_module_context_new(sizeof(voronoi_context_t) + ((voronoi_setup_t *)setup)->n_cells * sizeof(voronoi_cell_t), seed, ticks, n_cpus);
 	if (!ctxt)
 		return NULL;
 

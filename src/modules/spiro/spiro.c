@@ -36,7 +36,7 @@ static til_module_context_t * spiro_create_context(unsigned seed, unsigned ticks
 	spiro_context_t *ctxt;
 	float		z;
 
-	ctxt = til_module_context_new(sizeof(spiro_context_t), seed, n_cpus);
+	ctxt = til_module_context_new(sizeof(spiro_context_t), seed, ticks, n_cpus);
 	if (!ctxt)
 		return NULL;
 

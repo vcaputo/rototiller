@@ -232,7 +232,7 @@ static til_module_context_t * rtv_create_context(unsigned seed, unsigned ticks, 
 			n_channels++;
 	}
 
-	ctxt = til_module_context_new(sizeof(rtv_context_t) + n_channels * sizeof(rtv_channel_t), seed, n_cpus);
+	ctxt = til_module_context_new(sizeof(rtv_context_t) + n_channels * sizeof(rtv_channel_t), seed, ticks, n_cpus);
 	if (!ctxt)
 		return NULL;
 

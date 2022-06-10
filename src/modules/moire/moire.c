@@ -54,7 +54,7 @@ static til_module_context_t * moire_create_context(unsigned seed, unsigned ticks
 	if (!setup)
 		setup = &moire_default_setup.til_setup;
 
-	ctxt = til_module_context_new(sizeof(moire_context_t) + ((moire_setup_t *)setup)->n_centers * sizeof(moire_center_t), seed, n_cpus);
+	ctxt = til_module_context_new(sizeof(moire_context_t) + ((moire_setup_t *)setup)->n_centers * sizeof(moire_center_t), seed, ticks, n_cpus);
 	if (!ctxt)
 		return NULL;
 

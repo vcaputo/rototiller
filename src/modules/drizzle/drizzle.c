@@ -81,7 +81,7 @@ static til_module_context_t * drizzle_create_context(unsigned seed, unsigned tic
 	if (!setup)
 		setup = &drizzle_default_setup.til_setup;
 
-	ctxt = til_module_context_new(sizeof(drizzle_context_t), seed, n_cpus);
+	ctxt = til_module_context_new(sizeof(drizzle_context_t), seed, ticks, n_cpus);
 	if (!ctxt)
 		return NULL;
 

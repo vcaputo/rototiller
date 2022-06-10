@@ -188,7 +188,7 @@ static til_module_context_t * swarm_create_context(unsigned seed, unsigned ticks
 	if (!setup)
 		setup = &swarm_default_setup.til_setup;
 
-	ctxt = til_module_context_new(sizeof(swarm_context_t) + sizeof(*(ctxt->boids)) * SWARM_SIZE, seed, n_cpus);
+	ctxt = til_module_context_new(sizeof(swarm_context_t) + sizeof(*(ctxt->boids)) * SWARM_SIZE, seed, ticks, n_cpus);
 	if (!ctxt)
 		return NULL;
 

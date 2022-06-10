@@ -23,7 +23,7 @@
  * as the callers are generally using it in place of calloc(), and assign it to a
  * container struct of some other type but having an embedded til_module_context_t.
  */
-void * til_module_context_new(size_t size, unsigned seed, unsigned n_cpus)
+void * til_module_context_new(size_t size, unsigned seed, unsigned ticks, unsigned n_cpus)
 {
 	til_module_context_t	*module_context;
 
@@ -35,6 +35,7 @@ void * til_module_context_new(size_t size, unsigned seed, unsigned n_cpus)
 		return NULL;
 
 	module_context->seed = seed;
+	module_context->ticks = ticks;
 	module_context->n_cpus = n_cpus;
 
 	return module_context;

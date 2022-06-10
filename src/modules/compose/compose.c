@@ -77,7 +77,7 @@ static til_module_context_t * compose_create_context(unsigned seed, unsigned tic
 
 	for (n = 0; ((compose_setup_t *)setup)->layers[n]; n++);
 
-	ctxt = til_module_context_new(sizeof(compose_context_t) + n * sizeof(compose_layer_t), seed, n_cpus);
+	ctxt = til_module_context_new(sizeof(compose_context_t) + n * sizeof(compose_layer_t), seed, ticks, n_cpus);
 	if (!ctxt)
 		return NULL;
 

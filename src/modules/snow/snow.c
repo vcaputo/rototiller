@@ -26,7 +26,7 @@ static til_module_context_t * snow_create_context(unsigned seed, unsigned ticks,
 {
 	snow_context_t	*ctxt;
 
-	ctxt = til_module_context_new(sizeof(snow_context_t) + n_cpus * sizeof(snow_seed_t), seed, n_cpus);
+	ctxt = til_module_context_new(sizeof(snow_context_t) + n_cpus * sizeof(snow_seed_t), seed, ticks, n_cpus);
 	if (!ctxt)
 		return NULL;
 

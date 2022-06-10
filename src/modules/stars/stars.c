@@ -60,7 +60,7 @@ static til_module_context_t * stars_create_context(unsigned seed, unsigned ticks
 	if (!setup)
 		setup = &stars_default_setup.til_setup;
 
-	ctxt = til_module_context_new(sizeof(stars_context_t), seed, n_cpus);
+	ctxt = til_module_context_new(sizeof(stars_context_t), seed, ticks, n_cpus);
 	if (!ctxt)
 		return NULL;
 

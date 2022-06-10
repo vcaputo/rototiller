@@ -70,7 +70,7 @@ static til_module_context_t * swab_create_context(unsigned seed, unsigned ticks,
 {
 	swab_context_t	*ctxt;
 
-	ctxt = til_module_context_new(sizeof(swab_context_t), seed, n_cpus);
+	ctxt = til_module_context_new(sizeof(swab_context_t), seed, ticks, n_cpus);
 	if (!ctxt)
 		return NULL;
 
