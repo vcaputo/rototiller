@@ -626,7 +626,8 @@ static void plato_render_fragment(til_module_context_t *context, unsigned ticks,
 {
 	plato_context_t	*ctxt = (plato_context_t *)context;
 
-	ctxt->r += .015f;
+	ctxt->r += (float)(ticks - context->ticks) * .001f;
+	context->ticks = ticks;
 	til_fb_fragment_clear(fragment);
 
 	for (int i = 0; i < sizeof(polyhedra) / sizeof(*polyhedra); i++) {
