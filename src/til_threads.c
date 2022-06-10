@@ -45,8 +45,6 @@ static void * thread_func(void *_thread)
 	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
 
 	for (;;) {
-		unsigned	n_fragments = 0;
-
 		/* wait for a new frame */
 		pthread_mutex_lock(&threads->frame_mutex);
 		pthread_cleanup_push((void (*)(void *))pthread_mutex_unlock, &threads->frame_mutex);
@@ -66,7 +64,6 @@ static void * thread_func(void *_thread)
 				break;
 
 			threads->render_fragment_func(threads->context, threads->ticks, thread->id, &fragment);
-			n_fragments++;
 		}
 
 		/* report as idle */
