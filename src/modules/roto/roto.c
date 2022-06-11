@@ -174,7 +174,7 @@ static void init_roto(uint8_t texture[256][256], int32_t *costab, int32_t *sinta
 
 
 /* prepare a frame for concurrent rendering */
-static void roto_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
+static void roto_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_frame_plan_t *res_frame_plan)
 {
 	roto_context_t	*ctxt = (roto_context_t *)context;
 	static int	initialized;
@@ -185,7 +185,7 @@ static void roto_prepare_frame(til_module_context_t *context, unsigned ticks, ti
 		init_roto(texture, costab, sintab);
 	}
 
-	*res_fragmenter = til_fragmenter_slice_per_cpu;
+	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu };
 
 	// This governs the rotation and color cycle.
 	if (ticks != context->ticks) {

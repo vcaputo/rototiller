@@ -106,11 +106,11 @@ static void drizzle_destroy_context(til_module_context_t *context)
 }
 
 
-static void drizzle_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
+static void drizzle_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_frame_plan_t *res_frame_plan)
 {
 	drizzle_context_t	*ctxt = (drizzle_context_t *)context;
 
-	*res_fragmenter = til_fragmenter_slice_per_cpu;
+	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu };
 
 	for (int i = 0; i < DRIZZLE_CNT; i++) {
 		int	x = rand() % (PUDDLE_SIZE - 1);

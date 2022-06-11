@@ -102,11 +102,11 @@ static void meta2d_destroy_context(til_module_context_t *context)
 }
 
 
-static void meta2d_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
+static void meta2d_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_frame_plan_t *res_frame_plan)
 {
 	meta2d_context_t	*ctxt = (meta2d_context_t *)context;
 
-	*res_fragmenter = til_fragmenter_slice_per_cpu;
+	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu };
 
 	/* move the balls around */
 	for (int i = 0; i < META2D_NUM_BALLS; i++) {

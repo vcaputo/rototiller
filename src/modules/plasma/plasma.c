@@ -75,11 +75,11 @@ static til_module_context_t * plasma_create_context(unsigned seed, unsigned tick
 
 
 /* Prepare a frame for concurrent drawing of fragment using multiple fragments */
-static void plasma_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
+static void plasma_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_frame_plan_t *res_frame_plan)
 {
 	plasma_context_t	*ctxt = (plasma_context_t *)context;
 
-	*res_fragmenter = til_fragmenter_slice_per_cpu;
+	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu };
 	ctxt->rr += 3;
 }
 

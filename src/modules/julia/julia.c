@@ -106,11 +106,11 @@ static inline unsigned julia_iter(float real, float imag, float creal, float cim
 
 
 /* Prepare a frame for concurrent drawing of fragment using multiple fragments */
-static void julia_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
+static void julia_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_frame_plan_t *res_frame_plan)
 {
 	julia_context_t	*ctxt = (julia_context_t *)context;
 
-	*res_fragmenter = til_fragmenter_slice_per_cpu;
+	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu };
 
 	ctxt->rr += .01;
 			/* Rather than just sweeping creal,cimag from -2.0-+2.0, I try to keep things confined

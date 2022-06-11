@@ -25,7 +25,7 @@ typedef struct til_threads_t {
 	void			(*render_fragment_func)(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment);
 	void			*context;
 	til_fb_fragment_t	*fragment;
-	til_fragmenter_t	fragmenter;
+	til_frame_plan_t	frame_plan;
 	unsigned		ticks;
 
 	unsigned		next_fragment;
@@ -53,17 +53,38 @@ static void * thread_func(void *_thread)
 		prev_frame_num = threads->frame_num;
 		pthread_cleanup_pop(1);
 
-		/* render fragments */
-		for (;;) {
-			unsigned		frag_num;
-			til_fb_fragment_t	fragment;
+		if (threads->frame_plan.cpu_affinity) { /* render only fragments for my thread->id */
+			unsigned frag_num = thread->id;
 
-			frag_num = __sync_fetch_and_add(&threads->next_fragment, 1);
+			/* This is less performant, since we'll spin until our fragnum comes up,
+			 * rather than just rendering whatever's next whenever we're available.
+			 *
+			 * Some modules allocate persistent per-cpu state affecting the contents of fragments,
+			 * which may require a consistent mapping of CPU to fragnum across frames.
+			 */
+			for (;;) {
+				til_fb_fragment_t	fragment;
 
-			if (!threads->fragmenter(threads->context, threads->fragment, frag_num, &fragment))
-				break;
+				while (!__sync_bool_compare_and_swap(&threads->next_fragment, frag_num, frag_num + 1));
 
-			threads->render_fragment_func(threads->context, threads->ticks, thread->id, &fragment);
+				if (!threads->frame_plan.fragmenter(threads->context, threads->fragment, frag_num, &fragment))
+					break;
+
+				threads->render_fragment_func(threads->context, threads->ticks, thread->id, &fragment);
+				frag_num += threads->n_threads;
+			}
+		} else { /* render *any* available fragment */
+			for (;;) {
+				unsigned		frag_num;
+				til_fb_fragment_t	fragment;
+
+				frag_num = __sync_fetch_and_add(&threads->next_fragment, 1);
+
+				if (!threads->frame_plan.fragmenter(threads->context, threads->fragment, frag_num, &fragment))
+					break;
+
+				threads->render_fragment_func(threads->context, threads->ticks, thread->id, &fragment);
+			}
 		}
 
 		/* report as idle */
@@ -91,14 +112,14 @@ void til_threads_wait_idle(til_threads_t *threads)
 
 
 /* submit a frame's fragments to the threads */
-void til_threads_frame_submit(til_threads_t *threads, til_fb_fragment_t *fragment, til_fragmenter_t fragmenter, void (*render_fragment_func)(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment), til_module_context_t *context, unsigned ticks)
+void til_threads_frame_submit(til_threads_t *threads, til_fb_fragment_t *fragment, til_frame_plan_t *frame_plan, void (*render_fragment_func)(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment), til_module_context_t *context, unsigned ticks)
 {
 	til_threads_wait_idle(threads);	/* XXX: likely non-blocking; already happens pre page flip */
 
 	pthread_mutex_lock(&threads->frame_mutex);
 	pthread_cleanup_push((void (*)(void *))pthread_mutex_unlock, &threads->frame_mutex);
 	threads->fragment = fragment;
-	threads->fragmenter = fragmenter;
+	threads->frame_plan = *frame_plan;
 	threads->render_fragment_func = render_fragment_func;
 	threads->context = context;
 	threads->ticks = ticks;

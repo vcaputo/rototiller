@@ -145,11 +145,11 @@ static til_module_context_t * ray_create_context(unsigned seed, unsigned ticks, 
 
 
 /* prepare a frame for concurrent rendering */
-static void ray_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
+static void ray_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_frame_plan_t *res_frame_plan)
 {
 	ray_context_t	*ctxt = (ray_context_t *)context;
 
-	*res_fragmenter = til_fragmenter_tile64;
+	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_tile64 };
 #if 1
 	/* animated point light source */
 

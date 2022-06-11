@@ -74,11 +74,11 @@ static void sparkler_destroy_context(til_module_context_t *context)
 }
 
 
-static void sparkler_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
+static void sparkler_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_frame_plan_t *res_frame_plan)
 {
 	sparkler_context_t	*ctxt = (sparkler_context_t *)context;
 
-	*res_fragmenter = til_fragmenter_slice_per_cpu;
+	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu };
 
 	if (ctxt->setup.show_bsp_matches)
 		til_fb_fragment_clear(fragment);

@@ -63,7 +63,7 @@ typedef struct rtv_setup_t {
 static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks);
 static til_module_context_t * rtv_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup);
 static void rtv_destroy_context(til_module_context_t *context);
-static void rtv_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter);
+static void rtv_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_frame_plan_t *res_frame_plan);
 static void rtv_finish_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment);
 static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
 
@@ -268,7 +268,7 @@ static void rtv_destroy_context(til_module_context_t *context)
 }
 
 
-static void rtv_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
+static void rtv_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_frame_plan_t *res_frame_plan)
 {
 	rtv_context_t	*ctxt = (rtv_context_t *)context;
 	time_t		now = time(NULL);

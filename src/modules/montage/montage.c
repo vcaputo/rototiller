@@ -18,7 +18,7 @@ typedef struct montage_context_t {
 
 static til_module_context_t * montage_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup);
 static void montage_destroy_context(til_module_context_t *context);
-static void montage_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter);
+static void montage_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_frame_plan_t *res_frame_plan);
 static void montage_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment);
 
 
@@ -184,9 +184,9 @@ static int montage_fragmenter(til_module_context_t *context, const til_fb_fragme
 }
 
 
-static void montage_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
+static void montage_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_frame_plan_t *res_frame_plan)
 {
-	*res_fragmenter = montage_fragmenter;
+	*res_frame_plan = (til_frame_plan_t){ .fragmenter = montage_fragmenter };
 }
 
 

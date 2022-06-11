@@ -93,11 +93,11 @@ static void swab_destroy_context(til_module_context_t *context)
 }
 
 
-static void swab_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
+static void swab_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_frame_plan_t *res_frame_plan)
 {
 	swab_context_t	*ctxt = (swab_context_t *)context;
 
-	*res_fragmenter = til_fragmenter_tile64;
+	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_tile64 };
 
 	ctxt->r += .0001f;
 }

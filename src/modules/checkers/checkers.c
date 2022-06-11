@@ -88,9 +88,11 @@ static int checkers_fragmenter(til_module_context_t *context, const til_fb_fragm
 }
 
 
-static void checkers_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
+static void checkers_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_frame_plan_t *res_frame_plan)
 {
-	*res_fragmenter = checkers_fragmenter;
+	checkers_context_t	*ctxt = (checkers_context_t *)context;
+
+	*res_frame_plan = (til_frame_plan_t){ .fragmenter = checkers_fragmenter };
 }
 
 

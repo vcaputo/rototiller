@@ -108,9 +108,9 @@ void til_shutdown(void)
 }
 
 
-static void _blank_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
+static void _blank_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_frame_plan_t *res_frame_plan)
 {
-	*res_fragmenter = til_fragmenter_slice_per_cpu;
+	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu };
 }
 
 
@@ -182,22 +182,22 @@ static void module_render_fragment(til_module_context_t *context, til_threads_t 
 	module = context->module;
 
 	if (context->n_cpus > 1 && module->prepare_frame) {
-		til_fragmenter_t	fragmenter;
+		til_frame_plan_t	frame_plan = {};
 
-		module->prepare_frame(context, ticks, fragment, &fragmenter);
+		module->prepare_frame(context, ticks, fragment, &frame_plan);
 
 		if (module->render_fragment) {
-			til_threads_frame_submit(threads, fragment, fragmenter, module->render_fragment, context, ticks);
+			til_threads_frame_submit(threads, fragment, &frame_plan, module->render_fragment, context, ticks);
 			til_threads_wait_idle(threads);
 		}
 	} else if (module->prepare_frame) {
-		til_fragmenter_t	fragmenter;
+		til_frame_plan_t	frame_plan = {};
 		unsigned		fragnum = 0;
 		til_fb_fragment_t	frag;
 
-		module->prepare_frame(context, ticks, fragment, &fragmenter);
+		module->prepare_frame(context, ticks, fragment, &frame_plan);
 
-		while (fragmenter(context, fragment, fragnum++, &frag))
+		while (frame_plan.fragmenter(context, fragment, fragnum++, &frag))
 			module->render_fragment(context, ticks, 0, &frag);
 	} else if (module->render_fragment)
 		module->render_fragment(context, ticks, 0, fragment);

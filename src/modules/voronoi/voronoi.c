@@ -281,11 +281,11 @@ static void voronoi_sample_colors(voronoi_context_t *ctxt, til_fb_fragment_t *fr
 }
 
 
-static void voronoi_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
+static void voronoi_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_frame_plan_t *res_frame_plan)
 {
 	voronoi_context_t	*ctxt = (voronoi_context_t *)context;
 
-	*res_fragmenter = til_fragmenter_tile64;
+	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_tile64 };
 
 	if (!ctxt->distances.buf ||
 	    ctxt->distances.width != fragment->frame_width ||
