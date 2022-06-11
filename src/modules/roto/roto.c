@@ -27,11 +27,11 @@ typedef struct color_t {
 typedef struct roto_context_t {
 	til_module_context_t	til_module_context;
 	unsigned		r, rr;
+	color_t			palette[2];
 } roto_context_t;
 
 static int32_t	costab[FIXED_TRIG_LUT_SIZE], sintab[FIXED_TRIG_LUT_SIZE];
 static uint8_t	texture[256][256];
-static color_t	palette[2];
 
 static til_module_context_t * roto_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
@@ -125,9 +125,9 @@ static uint32_t bilerp_color(uint8_t texture[256][256], color_t *palette, int tx
 
 	/* Skip interpolation of same colors, a substantial optimization with plain textures like the checker pattern */
 	if (nw == ne) {
-		if (ne == sw && sw == se) {
+		if (ne == sw && sw == se)
 			return (FIXED_TO_INT(palette[sw].r) << 16) | (FIXED_TO_INT(palette[sw].g) << 8) | FIXED_TO_INT(palette[sw].b);
-		}
+
 		n_color = palette[nw];
 	} else {
 		n_color = lerp_color(&palette[nw], &palette[ne], x_alpha);
@@ -188,8 +188,21 @@ static void roto_prepare_frame(til_module_context_t *context, unsigned ticks, ti
 	*res_fragmenter = til_fragmenter_slice_per_cpu;
 
 	// This governs the rotation and color cycle.
-	ctxt->r += FIXED_TO_INT(FIXED_MULT(FIXED_SIN(ctxt->rr), FIXED_NEW(16)));
-	ctxt->rr += 2;
+	if (ticks != context->ticks) {
+		ctxt->r += FIXED_TO_INT(FIXED_MULT(FIXED_SIN(ctxt->rr), FIXED_NEW(16)));
+		ctxt->rr += (ticks - context->ticks) >> 2;
+
+		/* Vary the colors, this is just a mashup of sinusoidal rgb values. */
+		ctxt->palette[0].r = (FIXED_MULT(FIXED_COS(ctxt->rr), FIXED_NEW(127)) + FIXED_NEW(128));
+		ctxt->palette[0].g = (FIXED_MULT(FIXED_SIN(ctxt->rr / 2), FIXED_NEW(127)) + FIXED_NEW(128));
+		ctxt->palette[0].b = (FIXED_MULT(FIXED_COS(ctxt->rr / 3), FIXED_NEW(127)) + FIXED_NEW(128));
+
+		ctxt->palette[1].r = (FIXED_MULT(FIXED_SIN(ctxt->rr / 2), FIXED_NEW(127)) + FIXED_NEW(128));
+		ctxt->palette[1].g = (FIXED_MULT(FIXED_COS(ctxt->rr / 2), FIXED_NEW(127)) + FIXED_NEW(128));
+		ctxt->palette[1].b = (FIXED_MULT(FIXED_SIN(ctxt->rr), FIXED_NEW(127)) + FIXED_NEW(128));
+
+		context->ticks = ticks;
+	}
 }
 
 
@@ -197,23 +210,14 @@ static void roto_prepare_frame(til_module_context_t *context, unsigned ticks, ti
 static void roto_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
 	roto_context_t	*ctxt = (roto_context_t *)context;
-	int		y_cos_r, y_sin_r, x_cos_r, x_sin_r, x_cos_r_init, x_sin_r_init, cos_r, sin_r;
 	int		x, y, frame_width = fragment->frame_width, frame_height = fragment->frame_height;
+	int		y_cos_r, y_sin_r, x_cos_r, x_sin_r, x_cos_r_init, x_sin_r_init, cos_r, sin_r;
 	uint32_t	*buf = fragment->buf;
 
 	/* This is all done using fixed-point in the hopes of being faster, and yes assumptions
 	 * are being made WRT the overflow of tx/ty as well, only tested on x86_64. */
 	cos_r = FIXED_COS(ctxt->r);
 	sin_r = FIXED_SIN(ctxt->r);
-
-	/* Vary the colors, this is just a mashup of sinusoidal rgb values. */
-	palette[0].r = (FIXED_MULT(FIXED_COS(ctxt->rr), FIXED_NEW(127)) + FIXED_NEW(128));
-	palette[0].g = (FIXED_MULT(FIXED_SIN(ctxt->rr / 2), FIXED_NEW(127)) + FIXED_NEW(128));
-	palette[0].b = (FIXED_MULT(FIXED_COS(ctxt->rr / 3), FIXED_NEW(127)) + FIXED_NEW(128));
-
-	palette[1].r = (FIXED_MULT(FIXED_SIN(ctxt->rr / 2), FIXED_NEW(127)) + FIXED_NEW(128));
-	palette[1].g = (FIXED_MULT(FIXED_COS(ctxt->rr / 2), FIXED_NEW(127)) + FIXED_NEW(128));
-	palette[1].b = (FIXED_MULT(FIXED_SIN(ctxt->rr), FIXED_NEW(127)) + FIXED_NEW(128));
 
 	/* The dimensions are cut in half and negated to center the rotation. */
 	/* The [xy]_{sin,cos}_r variables are accumulators to replace multiplication with addition. */
@@ -229,7 +233,7 @@ static void roto_render_fragment(til_module_context_t *context, unsigned ticks, 
 		x_sin_r = x_sin_r_init;
 
 		for (x = fragment->x; x < fragment->x + fragment->width; x++, buf++) {
-			*buf = bilerp_color(texture, palette, x_sin_r - y_cos_r, y_sin_r + x_cos_r);
+			*buf = bilerp_color(texture, ctxt->palette, x_sin_r - y_cos_r, y_sin_r + x_cos_r);
 
 			x_cos_r += cos_r;
 			x_sin_r += sin_r;
