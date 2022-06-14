@@ -199,6 +199,9 @@ void chunker_free_chunker(chunker_t *chunker)
 	parameter.
 	assert(list_empty(&chunker->pinned_chunks));
 */
+	list_for_each_entry_safe(chunk, _chunk, &chunker->pinned_chunks, chunks) {
+		free(chunk);
+	}
 
 	list_for_each_entry_safe(chunk, _chunk, &chunker->free_chunks, chunks) {
 		free(chunk);
