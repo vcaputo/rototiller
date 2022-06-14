@@ -13,11 +13,18 @@ typedef struct til_fb_fragment_t til_fb_fragment_t;
 
 #define TIL_FB_DRAW_FLAG_TEXTURABLE	0x1
 
+typedef struct til_fb_fragment_ops_t {
+	til_fb_fragment_t *	(*snapshot)(til_fb_fragment_t **fragment_ptr);
+	void			(*submit)(til_fb_fragment_t *fragment);
+	void			(*free)(til_fb_fragment_t *fragment);
+} til_fb_fragment_ops_t;
+
 /* All renderers should target fb_fragment_t, which may or may not represent
  * a full-screen mmap.  Helpers are provided for subdividing fragments for
  * concurrent renderers.
  */
 typedef struct til_fb_fragment_t {
+	til_fb_fragment_ops_t	ops;		/* ops applicable to this fragment */
 	til_fb_fragment_t	*texture;	/* optional source texture when drawing to this fragment */
 	uint32_t		*buf;		/* pointer to the first pixel in the fragment */
 	unsigned		x, y;		/* absolute coordinates of the upper left corner of this fragment */
