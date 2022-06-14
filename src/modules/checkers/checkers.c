@@ -200,9 +200,10 @@ static int checkers_fragmenter(til_module_context_t *context, const til_fb_fragm
 }
 
 
-static void checkers_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_frame_plan_t *res_frame_plan)
+static void checkers_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
 {
 	checkers_context_t	*ctxt = (checkers_context_t *)context;
+	til_fb_fragment_t	*fragment = *fragment_ptr;
 
 	/* XXX: note cpu_affinity is required when fill_module is used, to ensure module_contexts
 	 * have a stable relationship to fragnum.  Otherwise the output would be unstable because the
@@ -227,9 +228,11 @@ static inline unsigned hash(unsigned x)
 }
 
 
-static void checkers_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
+static void checkers_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
 	checkers_context_t	*ctxt = (checkers_context_t *)context;
+	til_fb_fragment_t	*fragment = *fragment_ptr;
+
 	uint32_t		color = ctxt->setup.color, flags = 0;
 	checkers_fill_t		fill = ctxt->setup.fill;
 	int			state;
@@ -293,7 +296,7 @@ static void checkers_render_fragment(til_module_context_t *context, unsigned tic
 			til_fb_fragment_fill(fragment, flags, color);
 		else {
 			/* TODO: we need a way to send down color and flags, and use the module render as a brush of sorts */
-			til_module_render(ctxt->fill_module_contexts[cpu], ticks, fragment);
+			til_module_render(ctxt->fill_module_contexts[cpu], ticks, fragment_ptr);
 		}
 	}
 }

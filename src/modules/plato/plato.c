@@ -622,9 +622,10 @@ static til_module_context_t * plato_create_context(unsigned seed, unsigned ticks
 }
 
 
-static void plato_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
+static void plato_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
-	plato_context_t	*ctxt = (plato_context_t *)context;
+	plato_context_t		*ctxt = (plato_context_t *)context;
+	til_fb_fragment_t	*fragment = *fragment_ptr;
 
 	ctxt->r += (float)(ticks - context->ticks) * .001f;
 	context->ticks = ticks;

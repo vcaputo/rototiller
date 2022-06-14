@@ -106,7 +106,7 @@ static void drizzle_destroy_context(til_module_context_t *context)
 }
 
 
-static void drizzle_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_frame_plan_t *res_frame_plan)
+static void drizzle_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
 {
 	drizzle_context_t	*ctxt = (drizzle_context_t *)context;
 
@@ -130,9 +130,11 @@ static void drizzle_prepare_frame(til_module_context_t *context, unsigned ticks,
 }
 
 
-static void drizzle_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
+static void drizzle_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
 	drizzle_context_t	*ctxt = (drizzle_context_t *)context;
+	til_fb_fragment_t	*fragment = *fragment_ptr;
+
 	float			xf = 1.f / (float)fragment->frame_width;
 	float			yf = 1.f / (float)fragment->frame_height;
 	v2f_t			coord;

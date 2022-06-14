@@ -401,9 +401,10 @@ static void swarm_draw_as_lines(swarm_context_t *ctxt, til_fb_fragment_t *fragme
 }
 
 
-static void swarm_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
+static void swarm_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
-	swarm_context_t	*ctxt = (swarm_context_t *)context;
+	swarm_context_t		*ctxt = (swarm_context_t *)context;
+	til_fb_fragment_t	*fragment = *fragment_ptr;
 
 	swarm_update(ctxt, ticks);
 

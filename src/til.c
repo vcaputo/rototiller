@@ -100,15 +100,15 @@ void til_shutdown(void)
 }
 
 
-static void _blank_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_frame_plan_t *res_frame_plan)
+static void _blank_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
 {
 	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu };
 }
 
 
-static void _blank_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
+static void _blank_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
-	til_fb_fragment_clear(fragment);
+	til_fb_fragment_clear(*fragment_ptr);
 }
 
 
@@ -162,21 +162,21 @@ void til_get_modules(const til_module_t ***res_modules, size_t *res_n_modules)
 }
 
 
-static void module_render_fragment(til_module_context_t *context, til_threads_t *threads, unsigned ticks, til_fb_fragment_t *fragment)
+static void module_render_fragment(til_module_context_t *context, til_threads_t *threads, unsigned ticks, til_fb_fragment_t **fragment_ptr)
 {
 	const til_module_t	*module;
 
 	assert(context);
 	assert(context->module);
 	assert(threads);
-	assert(fragment);
+	assert(fragment_ptr && *fragment_ptr);
 
 	module = context->module;
 
 	if (module->prepare_frame) {
 		til_frame_plan_t	frame_plan = {};
 
-		module->prepare_frame(context, ticks, fragment, &frame_plan);
+		module->prepare_frame(context, ticks, fragment_ptr, &frame_plan);
 
 		/* XXX: any module which provides prepare_frame() must return a frame_plan.fragmenter,
 		 * and provide render_fragment()
@@ -185,31 +185,31 @@ static void module_render_fragment(til_module_context_t *context, til_threads_t 
 		assert(module->render_fragment);
 
 		if (context->n_cpus > 1) {
-			til_threads_frame_submit(threads, fragment, &frame_plan, module->render_fragment, context, ticks);
+			til_threads_frame_submit(threads, fragment_ptr, &frame_plan, module->render_fragment, context, ticks);
 			til_threads_wait_idle(threads);
 		} else {
 			unsigned		fragnum = 0;
-			til_fb_fragment_t	frag;
+			til_fb_fragment_t	frag, *frag_ptr = &frag;
 
-			while (frame_plan.fragmenter(context, fragment, fragnum++, &frag))
-				module->render_fragment(context, ticks, 0, &frag);
+			while (frame_plan.fragmenter(context, *fragment_ptr, fragnum++, &frag))
+				module->render_fragment(context, ticks, 0, &frag_ptr);
 		}
 	} else if (module->render_fragment)
-		module->render_fragment(context, ticks, 0, fragment);
+		module->render_fragment(context, ticks, 0, fragment_ptr);
 
 	if (module->finish_frame)
-		module->finish_frame(context, ticks, fragment);
+		module->finish_frame(context, ticks, fragment_ptr);
 
-	fragment->cleared = 1;
+	(*fragment_ptr)->cleared = 1;
 }
 
 
 /* This is a public interface to the threaded module rendering intended for use by
  * modules that wish to get the output of other modules for their own use.
  */
-void til_module_render(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment)
+void til_module_render(til_module_context_t *context, unsigned ticks, til_fb_fragment_t **fragment_ptr)
 {
-	module_render_fragment(context, til_threads, ticks, fragment);
+	module_render_fragment(context, til_threads, ticks, fragment_ptr);
 }
 
 

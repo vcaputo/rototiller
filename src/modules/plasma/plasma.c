@@ -75,7 +75,7 @@ static til_module_context_t * plasma_create_context(unsigned seed, unsigned tick
 
 
 /* Prepare a frame for concurrent drawing of fragment using multiple fragments */
-static void plasma_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_frame_plan_t *res_frame_plan)
+static void plasma_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
 {
 	plasma_context_t	*ctxt = (plasma_context_t *)context;
 
@@ -85,17 +85,19 @@ static void plasma_prepare_frame(til_module_context_t *context, unsigned ticks, 
 
 
 /* Draw a plasma effect */
-static void plasma_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
+static void plasma_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
 	plasma_context_t	*ctxt = (plasma_context_t *)context;
-	int			xstep = PLASMA_WIDTH / fragment->frame_width;
-	int			ystep = PLASMA_HEIGHT / fragment->frame_height;
-	unsigned		width = fragment->width * xstep, height = fragment->height * ystep;
-	int			fw2 = FIXED_NEW(width / 2), fh2 = FIXED_NEW(height / 2);
-	int			x, y, cx, cy, dx2, dy2;
-	uint32_t		*buf = fragment->buf;
-	color_t			c = { .r = 0, .g = 0, .b = 0 }, cscale;
-	unsigned		rr2, rr6, rr8, rr16, rr20, rr12;
+	til_fb_fragment_t	*fragment = *fragment_ptr;
+
+	int		xstep = PLASMA_WIDTH / fragment->frame_width;
+	int		ystep = PLASMA_HEIGHT / fragment->frame_height;
+	unsigned	width = fragment->width * xstep, height = fragment->height * ystep;
+	int		fw2 = FIXED_NEW(width / 2), fh2 = FIXED_NEW(height / 2);
+	int		x, y, cx, cy, dx2, dy2;
+	uint32_t	*buf = fragment->buf;
+	color_t		c = { .r = 0, .g = 0, .b = 0 }, cscale;
+	unsigned	rr2, rr6, rr8, rr16, rr20, rr12;
 
 	rr2 = ctxt->rr * 2;
 	rr6 = ctxt->rr * 6;

@@ -281,9 +281,10 @@ static void voronoi_sample_colors(voronoi_context_t *ctxt, til_fb_fragment_t *fr
 }
 
 
-static void voronoi_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_frame_plan_t *res_frame_plan)
+static void voronoi_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
 {
 	voronoi_context_t	*ctxt = (voronoi_context_t *)context;
+	til_fb_fragment_t	*fragment = *fragment_ptr;
 
 	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_tile64 };
 
@@ -314,9 +315,10 @@ static void voronoi_prepare_frame(til_module_context_t *context, unsigned ticks,
 }
 
 
-static void voronoi_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
+static void voronoi_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
 	voronoi_context_t	*ctxt = (voronoi_context_t *)context;
+	til_fb_fragment_t	*fragment = *fragment_ptr;
 
 	for (int y = 0; y < fragment->height; y++) {
 		for (int x = 0; x < fragment->width; x++) {

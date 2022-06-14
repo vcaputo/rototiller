@@ -53,13 +53,13 @@ static til_module_context_t * spiro_create_context(unsigned seed, unsigned ticks
 	return &ctxt->til_module_context;
 }
 
-static void spiro_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
+static void spiro_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
-	spiro_context_t	*ctxt = (spiro_context_t *)context;
+	spiro_context_t		*ctxt = (spiro_context_t *)context;
+	til_fb_fragment_t	*fragment = *fragment_ptr;
 
-	int		width = fragment->frame_width, height = fragment->frame_height;
-
-	int display_R, display_origin_x, display_origin_y;
+	int	width = fragment->frame_width, height = fragment->frame_height;
+	int	display_R, display_origin_x, display_origin_y;
 
 	/* Based on the fragment's dimensions, calculate the origin and radius of the fixed outer
 	circle, C0. */

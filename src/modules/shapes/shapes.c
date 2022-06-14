@@ -115,9 +115,11 @@ static til_module_context_t * shapes_create_context(unsigned seed, unsigned tick
 }
 
 
-static void shapes_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
+static void shapes_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
 	shapes_context_t	*ctxt = (shapes_context_t *)context;
+	til_fb_fragment_t	*fragment = *fragment_ptr;
+
 	unsigned		size = MIN(fragment->frame_width, fragment->frame_height) * ctxt->setup.scale;
 	unsigned		xoff = (fragment->frame_width - size) >> 1;
 	unsigned		yoff = (fragment->frame_height - size) >> 1;

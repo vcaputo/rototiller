@@ -294,7 +294,7 @@ static void submit_destroy_context(til_module_context_t *context)
 }
 
 
-static void submit_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_frame_plan_t *res_frame_plan)
+static void submit_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
 {
 	submit_context_t	*ctxt = (submit_context_t *)context;
 
@@ -317,9 +317,10 @@ static void submit_prepare_frame(til_module_context_t *context, unsigned ticks, 
 }
 
 
-static void submit_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
+static void submit_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
 	submit_context_t	*ctxt = (submit_context_t *)context;
+	til_fb_fragment_t	*fragment = *fragment_ptr;
 
 	if (!ctxt->bilerp)
 		draw_grid(ctxt, fragment);

@@ -109,9 +109,11 @@ static void stars_destroy_context(til_module_context_t *context)
 }
 
 
-static void stars_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
+static void stars_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
-	stars_context_t	*ctxt = (stars_context_t *)context;
+	stars_context_t		*ctxt = (stars_context_t *)context;
+	til_fb_fragment_t	*fragment = *fragment_ptr;
+
 	struct points* iterator;
 	struct points* tmp_ptr;
 	struct points* last_ptr=NULL;

@@ -273,10 +273,12 @@ static til_module_context_t * flui2d_create_context(unsigned seed, unsigned tick
 
 
 /* Prepare a frame for concurrent drawing of fragment using multiple fragments */
-static void flui2d_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_frame_plan_t *res_frame_plan)
+static void flui2d_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
 {
 	flui2d_context_t	*ctxt = (flui2d_context_t *)context;
-	float			r = (ticks % (unsigned)(2 * M_PI * 1000)) * .001f;
+	til_fb_fragment_t	*fragment = *fragment_ptr;
+
+	float	r = (ticks % (unsigned)(2 * M_PI * 1000)) * .001f;
 
 	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_tile64 };
 
@@ -332,9 +334,10 @@ static void flui2d_prepare_frame(til_module_context_t *context, unsigned ticks, 
 
 
 /* Draw a the flui2d densities */
-static void flui2d_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
+static void flui2d_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
 	flui2d_context_t	*ctxt = (flui2d_context_t *)context;
+	til_fb_fragment_t	*fragment = *fragment_ptr;
 
 	for (int y = fragment->y; y < fragment->y + fragment->height; y++) {
 		int	y0, y1;

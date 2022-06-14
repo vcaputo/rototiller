@@ -174,7 +174,7 @@ static void init_roto(uint8_t texture[256][256], int32_t *costab, int32_t *sinta
 
 
 /* prepare a frame for concurrent rendering */
-static void roto_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_frame_plan_t *res_frame_plan)
+static void roto_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
 {
 	roto_context_t	*ctxt = (roto_context_t *)context;
 	static int	initialized;
@@ -207,9 +207,11 @@ static void roto_prepare_frame(til_module_context_t *context, unsigned ticks, ti
 
 
 /* Draw a rotating checkered 256x256 texture into fragment. */
-static void roto_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
+static void roto_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
-	roto_context_t	*ctxt = (roto_context_t *)context;
+	roto_context_t		*ctxt = (roto_context_t *)context;
+	til_fb_fragment_t	*fragment = *fragment_ptr;
+
 	int		x, y, frame_width = fragment->frame_width, frame_height = fragment->frame_height;
 	int		y_cos_r, y_sin_r, x_cos_r, x_sin_r, x_cos_r_init, x_sin_r_init, cos_r, sin_r;
 	uint32_t	*buf = fragment->buf;

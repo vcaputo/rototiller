@@ -260,9 +260,10 @@ static til_module_context_t * pixbounce_create_context(unsigned seed, unsigned t
 	return &ctxt->til_module_context;
 }
 
-static void pixbounce_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
+static void pixbounce_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
-	pixbounce_context_t *ctxt = (pixbounce_context_t *)context;
+	pixbounce_context_t	*ctxt = (pixbounce_context_t *)context;
+	til_fb_fragment_t	*fragment = *fragment_ptr;
 
 	int	width = fragment->width, height = fragment->height;
 

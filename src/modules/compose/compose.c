@@ -49,7 +49,7 @@ typedef struct compose_setup_t {
 
 static til_module_context_t * compose_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup);
 static void compose_destroy_context(til_module_context_t *context);
-static void compose_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment);
+static void compose_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr);
 static int compose_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
 
 static compose_setup_t compose_default_setup = {
@@ -125,9 +125,10 @@ static void compose_destroy_context(til_module_context_t *context)
 }
 
 
-static void compose_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
+static void compose_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
 	compose_context_t	*ctxt = (compose_context_t *)context;
+	til_fb_fragment_t	*fragment = *fragment_ptr, *texture = &ctxt->texture_fb;
 
 	if (ctxt->texture.module) {
 		if (!ctxt->texture_fb.buf ||
@@ -146,21 +147,23 @@ static void compose_render_fragment(til_module_context_t *context, unsigned tick
 		}
 
 		ctxt->texture_fb.cleared = 0;
-		til_module_render(ctxt->texture.module_ctxt, ticks, &ctxt->texture_fb);
-
-		til_module_render(ctxt->layers[0].module_ctxt, ticks, fragment);
+		/* XXX: if when snapshotting becomes a thing, ctxt->texture_fb is snapshottable, this will likely break as-is */
+		til_module_render(ctxt->texture.module_ctxt, ticks, &texture);
+		til_module_render(ctxt->layers[0].module_ctxt, ticks, &fragment);
 
 		for (size_t i = 1; i < ctxt->n_layers; i++) {
-			til_fb_fragment_t	textured = *fragment;
+			til_fb_fragment_t	*old_texture = fragment->texture;
 
-			textured.texture = &ctxt->texture_fb;
-
-			til_module_render(ctxt->layers[i].module_ctxt, ticks, &textured);
+			fragment->texture = texture;
+			til_module_render(ctxt->layers[i].module_ctxt, ticks, &fragment);
+			fragment->texture = old_texture;
 		}
 	} else {
 		for (size_t i = 0; i < ctxt->n_layers; i++)
-			til_module_render(ctxt->layers[i].module_ctxt, ticks, fragment);
+			til_module_render(ctxt->layers[i].module_ctxt, ticks, &fragment);
 	}
+
+	*fragment_ptr = fragment;
 }
 
 

@@ -83,9 +83,10 @@ static inline void draw_blind_vertical(til_fb_fragment_t *fragment, unsigned col
 
 
 /* draw blinds over the fragment */
-static void blinds_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
+static void blinds_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
 	blinds_context_t	*ctxt = (blinds_context_t *)context;
+	til_fb_fragment_t	*fragment = *fragment_ptr;
 
 	static float rr;
 

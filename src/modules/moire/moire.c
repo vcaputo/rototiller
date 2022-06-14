@@ -71,7 +71,7 @@ static til_module_context_t * moire_create_context(unsigned seed, unsigned ticks
 }
 
 
-static void moire_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_frame_plan_t *res_frame_plan)
+static void moire_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
 {
 	moire_context_t	*ctxt = (moire_context_t *)context;
 
@@ -84,12 +84,14 @@ static void moire_prepare_frame(til_module_context_t *context, unsigned ticks, t
 }
 
 
-static void moire_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
+static void moire_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
-	moire_context_t	*ctxt = (moire_context_t *)context;
-	float		xf = 2.f / (float)fragment->frame_width;
-	float		yf = 2.f / (float)fragment->frame_height;
-	float		cx, cy;
+	moire_context_t		*ctxt = (moire_context_t *)context;
+	til_fb_fragment_t	*fragment = *fragment_ptr;
+
+	float	xf = 2.f / (float)fragment->frame_width;
+	float	yf = 2.f / (float)fragment->frame_height;
+	float	cx, cy;
 
 	/* TODO: optimize */
 	cy = yf * (float)fragment->y - 1.f;

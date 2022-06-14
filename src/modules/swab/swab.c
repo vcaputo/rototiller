@@ -93,7 +93,7 @@ static void swab_destroy_context(til_module_context_t *context)
 }
 
 
-static void swab_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_frame_plan_t *res_frame_plan)
+static void swab_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
 {
 	swab_context_t	*ctxt = (swab_context_t *)context;
 
@@ -103,15 +103,17 @@ static void swab_prepare_frame(til_module_context_t *context, unsigned ticks, ti
 }
 
 
-static void swab_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
+static void swab_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
-	swab_context_t	*ctxt = (swab_context_t *)context;
-	float		cos_r = cos(ctxt->r);
-	float		sin_r = sin(ctxt->r);
-	float		z1 = cos_r;
-	float		z2 = sin_r;
-	float		xscale = 1.f / (float)fragment->frame_width;
-	float		yscale = 1.f / (float)fragment->frame_height;
+	swab_context_t		*ctxt = (swab_context_t *)context;
+	til_fb_fragment_t	*fragment = *fragment_ptr;
+
+	float	cos_r = cos(ctxt->r);
+	float	sin_r = sin(ctxt->r);
+	float	z1 = cos_r;
+	float	z2 = sin_r;
+	float	xscale = 1.f / (float)fragment->frame_width;
+	float	yscale = 1.f / (float)fragment->frame_height;
 
 	for (int y = fragment->y; y < fragment->y + fragment->height; y++) {
 		float	yscaled = (float)y * yscale;

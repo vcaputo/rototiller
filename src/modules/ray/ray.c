@@ -145,9 +145,10 @@ static til_module_context_t * ray_create_context(unsigned seed, unsigned ticks, 
 
 
 /* prepare a frame for concurrent rendering */
-static void ray_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_frame_plan_t *res_frame_plan)
+static void ray_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
 {
-	ray_context_t	*ctxt = (ray_context_t *)context;
+	ray_context_t		*ctxt = (ray_context_t *)context;
+	til_fb_fragment_t	*fragment = *fragment_ptr;
 
 	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_tile64 };
 #if 1
@@ -177,15 +178,16 @@ static void ray_prepare_frame(til_module_context_t *context, unsigned ticks, til
 
 
 /* ray trace a simple scene into the fragment */
-static void ray_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
+static void ray_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
-	ray_context_t	*ctxt = (ray_context_t *)context;
+	ray_context_t		*ctxt = (ray_context_t *)context;
+	til_fb_fragment_t	*fragment = *fragment_ptr;
 
 	ray_render_trace_fragment(ctxt->render, fragment);
 }
 
 
-static void ray_finish_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment)
+static void ray_finish_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t **fragment_ptr)
 {
 	ray_context_t	*ctxt = (ray_context_t *)context;
 

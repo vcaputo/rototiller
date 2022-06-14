@@ -101,7 +101,7 @@ static void meta2d_destroy_context(til_module_context_t *context)
 }
 
 
-static void meta2d_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_frame_plan_t *res_frame_plan)
+static void meta2d_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
 {
 	meta2d_context_t	*ctxt = (meta2d_context_t *)context;
 
@@ -178,12 +178,14 @@ static void meta2d_prepare_frame(til_module_context_t *context, unsigned ticks, 
 }
 
 
-static void meta2d_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
+static void meta2d_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
 	meta2d_context_t	*ctxt = (meta2d_context_t *)context;
-	float			xf = 2.f / (float)fragment->frame_width;
-	float			yf = 2.f / (float)fragment->frame_height;
-	v2f_t			coord;
+	til_fb_fragment_t	*fragment = *fragment_ptr;
+
+	float	xf = 2.f / (float)fragment->frame_width;
+	float	yf = 2.f / (float)fragment->frame_height;
+	v2f_t	coord;
 
 	for (int y = fragment->y; y < fragment->y + fragment->height; y++) {
 		coord.y = yf * (float)y - 1.f;
