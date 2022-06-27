@@ -43,6 +43,7 @@ typedef struct drizzle_setup_t {
 
 typedef struct drizzle_context_t {
 	til_module_context_t	til_module_context;
+	til_fb_fragment_t	*snapshot;
 	puddle_t		*puddle;
 	drizzle_setup_t		setup;
 } drizzle_context_t;
@@ -127,6 +128,31 @@ static void drizzle_prepare_frame(til_module_context_t *context, unsigned ticks,
 	}
 
 	puddle_tick(ctxt->puddle, ctxt->setup.viscosity);
+
+	if ((*fragment_ptr)->cleared)
+		ctxt->snapshot = til_fb_fragment_snapshot(fragment_ptr, 0);
+}
+
+
+/* TODO: this probably should also go through a gamma correction */
+static inline uint32_t pixel_mult_scalar(uint32_t pixel, float t)
+{
+	float	r, g, b;
+
+	if (t > 1.f)
+		t = 1.f;
+	if (t < 0.f)
+		t = 0.f;
+
+	r = (pixel >> 16) & 0xff;
+	g = (pixel >> 8) & 0xff;
+	b = (pixel & 0xff);
+
+	r *= t;
+	g *= t;
+	b *= t;
+
+	return	((uint32_t)r) << 16 | ((uint32_t)g) << 8 | ((uint32_t)b);
 }
 
 
@@ -138,6 +164,26 @@ static void drizzle_render_fragment(til_module_context_t *context, unsigned tick
 	float			xf = 1.f / (float)fragment->frame_width;
 	float			yf = 1.f / (float)fragment->frame_height;
 	v2f_t			coord;
+
+	if (ctxt->snapshot) {
+		coord.y = yf * (float)fragment->y;
+		for (int y = fragment->y; y < fragment->y + fragment->height; y++) {
+
+			coord.x = xf * (float)fragment->x;
+			for (int x = fragment->x; x < fragment->x + fragment->width; x++) {
+				float		t = puddle_sample(ctxt->puddle, &coord);
+				uint32_t	pixel = pixel_mult_scalar(til_fb_fragment_get_pixel_unchecked(ctxt->snapshot, x, y), t);
+
+				til_fb_fragment_put_pixel_unchecked(fragment, 0, x, y, pixel);
+
+				coord.x += xf;
+			}
+
+			coord.y += yf;
+		}
+
+		return;
+	}
 
 	coord.y = yf * (float)fragment->y;
 	for (int y = fragment->y; y < fragment->y + fragment->height; y++) {
@@ -157,6 +203,15 @@ static void drizzle_render_fragment(til_module_context_t *context, unsigned tick
 
 		coord.y += yf;
 	}
+}
+
+
+static void drizzle_finish_frame(til_module_context_t *context, unsigned int ticks, til_fb_fragment_t **fragment_ptr)
+{
+	drizzle_context_t	*ctxt = (drizzle_context_t *)context;
+
+	if (ctxt->snapshot)
+		ctxt->snapshot = til_fb_fragment_reclaim(ctxt->snapshot);
 }
 
 
@@ -208,8 +263,10 @@ til_module_t	drizzle_module = {
 	.destroy_context = drizzle_destroy_context,
 	.prepare_frame = drizzle_prepare_frame,
 	.render_fragment = drizzle_render_fragment,
+	.finish_frame = drizzle_finish_frame,
 	.name = "drizzle",
 	.description = "Classic 2D rain effect (threaded (poorly))",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",
 	.setup = drizzle_setup,
+	.flags = TIL_MODULE_OVERLAYABLE,
 };
