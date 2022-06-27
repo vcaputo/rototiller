@@ -10,41 +10,28 @@
 #include "til_util.h"
 
 typedef struct til_fb_fragment_t til_fb_fragment_t;
+typedef struct til_fb_fragment_ops_t til_fb_fragment_ops_t;
 
 #define TIL_FB_DRAW_FLAG_TEXTURABLE	0x1
-
-typedef struct til_fb_fragment_ops_t {
-	til_fb_fragment_t *	(*snapshot)(til_fb_fragment_t **fragment_ptr);
-	void			(*submit)(til_fb_fragment_t *fragment);
-	void			(*free)(til_fb_fragment_t *fragment);
-} til_fb_fragment_ops_t;
 
 /* All renderers should target fb_fragment_t, which may or may not represent
  * a full-screen mmap.  Helpers are provided for subdividing fragments for
  * concurrent renderers.
  */
 typedef struct til_fb_fragment_t {
-	til_fb_fragment_ops_t	ops;		/* ops applicable to this fragment */
-	til_fb_fragment_t	*texture;	/* optional source texture when drawing to this fragment */
-	uint32_t		*buf;		/* pointer to the first pixel in the fragment */
-	unsigned		x, y;		/* absolute coordinates of the upper left corner of this fragment */
-	unsigned		width, height;	/* width and height of this fragment */
-	unsigned		frame_width;	/* width of the frame this fragment is part of */
-	unsigned		frame_height;	/* height of the frame this fragment is part of */
-	unsigned		stride;		/* number of 32-bit words from the end of one row to the start of the next */
-	unsigned		pitch;		/* number of 32-bit words separating y from y + 1, including any padding */
-	unsigned		number;		/* this fragment's number as produced by fragmenting */
-	unsigned		cleared:1;	/* if this fragment has been cleared since last flip */
-} til_fb_fragment_t;
+	const til_fb_fragment_ops_t	*ops;		/* optional opaque ops for physical fragments, NULL for strictly logical fragments */
 
-/* This is a page handle object for page flip submission/life-cycle.
- * Outside of fb_page_get()/fb_page_put(), you're going to be interested in
- * fb_fragment_t.  The fragment included here describes the whole page,
- * it may be divided via fb_fragment_divide().
- */
-typedef struct til_fb_page_t {
-	til_fb_fragment_t	fragment;
-} til_fb_page_t;
+	til_fb_fragment_t		*texture;	/* optional source texture when drawing to this fragment */
+	uint32_t			*buf;		/* pointer to the first pixel in the fragment */
+	unsigned			x, y;		/* absolute coordinates of the upper left corner of this fragment */
+	unsigned			width, height;	/* width and height of this fragment */
+	unsigned			frame_width;	/* width of the frame this fragment is part of */
+	unsigned			frame_height;	/* height of the frame this fragment is part of */
+	unsigned			stride;		/* number of 32-bit words from the end of one row to the start of the next */
+	unsigned			pitch;		/* number of 32-bit words separating y from y + 1, including any padding */
+	unsigned			number;		/* this fragment's number as produced by fragmenting */
+	unsigned			cleared:1;	/* if this fragment has been cleared since last flip */
+} til_fb_fragment_t;
 
 typedef struct til_fb_t til_fb_t;
 
@@ -55,13 +42,15 @@ typedef struct til_fb_ops_t {
 	void	(*shutdown)(til_fb_t *fb, void *context);
 	int	(*acquire)(til_fb_t *fb, void *context, void *page);
 	void	(*release)(til_fb_t *fb, void *context);
-	void *	(*page_alloc)(til_fb_t *fb, void *context, til_fb_page_t *res_page);
+	void *	(*page_alloc)(til_fb_t *fb, void *context, til_fb_fragment_t *res_page_fragment);
 	int	(*page_free)(til_fb_t *fb, void *context, void *page);
 	int	(*page_flip)(til_fb_t *fb, void *context, void *page);
 } til_fb_ops_t;
 
-til_fb_page_t * til_fb_page_get(til_fb_t *fb);
-void til_fb_page_put(til_fb_t *fb, til_fb_page_t *page);
+til_fb_fragment_t * til_fb_page_get(til_fb_t *fb);
+void til_fb_fragment_submit(til_fb_fragment_t *fragment);
+til_fb_fragment_t * til_fb_fragment_snapshot(til_fb_fragment_t **fragment_ptr, int preserve_original);
+til_fb_fragment_t * til_fb_fragment_reclaim(til_fb_fragment_t *fragment);
 til_fb_t * til_fb_free(til_fb_t *fb);
 void til_fb_get_put_pages_count(til_fb_t *fb, unsigned *count);
 int til_fb_new(const til_fb_ops_t *ops, const til_setup_t *setup, int n_pages, til_fb_t **res_fb);

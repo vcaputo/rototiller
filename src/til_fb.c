@@ -50,16 +50,72 @@
  * thread's duties - page rendering dispatch, to a separate thread.
  */
 
+typedef struct _til_fb_fragment_t _til_fb_fragment_t;
+
+struct til_fb_fragment_ops_t {
+	void			(*submit)(til_fb_fragment_t *fragment);
+	til_fb_fragment_t *	(*snapshot)(til_fb_fragment_t **fragment_ptr, int preserve_original);
+	void			(*reclaim)(til_fb_fragment_t *fragment);
+};
+
+struct _til_fb_fragment_t {
+	til_fb_fragment_t	public;
+	til_fb_fragment_ops_t	ops;
+};
+/* ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ * The private fragment groups ops with the public fragment, so for the physical
+ * fragments for pages produced here, the fragment->ops pointer will point to the
+ * appropriately initialized ops member in the private _til_fb_fragment_t.
+ *
+ * For ad-hoc/logical fragments constructed outside of here (i.e. by fragmenters),
+ * the public til_fb_fragment_ops_t is just an opaque forward declaration.
+ * It's expected those cases will leave ops NULL and when such fragments get passed
+ * into here we'll know they don't have any of the capabilities encapsulated in
+ * the ops.  There will also be some functions here like frame submission that will
+ * treat receiving a fragment without any .ops or .ops.submit() as a fatal programming
+ * error by asserting.
+ *
+ * It might make sense to at some point better separate the frame- oriented
+ * fragment API from the fragment-oriented one, since the frame-oriented stuff
+ * is primarily of relevance to front-end authors, and the purely
+ * fragment-oriented stuff is what module authors are interested in.  I.e.
+ * module authors want to be able to efficiently snapshot/reclaim fragments, but
+ * front-ends want to be able to submit whole-frame fragments (pages).  It's a
+ * bit murky to have that all grouped under til_fb_fragment_ops_t and everything
+ * operating on a seemingly universal til_fb_fragment_t type despite the
+ * disparity of capabilities.  Polymorphism is sort of more a neat word than an
+ * actually desirable thing in practice.
+ *
+ * The main reason the page and fragment have become conflated behind
+ * til_fb_fragment_t to then be disambiguated by the API implementation via an
+ * opaque ops member is when a fragment gets snapshotted by a module, it needs
+ * to be able to potentially swap out the destination page if possible, for
+ * efficiency reasons.  The fragment_ptr passed everywhere being _the_ handle
+ * for the destination page is a convenient way to make this happen, but it
+ * might make more sense to just pass around the fragment as before and instead
+ * add a concept of a page handle the fragment can optionally point back at when
+ * it's the root fragment for the page.  There are some details to manage here
+ * in that the root fragment for the page is page-specific, in that things like
+ * pitch/stride can vary page-to-page and obviously buf will point at memory
+ * bound to the backing page.  So with a page backreference in the fragment, the
+ * snapshot would have to not only manipulate/swap-out the backreferenced page,
+ * but it would still have to rebuild the fragment itself for the new page.
+ * When everything is fragment_ptr-centric, it seems much more natural to do
+ * this and reason about what will happen to the underlying fragment contents in
+ * the event of an optimized snapshot...  I think this needs more consideration
+ * and refinement in any event.
+ */
 
 /* Most of til_fb_page_t is kept private, the public part is
  * just an til_fb_fragment_t describing the whole page.
  */
 typedef struct _til_fb_page_t _til_fb_page_t;
 struct _til_fb_page_t {
-	void		*ops_page;
+	til_fb_t		*fb;
+	void			*fb_ops_page;
 
-	_til_fb_page_t	*next, *previous;
-	til_fb_page_t	public_page;
+	_til_fb_page_t		*next, *previous;
+	_til_fb_fragment_t	fragment;
 };
 
 typedef struct til_fb_t {
@@ -90,6 +146,8 @@ typedef struct til_fb_t {
 	(_type *)((void *)(_ptr) - offsetof(_type, _member))
 #endif
 
+static _til_fb_page_t * _til_fb_page_alloc(til_fb_t *fb);
+
 
 /* Consumes ready pages queued via til_fb_page_put(), submits them to drm to flip
  * on vsync.  Produces inactive pages from those replaced, making them
@@ -113,7 +171,7 @@ int til_fb_flip(til_fb_t *fb)
 	pthread_mutex_unlock(&fb->ready_mutex);
 
 	/* submit the next active page for page flip on vsync, and wait for it. */
-	r = fb->ops->page_flip(fb, fb->ops_context, next_active_page->ops_page);
+	r = fb->ops->page_flip(fb, fb->ops_context, next_active_page->fb_ops_page);
 	if (r < 0)	/* TODO: vet this: what happens to this page? */
 		return r;
 
@@ -134,8 +192,9 @@ int til_fb_flip(til_fb_t *fb)
 	 */
 	pthread_mutex_lock(&fb->rebuild_mutex);
 	for (_til_fb_page_t *p = fb->inactive_pages_head; p && fb->rebuild_pages > 0; p = p->next) {
-		fb->ops->page_free(fb, fb->ops_context, p->ops_page);
-		p->ops_page = fb->ops->page_alloc(fb, fb->ops_context, &p->public_page);
+		fb->ops->page_free(fb, fb->ops_context, p->fb_ops_page);
+		p->fb_ops_page = fb->ops->page_alloc(fb, fb->ops_context, &p->fragment.public);
+		p->fragment.public.ops = &p->fragment.ops;
 		fb->rebuild_pages--;
 	}
 	pthread_mutex_unlock(&fb->rebuild_mutex);
@@ -154,7 +213,7 @@ static int til_fb_acquire(til_fb_t *fb, _til_fb_page_t *page)
 {
 	int	ret;
 
-	ret = fb->ops->acquire(fb, fb->ops_context, page->ops_page);
+	ret = fb->ops->acquire(fb, fb->ops_context, page->fb_ops_page);
 	if (ret < 0)
 		return ret;
 
@@ -184,15 +243,99 @@ static void til_fb_release(til_fb_t *fb)
 }
 
 
-/* creates a framebuffer page */
-static void til_fb_page_new(til_fb_t *fb)
+static void _til_fb_page_free(til_fb_t *fb, _til_fb_page_t *page)
+{
+	fb->ops->page_free(fb, fb->ops_context, page->fb_ops_page);
+
+	free(page);
+}
+
+
+/* submit the page backing fragment into the fb, queueing for display */
+static void _til_fb_page_submit(til_fb_fragment_t *fragment)
+{
+	_til_fb_page_t	*page = container_of(fragment, _til_fb_page_t, fragment);
+	til_fb_t	*fb = page->fb;
+
+	fb->put_pages_count++;
+
+	pthread_mutex_lock(&fb->ready_mutex);
+	if (fb->ready_pages_tail)
+		fb->ready_pages_tail->next = page;
+	else
+		fb->ready_pages_head = page;
+
+	fb->ready_pages_tail = page;
+	pthread_cond_signal(&fb->ready_cond);
+	pthread_mutex_unlock(&fb->ready_mutex);
+}
+
+
+/* reclaim the page backing fragment back to the fb */
+static void _til_fb_page_reclaim(til_fb_fragment_t *fragment)
+{
+	_til_fb_page_t	*page = container_of(fragment, _til_fb_page_t, fragment);
+
+	_til_fb_page_free(page->fb, page);
+}
+
+
+/* bare helper for copying fragment contents */
+static void _til_fb_fragment_memcpy_buf(til_fb_fragment_t *dest, til_fb_fragment_t *src)
+{
+	assert(dest->width == src->width);
+	assert(dest->height == src->height);
+
+	for (unsigned y = 0; y < dest->height; y++)
+		memcpy(&dest->buf[y * dest->pitch], &src->buf[y * src->pitch], dest->width * sizeof(uint32_t));
+}
+
+
+/* snapshot the contents of fragment */
+static til_fb_fragment_t * _til_fb_page_snapshot(til_fb_fragment_t **fragment_ptr, int preserve_original)
+{
+	_til_fb_page_t	*page;
+	_til_fb_page_t	*new_page;
+
+	assert(fragment_ptr && *fragment_ptr);
+
+	page = container_of(*fragment_ptr, _til_fb_page_t, fragment);
+	new_page = _til_fb_page_alloc(page->fb);
+	*fragment_ptr = &new_page->fragment.public;
+
+	if (preserve_original)
+		_til_fb_fragment_memcpy_buf(&new_page->fragment.public, &page->fragment.public);
+
+	return &page->fragment.public;
+}
+
+
+/* allocate a framebuffer page */
+static _til_fb_page_t * _til_fb_page_alloc(til_fb_t *fb)
 {
 	_til_fb_page_t	*page;
 
 	page = calloc(1, sizeof(_til_fb_page_t));
 	assert(page);
 
-	page->ops_page = fb->ops->page_alloc(fb, fb->ops_context, &page->public_page);
+	page->fb = fb;
+	page->fb_ops_page = fb->ops->page_alloc(fb, fb->ops_context, &page->fragment.public);
+	assert(page->fb_ops_page);
+	page->fragment.ops.submit = _til_fb_page_submit;
+	page->fragment.ops.snapshot = _til_fb_page_snapshot;
+	page->fragment.ops.reclaim = _til_fb_page_reclaim;
+	page->fragment.public.ops = &page->fragment.ops;
+
+	return page;
+}
+
+
+/* creates a framebuffer page, leaving it in the inactive pages list */
+static void _til_fb_page_new(til_fb_t *fb)
+{
+	_til_fb_page_t	*page;
+
+	page = _til_fb_page_alloc(fb);
 
 	pthread_mutex_lock(&fb->inactive_mutex);
 	page->next = fb->inactive_pages_head;
@@ -203,14 +346,6 @@ static void til_fb_page_new(til_fb_t *fb)
 		fb->inactive_pages_tail = fb->inactive_pages_head;
 	pthread_mutex_unlock(&fb->inactive_mutex);
 
-}
-
-
-static void _til_fb_page_free(til_fb_t *fb, _til_fb_page_t *page)
-{
-	fb->ops->page_free(fb, fb->ops_context, page->ops_page);
-
-	free(page);
 }
 
 
@@ -233,42 +368,86 @@ static inline _til_fb_page_t * _til_fb_page_get(til_fb_t *fb)
 	pthread_mutex_unlock(&fb->inactive_mutex);
 
 	page->next = page->previous = NULL;
-	page->public_page.fragment.cleared = 0;
+	page->fragment.public.cleared = 0;
 
 	return page;
 }
 
 
 /* public interface */
-til_fb_page_t * til_fb_page_get(til_fb_t *fb)
+til_fb_fragment_t * til_fb_page_get(til_fb_t *fb)
 {
-	return &(_til_fb_page_get(fb)->public_page);
+	return &(_til_fb_page_get(fb)->fragment.public);
 }
 
 
-/* put a page into the fb, queueing for display */
-static inline void _til_fb_page_put(til_fb_t *fb, _til_fb_page_t *page)
+/* submit the page backing the supplied whole-page fragment to the fb, queueing for display */
+void til_fb_fragment_submit(til_fb_fragment_t *fragment)
 {
-	pthread_mutex_lock(&fb->ready_mutex);
-	if (fb->ready_pages_tail)
-		fb->ready_pages_tail->next = page;
-	else
-		fb->ready_pages_head = page;
-
-	fb->ready_pages_tail = page;
-	pthread_cond_signal(&fb->ready_cond);
-	pthread_mutex_unlock(&fb->ready_mutex);
+	/* XXX: There's no actual need to locate the submit() method via the
+	 * fragment; we could just call _til_fb_fragment_submit() here.
+	 * But by only initializing ops.submit for full-page fragments, we
+	 * can at least prevent submission on non-page fragments.  So just
+	 * go through that circuit here, maybe one day the functions used
+	 * might even vary per-backend.
+	 */
+	assert(fragment->ops && fragment->ops->submit);
+	fragment->ops->submit(fragment);
 }
 
 
-/* public interface */
-
-/* put a page into the fb, queueing for display */
-void til_fb_page_put(til_fb_t *fb, til_fb_page_t *page)
+static void _til_fb_snapshot_reclaim(til_fb_fragment_t *fragment)
 {
-	fb->put_pages_count++;
+	assert(fragment);
+	assert(fragment->buf);
 
-	_til_fb_page_put(fb, container_of(page, _til_fb_page_t, public_page));
+	free(fragment->buf);
+	free(fragment);
+}
+
+
+/* Snapshot the fragment, returning the snapshot, updating *fragment_ptr if necessary.
+ * The remaining contents of *fragment_ptr->buf are undefined if preserve_original=0.
+ * The returned snapshot will always contain the original contents of *fragment_ptr->buf.
+ */
+til_fb_fragment_t * til_fb_fragment_snapshot(til_fb_fragment_t **fragment_ptr, int preserve_original)
+{
+	_til_fb_fragment_t	*_fragment;
+
+	assert(fragment_ptr && *fragment_ptr);
+
+	/* when there's a snapshot method just let it do some magic */
+	if ((*fragment_ptr)->ops->snapshot)
+		return (*fragment_ptr)->ops->snapshot(fragment_ptr, preserve_original);
+
+	/* otherwise we just allocate a new fragment, and copy *fragment_ptr->buf to it */
+	/* unfortunately this must always incur the cost of preserving the original fragment's contents */
+	_fragment = calloc(1, sizeof(_til_fb_fragment_t));
+	assert(_fragment);
+	_fragment->public.frame_width = (*fragment_ptr)->frame_width;
+	_fragment->public.frame_height = (*fragment_ptr)->frame_height;
+	_fragment->public.pitch = _fragment->public.width = (*fragment_ptr)->width;
+	_fragment->public.height = (*fragment_ptr)->height;
+	_fragment->public.x = (*fragment_ptr)->x;
+	_fragment->public.y = (*fragment_ptr)->y;
+	_fragment->public.buf = malloc(_fragment->public.width * _fragment->public.height * sizeof(uint32_t));
+	assert(_fragment->public.buf);
+	_fragment->ops.reclaim = _til_fb_snapshot_reclaim;
+	_fragment->public.ops = &_fragment->ops;
+
+	_til_fb_fragment_memcpy_buf(&_fragment->public, (*fragment_ptr));
+
+	return &_fragment->public;
+}
+
+
+/* reclaim the fragment (for cleaning up snapshots) */
+til_fb_fragment_t * til_fb_fragment_reclaim(til_fb_fragment_t *fragment)
+{
+	if (fragment->ops->reclaim)
+		fragment->ops->reclaim(fragment);
+
+	return NULL;
 }
 
 
@@ -334,7 +513,7 @@ int til_fb_new(const til_fb_ops_t *ops, const til_setup_t *setup, int n_pages, t
 	}
 
 	for (int i = 0; i < n_pages; i++)
-		til_fb_page_new(fb);
+		_til_fb_page_new(fb);
 
 	fb->n_pages = n_pages;
 

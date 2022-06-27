@@ -454,7 +454,7 @@ static void drm_fb_release(til_fb_t *fb, void *context)
 }
 
 
-static void * drm_fb_page_alloc(til_fb_t *fb, void *context, til_fb_page_t *res_page)
+static void * drm_fb_page_alloc(til_fb_t *fb, void *context, til_fb_fragment_t *res_fragment)
 {
 	struct drm_mode_create_dumb	create_dumb = { .bpp = 32 };
 	struct drm_mode_map_dumb	map_dumb = {};
@@ -491,14 +491,14 @@ static void * drm_fb_page_alloc(til_fb_t *fb, void *context, til_fb_page_t *res_
 	p->drm_dumb_handle = map_dumb.handle;
 	p->drm_fb_id = fb_id;
 
-	*res_page =	(til_fb_page_t){
-				.fragment.buf = map,
-				.fragment.width = c->mode->hdisplay,
-				.fragment.frame_width = c->mode->hdisplay,
-				.fragment.height = c->mode->vdisplay,
-				.fragment.frame_height = c->mode->vdisplay,
-				.fragment.pitch = create_dumb.pitch >> 2,
-				.fragment.stride = (create_dumb.pitch >> 2) - c->mode->hdisplay,
+	*res_fragment =	(til_fb_fragment_t){
+				.buf = map,
+				.width = c->mode->hdisplay,
+				.frame_width = c->mode->hdisplay,
+				.height = c->mode->vdisplay,
+				.frame_height = c->mode->vdisplay,
+				.pitch = create_dumb.pitch >> 2,
+				.stride = (create_dumb.pitch >> 2) - c->mode->hdisplay,
 			};
 
 	return p;

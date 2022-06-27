@@ -111,7 +111,7 @@ static void mem_fb_release(til_fb_t *fb, void *context)
 }
 
 
-static void * mem_fb_page_alloc(til_fb_t *fb, void *context, til_fb_page_t *res_page)
+static void * mem_fb_page_alloc(til_fb_t *fb, void *context, til_fb_fragment_t *res_fragment)
 {
 	mem_fb_t	*c = context;
 	mem_fb_page_t	*p;
@@ -120,13 +120,13 @@ static void * mem_fb_page_alloc(til_fb_t *fb, void *context, til_fb_page_t *res_
 	if (!p)
 		return NULL;
 
-	*res_page =	(til_fb_page_t){
-				.fragment.buf = p->buf,
-				.fragment.width = c->setup.width,
-				.fragment.frame_width = c->setup.width,
-				.fragment.height = c->setup.height,
-				.fragment.frame_height = c->setup.height,
-				.fragment.pitch = c->setup.width,
+	*res_fragment =	(til_fb_fragment_t){
+				.buf = p->buf,
+				.width = c->setup.width,
+				.frame_width = c->setup.width,
+				.height = c->setup.height,
+				.frame_height = c->setup.height,
+				.pitch = c->setup.width,
 			};
 
 	return p;

@@ -319,30 +319,14 @@ static void * rototiller_thread(void *_rt)
 	struct timeval	now;
 
 	for (;;) {
-		til_fb_page_t		*page;
 		til_fb_fragment_t	*fragment;
 		unsigned		ticks;
 
-		page = til_fb_page_get(rt->fb);
-		fragment = &page->fragment;
-
+		fragment = til_fb_page_get(rt->fb);
 		gettimeofday(&now, NULL);
 		ticks = get_ticks(&rt->start_tv, &now, rt->ticks_offset);
-
-		/* XXX FIXME this needs refactoring, maybe til_fb_fragment_ops_t needs
-		 * to implement the page_put, then til_fb_page_get() just returns a
-		 * fragment with a put method.
-		 *
-		 * I've hacked it for now, but it's broken once cloning becomes a thing
-		 * because we assume that page contains fragment @ put time.  When a
-		 * clone could have replaced the fragment, and it's the replacement page
-		 * that must be submitted.  what makes a page?  being submittable, so
-		 * maybe just make submit another op on the fragment and get rid of the
-		 * til_fb_page_t type altogether... hacked to build for now.
-		 */
 		til_module_render(rt->module_context, ticks, &fragment);
-
-		til_fb_page_put(rt->fb, page);
+		til_fb_fragment_submit(fragment);
 	}
 
 	return NULL;

@@ -223,7 +223,7 @@ static void sdl_fb_release(til_fb_t *fb, void *context)
 }
 
 
-static void * sdl_fb_page_alloc(til_fb_t *fb, void *context, til_fb_page_t *res_page)
+static void * sdl_fb_page_alloc(til_fb_t *fb, void *context, til_fb_fragment_t *res_fragment)
 {
 	sdl_fb_t	*c = context;
 	sdl_fb_page_t	*p;
@@ -237,14 +237,14 @@ static void * sdl_fb_page_alloc(til_fb_t *fb, void *context, til_fb_page_t *res_
 	/* rototiller wants to assume all pixels to be 32-bit aligned, so prevent unaligning pitches */
 	assert(!(p->surface->pitch & 0x3));
 
-	*res_page =	(til_fb_page_t){
-				.fragment.buf = p->surface->pixels,
-				.fragment.width = c->width,
-				.fragment.frame_width = c->width,
-				.fragment.height = c->height,
-				.fragment.frame_height = c->height,
-				.fragment.pitch = p->surface->pitch >> 2,
-				.fragment.stride = (p->surface->pitch >> 2) - c->width,
+	*res_fragment =	(til_fb_fragment_t){
+				.buf = p->surface->pixels,
+				.width = c->width,
+				.frame_width = c->width,
+				.height = c->height,
+				.frame_height = c->height,
+				.pitch = p->surface->pitch >> 2,
+				.stride = (p->surface->pitch >> 2) - c->width,
 			};
 
 	return p;
