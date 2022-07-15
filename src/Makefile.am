@@ -7,7 +7,7 @@ libtil_la_LIBADD = modules/blinds/libblinds.la modules/checkers/libcheckers.la m
 
 if ENABLE_ROTOTILLER
 bin_PROGRAMS = rototiller
-rototiller_SOURCES = fps.c fps.h main.c setup.h setup.c til.h til_fb.c til_fb.h til_knobs.h til_settings.c til_settings.h til_threads.c til_threads.h til_util.c til_util.h
+rototiller_SOURCES = fps.c fps.h main.c mem_fb.c setup.h setup.c til.h til_fb.c til_fb.h til_knobs.h til_settings.c til_settings.h til_threads.c til_threads.h til_util.c til_util.h
 if ENABLE_SDL
 rototiller_SOURCES += sdl_fb.c
 endif

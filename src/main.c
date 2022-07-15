@@ -34,6 +34,7 @@
 #endif
 
 extern til_fb_ops_t	drm_fb_ops;
+extern til_fb_ops_t	mem_fb_ops;
 extern til_fb_ops_t	sdl_fb_ops;
 static til_fb_ops_t	*fb_ops;
 
@@ -74,6 +75,7 @@ static int setup_video(til_settings_t *settings, til_setting_t **res_setting, co
 #ifdef HAVE_DRM
 						"drm",
 #endif
+						"mem",
 #ifdef HAVE_SDL
 						"sdl",
 #endif
@@ -106,6 +108,11 @@ static int setup_video(til_settings_t *settings, til_setting_t **res_setting, co
 		return drm_fb_ops.setup(settings, res_setting, res_desc, res_setup);
 	}
 #endif
+	if (!strcasecmp(video, "mem")) {
+		fb_ops = &mem_fb_ops;
+
+		return mem_fb_ops.setup(settings, res_setting, res_desc, res_setup);
+	}
 #ifdef HAVE_SDL
 	if (!strcasecmp(video, "sdl")) {
 		fb_ops = &sdl_fb_ops;
