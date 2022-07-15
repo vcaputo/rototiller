@@ -10,6 +10,12 @@
 
 /* sdl fb backend, everything sdl-specific in rototiller resides here. */
 
+typedef struct sdl_fb_setup_t {
+	til_setup_t	til_setup;
+	int		fullscreen;
+	unsigned	width, height;
+} sdl_fb_setup_t;
+
 typedef struct sdl_fb_t {
 	unsigned	width, height;
 	Uint32		flags;
@@ -34,6 +40,7 @@ static int sdl_fb_setup(const til_settings_t *settings, til_setting_t **res_sett
 				NULL
 			};
 	const char	*fullscreen;
+	const char	*size;
 	int		r;
 
 	r = til_settings_get_and_describe_value(settings,
@@ -52,8 +59,6 @@ static int sdl_fb_setup(const til_settings_t *settings, til_setting_t **res_sett
 		return r;
 
 	if (!strcasecmp(fullscreen, "off")) {
-		const char	*size;
-
 		r = til_settings_get_and_describe_value(settings,
 							&(til_setting_desc_t){
 								.name = "SDL window size",
@@ -68,6 +73,45 @@ static int sdl_fb_setup(const til_settings_t *settings, til_setting_t **res_sett
 							res_desc);
 		if (r)
 			return r;
+	} else if ((size = til_settings_get_value(settings, "size", res_setting)) && !(*res_setting)->desc) {
+		/* if fullscreen=on AND size=WxH is specified, we'll do a more legacy style SDL fullscreen
+		 * where it tries to change the video mode.  But if size is unspecified, it'll be a desktop
+		 * style fullscreen where it just uses a fullscreen window in the existing video mode, and
+		 * we won't forcibly require a size= be specified.
+		 */
+		 /* FIXME TODO: this is all copy-n-pasta grossness that wouldn't need to exist if
+		  * til_settings_get_and_describe_value() just supported optional settings we only
+		  * describe when they're already present.  It just needs something like an optional flag,
+		  * to be added in a future commit which will remove this hack.
+		  */
+		 r = til_setting_desc_clone(	&(til_setting_desc_t){
+							.name = "SDL window size",
+							.key = "size",
+							.regex = "[1-9][0-9]*[xX][1-9][0-9]*",
+							.preferred = "640x480",
+							.values = NULL,
+							.annotations = NULL
+						}, res_desc);
+		if (r < 0)
+			return r;
+
+		return 1;
+	}
+
+	if (res_setup) {
+		sdl_fb_setup_t	*setup;
+
+		setup = til_setup_new(sizeof(*setup), (void(*)(til_setup_t *))free);
+		if (!setup)
+			return -ENOMEM;
+
+		if (!strcasecmp(fullscreen, "on"))
+			setup->fullscreen = 1;
+
+		if (size)
+			sscanf(size, "%u%*[xX]%u", &setup->width, &setup->height);
+
+		*res_setup = &setup->til_setup;
 	}
 
 	return 0;
@@ -89,37 +133,28 @@ static int sdl_err_to_errno(int err)
 	}
 }
 
-static int sdl_fb_init(const til_settings_t *settings, void **res_context)
+static int sdl_fb_init(const til_setup_t *setup, void **res_context)
 {
-	const char	*fullscreen;
-	const char	*size;
+	sdl_fb_setup_t	*s = (sdl_fb_setup_t *)setup;
 	sdl_fb_t	*c;
 	int		r;
 
-	assert(settings);
+	assert(setup);
 	assert(res_context);
-
-	fullscreen = til_settings_get_value(settings, "fullscreen", NULL);
-	if (!fullscreen)
-		return -EINVAL;
-
-	size = til_settings_get_value(settings, "size", NULL);
-	if (!size && !strcasecmp(fullscreen, "off"))
-		return -EINVAL;
 
 	c = calloc(1, sizeof(sdl_fb_t));
 	if (!c)
 		return -ENOMEM;
 
-	if (!strcasecmp(fullscreen, "on")) {
-		if (!size)
-			c->flags = SDL_WINDOW_FULLSCREEN_DESKTOP;
-		else
+	if (s->fullscreen) {
+		if (s->width && s->height)
 			c->flags = SDL_WINDOW_FULLSCREEN;
+		else
+			c->flags = SDL_WINDOW_FULLSCREEN_DESKTOP;
 	}
 
-	if (size) /* TODO: errors */
-		sscanf(size, "%u%*[xX]%u", &c->width, &c->height);
+	c->width = s->width;
+	c->height = s->height;
 
 	SDL_SetMainReady();
 	r = SDL_Init(SDL_INIT_VIDEO);

@@ -50,9 +50,9 @@ static rototiller_t		rototiller;
 
 
 typedef struct setup_t {
-	til_settings_t	*module;
+	til_settings_t	*module_settings;
 	til_setup_t	*module_setup;
-	til_settings_t	*video;
+	til_settings_t	*video_settings;
 	til_setup_t	*video_setup;
 } setup_t;
 
@@ -126,21 +126,21 @@ static int setup_from_args(til_args_t *args, setup_t *res_setup, const til_setti
 	int	r = -ENOMEM, changes = 0;
 	setup_t	setup = {};
 
-	setup.module = til_settings_new(args->module);
-	if (!setup.module)
+	setup.module_settings = til_settings_new(args->module);
+	if (!setup.module_settings)
 		goto _err;
 
-	setup.video = til_settings_new(args->video);
-	if (!setup.video)
+	setup.video_settings = til_settings_new(args->video);
+	if (!setup.video_settings)
 		goto _err;
 
-	r = setup_interactively(setup.module, til_module_setup, args->use_defaults, &setup.module_setup, res_failed_desc);
+	r = setup_interactively(setup.module_settings, til_module_setup, args->use_defaults, &setup.module_setup, res_failed_desc);
 	if (r < 0)
 		goto _err;
 	if (r)
 		changes = 1;
 
-	r = setup_interactively(setup.video, setup_video, args->use_defaults, &setup.video_setup, res_failed_desc);
+	r = setup_interactively(setup.video_settings, setup_video, args->use_defaults, &setup.video_setup, res_failed_desc);
 	if (r < 0)
 		goto _err;
 	if (r)
@@ -151,8 +151,8 @@ static int setup_from_args(til_args_t *args, setup_t *res_setup, const til_setti
 	return changes;
 
 _err:
-	til_settings_free(setup.module);
-	til_settings_free(setup.video);
+	til_settings_free(setup.module_settings);
+	til_settings_free(setup.video_settings);
 
 	return r;
 }
@@ -164,14 +164,14 @@ static int print_setup_as_args(setup_t *setup)
 	char	buf[64];
 	int	r;
 
-	module_args = til_settings_as_arg(setup->module);
+	module_args = til_settings_as_arg(setup->module_settings);
 	if (!module_args) {
 		r = -ENOMEM;
 
 		goto _out;
 	}
 
-	video_args = til_settings_as_arg(setup->video);
+	video_args = til_settings_as_arg(setup->video_settings);
 	if (!video_args) {
 		r = -ENOMEM;
 
@@ -267,10 +267,10 @@ int main(int argc, const char *argv[])
 	exit_if(!args.gogogo && r && print_setup_as_args(&setup) < 0,
 		"unable to print setup");
 
-	exit_if(!(rototiller.module = til_lookup_module(til_settings_get_key(setup.module, 0, NULL))),
-		"unable to lookup module from settings \"%s\"", til_settings_get_key(setup.module, 0, NULL));
+	exit_if(!(rototiller.module = til_lookup_module(til_settings_get_key(setup.module_settings, 0, NULL))),
+		"unable to lookup module from settings \"%s\"", til_settings_get_key(setup.module_settings, 0, NULL));
 
-	exit_if((r = til_fb_new(fb_ops, setup.video, NUM_FB_PAGES, &rototiller.fb)) < 0,
+	exit_if((r = til_fb_new(fb_ops, setup.video_setup, NUM_FB_PAGES, &rototiller.fb)) < 0,
 		"unable to create fb: %s", strerror(-r));
 
 	exit_if(!fps_setup(),

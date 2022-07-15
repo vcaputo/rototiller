@@ -305,7 +305,7 @@ til_fb_t * til_fb_free(til_fb_t *fb)
 
 
 /* create a new fb instance */
-int til_fb_new(const til_fb_ops_t *ops, til_settings_t *settings, int n_pages, til_fb_t **res_fb)
+int til_fb_new(const til_fb_ops_t *ops, const til_setup_t *setup, int n_pages, til_fb_t **res_fb)
 {
 	_til_fb_page_t	*page;
 	til_fb_t		*fb;
@@ -328,7 +328,7 @@ int til_fb_new(const til_fb_ops_t *ops, til_settings_t *settings, int n_pages, t
 
 	fb->ops = ops;
 	if (ops->init) {
-		r = ops->init(settings, &fb->ops_context);
+		r = ops->init(setup, &fb->ops_context);
 		if (r < 0)
 			goto fail;
 	}

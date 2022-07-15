@@ -35,6 +35,7 @@ struct drm_fb_page_t {
 };
 
 typedef struct drm_fb_setup_t {
+	til_setup_t		til_setup;
 	const char		*dev;
 	const char		*connector;
 	const char		*mode;
@@ -68,7 +69,7 @@ static const char * connector_type_name(uint32_t type) {
 }
 
 
-static int dev_desc_generator(void *setup_context, const til_setting_desc_t **res_desc)
+static int dev_desc_generator(til_setup_t *setup_context, const til_setting_desc_t **res_desc)
 {
 	return  til_setting_desc_clone(&(til_setting_desc_t){
 					.name = "DRM device path",
@@ -145,9 +146,9 @@ static void free_strv(const char **strv)
 }
 
 
-static int connector_desc_generator(void *setup_context, const til_setting_desc_t **res_desc)
+static int connector_desc_generator(til_setup_t *setup_context, const til_setting_desc_t **res_desc)
 {
-	drm_fb_setup_t	*s = setup_context;
+	drm_fb_setup_t	*s = (drm_fb_setup_t *)setup_context;
 	const char	**connectors;
 	int		r;
 
@@ -254,9 +255,9 @@ _out:
 }
 
 
-static int mode_desc_generator(void *setup_context, const til_setting_desc_t **res_desc)
+static int mode_desc_generator(til_setup_t *setup_context, const til_setting_desc_t **res_desc)
 {
-	drm_fb_setup_t	*s = setup_context;
+	drm_fb_setup_t	*s = (drm_fb_setup_t *)setup_context;
 	const char	**modes;
 	int		r;
 
@@ -280,24 +281,36 @@ static int mode_desc_generator(void *setup_context, const til_setting_desc_t **r
 }
 
 
+static void drm_fb_setup_free(til_setup_t *setup)
+{
+	drm_fb_setup_t	*s = (drm_fb_setup_t *)setup;
+
+	assert(s);
+
+	free((void *)s->dev);
+	free((void *)s->connector);
+	free((void *)s->mode);
+}
+
+
 /* setup is called repeatedly as settings is constructed, until 0 is returned. */
 /* a negative value is returned on error */
 /* positive value indicates another setting is needed, described in next_setting */
 static int drm_fb_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
-	drm_fb_setup_t			context = {};
+	drm_fb_setup_t			*setup = til_setup_new(sizeof(*setup), drm_fb_setup_free);
 	til_setting_desc_generator_t	generators[] = {
 						{
 							.key = "dev",
-							.value_ptr = &context.dev,
+							.value_ptr = &setup->dev,
 							.func = dev_desc_generator
 						}, {
 							.key = "connector",
-							.value_ptr = &context.connector,
+							.value_ptr = &setup->connector,
 							.func = connector_desc_generator
 						}, {
 							.key = "mode",
-							.value_ptr = &context.mode,
+							.value_ptr = &setup->mode,
 							.func = mode_desc_generator
 						},
 					};
@@ -305,7 +318,10 @@ static int drm_fb_setup(const til_settings_t *settings, til_setting_t **res_sett
 	if (!drmAvailable())
 		return -ENOSYS;
 
-	return til_settings_apply_desc_generators(settings, generators, nelems(generators), &context, res_setting, res_desc);
+	if (!setup)
+		return -ENOMEM;
+
+	return til_settings_apply_desc_generators(settings, generators, nelems(generators), &setup->til_setup, res_setting, res_desc, res_setup);
 }
 
 
@@ -335,8 +351,9 @@ static drmModeModeInfo * lookup_mode(drmModeConnector *connector, const char *mo
 
 
 /* prepare the drm context for use with the supplied settings */
-static int drm_fb_init(const til_settings_t *settings, void **res_context)
+static int drm_fb_init(const til_setup_t *setup, void **res_context)
 {
+	drm_fb_setup_t	*s = (drm_fb_setup_t *)setup;
 	drm_fb_t	*c;
 	const char	*dev;
 	const char	*connector;
@@ -344,27 +361,14 @@ static int drm_fb_init(const til_settings_t *settings, void **res_context)
 	drmModeEncoder	*enc;
 	int		r;
 
-	assert(settings);
+	assert(setup);
 
 	if (!drmAvailable()) {
 		r = -errno;
 		goto _err;
 	}
 
-	dev = til_settings_get_value(settings, "dev", NULL);
-	if (!dev) {
-		r = -EINVAL;
-		goto _err;
-	}
-
-	connector = til_settings_get_value(settings, "connector", NULL);
-	if (!connector) {
-		r = -EINVAL;
-		goto _err;
-	}
-
-	mode = til_settings_get_value(settings, "mode", NULL);
-	if (!mode) {
+	if (!s->dev || !s->connector || !s->mode) {
 		r = -EINVAL;
 		goto _err;
 	}
@@ -375,17 +379,17 @@ static int drm_fb_init(const til_settings_t *settings, void **res_context)
 		goto _err;
 	}
 
-	c->drm_fd = open(dev, O_RDWR);
+	c->drm_fd = open(s->dev, O_RDWR);
 	if (c->drm_fd < 0) {
 		r = -errno;
 		goto _err_ctxt;
 	}
 
-	r = lookup_connector(c->drm_fd, connector, &c->connector);
+	r = lookup_connector(c->drm_fd, s->connector, &c->connector);
 	if (r < 0)
 		goto _err_fd;
 
-	c->mode = lookup_mode(c->connector, mode);
+	c->mode = lookup_mode(c->connector, s->mode);
 	if (!c->mode) {
 		r = -EINVAL;
 		goto _err_con;

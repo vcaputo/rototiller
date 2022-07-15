@@ -243,7 +243,7 @@ void til_settings_reset_descs(til_settings_t *settings)
 /* returns 0 when input settings are complete */
 /* returns 1 when input settings are incomplete, storing the next setting's description needed in *next_setting */
 /* returns -errno on error */
-int til_settings_apply_desc_generators(const til_settings_t *settings, const til_setting_desc_generator_t generators[], unsigned n_generators, void *setup_context, til_setting_t **res_setting, const til_setting_desc_t **res_desc)
+int til_settings_apply_desc_generators(const til_settings_t *settings, const til_setting_desc_generator_t generators[], unsigned n_generators, til_setup_t *setup, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	assert(settings);
 	assert(generators);
@@ -256,7 +256,7 @@ int til_settings_apply_desc_generators(const til_settings_t *settings, const til
 		const til_setting_desc_t		*desc;
 		int					r;
 
-		r = g->func(setup_context, &desc);
+		r = g->func(setup, &desc);
 		if (r < 0)
 			return r;
 
@@ -265,6 +265,9 @@ int til_settings_apply_desc_generators(const til_settings_t *settings, const til
 		if (r)
 			return r;
 	}
+
+	if (res_setup)
+		*res_setup = setup;
 
 	return 0;
 }
