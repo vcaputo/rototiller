@@ -27,10 +27,21 @@
  * another page so we can begin rendering another frame before vsync.  With
  * just two pages we end up twiddling thumbs until the vsync arrives.
  */
+
+#ifndef DEFAULT_VIDEO
 #ifdef HAVE_SDL
 #define DEFAULT_VIDEO	"sdl"
-#else
+#endif
+#endif
+
+#ifndef DEFAULT_VIDEO
+#ifdef  HAVE_DRM
 #define DEFAULT_VIDEO	"drm"
+#endif
+#endif
+
+#ifndef DEFAULT_VIDEO
+#define DEFAULT_VIDEO	"mem"
 #endif
 
 extern til_fb_ops_t	drm_fb_ops;
