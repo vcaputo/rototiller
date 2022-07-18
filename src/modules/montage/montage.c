@@ -89,7 +89,7 @@ static til_module_context_t * montage_create_context(unsigned seed, unsigned tic
 		const til_module_t	*module = ctxt->modules[i];
 		til_setup_t		*setup = NULL;
 
-		(void) til_module_randomize_setup(module, &setup, NULL);
+		(void) til_module_randomize_setup(module, rand_r(&seed), &setup, NULL);
 
 		/* FIXME errors */
 		(void) til_module_create_context(module, rand_r(&seed), ticks, 1, setup, &ctxt->contexts[i]);

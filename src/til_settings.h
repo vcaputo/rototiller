@@ -15,7 +15,7 @@ typedef struct til_setting_desc_t {
 	const char	*preferred;	/* if there's a default, this is it */
 	const char	**values;	/* if a set of values is provided, listed here */
 	const char	**annotations;	/* if a set of values is provided, annotations for those values may be listed here */
-	char *		(*random)(void);/* if set, returns a valid random value for this setting */
+	char *		(*random)(unsigned seed);/* if set, returns a valid random value for this setting */
 } til_setting_desc_t;
 
 /* For conveniently representing setting description generators */

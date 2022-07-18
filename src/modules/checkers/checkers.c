@@ -100,7 +100,7 @@ static til_module_context_t * checkers_create_context(unsigned seed, unsigned ti
 		const til_module_t	*module = ctxt->setup.fill_module;
 		til_setup_t		*module_setup = NULL;
 
-		(void) til_module_randomize_setup(module, &module_setup, NULL);
+		(void) til_module_randomize_setup(module, seed, &module_setup, NULL);
 
 		/* since checkers is already threaded, create an n_cpus=1 context per-cpu */
 		for (unsigned i = 0; i < n_cpus; i++) /* TODO: errors */
@@ -236,7 +236,7 @@ static void checkers_render_fragment(til_module_context_t *context, unsigned tic
 
 
 /* TODO: migrate to libtil */
-static char * checkers_random_color(void)
+static char * checkers_random_color(unsigned seed)
 {
 	/* til should probably have a common randomize color helper for this with a large collection of
 	 * reasonable colors, and maybe even have themed palettes one can choose from... */
@@ -250,7 +250,7 @@ static char * checkers_random_color(void)
 					"#ff00ff",
 				};
 
-	return strdup(colors[rand() % nelems(colors)]);
+	return strdup(colors[seed % nelems(colors)]);
 }
 
 

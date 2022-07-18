@@ -86,7 +86,7 @@ static til_module_context_t * compose_create_context(unsigned seed, unsigned tic
 		til_setup_t		*layer_setup = NULL;
 
 		layer_module = til_lookup_module(((compose_setup_t *)setup)->layers[i]);
-		(void) til_module_randomize_setup(layer_module, &layer_setup, NULL);
+		(void) til_module_randomize_setup(layer_module, rand_r(&seed), &layer_setup, NULL);
 
 		ctxt->layers[i].module = layer_module;
 		(void) til_module_create_context(layer_module, rand_r(&seed), ticks, 0, layer_setup, &ctxt->layers[i].module_ctxt);
@@ -99,7 +99,7 @@ static til_module_context_t * compose_create_context(unsigned seed, unsigned tic
 		til_setup_t	*texture_setup = NULL;
 
 		ctxt->texture.module = til_lookup_module(((compose_setup_t *)setup)->texture);
-		(void) til_module_randomize_setup(ctxt->texture.module, &texture_setup, NULL);
+		(void) til_module_randomize_setup(ctxt->texture.module, rand_r(&seed), &texture_setup, NULL);
 
 		(void) til_module_create_context(ctxt->texture.module, rand_r(&seed), ticks, 0, texture_setup, &ctxt->texture.module_ctxt);
 		til_setup_free(texture_setup);
@@ -165,7 +165,7 @@ static void compose_prepare_frame(til_module_context_t *context, unsigned ticks,
 
 
 /* return a randomized valid layers= setting */
-static char * compose_random_layers_setting(void)
+static char * compose_random_layers_setting(unsigned seed)
 {
 	size_t			n_modules, n_rand_overlays, n_overlayable = 0, base_idx;
 	char			*layers = NULL;
@@ -178,7 +178,7 @@ static char * compose_random_layers_setting(void)
 			n_overlayable++;
 	}
 
-	base_idx = rand() % (n_modules - n_overlayable);
+	base_idx = rand_r(&seed) % (n_modules - n_overlayable);
 	for (size_t i = 0, j = 0; !layers && i < n_modules; i++) {
 		if (modules[i]->flags & TIL_MODULE_OVERLAYABLE)
 			continue;
@@ -192,9 +192,9 @@ static char * compose_random_layers_setting(void)
 	 * sometimes interesting.  Maybe another module flag is necessary for indicating
 	 * manifold-appropriate overlays.
 	 */
-	n_rand_overlays = 1 + (rand() % (n_overlayable - 1));
+	n_rand_overlays = 1 + (rand_r(&seed) % (n_overlayable - 1));
 	for (size_t n = 0; n < n_rand_overlays; n++) {
-		size_t	rand_idx = rand() % n_overlayable;
+		size_t	rand_idx = rand_r(&seed) % n_overlayable;
 
 		for (size_t i = 0, j = 0; i < n_modules; i++) {
 			if (!(modules[i]->flags & TIL_MODULE_OVERLAYABLE))
