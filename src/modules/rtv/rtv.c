@@ -106,7 +106,7 @@ static int cmp_channels(const void *p1, const void *p2)
 static void randomize_channels(rtv_context_t *ctxt)
 {
 	for (size_t i = 0; i < ctxt->n_channels; i++)
-		ctxt->channels[i].order = rand();
+		ctxt->channels[i].order = rand_r(&ctxt->til_module_context.seed);
 
 	qsort(ctxt->channels, ctxt->n_channels, sizeof(rtv_channel_t), cmp_channels);
 }
@@ -188,7 +188,7 @@ static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks)
 	}
 
 	if (!ctxt->channel->module_ctxt)
-		(void) til_module_create_context(ctxt->channel->module, rand(), ticks, 0, ctxt->channel->module_setup, &ctxt->channel->module_ctxt);
+		(void) til_module_create_context(ctxt->channel->module, rand_r(&ctxt->til_module_context.seed), ticks, 0, ctxt->channel->module_setup, &ctxt->channel->module_ctxt);
 
 	ctxt->channel->last_on_time = now;
 }
