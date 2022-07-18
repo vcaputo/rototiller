@@ -6,6 +6,7 @@
 typedef struct til_args_t {
 	const char	*module;
 	const char	*video;
+	const char	*seed;
 
 	unsigned	use_defaults:1;
 	unsigned	help:1;

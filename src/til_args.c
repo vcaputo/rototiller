@@ -9,7 +9,9 @@
  * ./rototiller --video=drm,dev=/dev/dri/card3,connector=VGA-1,mode=640x480@60
  * ./rototiller --video=sdl,size=640x480
  * ./rototiller --module=roto,foo=bar,module=settings
- * ./rototiller --defaults
+ * ./rototiller --defaults		// use default settings where unspecified
+ * ./rototiller --go			// don't show args and wait for user input before proceeding
+ * ./rototiller --seed=0xdeadbeef	// explicitly set global random seed instead of generating one
  *
  * unrecognized arguments trigger an -EINVAL error, unless res_{argc,argv} are non-NULL
  * where a new argv will be allocated and populated with the otherwise invalid arguments
@@ -44,6 +46,8 @@ static int args_parse(int argc, const char *argv[], til_args_t *res_args, int *r
 			res_args->video = &argv[i][8];
 		} else if (!strncasecmp("--module=", argv[i], 9)) {
 			res_args->module = &argv[i][9];
+		} else if (!strncasecmp("--seed=", argv[i], 7)) {
+			res_args->seed = &argv[i][7];
 		} else if (!strcasecmp("--defaults", argv[i])) {
 			res_args->use_defaults = 1;
 		} else if (!strcasecmp("--help", argv[i])) {
@@ -84,6 +88,7 @@ int til_args_help(FILE *out)
 		"  --go		start rendering immediately upon fulfilling all required settings\n"
 		"  --help	this help\n"
 		"  --module=	module settings\n"
+		"  --seed=	seed to use for all PRNG in hexadecimal (e.g. 0xdeadbeef)\n"
 		"  --video=	video settings\n"
 		);
 }

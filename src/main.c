@@ -66,6 +66,7 @@ typedef struct setup_t {
 	til_setup_t	*module_setup;
 	til_settings_t	*video_settings;
 	til_setup_t	*video_setup;
+	unsigned	seed;
 } setup_t;
 
 /* FIXME: this is unnecessarily copy-pasta, i think modules should just be made
@@ -136,13 +137,84 @@ static int setup_video(til_settings_t *settings, til_setting_t **res_setting, co
 }
 
 
+/* TODO: move to til.c */
+/* parse a hexadecimal seed with an optional leading 0x prefix into a libc srand()-appropriate machine-dependent sized unsigned int */
+/* returns -errno on any failure (including overflow), 0 on success. */
+static int parse_seed(const char *in, unsigned *res_seed)
+{
+	unsigned	seed = 0;
+
+	assert(in);
+	assert(res_seed);
+
+	if (in[0] == '0' && (in[1] == 'x' || in[1] == 'X')) /* accept and ignore leading "0[xX]" */
+		in += 2;
+
+	for (int i = 0; *in && i < sizeof(*res_seed) * 2;) {
+		uint8_t	h = 0;
+
+		seed <<= 8;
+
+		for (int j = 0; *in && j < 2; in++, j++, i++) {
+			h <<= 4;
+
+			switch (*in) {
+			case '0'...'9':
+				h |= (*in) - '0';
+				break;
+
+			case 'a'...'f':
+				h |= (*in) - 'a' + 10;
+				break;
+
+			case 'A'...'F':
+				h |= (*in) - 'A' + 10;
+				break;
+
+			default:
+				return -EINVAL;
+			}
+		}
+
+		seed |= h;
+	}
+
+	if (*in)
+		return -EOVERFLOW;
+
+	*res_seed = seed;
+
+	return 0;
+}
+
+
+/* TODO: move to til.c, setup_t in general should just become til_setup_t.
+ * the sticking point is setup_interactively() is very rototiller-specific, so it needs
+ * to be turned into a caller-supplied callback or something.
+ */
 /* turn args into settings, automatically applying defaults if appropriate, or interactively if appropriate. */
 /* returns negative value on error, 0 when settings unchanged from args, 1 when changed */
 /* on error, *res_failed_desc _may_ be assigned with something useful. */
 static int setup_from_args(til_args_t *args, setup_t *res_setup, const til_setting_desc_t **res_failed_desc)
 {
 	int	r = -ENOMEM, changes = 0;
-	setup_t	setup = {};
+	setup_t	setup = { .seed = time(NULL) + getpid() };
+
+	assert(args);
+	assert(res_setup);
+
+	if (args->seed) {
+		r = parse_seed(args->seed, &setup.seed);
+		if (r < 0)
+			goto _err;
+	}
+
+	/* FIXME TODO: this is gross! but we want to seed the PRNG before we do any actual setup
+	 * in case we're randomizing settings.
+	 * Maybe it makes more sense to just add a TIL_SEED env variable and let til_init() getenv("TIL_SEED")
+	 * and do all this instead of setup_from_args().  This'll do for now.
+	 */
+	srand(setup.seed);
 
 	setup.module_settings = til_settings_new(args->module);
 	if (!setup.module_settings)
@@ -296,7 +368,7 @@ int main(int argc, const char *argv[])
 
 	gettimeofday(&rototiller.start_tv, NULL);
 	exit_if((r = til_module_create_context(
-						rototiller.module, 0,
+						rototiller.module, setup.seed,
 						get_ticks(&rototiller.start_tv,
 							&rototiller.start_tv,
 							rototiller.ticks_offset),

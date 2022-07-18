@@ -80,14 +80,6 @@ static const til_module_t	*modules[] = {
 /* initialize rototiller (create rendering threads) */
 int til_init(void)
 {
-	/* Various modules seed srand(), just do it here so they don't need to.
-	 * At some point in the future this might become undesirable, if reproducible
-	 * pseudo-randomized output is actually desirable.  But that should probably be
-	 * achieved using rand_r() anyways, since modules can't prevent others from playing
-	 * with srand().
-	 */
-	srand(time(NULL) + getpid());
-
 	if (!(til_threads = til_threads_create()))
 		return -errno;
 
