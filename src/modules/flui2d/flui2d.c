@@ -415,7 +415,7 @@ static int flui2d_setup(const til_settings_t *settings, til_setting_t **res_sett
 				".1",
 				".25",
 				".33",
-				".50",
+				".5",
 				".66",
 				".75",
 				".99",
