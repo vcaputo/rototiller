@@ -70,17 +70,17 @@ static swarm_setup_t swarm_default_setup = {
 };
 
 
-static inline float randf(float min, float max)
+static inline float randf(unsigned *seed, float min, float max)
 {
-	return ((float)rand() / (float)RAND_MAX) * (max - min) + min;
+	return ((float)rand_r(seed) / (float)RAND_MAX) * (max - min) + min;
 }
 
 
-static inline void v3f_rand(v3f_t *v, float min, float max)
+static inline void v3f_rand(v3f_t *v, unsigned *seed, float min, float max)
 {
-	v->x = randf(min, max);
-	v->y = randf(min, max);
-	v->z = randf(min, max);
+	v->x = randf(seed, min, max);
+	v->y = randf(seed, min, max);
+	v->z = randf(seed, min, max);
 }
 
 
@@ -150,12 +150,12 @@ static v3f_t v3f_lerp(v3f_t a, v3f_t b, float t)
 }
 
 
-static void boid_randomize(boid_t *boid)
+static void boid_randomize(boid_t *boid, unsigned *seed)
 {
-	v3f_rand(&boid->position, -1.f, 1.f);
-	v3f_rand(&boid->direction, -1.f, 1.f);
+	v3f_rand(&boid->position, seed, -1.f, 1.f);
+	v3f_rand(&boid->direction, seed, -1.f, 1.f);
 	v3f_normalize(&boid->direction);
-	boid->velocity = randf(.05f, .2f);
+	boid->velocity = randf(seed, .05f, .2f);
 }
 
 
@@ -195,7 +195,7 @@ static til_module_context_t * swarm_create_context(unsigned seed, unsigned ticks
 	ctxt->setup = *(swarm_setup_t *)setup;
 
 	for (unsigned i = 0; i < SWARM_SIZE; i++)
-		boid_randomize(&ctxt->boids[i]);
+		boid_randomize(&ctxt->boids[i], &seed);
 
 	return &ctxt->til_module_context;
 }
