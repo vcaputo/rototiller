@@ -248,27 +248,36 @@ _err:
 }
 
 
+static char * seed_as_arg(unsigned seed)
+{
+	char	arg[sizeof("0x") + sizeof(seed) * 2];
+
+	snprintf(arg, sizeof(arg), "0x%x", seed);
+
+	return strdup(arg);
+}
+
+
 static int print_setup_as_args(setup_t *setup)
 {
-	char	*module_args, *video_args;
+	char	*seed_arg, *module_args, *video_args;
 	char	buf[64];
-	int	r;
+	int	r = -ENOMEM;
+
+	seed_arg = seed_as_arg(setup->seed);
+	if (!seed_arg)
+		goto _out;
 
 	module_args = til_settings_as_arg(setup->module_settings);
-	if (!module_args) {
-		r = -ENOMEM;
-
-		goto _out;
-	}
+	if (!module_args)
+		goto _out_seed;
 
 	video_args = til_settings_as_arg(setup->video_settings);
-	if (!video_args) {
-		r = -ENOMEM;
-
+	if (!video_args)
 		goto _out_module;
-	}
 
-	r = printf("\nConfigured settings as flags:\n  --module=%s --video=%s\n\nPress enter to continue, add --go to disable this notice...\n",
+	r = printf("\nConfigured settings as flags:\n  --seed=%s --module=%s --video=%s\n\nPress enter to continue, add --go to disable this notice...\n",
+		seed_arg,
 		module_args,
 		video_args);
 
@@ -281,6 +290,8 @@ _out_video:
 	free(video_args);
 _out_module:
 	free(module_args);
+_out_seed:
+	free(seed_arg);
 _out:
 	return r;
 }
