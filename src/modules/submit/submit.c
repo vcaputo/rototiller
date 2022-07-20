@@ -304,10 +304,12 @@ static void submit_prepare_frame(til_module_context_t *context, unsigned ticks, 
 		setup_grid(ctxt);
 
 	for (int i = 0; i < NUM_PLAYERS; i++) {
-		int	moves = rand() % TICKS_PER_FRAME;
+		int	moves = rand_r(&ctxt->til_module_context.seed) % TICKS_PER_FRAME;
 
 		for (int j = 0; j < moves; j++)
-			grid_player_plan(ctxt->players[i], ctxt->seq++, rand() % GRID_SIZE, rand() % GRID_SIZE);
+			grid_player_plan(ctxt->players[i], ctxt->seq++,
+				rand_r(&ctxt->til_module_context.seed) % GRID_SIZE,
+				rand_r(&ctxt->til_module_context.seed) % GRID_SIZE);
 	}
 
 	for (int j = 0; j < TICKS_PER_FRAME; j++)
