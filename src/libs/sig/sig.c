@@ -210,6 +210,12 @@ sig_t * sig_new_pow(sig_t *x, sig_t *y)
 }
 
 
+/* TODO: this should probably accept a seed, but seeing as nothing uses libs/sig
+ * yet, it's unclear what's actually most appropriate.  The implementation in
+ * ops_rand currently just abuses ticks as the seed w/rand_r making it ticks-derived.
+ * But that prevents uniqueness across rand sigs at the same tick, which seems obviously
+ * undesirable.
+ */
 sig_t * sig_new_rand(void)
 {
 	return sig_new(&sig_ops_rand);
