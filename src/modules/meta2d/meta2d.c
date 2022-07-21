@@ -82,10 +82,9 @@ static til_module_context_t * meta2d_create_context(unsigned seed, unsigned tick
 	for (int i = 0; i < META2D_NUM_BALLS; i++) {
 		meta2d_ball_t	*ball = &ctxt->balls[i];
 
-		/* TODO: add _r() variants of v[23]f_rand()? */
-		v2f_rand(&ball->position, &(v2f_t){-.7f, -.7f}, &(v2f_t){.7f, .7f});
-		ball->radius = rand_r(&seed) / (float)RAND_MAX * .2f + .05f;
-		v3f_rand(&ball->color, &(v3f_t){0.f, 0.f, 0.f}, &(v3f_t){1.f, 1.f, 1.f});
+		v2f_rand(&ball->position, &ctxt->til_module_context.seed, &(v2f_t){-.7f, -.7f}, &(v2f_t){.7f, .7f});
+		ball->radius = rand_r(&ctxt->til_module_context.seed) / (float)RAND_MAX * .2f + .05f;
+		v3f_rand(&ball->color, &ctxt->til_module_context.seed, &(v3f_t){0.f, 0.f, 0.f}, &(v3f_t){1.f, 1.f, 1.f});
 	}
 
 	return &ctxt->til_module_context;

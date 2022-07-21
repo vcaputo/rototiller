@@ -297,20 +297,20 @@ static inline v3f_t * v3f_cross(v3f_t *res, const v3f_t *a, const v3f_t *b)
 }
 
 
-static inline v3f_t _v3f_rand(const v3f_t *min, const v3f_t *max)
+static inline v3f_t _v3f_rand(unsigned *seedp, const v3f_t *min, const v3f_t *max)
 {
 	return (v3f_t){
-		.x = min->x + (float)rand() * (1.f/RAND_MAX) * (max->x - min->x),
-		.y = min->y + (float)rand() * (1.f/RAND_MAX) * (max->y - min->y),
-		.z = min->z + (float)rand() * (1.f/RAND_MAX) * (max->z - min->z),
+		.x = min->x + (float)rand_r(seedp) * (1.f/RAND_MAX) * (max->x - min->x),
+		.y = min->y + (float)rand_r(seedp) * (1.f/RAND_MAX) * (max->y - min->y),
+		.z = min->z + (float)rand_r(seedp) * (1.f/RAND_MAX) * (max->z - min->z),
 	};
 }
 
 
-static inline v3f_t * v3f_rand(v3f_t *res, const v3f_t *min, const v3f_t *max)
+static inline v3f_t * v3f_rand(v3f_t *res, unsigned *seedp, const v3f_t *min, const v3f_t *max)
 {
 	if (_v3f_allocated(&res))
-		*res = _v3f_rand(min, max);
+		*res = _v3f_rand(seedp, min, max);
 
 	return res;
 }
