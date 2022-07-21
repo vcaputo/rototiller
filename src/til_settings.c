@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <stdarg.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -38,6 +39,7 @@ typedef enum til_settings_fsm_state_t {
 	TIL_SETTINGS_FSM_STATE_KEY,
 	TIL_SETTINGS_FSM_STATE_EQUAL,
 	TIL_SETTINGS_FSM_STATE_VALUE,
+	TIL_SETTINGS_FSM_STATE_VALUE_ESCAPED,
 	TIL_SETTINGS_FSM_STATE_COMMA,
 } til_settings_fsm_state_t;
 
@@ -65,6 +67,9 @@ til_settings_t * til_settings_new(const char *settings_string)
 	til_settings_fsm_state_t	state = TIL_SETTINGS_FSM_STATE_KEY;
 	const char			*p, *token;
 	til_settings_t			*settings;
+	FILE				*value_fp;
+	char				*value_buf;
+	size_t				value_sz;
 
 	settings = calloc(1, sizeof(til_settings_t));
 	if (!settings)
@@ -73,7 +78,6 @@ til_settings_t * til_settings_new(const char *settings_string)
 	if (!settings_string)
 		return settings;
 
-	/* TODO: unescaping? */
 	for (token = p = settings_string; ;p++) {
 
 		switch (state) {
@@ -94,15 +98,29 @@ til_settings_t * til_settings_new(const char *settings_string)
 			break;
 
 		case TIL_SETTINGS_FSM_STATE_EQUAL:
+			value_fp = open_memstream(&value_buf, &value_sz);
+			if (!value_fp)
+				goto _err;
+
 			token = p;
 			state = TIL_SETTINGS_FSM_STATE_VALUE;
 			/* fallthrough, necessary to not leave NULL values for empty "key=\0" settings */
 
 		case TIL_SETTINGS_FSM_STATE_VALUE:
-			if (*p == ',' || *p == '\0') {
-				settings->settings[settings->num - 1]->value = strndup(token, p - token);
+			if (*p == '\\')
+				state = TIL_SETTINGS_FSM_STATE_VALUE_ESCAPED;
+			else if (*p == ',' || *p == '\0') {
+				fclose(value_fp);
+				settings->settings[settings->num - 1]->value = value_buf;
 				state = TIL_SETTINGS_FSM_STATE_COMMA;
-			}
+			} else
+				fputc(*p, value_fp);
+
+			break;
+
+		case TIL_SETTINGS_FSM_STATE_VALUE_ESCAPED:
+			fputc(*p, value_fp);
+			state = TIL_SETTINGS_FSM_STATE_VALUE;
 			break;
 
 		default:
@@ -116,6 +134,9 @@ til_settings_t * til_settings_new(const char *settings_string)
 	/* FIXME: this should probably never leave a value or key entry NULL */
 
 	return settings;
+
+_err:
+	return til_settings_free(settings);
 }
 
 
