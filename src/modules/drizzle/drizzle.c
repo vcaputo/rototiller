@@ -113,8 +113,8 @@ static void drizzle_prepare_frame(til_module_context_t *context, unsigned ticks,
 	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu };
 
 	for (int i = 0; i < DRIZZLE_CNT; i++) {
-		int	x = rand() % (PUDDLE_SIZE - 1);
-		int	y = rand() % (PUDDLE_SIZE - 1);
+		int	x = rand_r(&ctxt->til_module_context.seed) % (PUDDLE_SIZE - 1);
+		int	y = rand_r(&ctxt->til_module_context.seed) % (PUDDLE_SIZE - 1);
 
 		/* TODO: puddle should probably offer a normalized way of setting an
 		 * area to a value, so if PUDDLE_SIZE changes this automatically
