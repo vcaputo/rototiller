@@ -43,7 +43,7 @@ struct particle_t {
 
 //#define rand_within_range(_min, _max) ((rand() % (_max - _min)) + _min)
 // the style of random number generator used by c libraries has less entropy in the lower bits meaning one shouldn't just use modulo, while this is slower, the results do seem a little different.
-#define rand_within_range(_min, _max) (int)(((float)_min) + ((float)rand() / (float)RAND_MAX) * (_max - _min))
+#define rand_within_range(_seedp, _min, _max) (int)(((float)_min) + ((float)rand_r(_seedp) / (float)RAND_MAX) * (_max - _min))
 
 #define INHERIT_OPS	NULL
 #define INHERIT_PROPS	NULL

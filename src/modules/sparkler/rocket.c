@@ -38,12 +38,12 @@ static int rocket_init(particles_t *particles, const particles_conf_t *conf, par
 	}
 	rockets_cnt++;
 
-	ctxt->decay_rate = rand_within_range(ROCKET_MIN_DECAY_RATE, ROCKET_MAX_DECAY_RATE);
-	ctxt->longevity = rand_within_range(ROCKET_MIN_LIFETIME, ROCKET_MAX_LIFETIME);
+	ctxt->decay_rate = rand_within_range(conf->seedp, ROCKET_MIN_DECAY_RATE, ROCKET_MAX_DECAY_RATE);
+	ctxt->longevity = rand_within_range(conf->seedp, ROCKET_MIN_LIFETIME, ROCKET_MAX_LIFETIME);
 
-	ctxt->wander.x = (float)(rand_within_range(0, 628) - 314) / 10000.0f;
-	ctxt->wander.y = (float)(rand_within_range(0, 628) - 314) / 10000.0f;
-	ctxt->wander.z = (float)(rand_within_range(0, 628) - 314) / 10000.0f;
+	ctxt->wander.x = (float)(rand_within_range(conf->seedp, 0, 628) - 314) / 10000.0f;
+	ctxt->wander.y = (float)(rand_within_range(conf->seedp, 0, 628) - 314) / 10000.0f;
+	ctxt->wander.z = (float)(rand_within_range(conf->seedp, 0, 628) - 314) / 10000.0f;
 	ctxt->wander = v3f_normalize(&ctxt->wander);
 
 	ctxt->last_velocity = p->props->velocity;
@@ -75,18 +75,18 @@ static particle_status_t rocket_sim(particles_t *particles, const particles_conf
 
 		/* add a bunch of new explosion particles */
 		/* TODO: also particle-type-specific parameters, colors!  rocket bursts should be able to vary the color. */
-		n_xplode = rand_within_range(ROCKETS_XPLODE_MIN_SIZE, ROCKETS_XPLODE_MAX_SIZE);
+		n_xplode = rand_within_range(conf->seedp, ROCKETS_XPLODE_MIN_SIZE, ROCKETS_XPLODE_MAX_SIZE);
 		for (i = 0; i < n_xplode; i++) {
 			particle_props_t	props = *p->props;
 			particle_ops_t		*ops = &xplode_ops;
 
-			props.direction.x = ((float)(rand_within_range(0, 314159 * 2) - 314159) / 100000.0);
-			props.direction.y = ((float)(rand_within_range(0, 314159 * 2) - 314159) / 100000.0);
-			props.direction.z = ((float)(rand_within_range(0, 314159 * 2) - 314159) / 100000.0);
+			props.direction.x = ((float)(rand_within_range(conf->seedp, 0, 314159 * 2) - 314159) / 100000.0);
+			props.direction.y = ((float)(rand_within_range(conf->seedp, 0, 314159 * 2) - 314159) / 100000.0);
+			props.direction.z = ((float)(rand_within_range(conf->seedp, 0, 314159 * 2) - 314159) / 100000.0);
 			props.direction = v3f_normalize(&props.direction);
 
 			//props->velocity = ((float)rand_within_range(100, 200) / 100000.0);
-			props.velocity = ((float)rand_within_range(100, 300) / 100000.0);
+			props.velocity = ((float)rand_within_range(conf->seedp, 100, 300) / 100000.0);
 			particles_spawn_particle(particles, p, &props, ops);
 		}
 		return PARTICLE_DEAD;
@@ -100,18 +100,18 @@ static particle_status_t rocket_sim(particles_t *particles, const particles_conf
 	p->props->velocity += .00003;
 
 	/* spray some sparks behind the rocket */
-	n_sparks = rand_within_range(10, 40);
+	n_sparks = rand_within_range(conf->seedp, 10, 40);
 	for (i = 0; i < n_sparks; i++) {
 		particle_props_t	props = *p->props;
 
 		props.direction = v3f_negate(&props.direction);
 
-		props.direction.x += (float)(rand_within_range(0, 40) - 20) / 100.0;
-		props.direction.y += (float)(rand_within_range(0, 40) - 20) / 100.0;
-		props.direction.z += (float)(rand_within_range(0, 40) - 20) / 100.0;
+		props.direction.x += (float)(rand_within_range(conf->seedp, 0, 40) - 20) / 100.0;
+		props.direction.y += (float)(rand_within_range(conf->seedp, 0, 40) - 20) / 100.0;
+		props.direction.z += (float)(rand_within_range(conf->seedp, 0, 40) - 20) / 100.0;
 		props.direction = v3f_normalize(&props.direction);
 
-		props.velocity = (float)rand_within_range(10, 50) / 100000.0;
+		props.velocity = (float)rand_within_range(conf->seedp, 10, 50) / 100000.0;
 		particles_spawn_particle(particles, p, &props, &spark_ops);
 	}
 

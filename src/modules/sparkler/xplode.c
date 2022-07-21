@@ -26,8 +26,8 @@ static int xplode_init(particles_t *particles, const particles_conf_t *conf, par
 {
 	xplode_ctxt_t	*ctxt = p->ctxt;
 
-	ctxt->decay_rate = rand_within_range(XPLODE_MIN_DECAY_RATE, XPLODE_MAX_DECAY_RATE);
-	ctxt->lifetime = ctxt->longevity = rand_within_range(XPLODE_MIN_LIFETIME, XPLODE_MAX_LIFETIME);
+	ctxt->decay_rate = rand_within_range(conf->seedp, XPLODE_MIN_DECAY_RATE, XPLODE_MAX_DECAY_RATE);
+	ctxt->lifetime = ctxt->longevity = rand_within_range(conf->seedp, XPLODE_MIN_LIFETIME, XPLODE_MAX_LIFETIME);
 
 	p->props->drag = 10.9;
 	p->props->mass = 0.3;
@@ -50,7 +50,7 @@ static particle_status_t xplode_sim(particles_t *particles, const particles_conf
 	if (!(ctxt->lifetime % 30)) {
 		particle_props_t	props = *p->props;
 
-		props.velocity = (float)rand_within_range(10, 50) / 10000.0;
+		props.velocity = (float)rand_within_range(conf->seedp, 10, 50) / 10000.0;
 		particles_spawn_particle(particles, p, &props, &xplode_ops);
 	}
 

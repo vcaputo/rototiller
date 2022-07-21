@@ -53,6 +53,7 @@ static til_module_context_t * sparkler_create_context(unsigned seed, unsigned ti
 						.show_bsp_matches = ((sparkler_setup_t *)setup)->show_bsp_matches,
 						.show_bsp_leafs_min_depth = ((sparkler_setup_t *)setup)->show_bsp_leafs_min_depth,
 						.show_bsp_matches_affected_only = ((sparkler_setup_t *)setup)->show_bsp_matches_affected_only,
+						.seedp = &ctxt->til_module_context.seed,
 					});
 	if (!ctxt->particles) {
 		free(ctxt);

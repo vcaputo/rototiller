@@ -49,6 +49,8 @@ particles_t * particles_new(const particles_conf_t *conf)
 {
 	particles_t	*particles;
 
+	assert(conf && conf->seedp);
+
 	particles = calloc(1, sizeof(particles_t));
 	if (!particles) {
 		return NULL;
@@ -66,8 +68,7 @@ particles_t * particles_new(const particles_conf_t *conf)
 
 	INIT_LIST_HEAD(&particles->active);
 
-	if (conf)
-		particles->conf = *conf;
+	particles->conf = *conf;
 
 	return particles;
 }

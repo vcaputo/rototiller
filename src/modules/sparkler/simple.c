@@ -28,8 +28,8 @@ static int simple_init(particles_t *particles, const particles_conf_t *conf, par
 {
 	simple_ctxt_t	*ctxt = p->ctxt;
 
-	ctxt->decay_rate = rand_within_range(SIMPLE_MIN_DECAY_RATE, SIMPLE_MAX_DECAY_RATE);
-	ctxt->lifetime = ctxt->longevity = rand_within_range(SIMPLE_MIN_LIFETIME, SIMPLE_MAX_LIFETIME);
+	ctxt->decay_rate = rand_within_range(conf->seedp, SIMPLE_MIN_DECAY_RATE, SIMPLE_MAX_DECAY_RATE);
+	ctxt->lifetime = ctxt->longevity = rand_within_range(conf->seedp, SIMPLE_MIN_LIFETIME, SIMPLE_MAX_LIFETIME);
 
 	if (!p->props->of_use) {
 		/* everything starts from the bottom center */
@@ -38,12 +38,12 @@ static int simple_init(particles_t *particles, const particles_conf_t *conf, par
 		p->props->position.z = 0;
 
 		/* TODO: direction random-ish within the range of a narrow upward facing cone */
-		p->props->direction.x = (float)(rand_within_range(0, 6) - 3) * .1f;
-		p->props->direction.y = 1.0f + (float)(rand_within_range(0, 6) - 3) * .1f;
-		p->props->direction.z = (float)(rand_within_range(0, 6) - 3) * .1f;
+		p->props->direction.x = (float)(rand_within_range(conf->seedp, 0, 6) - 3) * .1f;
+		p->props->direction.y = 1.0f + (float)(rand_within_range(conf->seedp, 0, 6) - 3) * .1f;
+		p->props->direction.z = (float)(rand_within_range(conf->seedp, 0, 6) - 3) * .1f;
 		p->props->direction = v3f_normalize(&p->props->direction);
 
-		p->props->velocity = (float)rand_within_range(300, 800) / 100000.0;
+		p->props->velocity = (float)rand_within_range(conf->seedp, 300, 800) / 100000.0;
 
 		p->props->drag = 0.03;
 		p->props->mass = 0.3;
@@ -70,7 +70,7 @@ static particle_status_t simple_sim(particles_t *particles, const particles_conf
 
 	/* create particles inheriting our type based on some silly conditions, with some tweaks to their direction */
 	if (ctxt->longevity == 42 || (ctxt->longevity > 500 && !(ctxt->longevity % 50))) {
-		int	i, num = rand_within_range(SIMPLE_MIN_SPAWN, SIMPLE_MAX_SPAWN);
+		int	i, num = rand_within_range(conf->seedp, SIMPLE_MIN_SPAWN, SIMPLE_MAX_SPAWN);
 
 		for (i = 0; i < num; i++) {
 			particle_props_t	props = *p->props;
@@ -78,14 +78,14 @@ static particle_status_t simple_sim(particles_t *particles, const particles_conf
 
 			if (i == (SIMPLE_MAX_SPAWN - 2)) {
 				ops = &rocket_ops;
-				props.velocity = (float)rand_within_range(60, 100) / 1000000.0;
+				props.velocity = (float)rand_within_range(conf->seedp, 60, 100) / 1000000.0;
 			} else {
-				props.velocity = (float)rand_within_range(30, 100) / 10000.0;
+				props.velocity = (float)rand_within_range(conf->seedp, 30, 100) / 10000.0;
 			}
 
-			props.direction.x += (float)(rand_within_range(0, 315 * 2) - 315) / 100.0;
-			props.direction.y += (float)(rand_within_range(0, 315 * 2) - 315) / 100.0;
-			props.direction.z += (float)(rand_within_range(0, 315 * 2) - 315) / 100.0;
+			props.direction.x += (float)(rand_within_range(conf->seedp, 0, 315 * 2) - 315) / 100.0;
+			props.direction.y += (float)(rand_within_range(conf->seedp, 0, 315 * 2) - 315) / 100.0;
+			props.direction.z += (float)(rand_within_range(conf->seedp, 0, 315 * 2) - 315) / 100.0;
 			props.direction = v3f_normalize(&props.direction);
 
 			particles_spawn_particle(particles, p, &props, ops); // XXX

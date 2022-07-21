@@ -12,6 +12,7 @@ typedef struct particles_conf_t {
 	unsigned	show_bsp_matches:1;
 	unsigned	show_bsp_matches_affected_only:1;
 	unsigned	show_bsp_leafs_min_depth;
+	unsigned	*seedp;
 } particles_conf_t;
 
 typedef struct particles_t particles_t;
