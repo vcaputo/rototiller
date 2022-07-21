@@ -8,16 +8,17 @@
 #include "v3f.h"
 
 typedef struct din_t {
-	int	width, height, depth;
-	int	W_x_H;
-	v3f_t	grid[];
+	int		width, height, depth;
+	unsigned	seed;
+	int		W_x_H;
+	v3f_t		grid[];
 } din_t;
 
 
 /* return random number between -1 and +1 */
-static inline float randf(void)
+static inline float randf(unsigned *seed)
 {
-	return 2.f / RAND_MAX * rand() - 1.f;
+	return 2.f / RAND_MAX * rand_r(seed) - 1.f;
 }
 
 
@@ -30,9 +31,9 @@ void din_randomize(din_t *din)
 			for (x = 0; x < din->width; x++) {
 				v3f_t	r;
 
-				r.x = randf();
-				r.y = randf();
-				r.z = randf();
+				r.x = randf(&din->seed);
+				r.y = randf(&din->seed);
+				r.z = randf(&din->seed);
 
 				din->grid[z * din->W_x_H + y * din->width + x] = v3f_normalize(&r);
 			}
@@ -41,7 +42,7 @@ void din_randomize(din_t *din)
 }
 
 
-din_t * din_new(int width, int height, int depth)
+din_t * din_new(int width, int height, int depth, unsigned seed)
 {
 	din_t	*din;
 
@@ -56,6 +57,7 @@ din_t * din_new(int width, int height, int depth)
 	din->width = width;
 	din->height = height;
 	din->depth = depth;
+	din->seed = seed;
 
 	/* premultiply this since we do it a lot in addressing din->grid[] */
 	din->W_x_H = width * height;

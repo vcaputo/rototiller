@@ -76,8 +76,8 @@ static til_module_context_t * meta2d_create_context(unsigned seed, unsigned tick
 		return NULL;
 
 	/* perlin noise is used for some organic-ish random movement of the balls */
-	ctxt->din_a = din_new(10, 10, META2D_NUM_BALLS + 2);
-	ctxt->din_b = din_new(10, 10, META2D_NUM_BALLS + 2);
+	ctxt->din_a = din_new(10, 10, META2D_NUM_BALLS + 2, seed);
+	ctxt->din_b = din_new(10, 10, META2D_NUM_BALLS + 2, seed);
 
 	for (int i = 0; i < META2D_NUM_BALLS; i++) {
 		meta2d_ball_t	*ball = &ctxt->balls[i];

@@ -74,7 +74,7 @@ static til_module_context_t * swab_create_context(unsigned seed, unsigned ticks,
 	if (!ctxt)
 		return NULL;
 
-	ctxt->din = din_new(12, 12, 100);
+	ctxt->din = din_new(12, 12, 100, seed);
 	if (!ctxt->din) {
 		free(ctxt);
 		return NULL;
