@@ -203,7 +203,7 @@ static void checkers_render_fragment(til_module_context_t *context, unsigned tic
 	}
 
 	if (fill == CHECKERS_FILL_RANDOM || fill == CHECKERS_FILL_MIXED)
-		fill = rand() % CHECKERS_FILL_RANDOM; /* TODO: mixed should have a setting for controlling the ratios */
+		fill = rand_r(&ctxt->til_module_context.seed) % CHECKERS_FILL_RANDOM; /* TODO: mixed should have a setting for controlling the ratios */
 
 	switch (ctxt->setup.fill) {
 	case CHECKERS_FILL_SAMPLED:
