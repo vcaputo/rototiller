@@ -63,7 +63,7 @@ typedef struct rtv_setup_t {
 static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks);
 static til_module_context_t * rtv_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup);
 static void rtv_destroy_context(til_module_context_t *context);
-static void rtv_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_frame_plan_t *res_frame_plan);
+static void rtv_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment);
 static void rtv_finish_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment);
 static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
 
@@ -81,7 +81,7 @@ static til_module_t	rtv_none_module = {};
 til_module_t	rtv_module = {
 	.create_context = rtv_create_context,
 	.destroy_context = rtv_destroy_context,
-	.prepare_frame = rtv_prepare_frame,
+	.render_fragment = rtv_render_fragment,
 	.finish_frame = rtv_finish_frame,
 	.name = "rtv",
 	.description = "Rototiller TV",
@@ -268,7 +268,7 @@ static void rtv_destroy_context(til_module_context_t *context)
 }
 
 
-static void rtv_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_frame_plan_t *res_frame_plan)
+static void rtv_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
 	rtv_context_t	*ctxt = (rtv_context_t *)context;
 	time_t		now = time(NULL);

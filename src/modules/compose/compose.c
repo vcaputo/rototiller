@@ -49,7 +49,7 @@ typedef struct compose_setup_t {
 
 static til_module_context_t * compose_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup);
 static void compose_destroy_context(til_module_context_t *context);
-static void compose_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_frame_plan_t *res_frame_plan);
+static void compose_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment);
 static int compose_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
 
 static compose_setup_t compose_default_setup = {
@@ -60,7 +60,7 @@ static compose_setup_t compose_default_setup = {
 til_module_t	compose_module = {
 	.create_context = compose_create_context,
 	.destroy_context = compose_destroy_context,
-	.prepare_frame = compose_prepare_frame,
+	.render_fragment = compose_render_fragment,
 	.name = "compose",
 	.description = "Layered modules compositor",
 	.setup = compose_setup,
@@ -125,7 +125,7 @@ static void compose_destroy_context(til_module_context_t *context)
 }
 
 
-static void compose_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t *fragment, til_frame_plan_t *res_frame_plan)
+static void compose_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
 {
 	compose_context_t	*ctxt = (compose_context_t *)context;
 
