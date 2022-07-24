@@ -116,7 +116,7 @@ static void stars_render_fragment(til_module_context_t *context, unsigned ticks,
 	struct points* tmp_ptr;
 	struct points* last_ptr=NULL;
 	float		x, y, pos_x, pos_y, rot_x, rot_y, opacity, x_mult, y_mult, max_radius;
-	int		width = fragment->width, height = fragment->height;
+	int		width = fragment->frame_width, height = fragment->frame_height;
 
 	if(width>height) {
 		x_mult=1.f;
@@ -162,7 +162,7 @@ static void stars_render_fragment(til_module_context_t *context, unsigned ticks,
 			opacity = 1;
 
 		if (pos_x>0 && pos_x<width && pos_y>0 && pos_y<height)
-			til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, pos_x, pos_y,
+			til_fb_fragment_put_pixel_checked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, pos_x, pos_y,
 				makergb(0xFF, 0xFF, 0xFF, opacity));
 
 		for(int my_y=floorf(pos_y-max_radius); my_y<=(int)ceilf(pos_y+max_radius); my_y++)
@@ -177,7 +177,7 @@ static void stars_render_fragment(til_module_context_t *context, unsigned ticks,
 				continue;
 
 
-			til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, my_x, my_y,
+			til_fb_fragment_put_pixel_checked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, my_x, my_y,
 				makergb(0xFF, 0xFF, 0xFF, opacity));
 
 		}
