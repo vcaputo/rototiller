@@ -597,11 +597,11 @@ static void draw_polyhedron(const polyhedron_t *polyhedron, m4f_t *transform, ti
 			_xv = m4f_mult_v3f(transform, _v);
 			xv = m4f_mult_v3f(transform, v);
 
-			x1 = _xv.x / (_xv.z + ZCONST) * fragment->width + fragment->width * .5f;
-			y1 = _xv.y / (_xv.z + ZCONST) * fragment->height + fragment->height * .5f;
+			x1 = _xv.x / (_xv.z + ZCONST) * fragment->frame_width + fragment->frame_width * .5f;
+			y1 = _xv.y / (_xv.z + ZCONST) * fragment->frame_height + fragment->frame_height * .5f;
 
-			x2 = xv.x / (xv.z + ZCONST) * fragment->width + fragment->width * .5f;
-			y2 = xv.y / (xv.z + ZCONST) * fragment->height + fragment->height * .5f;
+			x2 = xv.x / (xv.z + ZCONST) * fragment->frame_width + fragment->frame_width * .5f;
+			y2 = xv.y / (xv.z + ZCONST) * fragment->frame_height + fragment->frame_height * .5f;
 
 			draw_line(fragment, x1, y1, x2, y2);
 			_v = v;
