@@ -130,11 +130,73 @@ static void checkers_destroy_context(til_module_context_t *context)
 }
 
 
+/* This is derived from til_fb_fragment_tile_single() with two variations:
+ * 1. when the size doesn't align with frame size, the start tiles are offset
+ *    to center the checkers letting the edge checkers all clip as needed
+ * 2. the incoming frame width isn't propagated down to the tiled fragments,
+ *    though for the potentially clipped boundary tiles the frame_{width,height}
+ *    won't match the incoming width,height.
+ *
+ * XXX note this fragmenter in particular really exercises fill_modules' correct handling
+ *     of frame vs. fragment dimensions and clipping semantics
+ */
+int checkers_fragment_tile_single(const til_fb_fragment_t *fragment, unsigned tile_size, unsigned number, til_fb_fragment_t *res_fragment)
+{
+	unsigned	w = fragment->width / tile_size, h = fragment->height / tile_size;
+	unsigned	tiled_w = w * tile_size, tiled_h = h * tile_size;
+	unsigned	x, y, xoff, yoff, xshift = 0, yshift = 0;
+
+	/* Detect the need for fractional tiles on both axis and shift the fragments
+	 * to keep the overall checkered output centered.  This complicates res_fragment.{x,y,width,height}
+	 * calculations for the peripheral checker tiles as those must clip when shifted.
+	 */
+	if (tiled_w < fragment->width) {
+		tiled_w += tile_size;
+		xshift = (tiled_w - fragment->width) >> 1;
+		w++;
+	}
+
+	if (tiled_h < fragment->height) {
+		tiled_h += tile_size;
+		yshift = (tiled_h - fragment->height) >> 1;
+		h++;
+	}
+
+	y = number / w;
+	if (y >= h)
+		return 0;
+
+	x = number - (y * w);
+
+	xoff = x * tile_size;
+	yoff = y * tile_size;
+
+	*res_fragment = (til_fb_fragment_t){
+				.texture = fragment->texture,
+				.buf = fragment->buf + (yoff * fragment->pitch) - (y ? (yshift * fragment->pitch) : 0) + (xoff - (x ? xshift : 0)),
+				.width = MIN(fragment->width - (xoff - xshift), x ? tile_size : (tile_size - xshift)),
+				.height = MIN(fragment->height - (yoff - yshift), y ? tile_size : (tile_size - yshift)),
+				.x = x ? 0 : xshift,
+				.y = y ? 0 : yshift,
+				// this is a little janky but leave frame_width to be set by render_fragment
+				// so it can use the old frame_width for determining checkered state
+				.frame_width = fragment->width, // becomes tile_size
+				.frame_height = fragment->height, // becomes tile_size
+				.stride = fragment->stride + (fragment->width - MIN(fragment->width - (xoff - xshift), x ? tile_size : (tile_size - xshift))),
+				.pitch = fragment->pitch,
+				.number = number,
+				.cleared = fragment->cleared,
+			};
+
+	return 1;
+}
+
+
 static int checkers_fragmenter(til_module_context_t *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
 {
 	checkers_context_t	*ctxt = (checkers_context_t *)context;
 
-	return til_fb_fragment_tile_single(fragment, ctxt->setup.size, number, res_fragment);
+	return checkers_fragment_tile_single(fragment, ctxt->setup.size, number, res_fragment);
 }
 
 
@@ -174,19 +236,25 @@ static void checkers_render_fragment(til_module_context_t *context, unsigned tic
 
 	switch (ctxt->setup.pattern) {
 	case CHECKERS_PATTERN_CHECKERED: {
-		unsigned	tiles_per_row;
+		unsigned	tiles_per_row, row, col;
 
 		tiles_per_row = fragment->frame_width / ctxt->setup.size;
 		if (tiles_per_row * ctxt->setup.size < fragment->frame_width)
 			tiles_per_row++;
 
-		state = (fragment->number + (fragment->y / ctxt->setup.size) * !(tiles_per_row & 0x1)) & 0x1;
+		row = fragment->number / tiles_per_row;
+		col = fragment->number % tiles_per_row;
+		state = (row ^ col) & 0x1;
 		break;
 	}
 	case CHECKERS_PATTERN_RANDOM:
 		state = hash(fragment->number * 0x61C88647) & 0x1;
 		break;
 	}
+
+	/* now that state has been determined, set the frame size */
+	fragment->frame_width = ctxt->setup.size;
+	fragment->frame_height = ctxt->setup.size;
 
 	switch (ctxt->setup.dynamics) {
 	case CHECKERS_DYNAMICS_ODD:
@@ -224,10 +292,6 @@ static void checkers_render_fragment(til_module_context_t *context, unsigned tic
 		if (!ctxt->setup.fill_module)
 			til_fb_fragment_fill(fragment, flags, color);
 		else {
-			fragment->frame_width = ctxt->setup.size;
-			fragment->frame_height = ctxt->setup.size;
-			fragment->x = fragment->y = 0;
-
 			/* TODO: we need a way to send down color and flags, and use the module render as a brush of sorts */
 			til_module_render(ctxt->fill_module_contexts[cpu], ticks, fragment);
 		}
