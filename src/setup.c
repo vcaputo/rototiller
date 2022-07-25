@@ -98,6 +98,10 @@ int setup_interactively(til_settings_t *settings, int (*setup_func)(til_settings
 
 		if (!defaults) {
 			fflush(stdout);
+
+			if (feof(stdin))
+				return -EIO;
+
 			fgets(buf, sizeof(buf), stdin);
 		}
 
