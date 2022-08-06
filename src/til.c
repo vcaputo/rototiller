@@ -53,6 +53,7 @@ extern til_module_t	shapes_module;
 extern til_module_t	signals_module;
 extern til_module_t	snow_module;
 extern til_module_t	sparkler_module;
+extern til_module_t	spokes_module;
 extern til_module_t	spiro_module;
 extern til_module_t	stars_module;
 extern til_module_t	strobe_module;
@@ -97,6 +98,7 @@ static const til_module_t	*modules[] = {
 	&snow_module,
 	&sparkler_module,
 	&spiro_module,
+	&spokes_module,
 	&stars_module,
 	&strobe_module,
 	&stub_module,

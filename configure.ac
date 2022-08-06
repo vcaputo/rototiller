@@ -69,6 +69,7 @@ AC_CONFIG_FILES([
  src/modules/snow/Makefile
  src/modules/sparkler/Makefile
  src/modules/spiro/Makefile
+ src/modules/spokes/Makefile
  src/modules/stars/Makefile
  src/modules/strobe/Makefile
  src/modules/stub/Makefile

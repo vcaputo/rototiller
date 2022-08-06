@@ -62,6 +62,7 @@ libtil_la_LIBADD =						\
 			modules/snow/libsnow.la			\
 			modules/sparkler/libsparkler.la		\
 			modules/spiro/libspiro.la		\
+			modules/spokes/libspokes.la		\
 			modules/stars/libstars.la		\
 			modules/strobe/libstrobe.la		\
 			modules/stub/libstub.la			\

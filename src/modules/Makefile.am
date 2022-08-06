@@ -26,6 +26,7 @@ SUBDIRS =			\
 		snow		\
 		sparkler	\
 		spiro		\
+		spokes		\
 		stars		\
 		strobe		\
 		stub		\
