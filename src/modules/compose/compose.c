@@ -235,6 +235,7 @@ static int compose_setup(const til_settings_t *settings, til_setting_t **res_set
 				"checkers",
 				"drizzle",
 				"julia",
+				"moire",
 				"plasma",
 				"roto",
 				"stars",
