@@ -15,6 +15,7 @@
  */
 
 #include <errno.h>
+#include <math.h>
 #include <stdlib.h>
 #include <unistd.h>
 
@@ -24,9 +25,16 @@
 
 #include "puddle/puddle.h"
 
+/* TODO: make size a setting from like 128-1024, and cnt something settable for a fraction per frame (one every Nth frame) up to 20 per frame, though it should probably be less framerate dependent */
 #define PUDDLE_SIZE		512
 #define DRIZZLE_CNT		20
 #define DEFAULT_VISCOSITY	.01
+#define DEFAULT_STYLE		DRIZZLE_STYLE_MASK
+
+typedef enum drizzle_style_t {
+	DRIZZLE_STYLE_MASK,
+	DRIZZLE_STYLE_MAP,
+} drizzle_style_t;
 
 typedef struct v3f_t {
 	float	x, y, z;
@@ -39,6 +47,7 @@ typedef struct v2f_t {
 typedef struct drizzle_setup_t {
 	til_setup_t	til_setup;
 	float		viscosity;
+	drizzle_style_t	style;
 } drizzle_setup_t;
 
 typedef struct drizzle_context_t {
@@ -50,6 +59,7 @@ typedef struct drizzle_context_t {
 
 static drizzle_setup_t drizzle_default_setup = {
 	.viscosity = DEFAULT_VISCOSITY,
+	.style = DEFAULT_STYLE,
 };
 
 
@@ -156,6 +166,89 @@ static inline uint32_t pixel_mult_scalar(uint32_t pixel, float t)
 }
 
 
+/* TOD: libs should probably just get v[23]f.h added already instead of constantly
+ * duplicating these
+ */
+static inline float v3f_dot(const v3f_t *a, const v3f_t *b)
+{
+	return (a->x * b->x + a->y * b->y + a->z * b->z);
+}
+
+
+static inline float v3f_len(const v3f_t *v)
+{
+	return sqrtf(v3f_dot(v, v));
+}
+
+
+static inline v3f_t * v3f_mult_scalar(v3f_t *res, const v3f_t *v, float s)
+{
+	res->x = v->x * s;
+	res->y = v->y * s;
+	res->z = v->z * s;
+
+	return res;
+}
+
+
+static inline v3f_t * v3f_norm(v3f_t *res, const v3f_t *v)
+{
+	return v3f_mult_scalar(res, v, 1.f / v3f_len(v));
+}
+
+
+static inline v3f_t * v3f_cross(v3f_t *res, const v3f_t *a, const v3f_t *b)
+{
+	res->x = a->y * b->z - a->z * b->y;
+	res->y = a->z * b->x - a->x * b->z;
+	res->z = a->x * b->y - a->y * b->x;
+
+	return res;
+}
+
+
+/* Similar to puddle_sample() except instead of returning an interpolated scalar
+ * a 3d normal vector is produced by treating the normally interpolated values as
+ * gradient samples on a 2d height map.
+ */
+static void puddle_sample_normal(const puddle_t *puddle, const v2f_t *coordinate, v3f_t *res_normal)
+{
+	float	s0, sa, sb;
+
+	/* take three samples surrounding coordinate to create gradient vectors */
+	s0 = puddle_sample(puddle,	&(v2f_t){
+						.x = coordinate->x,
+						.y = coordinate->y - .0001f	/* TODO: when PUDDLE_SIZE is small these need to be larger, revisit when size becomes runtime settable */
+					});
+
+	sa = puddle_sample(puddle,	&(v2f_t){
+						.x = coordinate->x - .0001f,
+						.y = coordinate->y + .0001f
+					});
+
+	sb = puddle_sample(puddle,	&(v2f_t){
+						.x = coordinate->x + .0001f,
+						.y = coordinate->y + .0001f
+					});
+
+	/* cross product them to produce a normal */
+	(void) v3f_norm(res_normal,
+		v3f_cross(&(v3f_t){},
+			&(v3f_t){
+				.x = -.0001f,
+				.y = .0002f,
+				.z = sa - s0
+			},
+			&(v3f_t){
+				.x = .0001f,
+				.y = .0002f,
+				.z = sb - s0
+			}
+		)
+	);
+}
+
+
 static void drizzle_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
 	drizzle_context_t	*ctxt = (drizzle_context_t *)context;
@@ -165,7 +258,30 @@ static void drizzle_render_fragment(til_module_context_t *context, unsigned tick
 	float			yf = 1.f / (float)fragment->frame_height;
 	v2f_t			coord;
 
-	if (ctxt->snapshot) {
+	if (!ctxt->snapshot) {
+		coord.y = yf * (float)fragment->y;
+		for (int y = fragment->y; y < fragment->y + fragment->height; y++) {
+
+			coord.x = xf * (float)fragment->x;
+			for (int x = fragment->x; x < fragment->x + fragment->width; x++) {
+				v3f_t		color = {};
+				uint32_t	pixel;
+
+				color.z = puddle_sample(ctxt->puddle, &coord);
+
+				pixel = color_to_uint32(color);
+				til_fb_fragment_put_pixel_unchecked(fragment, 0, x, y, pixel);
+
+				coord.x += xf;
+			}
+
+			coord.y += yf;
+		}
+		return;
+	}
+
+	switch (ctxt->setup.style) {
+	case DRIZZLE_STYLE_MASK:
 		coord.y = yf * (float)fragment->y;
 		for (int y = fragment->y; y < fragment->y + fragment->height; y++) {
 
@@ -183,26 +299,33 @@ static void drizzle_render_fragment(til_module_context_t *context, unsigned tick
 		}
 
 		return;
-	}
 
-	coord.y = yf * (float)fragment->y;
-	for (int y = fragment->y; y < fragment->y + fragment->height; y++) {
+	case DRIZZLE_STYLE_MAP:
+		coord.y = yf * (float)fragment->y;
+		for (int y = fragment->y; y < fragment->y + fragment->height; y++) {
 
-		coord.x = xf * (float)fragment->x;
-		for (int x = fragment->x; x < fragment->x + fragment->width; x++) {
-			v3f_t		color = {};
-			uint32_t	pixel;
+			coord.x = xf * (float)fragment->x;
+			for (int x = fragment->x; x < fragment->x + fragment->width; x++) {
+				v3f_t		norm;
+				uint32_t	pixel;
 
-			color.z = puddle_sample(ctxt->puddle, &coord);
+				puddle_sample_normal(ctxt->puddle, &coord, &norm);
+				//printf("norm.x=%f norm.y=%f norm.z=%f\n", norm.x, norm.y, norm.z);
 
-			pixel = color_to_uint32(color);
-			til_fb_fragment_put_pixel_unchecked(fragment, 0, x, y, pixel);
+				pixel = til_fb_fragment_get_pixel_clipped(ctxt->snapshot, x + (norm.x * 10.f), y + (norm.y * 10.f));
+				pixel = pixel_mult_scalar(pixel, 1.f - v3f_dot(&norm, &(v3f_t){.x = 0.f, .y = 0, .z = -1.f}));
 
-			coord.x += xf;
+				til_fb_fragment_put_pixel_unchecked(fragment, 0, x, y, pixel);
+
+				coord.x += xf;
+			}
+
+			coord.y += yf;
 		}
 
-		coord.y += yf;
+		return;
 	}
+
 }
 
 
@@ -218,11 +341,17 @@ static void drizzle_finish_frame(til_module_context_t *context, unsigned int tic
 static int drizzle_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	const char	*viscosity;
-	const char	*values[] = {
+	const char	*style;
+	const char	*viscosity_values[] = {
 				".005",
 				".01",
 				".03",
 				".05",
+				NULL
+			};
+	const char	*style_values[] = {
+				"mask",
+				"map",
 				NULL
 			};
 	int		r;
@@ -233,7 +362,7 @@ static int drizzle_setup(const til_settings_t *settings, til_setting_t **res_set
 							.key = "viscosity",
 							.regex = "\\.[0-9]+",
 							.preferred = TIL_SETTINGS_STR(DEFAULT_VISCOSITY),
-							.values = values,
+							.values = viscosity_values,
 							.annotations = NULL
 						},
 						&viscosity,
@@ -242,14 +371,41 @@ static int drizzle_setup(const til_settings_t *settings, til_setting_t **res_set
 	if (r)
 		return r;
 
+	r = til_settings_get_and_describe_value(settings,
+						&(til_setting_desc_t){
+							.name = "Overlay style",
+							.key = "style",
+							.regex = "[a-z]+",
+							.preferred = style_values[DEFAULT_STYLE],
+							.values = style_values,
+							.annotations = NULL
+						},
+						&style,
+						res_setting,
+						res_desc);
+	if (r)
+		return r;
+
 	if (res_setup) {
 		drizzle_setup_t	*setup;
+		int		i;
 
 		setup = til_setup_new(sizeof(*setup), (void(*)(til_setup_t *))free);
 		if (!setup)
 			return -ENOMEM;
 
 		sscanf(viscosity, "%f", &setup->viscosity);
+
+		/* TODO: til should prolly have a helper for this */
+		for (i = 0; i < nelems(style_values); i++) {
+			if (!strcasecmp(style_values[i], style)) {
+				setup->style = i;
+				break;
+			}
+		}
+
+		if (i >= nelems(style_values))
+			return -EINVAL;
 
 		*res_setup = &setup->til_setup;
 	}

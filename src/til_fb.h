@@ -80,6 +80,23 @@ static inline uint32_t til_fb_fragment_get_pixel_unchecked(til_fb_fragment_t *fr
 }
 
 
+/* gets a pixel from the fragment, coordinates are clipped to the fragment's frame bounds */
+static inline uint32_t til_fb_fragment_get_pixel_clipped(til_fb_fragment_t *fragment, int x, int y)
+{
+	if (x < 0)
+		x = 0;
+	else if (x >= fragment->frame_width)
+		x = fragment->frame_width - 1;
+
+	if (y < 0)
+		y = 0;
+	else if (y >= fragment->frame_height)
+		y = fragment->frame_height - 1;
+
+	return til_fb_fragment_get_pixel_unchecked(fragment, x, y);
+}
+
+
 /* puts a pixel into the fragment, no bounds checking is performed. */
 static inline void til_fb_fragment_put_pixel_unchecked(til_fb_fragment_t *fragment, uint32_t flags, int x, int y, uint32_t pixel)
 {
