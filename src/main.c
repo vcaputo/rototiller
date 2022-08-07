@@ -258,7 +258,7 @@ static char * seed_as_arg(unsigned seed)
 }
 
 
-static int print_setup_as_args(setup_t *setup)
+static int print_setup_as_args(setup_t *setup, int wait)
 {
 	char	*seed_arg, *module_args, *video_args;
 	char	buf[64];
@@ -276,15 +276,20 @@ static int print_setup_as_args(setup_t *setup)
 	if (!video_args)
 		goto _out_module;
 
-	r = printf("\nConfigured settings as flags:\n  --seed=%s --module=%s --video=%s\n\nPress enter to continue, add --go to disable this notice...\n",
+	r = printf("\nConfigured settings as flags:\n  --seed=%s --module=%s --video=%s\n",
 		seed_arg,
 		module_args,
 		video_args);
-
 	if (r < 0)
 		goto _out_video;
 
-	(void) fgets(buf, sizeof(buf), stdin);
+	if (wait) {
+		r = printf("\nPress enter to continue, add --go to skip this step...\n");
+		if (r < 0)
+			goto _out_video;
+
+		(void) fgets(buf, sizeof(buf), stdin);
+	}
 
 _out_video:
 	free(video_args);
@@ -362,7 +367,7 @@ int main(int argc, const char *argv[])
 		failed_desc ? "\"" : "",
 		strerror(-r));
 
-	exit_if(!args.gogogo && r && print_setup_as_args(&setup) < 0,
+	exit_if(r && print_setup_as_args(&setup, !args.gogogo) < 0,
 		"unable to print setup");
 
 	exit_if(!(rototiller.module = til_lookup_module(til_settings_get_key(setup.module_settings, 0, NULL))),
