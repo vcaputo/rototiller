@@ -31,6 +31,7 @@ char * strndup(const char *s, size_t n)
 
 /* Split form of key=value[,key=value...] settings string */
 typedef struct til_settings_t {
+	const char	*label;
 	unsigned	num;
 	til_setting_t	**settings;
 } til_settings_t;
@@ -62,7 +63,7 @@ static int add_value(til_settings_t *settings, const char *key, const char *valu
 
 
 /* split settings_string into a data structure */
-til_settings_t * til_settings_new(const char *settings_string)
+til_settings_t * til_settings_new(const char *label, const char *settings_string)
 {
 	til_settings_fsm_state_t	state = TIL_SETTINGS_FSM_STATE_KEY;
 	const char			*p, *token;
@@ -71,9 +72,15 @@ til_settings_t * til_settings_new(const char *settings_string)
 	char				*value_buf;
 	size_t				value_sz;
 
+	assert(label);
+
 	settings = calloc(1, sizeof(til_settings_t));
 	if (!settings)
-		return NULL;
+		goto _err;
+
+	settings->label = strdup(label);
+	if (!settings->label)
+		goto _err;
 
 	if (!settings_string)
 		return settings;

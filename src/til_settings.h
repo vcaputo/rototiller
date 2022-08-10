@@ -33,7 +33,7 @@ struct til_setting_t {
 	void				*user_data;
 };
 
-til_settings_t * til_settings_new(const char *settings);
+til_settings_t * til_settings_new(const char *label, const char *settings);
 til_settings_t * til_settings_free(til_settings_t *settings);
 const char * til_settings_get_value(const til_settings_t *settings, const char *key, til_setting_t **res_setting);
 const char * til_settings_get_key(const til_settings_t *settings, unsigned pos, til_setting_t **res_setting);
