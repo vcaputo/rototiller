@@ -48,10 +48,19 @@
 #include "til_fb.h"
 #include "til_module_context.h"
 
+#define PLATO_DEFAULT_ORBIT_RATE	.25
+#define PLATO_DEFAULT_SPIN_RATE		.75
+
+typedef struct plato_setup_t {
+	til_setup_t		til_setup;
+	float			orbit_rate;
+	float			spin_rate;
+} plato_setup_t;
 
 typedef struct plato_context_t {
 	til_module_context_t	til_module_context;
-	float			r;
+	plato_setup_t		setup;
+	float			r, rr;
 } plato_context_t;
 
 typedef struct v3f_t {
@@ -618,6 +627,8 @@ static til_module_context_t * plato_create_context(unsigned seed, unsigned ticks
 	if (!ctxt)
 		return NULL;
 
+	ctxt->setup = *((plato_setup_t *)setup);
+
 	return &ctxt->til_module_context;
 }
 
@@ -627,7 +638,8 @@ static void plato_render_fragment(til_module_context_t *context, unsigned ticks,
 	plato_context_t		*ctxt = (plato_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;
 
-	ctxt->r += (float)(ticks - context->ticks) * .001f;
+	ctxt->r += (float)(ticks - context->ticks) * (ctxt->setup.orbit_rate * .001f);
+	ctxt->rr += (float)(ticks - context->ticks) * (ctxt->setup.spin_rate * .001f);
 	context->ticks = ticks;
 	til_fb_fragment_clear(fragment);
 
@@ -653,16 +665,85 @@ static void plato_render_fragment(til_module_context_t *context, unsigned ticks,
 		/* arrange the solids on a circle, at points of a pentagram */
 		transform = m4f_translate(NULL, &(v3f_t){cosf(p), sinf(p), 0.f});
 		transform = m4f_scale(&transform, &(v3f_t){.5f, .5f, .5f});
-		transform = m4f_rotate(&transform, &ax, ctxt->r);
+		transform = m4f_rotate(&transform, &ax, ctxt->rr);
 
 		draw_polyhedron(polyhedra[i], &transform, fragment);
 	}
 }
 
 
+static int plato_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
+{
+	const char	*orbit_rate;
+	const char	*spin_rate;
+	const char	*rate_values[] = {
+				"-1",
+				"-.75",
+				"-.5",
+				"-.25",
+				".1",
+				"0",
+				".1",
+				".25",
+				".5",
+				".75",
+				"1",
+				NULL
+			};
+	int		r;
+
+	r = til_settings_get_and_describe_value(settings,
+						&(til_setting_desc_t){
+							.name = "Orbit rate and direction",
+							.key = "orbit_rate",
+							.regex = "\\.[0-9]+", /* FIXME */
+							.preferred = TIL_SETTINGS_STR(PLATO_DEFAULT_ORBIT_RATE),
+							.values = rate_values,
+							.annotations = NULL
+						},
+						&orbit_rate,
+						res_setting,
+						res_desc);
+	if (r)
+		return r;
+
+	r = til_settings_get_and_describe_value(settings,
+						&(til_setting_desc_t){
+							.name = "Spin rate and direction",
+							.key = "spin_rate",
+							.regex = "\\.[0-9]+", /* FIXME */
+							.preferred = TIL_SETTINGS_STR(PLATO_DEFAULT_SPIN_RATE),
+							.values = rate_values,
+							.annotations = NULL
+						},
+						&spin_rate,
+						res_setting,
+						res_desc);
+	if (r)
+		return r;
+
+	if (res_setup) {
+		plato_setup_t	*setup;
+		int		i;
+
+		setup = til_setup_new(sizeof(*setup), (void(*)(til_setup_t *))free);
+		if (!setup)
+			return -ENOMEM;
+
+		sscanf(orbit_rate, "%f", &setup->orbit_rate);
+		sscanf(spin_rate, "%f", &setup->spin_rate);
+
+		*res_setup = &setup->til_setup;
+	}
+
+	return 0;
+}
+
+
 til_module_t	plato_module = {
 	.create_context = plato_create_context,
 	.render_fragment = plato_render_fragment,
+	.setup = plato_setup,
 	.name = "plato",
 	.description = "Platonic solids rendered in 3D",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",
