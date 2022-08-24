@@ -46,14 +46,22 @@ int setup_interactively(til_settings_t *settings, int (*setup_func)(til_settings
 			 /* XXX FIXME: this key as value exception is janky, make a helper to access the value or stop doing that. */
 			r = til_setting_desc_check(desc, setting->value ? : setting->key);
 			if (r < 0) {
-				/* TODO: send back desc to caller, caller must free. */
 				*res_failed_desc = desc;
 
 				return r;
 			}
 
-			/* XXX FIXME everything's constified necessitating this fuckery, revisit and cleanup later, prolly another til_settings helper */
-			((til_setting_t *)setting)->desc = desc;
+			if (desc->as_nested_settings && !setting->settings) {
+				setting->settings = til_settings_new(setting->key, setting->value);
+				if (!setting->settings) {
+					*res_failed_desc = desc;
+
+					/* FIXME: til_settings_new() seems like it should return an errno, since it can encounter parse errors too? */
+					return -ENOMEM;
+				};
+			}
+
+			setting->desc = desc;
 
 			continue;
 		}
