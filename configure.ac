@@ -61,6 +61,7 @@ AC_CONFIG_FILES([
  src/modules/sparkler/Makefile
  src/modules/spiro/Makefile
  src/modules/stars/Makefile
+ src/modules/strobe/Makefile
  src/modules/submit/Makefile
  src/modules/swab/Makefile
  src/modules/swarm/Makefile
