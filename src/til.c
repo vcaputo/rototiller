@@ -189,7 +189,10 @@ static void module_render_fragment(til_module_context_t *context, til_threads_t 
 			til_threads_wait_idle(threads);
 		} else {
 			unsigned		fragnum = 0;
-			til_fb_fragment_t	frag, *frag_ptr = &frag;
+			til_fb_fragment_t	frag, texture, *frag_ptr = &frag;
+
+			if ((*fragment_ptr)->texture)
+				frag.texture = &texture; /* fragmenter needs the space */
 
 			while (frame_plan.fragmenter(context, *fragment_ptr, fragnum++, &frag))
 				module->render_fragment(context, ticks, 0, &frag_ptr);

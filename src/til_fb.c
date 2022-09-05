@@ -575,11 +575,38 @@ int til_fb_fragment_slice_single(const til_fb_fragment_t *fragment, unsigned n_f
 	unsigned	slice = fragment->height / n_fragments;
 	unsigned	yoff = slice * number;
 
+	assert(fragment);
+	assert(res_fragment);
+
 	if (yoff >= fragment->height)
 		return 0;
 
+	if (fragment->texture) {
+		assert(res_fragment->texture);
+		assert(fragment->frame_width == fragment->texture->frame_width);
+		assert(fragment->frame_height == fragment->texture->frame_height);
+		assert(fragment->width == fragment->texture->width);
+		assert(fragment->height == fragment->texture->height);
+		assert(fragment->x == fragment->texture->x);
+		assert(fragment->y == fragment->texture->y);
+
+		*(res_fragment->texture) = (til_fb_fragment_t){
+				.buf = fragment->texture->buf + yoff * fragment->texture->pitch,
+				.x = fragment->x,
+				.y = yoff,
+				.width = fragment->width,
+				.height = MIN(fragment->height - yoff, slice),
+				.frame_width = fragment->frame_width,
+				.frame_height = fragment->frame_height,
+				.stride = fragment->texture->stride,
+				.pitch = fragment->texture->pitch,
+				.cleared = fragment->texture->cleared,
+		};
+
+	}
+
 	*res_fragment = (til_fb_fragment_t){
-				.texture = fragment->texture,
+				.texture = fragment->texture ? res_fragment->texture : NULL,
 				.buf = fragment->buf + yoff * fragment->pitch,
 				.x = fragment->x,
 				.y = yoff,
@@ -602,6 +629,9 @@ int til_fb_fragment_tile_single(const til_fb_fragment_t *fragment, unsigned tile
 	unsigned	w = fragment->width / tile_size, h = fragment->height / tile_size;
 	unsigned	x, y, xoff, yoff;
 
+	assert(fragment);
+	assert(res_fragment);
+
 	if (w * tile_size < fragment->width)
 		w++;
 
@@ -617,8 +647,32 @@ int til_fb_fragment_tile_single(const til_fb_fragment_t *fragment, unsigned tile
 	xoff = x * tile_size;
 	yoff = y * tile_size;
 
+	if (fragment->texture) {
+		assert(res_fragment->texture);
+		assert(fragment->frame_width == fragment->texture->frame_width);
+		assert(fragment->frame_height == fragment->texture->frame_height);
+		assert(fragment->width == fragment->texture->width);
+		assert(fragment->height == fragment->texture->height);
+		assert(fragment->x == fragment->texture->x);
+		assert(fragment->y == fragment->texture->y);
+
+		*(res_fragment->texture) = (til_fb_fragment_t){
+					.buf = fragment->texture->buf + (yoff * fragment->texture->pitch) + (xoff),
+					.x = fragment->x + xoff,
+					.y = fragment->y + yoff,
+					.width = MIN(fragment->width - xoff, tile_size),
+					.height = MIN(fragment->height - yoff, tile_size),
+					.frame_width = fragment->frame_width,
+					.frame_height = fragment->frame_height,
+					.stride = fragment->texture->stride + (fragment->width - MIN(fragment->width - xoff, tile_size)),
+					.pitch = fragment->texture->pitch,
+					.cleared = fragment->texture->cleared,
+				};
+
+	}
+
 	*res_fragment = (til_fb_fragment_t){
-				.texture = fragment->texture,
+				.texture = fragment->texture ? res_fragment->texture : NULL,
 				.buf = fragment->buf + (yoff * fragment->pitch) + (xoff),
 				.x = fragment->x + xoff,
 				.y = fragment->y + yoff,

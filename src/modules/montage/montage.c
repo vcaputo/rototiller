@@ -120,6 +120,9 @@ static int montage_fragment_tile(const til_fb_fragment_t *fragment, unsigned til
 	unsigned	w = fragment->width / tile_width, h = fragment->height / tile_height;
 	unsigned	x, y, xoff, yoff;
 
+	assert(fragment);
+	assert(res_fragment);
+
 #if 0
 	/* total coverage isn't important in montage, leave blank gaps */
 	/* I'm keeping this here for posterity though and to record a TODO:
@@ -142,8 +145,31 @@ static int montage_fragment_tile(const til_fb_fragment_t *fragment, unsigned til
 	xoff = x * tile_width;
 	yoff = y * tile_height;
 
+	if (fragment->texture) {
+		assert(res_fragment->texture);
+		assert(fragment->frame_width == fragment->texture->frame_width);
+		assert(fragment->frame_height == fragment->texture->frame_height);
+		assert(fragment->width == fragment->texture->width);
+		assert(fragment->height == fragment->texture->height);
+		assert(fragment->x == fragment->texture->x);
+		assert(fragment->y == fragment->texture->y);
+
+		*(res_fragment->texture) = (til_fb_fragment_t){
+					.buf = fragment->texture->buf + (yoff * fragment->texture->pitch) + xoff,
+					.x = 0,								/* fragment is a new frame */
+					.y = 0,								/* fragment is a new frame */
+					.width = MIN(fragment->width - xoff, tile_width),
+					.height = MIN(fragment->height - yoff, tile_height),
+					.frame_width = MIN(fragment->width - xoff, tile_width),		/* fragment is a new frame */
+					.frame_height = MIN(fragment->height - yoff, tile_height),	/* fragment is a new frame */
+					.stride = fragment->texture->stride + (fragment->width - MIN(fragment->width - xoff, tile_width)),
+					.pitch = fragment->texture->pitch,
+					.cleared = fragment->texture->cleared,
+				};
+	}
+
 	*res_fragment = (til_fb_fragment_t){
-				.texture = fragment->texture,
+				.texture = fragment->texture ? res_fragment->texture : NULL,
 				.buf = fragment->buf + (yoff * fragment->pitch) + xoff,
 				.x = 0,								/* fragment is a new frame */
 				.y = 0,								/* fragment is a new frame */

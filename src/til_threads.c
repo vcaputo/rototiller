@@ -63,7 +63,11 @@ static void * thread_func(void *_thread)
 			 * which may require a consistent mapping of CPU to fragnum across frames.
 			 */
 			for (;;) {
-				til_fb_fragment_t	frag, *frag_ptr = &frag;
+				til_fb_fragment_t	texture, frag, *frag_ptr = &frag;
+
+				/* XXX: jank alert, need to cleanup texture integration TODO */
+				if ((*(threads->fragment_ptr))->texture)
+					frag.texture = &texture; /* provide space, but the fragmenter must populate it */
 
 				while (!__sync_bool_compare_and_swap(&threads->next_fragment, frag_num, frag_num + 1));
 
@@ -76,7 +80,11 @@ static void * thread_func(void *_thread)
 		} else { /* render *any* available fragment */
 			for (;;) {
 				unsigned		frag_num;
-				til_fb_fragment_t	frag, *frag_ptr = &frag;
+				til_fb_fragment_t	texture, frag, *frag_ptr = &frag;
+
+				/* XXX: jank alert, need to cleanup texture integration TODO */
+				if ((*(threads->fragment_ptr))->texture)
+					frag.texture = &texture; /* provide space, but the fragmenter must populate it */
 
 				frag_num = __sync_fetch_and_add(&threads->next_fragment, 1);
 

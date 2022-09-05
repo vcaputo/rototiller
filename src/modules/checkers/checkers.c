@@ -146,6 +146,9 @@ int checkers_fragment_tile_single(const til_fb_fragment_t *fragment, unsigned ti
 	unsigned	tiled_w = w * tile_size, tiled_h = h * tile_size;
 	unsigned	x, y, xoff, yoff, xshift = 0, yshift = 0;
 
+	assert(fragment);
+	assert(res_fragment);
+
 	/* Detect the need for fractional tiles on both axis and shift the fragments
 	 * to keep the overall checkered output centered.  This complicates res_fragment.{x,y,width,height}
 	 * calculations for the peripheral checker tiles as those must clip when shifted.
@@ -171,8 +174,32 @@ int checkers_fragment_tile_single(const til_fb_fragment_t *fragment, unsigned ti
 	xoff = x * tile_size;
 	yoff = y * tile_size;
 
+	if (fragment->texture) {
+		assert(res_fragment->texture);
+		assert(fragment->frame_width == fragment->texture->frame_width);
+		assert(fragment->frame_height == fragment->texture->frame_height);
+		assert(fragment->width == fragment->texture->width);
+		assert(fragment->height == fragment->texture->height);
+		assert(fragment->x == fragment->texture->x);
+		assert(fragment->y == fragment->texture->y);
+
+		*(res_fragment->texture) = (til_fb_fragment_t){
+					.buf = fragment->texture->buf + (yoff * fragment->texture->pitch) - (y ? (yshift * fragment->texture->pitch) : 0) + (xoff - (x ? xshift : 0)),
+					.width = MIN(fragment->width - (xoff - xshift), x ? tile_size : (tile_size - xshift)),
+					.height = MIN(fragment->height - (yoff - yshift), y ? tile_size : (tile_size - yshift)),
+					.x = x ? 0 : xshift,
+					.y = y ? 0 : yshift,
+					.frame_width = tile_size,
+					.frame_height = tile_size,
+					.stride = fragment->texture->stride + (fragment->width - MIN(fragment->width - (xoff - xshift), x ? tile_size : (tile_size - xshift))),
+					.pitch = fragment->texture->pitch,
+					.cleared = fragment->texture->cleared,
+				};
+	}
+
 	*res_fragment = (til_fb_fragment_t){
-				.texture = fragment->texture,
+				.texture = fragment->texture ? res_fragment->texture : NULL,
+				/* TODO: copy pasta! */
 				.buf = fragment->buf + (yoff * fragment->pitch) - (y ? (yshift * fragment->pitch) : 0) + (xoff - (x ? xshift : 0)),
 				.width = MIN(fragment->width - (xoff - xshift), x ? tile_size : (tile_size - xshift)),
 				.height = MIN(fragment->height - (yoff - yshift), y ? tile_size : (tile_size - yshift)),
