@@ -29,4 +29,9 @@
 
 unsigned til_get_ncpus(void);
 
+static inline float til_ticks_to_rads(unsigned ticks)
+{
+	return (ticks % 6283) * .001f;
+}
+
 #endif /* _TIL_UTIL_H */
