@@ -88,14 +88,12 @@ static void blinds_render_fragment(til_module_context_t *context, unsigned ticks
 	blinds_context_t	*ctxt = (blinds_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;
 
-	static float rr;
-
+	float		r = til_ticks_to_rads(ticks);
 	unsigned	blind;
-	float		r;
 
 	til_fb_fragment_clear(fragment);
 
-	for (r = rr, blind = 0; blind < ctxt->setup.count; blind++, r += .1) {
+	for (blind = 0; blind < ctxt->setup.count; blind++, r += .1) {
 		switch (ctxt->setup.orientation) {
 		case BLINDS_ORIENTATION_HORIZONTAL:
 			draw_blind_horizontal(fragment, blind, ctxt->setup.count, 1.f - fabsf(cosf(r)));
@@ -105,8 +103,6 @@ static void blinds_render_fragment(til_module_context_t *context, unsigned ticks
 			break;
 		}
 	}
-
-	rr += .01;
 }
 
 
