@@ -33,9 +33,45 @@ typedef struct roto_context_t {
 static int32_t	costab[FIXED_TRIG_LUT_SIZE], sintab[FIXED_TRIG_LUT_SIZE];
 static uint8_t	texture[256][256];
 
+
+static void init_roto(uint8_t texture[256][256], int32_t *costab, int32_t *sintab)
+{
+	int	x, y, i;
+
+	/* Generate simple checker pattern texture, nothing clever, feel free to play! */
+	/* If you modify texture on every frame instead of only @ initialization you can
+	 * produce some neat output.  These values are indexed into palette[] below. */
+	for (y = 0; y < 128; y++) {
+		for (x = 0; x < 128; x++)
+			texture[y][x] = 1;
+		for (; x < 256; x++)
+			texture[y][x] = 0;
+	}
+	for (; y < 256; y++) {
+		for (x = 0; x < 128; x++)
+			texture[y][x] = 0;
+		for (; x < 256; x++)
+			texture[y][x] = 1;
+	}
+
+	/* Generate fixed-point cos & sin LUTs. */
+	for (i = 0; i < FIXED_TRIG_LUT_SIZE; i++) {
+		costab[i] = ((cos((double)2*M_PI*i/FIXED_TRIG_LUT_SIZE))*FIXED_EXP);
+		sintab[i] = ((sin((double)2*M_PI*i/FIXED_TRIG_LUT_SIZE))*FIXED_EXP);
+	}
+}
+
+
 static til_module_context_t * roto_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
+	static int	initialized;
 	roto_context_t	*ctxt;
+
+	if (!initialized) {
+		initialized = 1;
+
+		init_roto(texture, costab, sintab);
+	}
 
 	ctxt = til_module_context_new(sizeof(roto_context_t), seed, ticks, n_cpus);
 	if (!ctxt)
@@ -145,45 +181,10 @@ static uint32_t bilerp_color(uint8_t texture[256][256], color_t *palette, int tx
 }
 
 
-static void init_roto(uint8_t texture[256][256], int32_t *costab, int32_t *sintab)
-{
-	int	x, y, i;
-
-	/* Generate simple checker pattern texture, nothing clever, feel free to play! */
-	/* If you modify texture on every frame instead of only @ initialization you can
-	 * produce some neat output.  These values are indexed into palette[] below. */
-	for (y = 0; y < 128; y++) {
-		for (x = 0; x < 128; x++)
-			texture[y][x] = 1;
-		for (; x < 256; x++)
-			texture[y][x] = 0;
-	}
-	for (; y < 256; y++) {
-		for (x = 0; x < 128; x++)
-			texture[y][x] = 0;
-		for (; x < 256; x++)
-			texture[y][x] = 1;
-	}
-
-	/* Generate fixed-point cos & sin LUTs. */
-	for (i = 0; i < FIXED_TRIG_LUT_SIZE; i++) {
-		costab[i] = ((cos((double)2*M_PI*i/FIXED_TRIG_LUT_SIZE))*FIXED_EXP);
-		sintab[i] = ((sin((double)2*M_PI*i/FIXED_TRIG_LUT_SIZE))*FIXED_EXP);
-	}
-}
-
-
 /* prepare a frame for concurrent rendering */
 static void roto_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
 {
 	roto_context_t	*ctxt = (roto_context_t *)context;
-	static int	initialized;
-
-	if (!initialized) {
-		initialized = 1;
-
-		init_roto(texture, costab, sintab);
-	}
 
 	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu };
 
