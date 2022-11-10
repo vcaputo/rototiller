@@ -17,9 +17,6 @@
 
 /* TODO:
  *	- Make period setting more flexible
- *	- Currently if the frame rate can't keep up with the period, strobe will
- *	  just stick on.  There should probably be a force_flash={yes,no} setting
- *	  to ensure a flash still occurs when the frame rate can't keep up.
  */
 
 #define	STROBE_DEFAULT_PERIOD		.1
@@ -34,6 +31,7 @@ typedef struct strobe_context_t {
 	strobe_setup_t		setup;
 	unsigned		ticks;
 	unsigned		flash:1;
+	unsigned		flash_ready:1;
 } strobe_context_t;
 
 
@@ -66,8 +64,12 @@ static void strobe_prepare_frame(til_module_context_t *context, unsigned ticks, 
 
 	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu };
 
-	if (ticks - ctxt->ticks >= (unsigned)(ctxt->setup.period * 1000.f))
+	if (ctxt->flash_ready && (ticks - ctxt->ticks >= (unsigned)(ctxt->setup.period * 1000.f))){
 		ctxt->flash = 1;
+		ctxt->flash_ready = 0;
+	} else {
+		ctxt->flash_ready = 1;
+	}
 }
 
 
