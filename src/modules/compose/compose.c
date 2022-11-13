@@ -129,6 +129,7 @@ static void compose_render_fragment(til_module_context_t *context, unsigned tick
 {
 	compose_context_t	*ctxt = (compose_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr, *texture = &ctxt->texture_fb;
+	til_fb_fragment_t	*old_texture = fragment->texture;
 
 	if (ctxt->texture.module) {
 		if (!ctxt->texture_fb.buf ||
@@ -152,17 +153,17 @@ static void compose_render_fragment(til_module_context_t *context, unsigned tick
 		til_module_render(ctxt->layers[0].module_ctxt, ticks, &fragment);
 
 		for (size_t i = 1; i < ctxt->n_layers; i++) {
-			til_fb_fragment_t	*old_texture = fragment->texture;
-
-			fragment->texture = texture;
+			fragment->texture = texture; /* keep forcing our texture, in case something below us installed their own. */
 			til_module_render(ctxt->layers[i].module_ctxt, ticks, &fragment);
-			fragment->texture = old_texture;
 		}
 	} else {
-		for (size_t i = 0; i < ctxt->n_layers; i++)
+		for (size_t i = 0; i < ctxt->n_layers; i++) {
+			fragment->texture = NULL; /* keep forcing no texture, in case something below us installed their own. TODO: more formally define texture semantics as it pertains to module nesting */
 			til_module_render(ctxt->layers[i].module_ctxt, ticks, &fragment);
+		}
 	}
 
+	fragment->texture = old_texture;
 	*fragment_ptr = fragment;
 }
 
