@@ -9,6 +9,7 @@
 #include "til_setup.h"
 #include "til_util.h"
 
+typedef struct til_stream_t til_stream_t;
 typedef struct til_fb_fragment_t til_fb_fragment_t;
 typedef struct til_fb_fragment_ops_t til_fb_fragment_ops_t;
 
@@ -21,6 +22,7 @@ typedef struct til_fb_fragment_ops_t til_fb_fragment_ops_t;
 typedef struct til_fb_fragment_t {
 	const til_fb_fragment_ops_t	*ops;		/* optional opaque ops for physical fragments, NULL for strictly logical fragments */
 
+	til_stream_t			*stream;	/* optional stream of continuity this fragment participates in */
 	til_fb_fragment_t		*texture;	/* optional source texture when drawing to this fragment */
 	uint32_t			*buf;		/* pointer to the first pixel in the fragment */
 	unsigned			x, y;		/* absolute coordinates of the upper left corner of this fragment */
