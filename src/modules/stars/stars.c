@@ -12,6 +12,7 @@
 #include "til_fb.h"
 #include "til_module_context.h"
 #include "til_settings.h"
+#include "til_tap.h"
 
 #include "draw.h"
 
@@ -27,12 +28,29 @@ struct points {
 typedef struct stars_context_t {
 	til_module_context_t	til_module_context;
 	struct			points* points;
+
+	struct {
+		til_tap_t		rot_rate;
+		til_tap_t		rot_angle;
+		til_tap_t		offset_x;
+		til_tap_t		offset_y;
+		til_tap_t		offset_angle;
+	}			taps;
+
+	struct {
+		float			rot_rate;
+		float			rot_angle;
+		float			offset_x;
+		float			offset_y;
+		float			offset_angle;
+	}			vars;
+
 	float			rot_adj;
-	float			rot_rate;
-	float			rot_angle;
-	float			offset_x;
-	float			offset_y;
-	float			offset_angle;
+	float			*rot_rate;
+	float			*rot_angle;
+	float			*offset_x;
+	float			*offset_y;
+	float			*offset_angle;
 	unsigned		seed;
 } stars_context_t;
 
@@ -67,11 +85,14 @@ static til_module_context_t * stars_create_context(unsigned seed, unsigned ticks
 	ctxt->points = NULL;
 	ctxt->seed = seed;
 	ctxt->rot_adj = ((stars_setup_t *)setup)->rot_adj;
-	ctxt->rot_rate = 0.00;
-	ctxt->rot_angle = 0;
-	ctxt->offset_x = 0.5;
-	ctxt->offset_y = 0;
-	ctxt->offset_angle = 0.01;
+	ctxt->vars.offset_x = 0.5;
+	ctxt->vars.offset_angle = 0.01;
+
+	ctxt->taps.rot_rate = til_tap_init_float(&ctxt->rot_rate, 1, &ctxt->vars.rot_rate, "rot_rate");
+	ctxt->taps.rot_angle = til_tap_init_float(&ctxt->rot_angle, 1, &ctxt->vars.rot_angle, "rot_angle");
+	ctxt->taps.offset_x = til_tap_init_float(&ctxt->offset_x, 1, &ctxt->vars.offset_x, "offset_x");
+	ctxt->taps.offset_y = til_tap_init_float(&ctxt->offset_y, 1, &ctxt->vars.offset_y, "offset_y");
+	ctxt->taps.offset_angle = til_tap_init_float(&ctxt->offset_angle, 1, &ctxt->vars.offset_angle, "offset_angle");
 
 	//add a bunch of points
 	for(z=0.01; z<1; z=z+0.01) {
@@ -152,11 +173,11 @@ static void stars_render_fragment(til_module_context_t *context, unsigned ticks,
 		x = (iterator->x / (1.f - iterator->z))*x_mult;
 		y = (iterator->y / (1.f - iterator->z))*y_mult;
 
-		rot_x = (x*cosf(ctxt->rot_angle))-(y*sinf(ctxt->rot_angle));
-		rot_y = (x*sinf(ctxt->rot_angle))+(y*cosf(ctxt->rot_angle));
+		rot_x = (x*cosf(*ctxt->rot_angle))-(y*sinf(*ctxt->rot_angle));
+		rot_y = (x*sinf(*ctxt->rot_angle))+(y*cosf(*ctxt->rot_angle));
 
-		pos_x = ((rot_x+ctxt->offset_x+1.f)*.5f)*(float)width;
-		pos_y = ((rot_y+ctxt->offset_y+1.f)*.5f)*(float)height;
+		pos_x = ((rot_x+*ctxt->offset_x+1.f)*.5f)*(float)width;
+		pos_y = ((rot_y+*ctxt->offset_y+1.f)*.5f)*(float)height;
 
 		if(iterator->z<0.1)
 			opacity = iterator->z*10;
@@ -202,19 +223,19 @@ static void stars_render_fragment(til_module_context_t *context, unsigned ticks,
 	}
 
 	// handle rotation parameters
-	if(ctxt->rot_angle>M_PI_4)
-		ctxt->rot_rate=ctxt->rot_rate-ctxt->rot_adj;
+	if(*ctxt->rot_angle>M_PI_4)
+		*ctxt->rot_rate=*ctxt->rot_rate-ctxt->rot_adj;
 	else
-		ctxt->rot_rate=ctxt->rot_rate+ctxt->rot_adj;
-	ctxt->rot_angle=ctxt->rot_angle+ctxt->rot_rate;
+		*ctxt->rot_rate=*ctxt->rot_rate+ctxt->rot_adj;
+	*ctxt->rot_angle=*ctxt->rot_angle+*ctxt->rot_rate;
 
 	// handle offset parameters
-	float tmp_x = (ctxt->offset_x*cosf(ctxt->offset_angle))-
-			(ctxt->offset_y*sinf(ctxt->offset_angle));
-	float tmp_y = (ctxt->offset_x*sinf(ctxt->offset_angle))+
-			(ctxt->offset_y*cosf(ctxt->offset_angle));
-	ctxt->offset_x = tmp_x;
-	ctxt->offset_y = tmp_y;
+	float tmp_x = (*ctxt->offset_x*cosf(*ctxt->offset_angle))-
+			(*ctxt->offset_y*sinf(*ctxt->offset_angle));
+	float tmp_y = (*ctxt->offset_x*sinf(*ctxt->offset_angle))+
+			(*ctxt->offset_y*cosf(*ctxt->offset_angle));
+	*ctxt->offset_x = tmp_x;
+	*ctxt->offset_y = tmp_y;
 }
 
 int stars_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
