@@ -47,6 +47,7 @@
 #include "til.h"
 #include "til_fb.h"
 #include "til_module_context.h"
+#include "til_tap.h"
 
 #define PLATO_DEFAULT_ORBIT_RATE	.25
 #define PLATO_DEFAULT_SPIN_RATE		.75
@@ -60,6 +61,15 @@ typedef struct plato_setup_t {
 typedef struct plato_context_t {
 	til_module_context_t	til_module_context;
 	plato_setup_t		setup;
+
+	struct {
+		til_tap_t		orbit_rate;
+		til_tap_t		spin_rate;
+	}			taps;
+
+	float			*orbit_rate;
+	float			*spin_rate;
+
 	float			r, rr;
 } plato_context_t;
 
@@ -629,6 +639,9 @@ static til_module_context_t * plato_create_context(unsigned seed, unsigned ticks
 
 	ctxt->setup = *((plato_setup_t *)setup);
 
+	ctxt->taps.spin_rate = til_tap_init_float(&ctxt->spin_rate, 1, &ctxt->setup.spin_rate, "spin_rate");
+	ctxt->taps.orbit_rate = til_tap_init_float(&ctxt->orbit_rate, 1, &ctxt->setup.orbit_rate, "orbit_rate");
+
 	return &ctxt->til_module_context;
 }
 
@@ -638,8 +651,8 @@ static void plato_render_fragment(til_module_context_t *context, unsigned ticks,
 	plato_context_t		*ctxt = (plato_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;
 
-	ctxt->r += (float)(ticks - context->ticks) * (ctxt->setup.orbit_rate * .001f);
-	ctxt->rr += (float)(ticks - context->ticks) * (ctxt->setup.spin_rate * .001f);
+	ctxt->r += (float)(ticks - context->ticks) * (*ctxt->orbit_rate * .001f);
+	ctxt->rr += (float)(ticks - context->ticks) * (*ctxt->spin_rate * .001f);
 	context->ticks = ticks;
 	til_fb_fragment_clear(fragment);
 
