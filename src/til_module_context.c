@@ -1,8 +1,10 @@
 #include <assert.h>
 #include <errno.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 #include "til.h"
+#include "til_jenkins.h"
 #include "til_module_context.h"
 
 
@@ -41,6 +43,7 @@ void * til_module_context_new(size_t size, unsigned seed, unsigned ticks, unsign
 	module_context->ticks = ticks;
 	module_context->n_cpus = n_cpus;
 	module_context->path = path;
+	module_context->path_hash = til_jenkins((uint8_t *)path, strlen(path));
 
 	return module_context;
 }
