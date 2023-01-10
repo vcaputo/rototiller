@@ -2,6 +2,9 @@
 #define _TIL_TAP_H
 
 #include <stdint.h>
+#include <string.h>
+
+#include "til_jenkins.h"
 
 /* A "tap" is a named binding of a local variable+pointer to that variable.
  *
@@ -45,10 +48,11 @@ typedef enum til_tap_type_t {
 /* this is deliberately left entirely public so taps can be easily embedded in contexts */
 typedef struct til_tap_t {
 	til_tap_type_t	type;
-	void		*ptr;		/* points at the caller-provided tap-managed indirection pointer */
+	void		**ptr;		/* points at the caller-provided tap-managed indirection pointer */
 	size_t		n_elems;	/* when > 1, *ptr is an array of n_elems elements.  Otherwise individual variable. */
 	void		*elems;		/* points at the first element of type type, may or may not be an array of them */
 	const char	*name;
+	uint32_t	name_hash;		/* cached hash of name, set once @ initialization */
 } til_tap_t;
 
 /* just some forward declared higher-order vector and matrix types for the wrappers */
@@ -74,6 +78,7 @@ static inline til_tap_t til_tap_init(til_tap_type_t type, void *ptr, size_t n_el
 		.n_elems = n_elems,
 		.elems = elems,
 		.name = name,
+		.name_hash = til_jenkins((uint8_t *)name, strlen(name)),
 	};
 }
 
