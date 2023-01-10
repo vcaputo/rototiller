@@ -240,11 +240,11 @@ static uint32_t pick_color(unsigned *seedp)
 	return makergb(rand_r(seedp)%256, rand_r(seedp)%256, rand_r(seedp)%256, 1);
 }
 
-static til_module_context_t * pixbounce_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static til_module_context_t * pixbounce_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
 	pixbounce_context_t *ctxt;
 
-	ctxt = til_module_context_new(sizeof(pixbounce_context_t), seed, ticks, n_cpus);
+	ctxt = til_module_context_new(sizeof(pixbounce_context_t), seed, ticks, n_cpus, path);
 	if (!ctxt)
 		return NULL;
 

@@ -98,14 +98,14 @@ static shapes_setup_t shapes_default_setup = {
 };
 
 
-static til_module_context_t * shapes_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static til_module_context_t * shapes_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
 	shapes_context_t	*ctxt;
 
 	if (!setup)
 		setup = &shapes_default_setup.til_setup;
 
-	ctxt = til_module_context_new(sizeof(shapes_context_t), seed, ticks, n_cpus);
+	ctxt = til_module_context_new(sizeof(shapes_context_t), seed, ticks, n_cpus, path);
 	if (!ctxt)
 		return NULL;
 

@@ -79,7 +79,7 @@ static checkers_setup_t checkers_default_setup = {
 };
 
 
-static til_module_context_t * checkers_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static til_module_context_t * checkers_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
 	size_t			size = sizeof(checkers_context_t);
 	checkers_context_t	*ctxt;
@@ -90,7 +90,7 @@ static til_module_context_t * checkers_create_context(unsigned seed, unsigned ti
 	if (((checkers_setup_t *)setup)->fill_module)
 		size += sizeof(til_module_context_t *) * n_cpus;
 
-	ctxt = til_module_context_new(size, ticks, seed, n_cpus);
+	ctxt = til_module_context_new(size, ticks, seed, n_cpus, path);
 	if (!ctxt)
 		return NULL;
 
@@ -104,7 +104,7 @@ static til_module_context_t * checkers_create_context(unsigned seed, unsigned ti
 
 		/* since checkers is already threaded, create an n_cpus=1 context per-cpu */
 		for (unsigned i = 0; i < n_cpus; i++) /* TODO: errors */
-			(void) til_module_create_context(module, seed, ticks, 1, module_setup, &ctxt->fill_module_contexts[i]);
+			(void) til_module_create_context(module, seed, ticks, 1, path /* FIXME TODO path-per-context breaks down on these per-cpu-context abuses */, module_setup, &ctxt->fill_module_contexts[i]);
 
 		/* XXX: it would be interesting to support various patterns/layouts by varying the seed, but this will require
 		 * more complex context allocation strategies while also maintaining the per-cpu allocation.

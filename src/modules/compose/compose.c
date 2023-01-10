@@ -47,7 +47,7 @@ typedef struct compose_setup_t {
 	char			*layers[];
 } compose_setup_t;
 
-static til_module_context_t * compose_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup);
+static til_module_context_t * compose_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup);
 static void compose_destroy_context(til_module_context_t *context);
 static void compose_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr);
 static int compose_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
@@ -67,7 +67,7 @@ til_module_t	compose_module = {
 };
 
 
-static til_module_context_t * compose_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static til_module_context_t * compose_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
 	compose_context_t	*ctxt;
 	size_t			n;
@@ -77,7 +77,7 @@ static til_module_context_t * compose_create_context(unsigned seed, unsigned tic
 
 	for (n = 0; ((compose_setup_t *)setup)->layers[n]; n++);
 
-	ctxt = til_module_context_new(sizeof(compose_context_t) + n * sizeof(compose_layer_t), seed, ticks, n_cpus);
+	ctxt = til_module_context_new(sizeof(compose_context_t) + n * sizeof(compose_layer_t), seed, ticks, n_cpus, path);
 	if (!ctxt)
 		return NULL;
 
@@ -89,7 +89,7 @@ static til_module_context_t * compose_create_context(unsigned seed, unsigned tic
 		(void) til_module_randomize_setup(layer_module, rand_r(&seed), &layer_setup, NULL);
 
 		ctxt->layers[i].module = layer_module;
-		(void) til_module_create_context(layer_module, rand_r(&seed), ticks, 0, layer_setup, &ctxt->layers[i].module_ctxt);
+		(void) til_module_create_context(layer_module, rand_r(&seed), ticks, 0, path, layer_setup, &ctxt->layers[i].module_ctxt);
 		til_setup_free(layer_setup);
 
 		ctxt->n_layers++;
@@ -101,7 +101,7 @@ static til_module_context_t * compose_create_context(unsigned seed, unsigned tic
 		ctxt->texture.module = til_lookup_module(((compose_setup_t *)setup)->texture);
 		(void) til_module_randomize_setup(ctxt->texture.module, rand_r(&seed), &texture_setup, NULL);
 
-		(void) til_module_create_context(ctxt->texture.module, rand_r(&seed), ticks, 0, texture_setup, &ctxt->texture.module_ctxt);
+		(void) til_module_create_context(ctxt->texture.module, rand_r(&seed), ticks, 0, path, texture_setup, &ctxt->texture.module_ctxt);
 		til_setup_free(texture_setup);
 	}
 

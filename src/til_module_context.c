@@ -22,13 +22,16 @@
  * Note this returns void * despite creating a til_module_context_t, this is for convenience
  * as the callers are generally using it in place of calloc(), and assign it to a
  * container struct of some other type but having an embedded til_module_context_t.
+ *
+ * path must not be NULL, and the context takes ownership of the path; it's freed @ context_free().
  */
-void * til_module_context_new(size_t size, unsigned seed, unsigned ticks, unsigned n_cpus)
+void * til_module_context_new(size_t size, unsigned seed, unsigned ticks, unsigned n_cpus, char *path)
 {
 	til_module_context_t	*module_context;
 
 	assert(size >= sizeof(til_module_context_t));
 	assert(n_cpus > 0);
+	assert(path); /* modules must be able to key things like taps off their context's path */
 
 	module_context = calloc(1, size);
 	if (!module_context)
@@ -37,6 +40,7 @@ void * til_module_context_new(size_t size, unsigned seed, unsigned ticks, unsign
 	module_context->seed = seed;
 	module_context->ticks = ticks;
 	module_context->n_cpus = n_cpus;
+	module_context->path = path;
 
 	return module_context;
 }
@@ -49,13 +53,19 @@ void * til_module_context_new(size_t size, unsigned seed, unsigned ticks, unsign
  */
 void * til_module_context_free(til_module_context_t *module_context)
 {
+	char	*path;
+
 	if (!module_context)
 		return NULL;
+
+	path = module_context->path; /* free last just in case the module destructor makes use of it */
 
 	if (module_context->module->destroy_context)
 		module_context->module->destroy_context(module_context);
 	else
 		free(module_context);
+
+	free(path);
 
 	return NULL;
 }

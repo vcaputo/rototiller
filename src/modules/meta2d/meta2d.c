@@ -67,11 +67,11 @@ static inline uint32_t color_to_uint32(v3f_t color) {
 }
 
 
-static til_module_context_t * meta2d_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static til_module_context_t * meta2d_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
 	meta2d_context_t	*ctxt;
 
-	ctxt = til_module_context_new(sizeof(meta2d_context_t), seed, ticks, n_cpus);
+	ctxt = til_module_context_new(sizeof(meta2d_context_t), seed, ticks, n_cpus, path);
 	if (!ctxt)
 		return NULL;
 

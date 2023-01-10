@@ -69,7 +69,7 @@ float get_random_unit_coord(unsigned *seed) {
 }
 
 
-static til_module_context_t * stars_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static til_module_context_t * stars_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
 	stars_context_t *ctxt;
 	float		z;
@@ -78,7 +78,7 @@ static til_module_context_t * stars_create_context(unsigned seed, unsigned ticks
 	if (!setup)
 		setup = &stars_default_setup.til_setup;
 
-	ctxt = til_module_context_new(sizeof(stars_context_t), seed, ticks, n_cpus);
+	ctxt = til_module_context_new(sizeof(stars_context_t), seed, ticks, n_cpus, path);
 	if (!ctxt)
 		return NULL;
 

@@ -67,11 +67,11 @@ static uint32_t	colors[] = {
 		};
 
 
-static til_module_context_t * julia_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static til_module_context_t * julia_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
 	julia_context_t	*ctxt;
 
-	ctxt = til_module_context_new(sizeof(julia_context_t), seed, ticks, n_cpus);
+	ctxt = til_module_context_new(sizeof(julia_context_t), seed, ticks, n_cpus, path);
 	if (!ctxt)
 		return NULL;
 

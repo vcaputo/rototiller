@@ -9,9 +9,10 @@ struct til_module_context_t {
 	unsigned		seed;
 	unsigned		ticks;
 	unsigned		n_cpus;
+	char			*path;	/* for locating this instance of the module, NOT a file path */
 };
 
-void * til_module_context_new(size_t size, unsigned seed, unsigned ticks, unsigned n_cpus);
+void * til_module_context_new(size_t size, unsigned seed, unsigned ticks, unsigned n_cpus, char *path);
 void * til_module_context_free(til_module_context_t *module_context);
 
 #endif

@@ -62,7 +62,7 @@ static void init_roto(uint8_t texture[256][256], int32_t *costab, int32_t *sinta
 }
 
 
-static til_module_context_t * roto_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+static til_module_context_t * roto_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
 	static int	initialized;
 	roto_context_t	*ctxt;
@@ -73,7 +73,7 @@ static til_module_context_t * roto_create_context(unsigned seed, unsigned ticks,
 		init_roto(texture, costab, sintab);
 	}
 
-	ctxt = til_module_context_new(sizeof(roto_context_t), seed, ticks, n_cpus);
+	ctxt = til_module_context_new(sizeof(roto_context_t), seed, ticks, n_cpus, path);
 	if (!ctxt)
 		return NULL;
 
