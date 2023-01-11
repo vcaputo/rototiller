@@ -398,7 +398,7 @@ int main(int argc, const char *argv[])
 		if (til_fb_flip(rototiller.fb) < 0)
 			break;
 
-		fps_print(rototiller.fb);
+		fps_fprint(rototiller.fb, stderr);
 	}
 
 	pthread_cancel(rototiller.thread);

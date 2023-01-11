@@ -36,7 +36,7 @@ int fps_setup(void)
 }
 
 
-void fps_print(til_fb_t *fb)
+void fps_fprint(til_fb_t *fb, FILE *out)
 {
 #ifdef __WIN32__
 
@@ -47,7 +47,7 @@ void fps_print(til_fb_t *fb)
 		return;
 
 	til_fb_get_put_pages_count(fb, &n);
-	printf("FPS: %u\n", n);
+	fprintf(out, "FPS: %u\n", n);
 
 	print_fps = 0;
 #endif
