@@ -12,6 +12,7 @@
  * ./rototiller --defaults		// use default settings where unspecified
  * ./rototiller --go			// don't show args and wait for user input before proceeding
  * ./rototiller --seed=0xdeadbeef	// explicitly set global random seed instead of generating one
+ * ./rototiller --print-pipes		// print values for the pipes every frame
  *
  * unrecognized arguments trigger an -EINVAL error, unless res_{argc,argv} are non-NULL
  * where a new argv will be allocated and populated with the otherwise invalid arguments
@@ -54,6 +55,8 @@ static int args_parse(int argc, const char *argv[], til_args_t *res_args, int *r
 			res_args->help = 1;
 		} else if (!strcasecmp("--go", argv[i])) {
 			res_args->gogogo = 1;
+		} else if (!strcasecmp("--print-pipes", argv[i])) {
+			res_args->print_pipes = 1;
 		} else {
 			if (!res_argv)
 				return -EINVAL;

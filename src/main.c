@@ -12,8 +12,9 @@
 
 #include "til.h"
 #include "til_args.h"
-#include "til_settings.h"
 #include "til_fb.h"
+#include "til_settings.h"
+#include "til_stream.h"
 #include "til_util.h"
 
 #include "fps.h"
@@ -53,6 +54,7 @@ typedef struct rototiller_t {
 	til_args_t		args;
 	const til_module_t	*module;
 	til_module_context_t	*module_context;
+	til_stream_t		*stream;
 	pthread_t		thread;
 	til_fb_t		*fb;
 	struct timeval		start_tv;
@@ -329,10 +331,14 @@ static void * rototiller_thread(void *_rt)
 		unsigned		ticks;
 
 		fragment = til_fb_page_get(rt->fb);
+		fragment->stream = rt->stream;
 		gettimeofday(&now, NULL);
 		ticks = get_ticks(&rt->start_tv, &now, rt->ticks_offset);
 		til_module_render(rt->module_context, ticks, &fragment);
 		til_fb_fragment_submit(fragment);
+
+		if (rt->args.print_pipes) /* render threads are idle at this point */
+			til_stream_fprint(rt->stream, stdout);
 	}
 
 	return NULL;
@@ -376,6 +382,9 @@ int main(int argc, const char *argv[])
 	exit_if((r = til_fb_new(fb_ops, setup.video_setup, NUM_FB_PAGES, &rototiller.fb)) < 0,
 		"unable to create fb: %s", strerror(-r));
 
+	exit_if(!(rototiller.stream = til_stream_new()),
+		"unable to create root stream");
+
 	exit_if(!fps_setup(),
 		"unable to setup fps counter");
 
@@ -405,6 +414,7 @@ int main(int argc, const char *argv[])
 	pthread_join(rototiller.thread, NULL);
 	til_shutdown();
 	til_module_context_free(rototiller.module_context);
+	til_stream_free(rototiller.stream);
 	til_fb_free(rototiller.fb);
 
 	return EXIT_SUCCESS;

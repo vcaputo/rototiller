@@ -11,6 +11,7 @@ typedef struct til_args_t {
 	unsigned	use_defaults:1;
 	unsigned	help:1;
 	unsigned	gogogo:1;
+	unsigned	print_pipes:1;
 } til_args_t;
 
 int til_args_parse(int argc, const char *argv[], til_args_t *res_args);
