@@ -12,6 +12,7 @@
 #include "til_fb.h"
 #include "til_module_context.h"
 #include "til_settings.h"
+#include "til_stream.h"
 #include "til_tap.h"
 
 #include "draw.h"
@@ -222,20 +223,32 @@ static void stars_render_fragment(til_module_context_t *context, unsigned ticks,
 		ctxt->points = tmp_ptr;
 	}
 
-	// handle rotation parameters
-	if(*ctxt->rot_angle>M_PI_4)
-		*ctxt->rot_rate=*ctxt->rot_rate-ctxt->rot_adj;
-	else
-		*ctxt->rot_rate=*ctxt->rot_rate+ctxt->rot_adj;
-	*ctxt->rot_angle=*ctxt->rot_angle+*ctxt->rot_rate;
+	if (!til_stream_tap_context(fragment->stream, context, &ctxt->taps.rot_angle))
+		*ctxt->rot_angle+=*ctxt->rot_rate;
+
+	if (!til_stream_tap_context(fragment->stream, context, &ctxt->taps.rot_rate)) {
+		// handle rotation parameters
+		if(*ctxt->rot_angle>M_PI_4)
+			*ctxt->rot_rate=*ctxt->rot_rate-ctxt->rot_adj;
+		else
+			*ctxt->rot_rate=*ctxt->rot_rate+ctxt->rot_adj;
+	}
+
+	/* there's no automation of offset_angle */
+	(void) til_stream_tap_context(fragment->stream, context, &ctxt->taps.offset_angle);
 
 	// handle offset parameters
-	float tmp_x = (*ctxt->offset_x*cosf(*ctxt->offset_angle))-
-			(*ctxt->offset_y*sinf(*ctxt->offset_angle));
-	float tmp_y = (*ctxt->offset_x*sinf(*ctxt->offset_angle))+
-			(*ctxt->offset_y*cosf(*ctxt->offset_angle));
-	*ctxt->offset_x = tmp_x;
-	*ctxt->offset_y = tmp_y;
+	if (!til_stream_tap_context(fragment->stream, context, &ctxt->taps.offset_x)) {
+		float tmp_x = (*ctxt->offset_x*cosf(*ctxt->offset_angle))-
+				(*ctxt->offset_y*sinf(*ctxt->offset_angle));
+		*ctxt->offset_x = tmp_x;
+	}
+
+	if (!til_stream_tap_context(fragment->stream, context, &ctxt->taps.offset_y)) {
+		float tmp_y = (*ctxt->offset_x*sinf(*ctxt->offset_angle))+
+				(*ctxt->offset_y*cosf(*ctxt->offset_angle));
+		*ctxt->offset_y = tmp_y;
+	}
 }
 
 int stars_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
