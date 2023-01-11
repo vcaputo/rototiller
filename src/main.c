@@ -50,6 +50,7 @@ extern til_fb_ops_t	sdl_fb_ops;
 static til_fb_ops_t	*fb_ops;
 
 typedef struct rototiller_t {
+	til_args_t		args;
 	const til_module_t	*module;
 	til_module_context_t	*module_context;
 	pthread_t		thread;
@@ -348,26 +349,25 @@ int main(int argc, const char *argv[])
 {
 	const til_setting_desc_t	*failed_desc = NULL;
 	setup_t				setup = {};
-	til_args_t			args = {};
 	int				r;
 
 	exit_if((r = til_init()) < 0,
 		"unable to initialize libtil: %s", strerror(-r));
 
-	exit_if(til_args_parse(argc, argv, &args) < 0,
+	exit_if(til_args_parse(argc, argv, &rototiller.args) < 0,
 		"unable to process arguments");
 
-	if (args.help)
+	if (rototiller.args.help)
 		return print_help() < 0 ? EXIT_FAILURE : EXIT_SUCCESS;
 
-	exit_if((r = setup_from_args(&args, &setup, &failed_desc)) < 0,
+	exit_if((r = setup_from_args(&rototiller.args, &setup, &failed_desc)) < 0,
 		"unable to use args%s%s%s: %s",
 		failed_desc ? " for setting \"" : "",
 		failed_desc ? failed_desc->key : "",
 		failed_desc ? "\"" : "",
 		strerror(-r));
 
-	exit_if(r && print_setup_as_args(&setup, !args.gogogo) < 0,
+	exit_if(r && print_setup_as_args(&setup, !rototiller.args.gogogo) < 0,
 		"unable to print setup");
 
 	exit_if(!(rototiller.module = til_lookup_module(til_settings_get_key(setup.module_settings, 0, NULL))),
