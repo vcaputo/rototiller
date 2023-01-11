@@ -630,11 +630,11 @@ static void draw_polyhedron(const polyhedron_t *polyhedron, m4f_t *transform, ti
 }
 
 
-static til_module_context_t * plato_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
+static til_module_context_t * plato_create_context(til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
 	plato_context_t	*ctxt;
 
-	ctxt = til_module_context_new(sizeof(plato_context_t), seed, ticks, n_cpus, path);
+	ctxt = til_module_context_new(stream, sizeof(plato_context_t), seed, ticks, n_cpus, path);
 	if (!ctxt)
 		return NULL;
 
@@ -647,14 +647,14 @@ static til_module_context_t * plato_create_context(unsigned seed, unsigned ticks
 }
 
 
-static void plato_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
+static void plato_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
 	plato_context_t		*ctxt = (plato_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;
 
 	/* since we don't automate the rates ourselves, we don't care about the tap return values */
-	(void) til_stream_tap_context(fragment->stream, context, &ctxt->taps.orbit_rate);
-	(void) til_stream_tap_context(fragment->stream, context, &ctxt->taps.spin_rate);
+	(void) til_stream_tap_context(stream, context, &ctxt->taps.orbit_rate);
+	(void) til_stream_tap_context(stream, context, &ctxt->taps.spin_rate);
 
 	ctxt->r += (float)(ticks - context->ticks) * (*ctxt->orbit_rate * .001f);
 	ctxt->rr += (float)(ticks - context->ticks) * (*ctxt->spin_rate * .001f);

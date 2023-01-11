@@ -22,11 +22,11 @@ typedef struct snow_context_t {
 } snow_context_t;
 
 
-static til_module_context_t * snow_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
+static til_module_context_t * snow_create_context(til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
 	snow_context_t	*ctxt;
 
-	ctxt = til_module_context_new(sizeof(snow_context_t) + n_cpus * sizeof(snow_seed_t), seed, ticks, n_cpus, path);
+	ctxt = til_module_context_new(stream, sizeof(snow_context_t) + n_cpus * sizeof(snow_seed_t), seed, ticks, n_cpus, path);
 	if (!ctxt)
 		return NULL;
 
@@ -37,13 +37,13 @@ static til_module_context_t * snow_create_context(unsigned seed, unsigned ticks,
 }
 
 
-static void snow_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
+static void snow_prepare_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
 {
 	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu };
 }
 
 
-static void snow_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
+static void snow_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
 	snow_context_t		*ctxt = (snow_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;

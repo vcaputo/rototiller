@@ -47,14 +47,14 @@ static moire_setup_t moire_default_setup = {
 };
 
 
-static til_module_context_t * moire_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
+static til_module_context_t * moire_create_context(til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
 	moire_context_t	*ctxt;
 
 	if (!setup)
 		setup = &moire_default_setup.til_setup;
 
-	ctxt = til_module_context_new(sizeof(moire_context_t) + ((moire_setup_t *)setup)->n_centers * sizeof(moire_center_t), seed, ticks, n_cpus, path);
+	ctxt = til_module_context_new(stream, sizeof(moire_context_t) + ((moire_setup_t *)setup)->n_centers * sizeof(moire_center_t), seed, ticks, n_cpus, path);
 	if (!ctxt)
 		return NULL;
 
@@ -71,7 +71,7 @@ static til_module_context_t * moire_create_context(unsigned seed, unsigned ticks
 }
 
 
-static void moire_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
+static void moire_prepare_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
 {
 	moire_context_t	*ctxt = (moire_context_t *)context;
 
@@ -84,7 +84,7 @@ static void moire_prepare_frame(til_module_context_t *context, unsigned ticks, t
 }
 
 
-static void moire_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
+static void moire_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
 	moire_context_t		*ctxt = (moire_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;

@@ -61,10 +61,10 @@ typedef struct rtv_setup_t {
 } rtv_setup_t;
 
 static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks);
-static til_module_context_t * rtv_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup);
+static til_module_context_t * rtv_create_context(til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup);
 static void rtv_destroy_context(til_module_context_t *context);
-static void rtv_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr);
-static void rtv_finish_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t **fragment_ptr);
+static void rtv_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr);
+static void rtv_finish_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr);
 static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
 
 static rtv_setup_t rtv_default_setup = {
@@ -188,7 +188,7 @@ static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks)
 	}
 
 	if (!ctxt->channel->module_ctxt)
-		(void) til_module_create_context(ctxt->channel->module, rand_r(&ctxt->til_module_context.seed), ticks, 0, ctxt->til_module_context.path, ctxt->channel->module_setup, &ctxt->channel->module_ctxt);
+		(void) til_module_create_context(ctxt->channel->module, ctxt->til_module_context.stream, rand_r(&ctxt->til_module_context.seed), ticks, 0, ctxt->til_module_context.path, ctxt->channel->module_setup, &ctxt->channel->module_ctxt);
 
 	ctxt->channel->last_on_time = now;
 }
@@ -215,7 +215,7 @@ static int rtv_should_skip_module(const rtv_setup_t *setup, const til_module_t *
 }
 
 
-static til_module_context_t * rtv_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
+static til_module_context_t * rtv_create_context(til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
 	rtv_context_t		*ctxt;
 	const til_module_t	**modules;
@@ -232,7 +232,7 @@ static til_module_context_t * rtv_create_context(unsigned seed, unsigned ticks, 
 			n_channels++;
 	}
 
-	ctxt = til_module_context_new(sizeof(rtv_context_t) + n_channels * sizeof(rtv_channel_t), seed, ticks, n_cpus, path);
+	ctxt = til_module_context_new(stream, sizeof(rtv_context_t) + n_channels * sizeof(rtv_channel_t), seed, ticks, n_cpus, path);
 	if (!ctxt)
 		return NULL;
 
@@ -244,7 +244,7 @@ static til_module_context_t * rtv_create_context(unsigned seed, unsigned ticks, 
 	ctxt->snow_channel.module = &rtv_none_module;
 	if (((rtv_setup_t *)setup)->snow_module) {
 		ctxt->snow_channel.module = til_lookup_module(((rtv_setup_t *)setup)->snow_module);
-		(void) til_module_create_context(ctxt->snow_channel.module, rand_r(&seed), ticks, 0, path, NULL, &ctxt->snow_channel.module_ctxt);
+		(void) til_module_create_context(ctxt->snow_channel.module, stream, rand_r(&seed), ticks, 0, path, NULL, &ctxt->snow_channel.module_ctxt);
 	}
 
 	for (size_t i = 0; i < n_modules; i++) {
@@ -268,7 +268,7 @@ static void rtv_destroy_context(til_module_context_t *context)
 }
 
 
-static void rtv_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
+static void rtv_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
 	rtv_context_t	*ctxt = (rtv_context_t *)context;
 	time_t		now = time(NULL);
@@ -279,11 +279,11 @@ static void rtv_render_fragment(til_module_context_t *context, unsigned ticks, u
 	if (now >= ctxt->next_hide_caption)
 		ctxt->caption = NULL;
 
-	til_module_render(ctxt->channel->module_ctxt, ticks, fragment_ptr);
+	til_module_render(ctxt->channel->module_ctxt, stream, ticks, fragment_ptr);
 }
 
 
-static void rtv_finish_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t **fragment_ptr)
+static void rtv_finish_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr)
 {
 	rtv_context_t		*ctxt = (rtv_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;

@@ -331,10 +331,9 @@ static void * rototiller_thread(void *_rt)
 		unsigned		ticks;
 
 		fragment = til_fb_page_get(rt->fb);
-		fragment->stream = rt->stream;
 		gettimeofday(&now, NULL);
 		ticks = get_ticks(&rt->start_tv, &now, rt->ticks_offset);
-		til_module_render(rt->module_context, ticks, &fragment);
+		til_module_render(rt->module_context, rt->stream, ticks, &fragment);
 		til_fb_fragment_submit(fragment);
 
 		if (rt->args.print_pipes) /* render threads are idle at this point */
@@ -389,8 +388,9 @@ int main(int argc, const char *argv[])
 		"unable to setup fps counter");
 
 	gettimeofday(&rototiller.start_tv, NULL);
-	exit_if((r = til_module_create_context(
-						rototiller.module, setup.seed,
+	exit_if((r = til_module_create_context(	rototiller.module,
+						rototiller.stream,
+						setup.seed,
 						get_ticks(&rototiller.start_tv,
 							&rototiller.start_tv,
 							rototiller.ticks_offset),

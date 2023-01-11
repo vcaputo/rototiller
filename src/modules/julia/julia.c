@@ -67,11 +67,11 @@ static uint32_t	colors[] = {
 		};
 
 
-static til_module_context_t * julia_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
+static til_module_context_t * julia_create_context(til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
 	julia_context_t	*ctxt;
 
-	ctxt = til_module_context_new(sizeof(julia_context_t), seed, ticks, n_cpus, path);
+	ctxt = til_module_context_new(stream, sizeof(julia_context_t), seed, ticks, n_cpus, path);
 	if (!ctxt)
 		return NULL;
 
@@ -106,7 +106,7 @@ static inline unsigned julia_iter(float real, float imag, float creal, float cim
 
 
 /* Prepare a frame for concurrent drawing of fragment using multiple fragments */
-static void julia_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
+static void julia_prepare_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
 {
 	julia_context_t	*ctxt = (julia_context_t *)context;
 
@@ -133,7 +133,7 @@ static void julia_prepare_frame(til_module_context_t *context, unsigned ticks, t
 
 
 /* Draw a morphing Julia set */
-static void julia_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
+static void julia_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
 	julia_context_t		*ctxt = (julia_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;

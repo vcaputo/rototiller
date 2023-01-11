@@ -40,14 +40,14 @@ static strobe_setup_t strobe_default_setup = {
 };
 
 
-static til_module_context_t * strobe_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
+static til_module_context_t * strobe_create_context(til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
 	strobe_context_t	*ctxt;
 
 	if (!setup)
 		setup = &strobe_default_setup.til_setup;
 
-	ctxt = til_module_context_new(sizeof(strobe_context_t), seed, ticks, n_cpus, path);
+	ctxt = til_module_context_new(stream, sizeof(strobe_context_t), seed, ticks, n_cpus, path);
 	if (!ctxt)
 		return NULL;
 
@@ -58,7 +58,7 @@ static til_module_context_t * strobe_create_context(unsigned seed, unsigned tick
 }
 
 
-static void strobe_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
+static void strobe_prepare_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
 {
 	strobe_context_t	*ctxt = (strobe_context_t *)context;
 
@@ -73,7 +73,7 @@ static void strobe_prepare_frame(til_module_context_t *context, unsigned ticks, 
 }
 
 
-static void strobe_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
+static void strobe_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
 	strobe_context_t	*ctxt = (strobe_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;
@@ -85,7 +85,7 @@ static void strobe_render_fragment(til_module_context_t *context, unsigned ticks
 }
 
 
-static void strobe_finish_frame(til_module_context_t *context, unsigned int ticks, til_fb_fragment_t **fragment_ptr)
+static void strobe_finish_frame(til_module_context_t *context, til_stream_t *stream, unsigned int ticks, til_fb_fragment_t **fragment_ptr)
 {
 	strobe_context_t	*ctxt = (strobe_context_t *)context;
 

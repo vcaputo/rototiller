@@ -31,12 +31,12 @@ typedef struct spiro_context_t {
 } spiro_context_t;
 
 
-static til_module_context_t * spiro_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
+static til_module_context_t * spiro_create_context(til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
 	spiro_context_t *ctxt;
 	float		z;
 
-	ctxt = til_module_context_new(sizeof(spiro_context_t), seed, ticks, n_cpus, path);
+	ctxt = til_module_context_new(stream, sizeof(spiro_context_t), seed, ticks, n_cpus, path);
 	if (!ctxt)
 		return NULL;
 
@@ -53,7 +53,7 @@ static til_module_context_t * spiro_create_context(unsigned seed, unsigned ticks
 	return &ctxt->til_module_context;
 }
 
-static void spiro_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
+static void spiro_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
 	spiro_context_t		*ctxt = (spiro_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;

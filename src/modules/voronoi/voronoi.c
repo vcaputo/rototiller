@@ -80,14 +80,14 @@ static void voronoi_randomize(voronoi_context_t *ctxt)
 }
 
 
-static til_module_context_t * voronoi_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
+static til_module_context_t * voronoi_create_context(til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
 	voronoi_context_t	*ctxt;
 
 	if (!setup)
 		setup = &voronoi_default_setup.til_setup;
 
-	ctxt = til_module_context_new(sizeof(voronoi_context_t) + ((voronoi_setup_t *)setup)->n_cells * sizeof(voronoi_cell_t), seed, ticks, n_cpus, path);
+	ctxt = til_module_context_new(stream, sizeof(voronoi_context_t) + ((voronoi_setup_t *)setup)->n_cells * sizeof(voronoi_cell_t), seed, ticks, n_cpus, path);
 	if (!ctxt)
 		return NULL;
 
@@ -281,7 +281,7 @@ static void voronoi_sample_colors(voronoi_context_t *ctxt, til_fb_fragment_t *fr
 }
 
 
-static void voronoi_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
+static void voronoi_prepare_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
 {
 	voronoi_context_t	*ctxt = (voronoi_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;
@@ -315,7 +315,7 @@ static void voronoi_prepare_frame(til_module_context_t *context, unsigned ticks,
 }
 
 
-static void voronoi_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
+static void voronoi_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
 	voronoi_context_t	*ctxt = (voronoi_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;

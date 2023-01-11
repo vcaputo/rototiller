@@ -35,14 +35,14 @@ extern particle_ops_t	simple_ops;
 
 static sparkler_setup_t sparkler_default_setup;
 
-static til_module_context_t * sparkler_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
+static til_module_context_t * sparkler_create_context(til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
 	sparkler_context_t	*ctxt;
 
 	if (!setup)
 		setup = &sparkler_default_setup.til_setup;
 
-	ctxt = til_module_context_new(sizeof(sparkler_context_t), seed, ticks, n_cpus, path);
+	ctxt = til_module_context_new(stream, sizeof(sparkler_context_t), seed, ticks, n_cpus, path);
 	if (!ctxt)
 		return NULL;
 
@@ -75,7 +75,7 @@ static void sparkler_destroy_context(til_module_context_t *context)
 }
 
 
-static void sparkler_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
+static void sparkler_prepare_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
 {
 	sparkler_context_t	*ctxt = (sparkler_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;
@@ -92,7 +92,7 @@ static void sparkler_prepare_frame(til_module_context_t *context, unsigned ticks
 
 
 /* Render a 3D particle system */
-static void sparkler_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
+static void sparkler_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
 	sparkler_context_t	*ctxt = (sparkler_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;

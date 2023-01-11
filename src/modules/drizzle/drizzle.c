@@ -85,14 +85,14 @@ static inline uint32_t color_to_uint32(v3f_t color) {
 }
 
 
-static til_module_context_t * drizzle_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
+static til_module_context_t * drizzle_create_context(til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
 	drizzle_context_t	*ctxt;
 
 	if (!setup)
 		setup = &drizzle_default_setup.til_setup;
 
-	ctxt = til_module_context_new(sizeof(drizzle_context_t), seed, ticks, n_cpus, path);
+	ctxt = til_module_context_new(stream, sizeof(drizzle_context_t), seed, ticks, n_cpus, path);
 	if (!ctxt)
 		return NULL;
 
@@ -117,7 +117,7 @@ static void drizzle_destroy_context(til_module_context_t *context)
 }
 
 
-static void drizzle_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
+static void drizzle_prepare_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
 {
 	drizzle_context_t	*ctxt = (drizzle_context_t *)context;
 
@@ -249,7 +249,7 @@ static void puddle_sample_normal(const puddle_t *puddle, const v2f_t *coordinate
 }
 
 
-static void drizzle_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
+static void drizzle_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
 	drizzle_context_t	*ctxt = (drizzle_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;
@@ -329,7 +329,7 @@ static void drizzle_render_fragment(til_module_context_t *context, unsigned tick
 }
 
 
-static void drizzle_finish_frame(til_module_context_t *context, unsigned int ticks, til_fb_fragment_t **fragment_ptr)
+static void drizzle_finish_frame(til_module_context_t *context, til_stream_t *stream, unsigned int ticks, til_fb_fragment_t **fragment_ptr)
 {
 	drizzle_context_t	*ctxt = (drizzle_context_t *)context;
 

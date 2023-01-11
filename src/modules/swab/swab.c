@@ -66,11 +66,11 @@ static inline uint32_t color_to_uint32(color_t color) {
 }
 
 
-static til_module_context_t * swab_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
+static til_module_context_t * swab_create_context(til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
 	swab_context_t	*ctxt;
 
-	ctxt = til_module_context_new(sizeof(swab_context_t), seed, ticks, n_cpus, path);
+	ctxt = til_module_context_new(stream, sizeof(swab_context_t), seed, ticks, n_cpus, path);
 	if (!ctxt)
 		return NULL;
 
@@ -93,7 +93,7 @@ static void swab_destroy_context(til_module_context_t *context)
 }
 
 
-static void swab_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
+static void swab_prepare_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
 {
 	swab_context_t	*ctxt = (swab_context_t *)context;
 
@@ -103,7 +103,7 @@ static void swab_prepare_frame(til_module_context_t *context, unsigned ticks, ti
 }
 
 
-static void swab_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
+static void swab_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
 	swab_context_t		*ctxt = (swab_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;

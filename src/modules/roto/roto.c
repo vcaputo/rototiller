@@ -62,7 +62,7 @@ static void init_roto(uint8_t texture[256][256], int32_t *costab, int32_t *sinta
 }
 
 
-static til_module_context_t * roto_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
+static til_module_context_t * roto_create_context(til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
 	static int	initialized;
 	roto_context_t	*ctxt;
@@ -73,7 +73,7 @@ static til_module_context_t * roto_create_context(unsigned seed, unsigned ticks,
 		init_roto(texture, costab, sintab);
 	}
 
-	ctxt = til_module_context_new(sizeof(roto_context_t), seed, ticks, n_cpus, path);
+	ctxt = til_module_context_new(stream, sizeof(roto_context_t), seed, ticks, n_cpus, path);
 	if (!ctxt)
 		return NULL;
 
@@ -182,7 +182,7 @@ static uint32_t bilerp_color(uint8_t texture[256][256], color_t *palette, int tx
 
 
 /* prepare a frame for concurrent rendering */
-static void roto_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
+static void roto_prepare_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
 {
 	roto_context_t	*ctxt = (roto_context_t *)context;
 
@@ -208,7 +208,7 @@ static void roto_prepare_frame(til_module_context_t *context, unsigned ticks, ti
 
 
 /* Draw a rotating checkered 256x256 texture into fragment. */
-static void roto_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
+static void roto_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
 	roto_context_t		*ctxt = (roto_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;

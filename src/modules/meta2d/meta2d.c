@@ -67,11 +67,11 @@ static inline uint32_t color_to_uint32(v3f_t color) {
 }
 
 
-static til_module_context_t * meta2d_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
+static til_module_context_t * meta2d_create_context(til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
 	meta2d_context_t	*ctxt;
 
-	ctxt = til_module_context_new(sizeof(meta2d_context_t), seed, ticks, n_cpus, path);
+	ctxt = til_module_context_new(stream, sizeof(meta2d_context_t), seed, ticks, n_cpus, path);
 	if (!ctxt)
 		return NULL;
 
@@ -101,7 +101,7 @@ static void meta2d_destroy_context(til_module_context_t *context)
 }
 
 
-static void meta2d_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
+static void meta2d_prepare_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
 {
 	meta2d_context_t	*ctxt = (meta2d_context_t *)context;
 
@@ -178,7 +178,7 @@ static void meta2d_prepare_frame(til_module_context_t *context, unsigned ticks, 
 }
 
 
-static void meta2d_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
+static void meta2d_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
 	meta2d_context_t	*ctxt = (meta2d_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;

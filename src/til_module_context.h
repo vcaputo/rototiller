@@ -5,9 +5,11 @@
 
 typedef struct til_module_context_t til_module_context_t;
 typedef struct til_module_t til_module_t;
+typedef struct til_stream_t til_stream_t;
 
 struct til_module_context_t {
 	const til_module_t	*module;
+	til_stream_t		*stream; /* optional stream this context is part of */
 	unsigned		seed;
 	unsigned		ticks;
 	unsigned		n_cpus;
@@ -15,7 +17,7 @@ struct til_module_context_t {
 	uint32_t		path_hash;
 };
 
-void * til_module_context_new(size_t size, unsigned seed, unsigned ticks, unsigned n_cpus, char *path);
+void * til_module_context_new(til_stream_t *stream, size_t size, unsigned seed, unsigned ticks, unsigned n_cpus, char *path);
 void * til_module_context_free(til_module_context_t *module_context);
 
 #endif

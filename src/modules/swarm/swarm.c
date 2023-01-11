@@ -181,14 +181,14 @@ static inline uint32_t color_to_uint32(v3f_t color) {
 }
 
 
-static til_module_context_t * swarm_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
+static til_module_context_t * swarm_create_context(til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
 	swarm_context_t	*ctxt;
 
 	if (!setup)
 		setup = &swarm_default_setup.til_setup;
 
-	ctxt = til_module_context_new(sizeof(swarm_context_t) + sizeof(*(ctxt->boids)) * SWARM_SIZE, seed, ticks, n_cpus, path);
+	ctxt = til_module_context_new(stream, sizeof(swarm_context_t) + sizeof(*(ctxt->boids)) * SWARM_SIZE, seed, ticks, n_cpus, path);
 	if (!ctxt)
 		return NULL;
 
@@ -401,7 +401,7 @@ static void swarm_draw_as_lines(swarm_context_t *ctxt, til_fb_fragment_t *fragme
 }
 
 
-static void swarm_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
+static void swarm_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
 	swarm_context_t		*ctxt = (swarm_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;

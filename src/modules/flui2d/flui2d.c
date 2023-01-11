@@ -245,7 +245,7 @@ static void gamma_init(float gamma)
 }
 
 
-static til_module_context_t * flui2d_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
+static til_module_context_t * flui2d_create_context(til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
 	static int		initialized;
 	flui2d_context_t	*ctxt;
@@ -253,7 +253,7 @@ static til_module_context_t * flui2d_create_context(unsigned seed, unsigned tick
 	if (!setup)
 		setup = &flui2d_default_setup.til_setup;
 
-	ctxt = til_module_context_new(sizeof(flui2d_context_t), seed, ticks, n_cpus, path);
+	ctxt = til_module_context_new(stream, sizeof(flui2d_context_t), seed, ticks, n_cpus, path);
 	if (!ctxt)
 		return NULL;
 
@@ -273,7 +273,7 @@ static til_module_context_t * flui2d_create_context(unsigned seed, unsigned tick
 
 
 /* Prepare a frame for concurrent drawing of fragment using multiple fragments */
-static void flui2d_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
+static void flui2d_prepare_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
 {
 	flui2d_context_t	*ctxt = (flui2d_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;
@@ -334,7 +334,7 @@ static void flui2d_prepare_frame(til_module_context_t *context, unsigned ticks, 
 
 
 /* Draw a the flui2d densities */
-static void flui2d_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
+static void flui2d_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
 	flui2d_context_t	*ctxt = (flui2d_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;

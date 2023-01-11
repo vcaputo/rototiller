@@ -37,14 +37,14 @@ static blinds_setup_t blinds_default_setup = {
 };
 
 
-static til_module_context_t * blinds_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
+static til_module_context_t * blinds_create_context(til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
 	blinds_context_t	*ctxt;
 
 	if (!setup)
 		setup = &blinds_default_setup.til_setup;
 
-	ctxt = til_module_context_new(sizeof(blinds_context_t), seed, ticks, n_cpus, path);
+	ctxt = til_module_context_new(stream, sizeof(blinds_context_t), seed, ticks, n_cpus, path);
 	if (!ctxt)
 		return NULL;
 
@@ -83,7 +83,7 @@ static inline void draw_blind_vertical(til_fb_fragment_t *fragment, unsigned col
 
 
 /* draw blinds over the fragment */
-static void blinds_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
+static void blinds_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
 	blinds_context_t	*ctxt = (blinds_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;

@@ -16,10 +16,10 @@ typedef struct montage_context_t {
 	size_t			n_modules;
 } montage_context_t;
 
-static til_module_context_t * montage_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup);
+static til_module_context_t * montage_create_context(til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup);
 static void montage_destroy_context(til_module_context_t *context);
-static void montage_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan);
-static void montage_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr);
+static void montage_prepare_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan);
+static void montage_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr);
 
 
 til_module_t	montage_module = {
@@ -32,13 +32,13 @@ til_module_t	montage_module = {
 };
 
 
-static til_module_context_t * montage_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
+static til_module_context_t * montage_create_context(til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
 	const til_module_t	**modules, *rtv_module, *compose_module;
 	size_t			n_modules;
 	montage_context_t	*ctxt;
 
-	ctxt = til_module_context_new(sizeof(montage_context_t), seed, ticks, n_cpus, path);
+	ctxt = til_module_context_new(stream, sizeof(montage_context_t), seed, ticks, n_cpus, path);
 	if (!ctxt)
 		return NULL;
 
@@ -92,7 +92,7 @@ static til_module_context_t * montage_create_context(unsigned seed, unsigned tic
 		(void) til_module_randomize_setup(module, rand_r(&seed), &setup, NULL);
 
 		/* FIXME errors */
-		(void) til_module_create_context(module, rand_r(&seed), ticks, 1, path, setup, &ctxt->contexts[i]);
+		(void) til_module_create_context(module, stream, rand_r(&seed), ticks, 1, path, setup, &ctxt->contexts[i]);
 
 		til_setup_free(setup);
 	}
@@ -210,13 +210,13 @@ static int montage_fragmenter(til_module_context_t *context, const til_fb_fragme
 }
 
 
-static void montage_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
+static void montage_prepare_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
 {
 	*res_frame_plan = (til_frame_plan_t){ .fragmenter = montage_fragmenter };
 }
 
 
-static void montage_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
+static void montage_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
 	montage_context_t	*ctxt = (montage_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;
@@ -227,5 +227,5 @@ static void montage_render_fragment(til_module_context_t *context, unsigned tick
 		return;
 	}
 
-	til_module_render(ctxt->contexts[fragment->number], ticks, fragment_ptr);
+	til_module_render(ctxt->contexts[fragment->number], stream, ticks, fragment_ptr);
 }

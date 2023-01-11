@@ -53,7 +53,7 @@ static void init_plasma(int32_t *costab, int32_t *sintab)
 }
 
 
-static til_module_context_t * plasma_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
+static til_module_context_t * plasma_create_context(til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
 	static int		initialized;
 	plasma_context_t	*ctxt;
@@ -64,7 +64,7 @@ static til_module_context_t * plasma_create_context(unsigned seed, unsigned tick
 		init_plasma(costab, sintab);
 	}
 
-	ctxt = til_module_context_new(sizeof(plasma_context_t), seed, ticks, n_cpus, path);
+	ctxt = til_module_context_new(stream, sizeof(plasma_context_t), seed, ticks, n_cpus, path);
 	if (!ctxt)
 		return NULL;
 
@@ -75,7 +75,7 @@ static til_module_context_t * plasma_create_context(unsigned seed, unsigned tick
 
 
 /* Prepare a frame for concurrent drawing of fragment using multiple fragments */
-static void plasma_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
+static void plasma_prepare_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
 {
 	plasma_context_t	*ctxt = (plasma_context_t *)context;
 
@@ -85,7 +85,7 @@ static void plasma_prepare_frame(til_module_context_t *context, unsigned ticks, 
 
 
 /* Draw a plasma effect */
-static void plasma_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
+static void plasma_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
 	plasma_context_t	*ctxt = (plasma_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;

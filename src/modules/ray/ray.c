@@ -132,11 +132,11 @@ typedef struct ray_context_t {
 } ray_context_t;
 
 
-static til_module_context_t * ray_create_context(unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
+static til_module_context_t * ray_create_context(til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
 	ray_context_t	*ctxt;
 
-	ctxt = til_module_context_new(sizeof(ray_context_t), seed, ticks, n_cpus, path);
+	ctxt = til_module_context_new(stream, sizeof(ray_context_t), seed, ticks, n_cpus, path);
 	if (!ctxt)
 		return NULL;
 
@@ -145,7 +145,7 @@ static til_module_context_t * ray_create_context(unsigned seed, unsigned ticks, 
 
 
 /* prepare a frame for concurrent rendering */
-static void ray_prepare_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
+static void ray_prepare_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
 {
 	ray_context_t		*ctxt = (ray_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;
@@ -178,7 +178,7 @@ static void ray_prepare_frame(til_module_context_t *context, unsigned ticks, til
 
 
 /* ray trace a simple scene into the fragment */
-static void ray_render_fragment(til_module_context_t *context, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
+static void ray_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
 	ray_context_t		*ctxt = (ray_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;
@@ -187,7 +187,7 @@ static void ray_render_fragment(til_module_context_t *context, unsigned ticks, u
 }
 
 
-static void ray_finish_frame(til_module_context_t *context, unsigned ticks, til_fb_fragment_t **fragment_ptr)
+static void ray_finish_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr)
 {
 	ray_context_t	*ctxt = (ray_context_t *)context;
 
