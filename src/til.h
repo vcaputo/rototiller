@@ -20,7 +20,9 @@ typedef struct til_setting_desc_t til_setting_desc_t;
 typedef struct til_knob_t til_knob_t;
 typedef struct til_stream_t til_stream_t;
 
-#define TIL_MODULE_OVERLAYABLE	1u
+#define TIL_MODULE_OVERLAYABLE	1u	/* module is appropriate for overlay use */
+#define TIL_MODULE_HERMETIC	2u	/* module doesn't work readily with other modules / requires manual settings */
+#define TIL_MODULE_EXPERIMENTAL	4u	/* module is buggy / unfinished */
 
 typedef struct til_module_t {
 	til_module_context_t *	(*create_context)(til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup);
