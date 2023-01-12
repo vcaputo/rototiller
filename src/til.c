@@ -281,6 +281,9 @@ int til_module_setup(til_settings_t *settings, til_setting_t **res_setting, cons
 		int			r;
 
 		for (unsigned i = 0; i < nelems(modules); i++) {
+			if ((modules[i]->flags & TIL_MODULE_EXPERIMENTAL))
+				continue;
+
 			values[i] = modules[i]->name;
 			annotations[i] = modules[i]->description;
 		}
