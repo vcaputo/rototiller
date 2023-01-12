@@ -171,21 +171,24 @@ static void compose_render_fragment(til_module_context_t *context, til_stream_t 
 /* return a randomized valid layers= setting */
 static char * compose_random_layers_setting(unsigned seed)
 {
-	size_t			n_modules, n_rand_overlays, n_overlayable = 0, base_idx;
+	size_t			n_modules, n_rand_overlays, n_overlayable = 0, n_unusable = 0, base_idx;
 	char			*layers = NULL;
 	const til_module_t	**modules;
 
 	til_get_modules(&modules, &n_modules);
 
 	for (size_t i = 0; i < n_modules; i++) {
-		if ((modules[i]->flags & (TIL_MODULE_HERMETIC | TIL_MODULE_EXPERIMENTAL)))
+		if ((modules[i]->flags & (TIL_MODULE_HERMETIC | TIL_MODULE_EXPERIMENTAL))) {
+			n_unusable++;
+
 			continue;
+		}
 
 		if (modules[i]->flags & TIL_MODULE_OVERLAYABLE)
 			n_overlayable++;
 	}
 
-	base_idx = rand_r(&seed) % (n_modules - n_overlayable);
+	base_idx = rand_r(&seed) % (n_modules - (n_overlayable + n_unusable));
 	for (size_t i = 0, j = 0; !layers && i < n_modules; i++) {
 		if ((modules[i]->flags & (TIL_MODULE_HERMETIC | TIL_MODULE_EXPERIMENTAL)))
 			continue;
