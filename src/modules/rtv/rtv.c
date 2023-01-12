@@ -203,8 +203,13 @@ static int rtv_should_skip_module(const rtv_setup_t *setup, const til_module_t *
 	/* An empty channels list is a special case for representing "all", an
 	 * empty channels setting returns -EINVAL during _setup().
 	 */
-	if (!setup->channels[0])
+	if (!setup->channels[0]) {
+		/* for "all" skip these, but you can still explicitly name them. */
+		if ((module->flags & (TIL_MODULE_HERMETIC | TIL_MODULE_EXPERIMENTAL)))
+			return 1;
+
 		return 0;
+	}
 
 	for (char * const *channel = setup->channels; *channel; channel++) {
 		if (!strcasecmp(module->name, *channel))
