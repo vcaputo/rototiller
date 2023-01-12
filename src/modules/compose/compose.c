@@ -178,12 +178,18 @@ static char * compose_random_layers_setting(unsigned seed)
 	til_get_modules(&modules, &n_modules);
 
 	for (size_t i = 0; i < n_modules; i++) {
+		if ((modules[i]->flags & (TIL_MODULE_HERMETIC | TIL_MODULE_EXPERIMENTAL)))
+			continue;
+
 		if (modules[i]->flags & TIL_MODULE_OVERLAYABLE)
 			n_overlayable++;
 	}
 
 	base_idx = rand_r(&seed) % (n_modules - n_overlayable);
 	for (size_t i = 0, j = 0; !layers && i < n_modules; i++) {
+		if ((modules[i]->flags & (TIL_MODULE_HERMETIC | TIL_MODULE_EXPERIMENTAL)))
+			continue;
+
 		if (modules[i]->flags & TIL_MODULE_OVERLAYABLE)
 			continue;
 
@@ -201,6 +207,9 @@ static char * compose_random_layers_setting(unsigned seed)
 		size_t	rand_idx = rand_r(&seed) % n_overlayable;
 
 		for (size_t i = 0, j = 0; i < n_modules; i++) {
+			if ((modules[i]->flags & (TIL_MODULE_HERMETIC | TIL_MODULE_EXPERIMENTAL)))
+				continue;
+
 			if (!(modules[i]->flags & TIL_MODULE_OVERLAYABLE))
 				continue;
 
