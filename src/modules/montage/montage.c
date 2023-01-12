@@ -59,7 +59,8 @@ static til_module_context_t * montage_create_context(til_stream_t *stream, unsig
 
 		if (module == &montage_module ||	/* prevents recursion */
 		    module == rtv_module ||		/* also prevents recursion, rtv can run montage */
-		    module == compose_module)		/* also prevents recursion, compose can run montage */
+		    module == compose_module ||		/* also prevents recursion, compose can run montage */
+		    (module->flags & (TIL_MODULE_HERMETIC | TIL_MODULE_EXPERIMENTAL))) /* prevents breakages */
 			continue;
 
 							/* XXX FIXME: there's another recursive problem WRT threaded
