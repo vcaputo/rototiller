@@ -1,0 +1,3 @@
+[submodule "src/libs/rocket/rocket"]
+	path = src/libs/rocket/rocket
+	url = https://github.com/rocket/rocket

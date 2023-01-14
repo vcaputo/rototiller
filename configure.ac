@@ -1,5 +1,5 @@
 AC_INIT([rototiller], [1.0], [vcaputo@pengaru.com])
-AM_INIT_AUTOMAKE([-Wall -Werror foreign])
+AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 AC_CONFIG_MACRO_DIRS([m4])
 AC_PROG_CC
 AM_PROG_CC_C_O
@@ -36,6 +36,7 @@ AC_CONFIG_FILES([
  src/libs/ascii/Makefile
  src/libs/grid/Makefile
  src/libs/din/Makefile
+ src/libs/rocket/Makefile
  src/libs/puddle/Makefile
  src/libs/ray/Makefile
  src/libs/sig/Makefile
