@@ -55,6 +55,7 @@ AC_CONFIG_FILES([
  src/modules/plasma/Makefile
  src/modules/plato/Makefile
  src/modules/ray/Makefile
+ src/modules/rocket/Makefile
  src/modules/roto/Makefile
  src/modules/rtv/Makefile
  src/modules/shapes/Makefile
