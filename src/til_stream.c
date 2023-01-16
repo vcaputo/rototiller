@@ -73,6 +73,7 @@ typedef struct til_stream_pipe_t til_stream_pipe_t;
 struct til_stream_pipe_t {
 	til_stream_pipe_t	*next;
 	const void		*owner;
+	const void		*owner_foo;
 	char			*parent_path;
 	const til_tap_t		*driving_tap;
 	uint32_t		hash;
@@ -127,7 +128,7 @@ til_stream_t * til_stream_free(til_stream_t *stream)
  *
  * If stream is NULL it's treated as if the key doesn't exist without a pipe creation.
  */
-int til_stream_tap(til_stream_t *stream, const void *owner, const char *parent_path, uint32_t parent_hash, const til_tap_t *tap)
+int til_stream_tap(til_stream_t *stream, const void *owner, const void *owner_foo, const char *parent_path, uint32_t parent_hash, const til_tap_t *tap)
 {
 	uint32_t		hash, bucket;
 	til_stream_pipe_t	*pipe;
@@ -173,6 +174,7 @@ int til_stream_tap(til_stream_t *stream, const void *owner, const char *parent_p
 	}
 
 	pipe->owner = owner;
+	pipe->owner_foo = owner_foo;
 	pipe->driving_tap = tap;
 
 	pipe->parent_path = strdup(parent_path);

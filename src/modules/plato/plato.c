@@ -653,8 +653,8 @@ static void plato_render_fragment(til_module_context_t *context, til_stream_t *s
 	til_fb_fragment_t	*fragment = *fragment_ptr;
 
 	/* since we don't automate the rates ourselves, we don't care about the tap return values */
-	(void) til_stream_tap_context(stream, context, &ctxt->taps.orbit_rate);
-	(void) til_stream_tap_context(stream, context, &ctxt->taps.spin_rate);
+	(void) til_stream_tap_context(stream, context, NULL, &ctxt->taps.orbit_rate);
+	(void) til_stream_tap_context(stream, context, NULL, &ctxt->taps.spin_rate);
 
 	ctxt->r += (float)(ticks - context->ticks) * (*ctxt->orbit_rate * .001f);
 	ctxt->rr += (float)(ticks - context->ticks) * (*ctxt->spin_rate * .001f);

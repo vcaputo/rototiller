@@ -223,10 +223,10 @@ static void stars_render_fragment(til_module_context_t *context, til_stream_t *s
 		ctxt->points = tmp_ptr;
 	}
 
-	if (!til_stream_tap_context(stream, context, &ctxt->taps.rot_angle))
+	if (!til_stream_tap_context(stream, context, NULL, &ctxt->taps.rot_angle))
 		*ctxt->rot_angle+=*ctxt->rot_rate;
 
-	if (!til_stream_tap_context(stream, context, &ctxt->taps.rot_rate)) {
+	if (!til_stream_tap_context(stream, context, NULL, &ctxt->taps.rot_rate)) {
 		// handle rotation parameters
 		if(*ctxt->rot_angle>M_PI_4)
 			*ctxt->rot_rate=*ctxt->rot_rate-ctxt->rot_adj;
@@ -235,16 +235,16 @@ static void stars_render_fragment(til_module_context_t *context, til_stream_t *s
 	}
 
 	/* there's no automation of offset_angle */
-	(void) til_stream_tap_context(stream, context, &ctxt->taps.offset_angle);
+	(void) til_stream_tap_context(stream, context, NULL, &ctxt->taps.offset_angle);
 
 	// handle offset parameters
-	if (!til_stream_tap_context(stream, context, &ctxt->taps.offset_x)) {
+	if (!til_stream_tap_context(stream, context, NULL, &ctxt->taps.offset_x)) {
 		float tmp_x = (*ctxt->offset_x*cosf(*ctxt->offset_angle))-
 				(*ctxt->offset_y*sinf(*ctxt->offset_angle));
 		*ctxt->offset_x = tmp_x;
 	}
 
-	if (!til_stream_tap_context(stream, context, &ctxt->taps.offset_y)) {
+	if (!til_stream_tap_context(stream, context, NULL, &ctxt->taps.offset_y)) {
 		float tmp_y = (*ctxt->offset_x*sinf(*ctxt->offset_angle))+
 				(*ctxt->offset_y*cosf(*ctxt->offset_angle));
 		*ctxt->offset_y = tmp_y;
