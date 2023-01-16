@@ -120,9 +120,9 @@ til_stream_t * til_stream_free(til_stream_t *stream)
 
 
 /* Taps the key-named type-typed pipe on the supplied stream.
- * If this is the first use of the tap on this stream, new pipe will be created.
- * If the tap exists on this stream, and the type matches, existing pipe will be used as-is.
- * If the key exists on this stream, but the type mismatches, an error is returned.
+ * If this is the first use of the pipe on this stream, new pipe will be created.
+ * If the pipe exists on this stream, and the type/n_elems match, existing pipe will be used as-is.
+ * If the pipe exists on this stream, but the type/n_elems mismatch, it's a program error and asserted
  *
  * -errno is returned on error, 0 when tap is driving, 1 when tap is passenger.
  *
@@ -157,6 +157,12 @@ int til_stream_tap(til_stream_t *stream, const void *owner, const void *owner_fo
 
 			if (pipe->driving_tap->elems == *(tap->ptr) ||
 			    (!strcmp(pipe->driving_tap->name, tap->name) && !strcmp(pipe->parent_path, parent_path))) {
+				if (pipe->driving_tap->type != tap->type ||
+				    pipe->driving_tap->n_elems != tap->n_elems) {
+					assert(0); /* I don't really want to handle such errors at runtime */
+					return -1;
+				}
+
 				/* this looks to be our pipe, but we're not driving */
 				*(tap->ptr) = pipe->driving_tap->elems;
 
