@@ -72,11 +72,11 @@ typedef struct til_stream_pipe_t til_stream_pipe_t;
 
 struct til_stream_pipe_t {
 	til_stream_pipe_t	*next;
-	const void		*owner;
-	const void		*owner_foo;
+	const void		*owner;		/* for untap_owner() differentiation */
+	const void		*owner_foo;	/* supplemental pointer for owner's use */
 	char			*parent_path;
-	const til_tap_t		*driving_tap;
-	uint32_t		hash;
+	const til_tap_t		*driving_tap;	/* tap producing values for the pipe */
+	uint32_t		hash;		/* hash of (driving_tap->path ^ parent_hash) */
 };
 
 typedef struct til_stream_t {
@@ -239,6 +239,119 @@ typedef struct v4f_t {
 	float	x, y, z, w;
 } v4f_t;
 
+
+static int til_stream_fprint_pipe_cb(void *arg, til_stream_pipe_t *pipe, const void *owner, const void *owner_foo, const til_tap_t *driving_tap)
+{
+	FILE	*out = arg;
+
+	fprintf(out, "%s/%s: ", pipe->parent_path, pipe->driving_tap->name);
+
+	for (size_t j = 0; j < pipe->driving_tap->n_elems; j++) {
+		const char	*sep = j ? ", " : "";
+
+		switch (pipe->driving_tap->type) {
+		case TIL_TAP_TYPE_I8:
+			fprintf(out, "%"PRIi8"%s",
+				*(*((int8_t **)pipe->driving_tap->ptr)),
+				sep);
+			break;
+
+		case TIL_TAP_TYPE_I16:
+			fprintf(out, "%"PRIi16"%s",
+				*(*((int16_t **)pipe->driving_tap->ptr)),
+				sep);
+			break;
+
+		case TIL_TAP_TYPE_I32:
+			fprintf(out, "%"PRIi32"%s",
+				*(*((int32_t **)pipe->driving_tap->ptr)),
+				sep);
+			break;
+
+		case TIL_TAP_TYPE_I64:
+			fprintf(out, "%"PRIi64"%s",
+				*(*((int64_t **)pipe->driving_tap->ptr)),
+				sep);
+			break;
+
+		case TIL_TAP_TYPE_U8:
+			fprintf(out, "%"PRIu8"%s",
+				*(*((int8_t **)pipe->driving_tap->ptr)),
+				sep);
+			break;
+
+		case TIL_TAP_TYPE_U16:
+			fprintf(out, "%"PRIu16"%s",
+				*(*((int16_t **)pipe->driving_tap->ptr)),
+				sep);
+			break;
+
+		case TIL_TAP_TYPE_U32:
+			fprintf(out, "%"PRIu32"%s",
+				*(*((int32_t **)pipe->driving_tap->ptr)),
+				sep);
+			break;
+
+		case TIL_TAP_TYPE_U64:
+			fprintf(out, "%"PRIu64"%s",
+				*(*((int64_t **)pipe->driving_tap->ptr)),
+				sep);
+			break;
+
+		case TIL_TAP_TYPE_FLOAT:
+			fprintf(out, "%f%s",
+				*(*((float **)pipe->driving_tap->ptr)),
+				sep);
+			break;
+
+		case TIL_TAP_TYPE_DOUBLE:
+			fprintf(out, "%f%s",
+				*(*((double **)pipe->driving_tap->ptr)),
+				sep);
+			break;
+
+		case TIL_TAP_TYPE_V2F:
+			fprintf(out, "{%f,%f}%s",
+				(*((v2f_t **)pipe->driving_tap->ptr))->x,
+				(*((v2f_t **)pipe->driving_tap->ptr))->y,
+				sep);
+			break;
+
+		case TIL_TAP_TYPE_V3F:
+			fprintf(out, "{%f,%f,%f}%s",
+				(*((v3f_t **)pipe->driving_tap->ptr))->x,
+				(*((v3f_t **)pipe->driving_tap->ptr))->y,
+				(*((v3f_t **)pipe->driving_tap->ptr))->z,
+				sep);
+			break;
+
+		case TIL_TAP_TYPE_V4F:
+			fprintf(out, "{%f,%f,%f,%f}%s",
+				(*((v4f_t **)pipe->driving_tap->ptr))->x,
+				(*((v4f_t **)pipe->driving_tap->ptr))->y,
+				(*((v4f_t **)pipe->driving_tap->ptr))->z,
+				(*((v4f_t **)pipe->driving_tap->ptr))->w,
+				sep);
+			break;
+
+		case TIL_TAP_TYPE_M4F:
+			fprintf(out, "M4F TODO%s", sep);
+			break;
+
+		case TIL_TAP_TYPE_VOIDP:
+			fprintf(out, "%p%s", *((void **)pipe->driving_tap->ptr), sep);
+			break;
+
+		default:
+			assert(0);
+		}
+		fprintf(out, "\n");
+	}
+
+	return 1;
+}
+
+
 /* XXX: note that while yes, this does acquire stream->mutex to serialize access to the table/pipes,
  * this mutex does not serialize access to the tapped variables.  So if this print is performed
  * during the threaded rendering phase of things, it will technically be racy.  The only strictly
@@ -250,114 +363,40 @@ typedef struct v4f_t {
 void til_stream_fprint(til_stream_t *stream, FILE *out)
 {
 	fprintf(out, "Pipes on stream %p:\n", stream);
+	(void) til_stream_for_each_pipe(stream, til_stream_fprint_pipe_cb, out);
+	fprintf(out, "\n");
+}
+
+
+/* returns -errno on error (from pipe_cb), 0 otherwise */
+int til_stream_for_each_pipe(til_stream_t *stream, til_stream_iter_func_t pipe_cb, void *cb_arg)
+{
+	assert(stream);
+	assert(pipe_cb);
+
 	pthread_mutex_lock(&stream->mutex);
+
 	for (int i = 0; i < TIL_STREAM_BUCKETS_COUNT; i++) {
 		for (til_stream_pipe_t *p = stream->buckets[i]; p != NULL; p = p->next) {
-			fprintf(out, "%s/%s: ", p->parent_path, p->driving_tap->name);
+			int	r;
 
-			for (size_t j = 0; j < p->driving_tap->n_elems; j++) {
-				const char	*sep = j ? ", " : "";
-
-				switch (p->driving_tap->type) {
-				case TIL_TAP_TYPE_I8:
-					fprintf(out, "%"PRIi8"%s",
-						*(*((int8_t **)p->driving_tap->ptr)),
-						sep);
-					break;
-
-				case TIL_TAP_TYPE_I16:
-					fprintf(out, "%"PRIi16"%s",
-						*(*((int16_t **)p->driving_tap->ptr)),
-						sep);
-					break;
-
-				case TIL_TAP_TYPE_I32:
-					fprintf(out, "%"PRIi32"%s",
-						*(*((int32_t **)p->driving_tap->ptr)),
-						sep);
-					break;
-
-				case TIL_TAP_TYPE_I64:
-					fprintf(out, "%"PRIi64"%s",
-						*(*((int64_t **)p->driving_tap->ptr)),
-						sep);
-					break;
-
-				case TIL_TAP_TYPE_U8:
-					fprintf(out, "%"PRIu8"%s",
-						*(*((int8_t **)p->driving_tap->ptr)),
-						sep);
-					break;
-
-				case TIL_TAP_TYPE_U16:
-					fprintf(out, "%"PRIu16"%s",
-						*(*((int16_t **)p->driving_tap->ptr)),
-						sep);
-					break;
-
-				case TIL_TAP_TYPE_U32:
-					fprintf(out, "%"PRIu32"%s",
-						*(*((int32_t **)p->driving_tap->ptr)),
-						sep);
-					break;
-
-				case TIL_TAP_TYPE_U64:
-					fprintf(out, "%"PRIu64"%s",
-						*(*((int64_t **)p->driving_tap->ptr)),
-						sep);
-					break;
-
-				case TIL_TAP_TYPE_FLOAT:
-					fprintf(out, "%f%s",
-						*(*((float **)p->driving_tap->ptr)),
-						sep);
-					break;
-
-				case TIL_TAP_TYPE_DOUBLE:
-					fprintf(out, "%f%s",
-						*(*((double **)p->driving_tap->ptr)),
-						sep);
-					break;
-
-				case TIL_TAP_TYPE_V2F:
-					fprintf(out, "{%f,%f}%s",
-						(*((v2f_t **)p->driving_tap->ptr))->x,
-						(*((v2f_t **)p->driving_tap->ptr))->y,
-						sep);
-					break;
-
-				case TIL_TAP_TYPE_V3F:
-					fprintf(out, "{%f,%f,%f}%s",
-						(*((v3f_t **)p->driving_tap->ptr))->x,
-						(*((v3f_t **)p->driving_tap->ptr))->y,
-						(*((v3f_t **)p->driving_tap->ptr))->z,
-						sep);
-					break;
-
-				case TIL_TAP_TYPE_V4F:
-					fprintf(out, "{%f,%f,%f,%f}%s",
-						(*((v4f_t **)p->driving_tap->ptr))->x,
-						(*((v4f_t **)p->driving_tap->ptr))->y,
-						(*((v4f_t **)p->driving_tap->ptr))->z,
-						(*((v4f_t **)p->driving_tap->ptr))->w,
-						sep);
-					break;
-
-				case TIL_TAP_TYPE_M4F:
-					fprintf(out, "M4F TODO%s", sep);
-					break;
-
-				case TIL_TAP_TYPE_VOIDP:
-					fprintf(out, "%p%s", *((void **)p->driving_tap->ptr), sep);
-					break;
-
-				default:
-					assert(0);
-				}
-				fprintf(out, "\n");
+			r = pipe_cb(cb_arg, p, p->owner, p->owner_foo, p->driving_tap);
+			if (r <= 0) {
+				pthread_mutex_unlock(&stream->mutex);
+				return r;
 			}
 		}
 	}
+
 	pthread_mutex_unlock(&stream->mutex);
-	fprintf(out, "\n");
+	return 0;
+}
+
+
+void til_stream_pipe_set_owner(til_stream_pipe_t *pipe, const void *owner, const void *owner_foo)
+{
+	assert(pipe);
+
+	pipe->owner = owner;
+	pipe->owner_foo = owner_foo;
 }

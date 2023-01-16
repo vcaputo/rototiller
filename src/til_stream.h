@@ -23,7 +23,14 @@
 #include "til_module_context.h"
 
 typedef struct til_stream_t til_stream_t;
+typedef struct til_stream_pipe_t til_stream_pipe_t;
 typedef struct til_tap_t til_tap_t;
+
+/* since pipe is opaque, pass all the member values too.  pipe is still given so
+ * things can be done to it (like changing the ownership?)
+ * return 0 to stop iterating, 1 to continue, -errno on error
+ */
+typedef int (til_stream_iter_func_t)(void *arg, til_stream_pipe_t *pipe, const void *owner, const void *owner_foo, const til_tap_t *driving_tap);
 
 til_stream_t * til_stream_new(void);
 til_stream_t * til_stream_free(til_stream_t *stream);
@@ -39,5 +46,8 @@ static inline int til_stream_tap_context(til_stream_t *stream, const til_module_
 
 void til_stream_untap_owner(til_stream_t *stream, const void *owner);
 void til_stream_fprint(til_stream_t *stream, FILE *out);
+
+int til_stream_for_each_pipe(til_stream_t *stream, til_stream_iter_func_t pipe_cb, void *cb_arg);
+void til_stream_pipe_set_owner(til_stream_pipe_t *pipe, const void *owner, const void *owner_foo);
 
 #endif
