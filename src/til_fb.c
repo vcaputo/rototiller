@@ -417,7 +417,7 @@ til_fb_fragment_t * til_fb_fragment_snapshot(til_fb_fragment_t **fragment_ptr, i
 	assert(fragment_ptr && *fragment_ptr);
 
 	/* when there's a snapshot method just let it do some magic */
-	if ((*fragment_ptr)->ops->snapshot)
+	if ((*fragment_ptr)->ops && (*fragment_ptr)->ops->snapshot)
 		return (*fragment_ptr)->ops->snapshot(fragment_ptr, preserve_original);
 
 	/* otherwise we just allocate a new fragment, and copy *fragment_ptr->buf to it */
@@ -444,7 +444,9 @@ til_fb_fragment_t * til_fb_fragment_snapshot(til_fb_fragment_t **fragment_ptr, i
 /* reclaim the fragment (for cleaning up snapshots) */
 til_fb_fragment_t * til_fb_fragment_reclaim(til_fb_fragment_t *fragment)
 {
-	if (fragment->ops->reclaim)
+	assert(fragment);
+
+	if (fragment->ops && fragment->ops->reclaim)
 		fragment->ops->reclaim(fragment);
 
 	return NULL;
