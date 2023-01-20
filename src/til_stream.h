@@ -30,7 +30,7 @@ typedef struct til_tap_t til_tap_t;
  * things can be done to it (like changing the ownership?)
  * return 0 to stop iterating, 1 to continue, -errno on error
  */
-typedef int (til_stream_iter_func_t)(void *arg, til_stream_pipe_t *pipe, const void *owner, const void *owner_foo, const til_tap_t *driving_tap);
+typedef int (til_stream_iter_func_t)(void *context, til_stream_pipe_t *pipe, const void *owner, const void *owner_foo, const til_tap_t *driving_tap);
 
 til_stream_t * til_stream_new(void);
 til_stream_t * til_stream_free(til_stream_t *stream);

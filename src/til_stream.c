@@ -76,7 +76,7 @@ struct til_stream_pipe_t {
 	const void		*owner_foo;	/* supplemental pointer for owner's use */
 	char			*parent_path;
 	const til_tap_t		*driving_tap;	/* tap producing values for the pipe */
-	uint32_t		hash;		/* hash of (driving_tap->path ^ parent_hash) */
+	uint32_t		hash;		/* hash of (driving_tap->name_hash ^ .parent_hash) */
 };
 
 typedef struct til_stream_t {
@@ -148,7 +148,7 @@ int til_stream_tap(til_stream_t *stream, const void *owner, const void *owner_fo
 	for (pipe = stream->buckets[bucket]; pipe != NULL; pipe = pipe->next) {
 		if (pipe->hash == hash) {
 			if (pipe->driving_tap == tap) {
-				/* this is our pipe and we're driving */
+				/* this is the pipe and we're driving */
 				*(tap->ptr) = pipe->driving_tap->elems;
 
 				pthread_mutex_unlock(&stream->mutex);
@@ -372,7 +372,7 @@ void til_stream_fprint(til_stream_t *stream, FILE *out)
 
 
 /* returns -errno on error (from pipe_cb), 0 otherwise */
-int til_stream_for_each_pipe(til_stream_t *stream, til_stream_iter_func_t pipe_cb, void *cb_arg)
+int til_stream_for_each_pipe(til_stream_t *stream, til_stream_iter_func_t pipe_cb, void *cb_context)
 {
 	assert(stream);
 	assert(pipe_cb);
@@ -383,8 +383,8 @@ int til_stream_for_each_pipe(til_stream_t *stream, til_stream_iter_func_t pipe_c
 		for (til_stream_pipe_t *p = stream->buckets[i]; p != NULL; p = p->next) {
 			int	r;
 
-			r = pipe_cb(cb_arg, p, p->owner, p->owner_foo, p->driving_tap);
-			if (r <= 0) {
+			r = pipe_cb(cb_context, p, p->owner, p->owner_foo, p->driving_tap);
+			if (r < 0) {
 				pthread_mutex_unlock(&stream->mutex);
 				return r;
 			}
