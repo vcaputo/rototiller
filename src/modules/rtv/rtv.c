@@ -61,7 +61,7 @@ typedef struct rtv_setup_t {
 } rtv_setup_t;
 
 static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks);
-static til_module_context_t * rtv_create_context(til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup);
+static til_module_context_t * rtv_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup);
 static void rtv_destroy_context(til_module_context_t *context);
 static void rtv_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr);
 static void rtv_finish_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr);
@@ -220,7 +220,7 @@ static int rtv_should_skip_module(const rtv_setup_t *setup, const til_module_t *
 }
 
 
-static til_module_context_t * rtv_create_context(til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
+static til_module_context_t * rtv_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
 	rtv_context_t		*ctxt;
 	const til_module_t	**modules;
@@ -237,7 +237,7 @@ static til_module_context_t * rtv_create_context(til_stream_t *stream, unsigned 
 			n_channels++;
 	}
 
-	ctxt = til_module_context_new(stream, sizeof(rtv_context_t) + n_channels * sizeof(rtv_channel_t), seed, ticks, n_cpus, path);
+	ctxt = til_module_context_new(module, sizeof(rtv_context_t) + n_channels * sizeof(rtv_channel_t), stream, seed, ticks, n_cpus, path);
 	if (!ctxt)
 		return NULL;
 

@@ -248,17 +248,12 @@ int til_module_create_context(const til_module_t *module, til_stream_t *stream, 
 		n_cpus = til_threads_num_threads(til_threads);
 
 	if (!module->create_context)
-		context = til_module_context_new(stream, sizeof(til_module_context_t), seed, ticks, n_cpus, path);
+		context = til_module_context_new(module, sizeof(til_module_context_t), stream, seed, ticks, n_cpus, path);
 	else
-		context = module->create_context(stream, seed, ticks, n_cpus, path, setup);
+		context = module->create_context(module, stream, seed, ticks, n_cpus, path, setup);
 
-	if (!context) {
-		free(path);
-
+	if (!context)
 		return -ENOMEM;
-	}
-
-	context->module = module;
 
 	*res_context = context;
 

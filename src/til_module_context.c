@@ -26,20 +26,25 @@
  * as the callers are generally using it in place of calloc(), and assign it to a
  * container struct of some other type but having an embedded til_module_context_t.
  *
- * path must not be NULL, and the context takes ownership of the path; it's freed @ context_free().
+ * path must not be NULL, and the context always takes ownership of the path; it's freed @ context_free().
  */
-void * til_module_context_new(til_stream_t *stream, size_t size, unsigned seed, unsigned ticks, unsigned n_cpus, char *path)
+void * til_module_context_new(const til_module_t *module, size_t size, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path)
 {
 	til_module_context_t	*module_context;
 
+	assert(module);
 	assert(size >= sizeof(til_module_context_t));
 	assert(n_cpus > 0);
 	assert(path); /* modules must be able to key things like taps off their context's path */
 
 	module_context = calloc(1, size);
-	if (!module_context)
-		return NULL;
+	if (!module_context) {
+		free(path);
 
+		return NULL;
+	}
+
+	module_context->module = module;
 	module_context->stream = stream;
 	module_context->seed = seed;
 	module_context->ticks = ticks;

@@ -85,14 +85,14 @@ static inline uint32_t color_to_uint32(v3f_t color) {
 }
 
 
-static til_module_context_t * drizzle_create_context(til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
+static til_module_context_t * drizzle_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
 	drizzle_context_t	*ctxt;
 
 	if (!setup)
 		setup = &drizzle_default_setup.til_setup;
 
-	ctxt = til_module_context_new(stream, sizeof(drizzle_context_t), seed, ticks, n_cpus, path);
+	ctxt = til_module_context_new(module, sizeof(drizzle_context_t), stream, seed, ticks, n_cpus, path);
 	if (!ctxt)
 		return NULL;
 

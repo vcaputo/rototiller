@@ -53,7 +53,7 @@ static void init_plasma(int32_t *costab, int32_t *sintab)
 }
 
 
-static til_module_context_t * plasma_create_context(til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
+static til_module_context_t * plasma_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
 	static int		initialized;
 	plasma_context_t	*ctxt;
@@ -64,7 +64,7 @@ static til_module_context_t * plasma_create_context(til_stream_t *stream, unsign
 		init_plasma(costab, sintab);
 	}
 
-	ctxt = til_module_context_new(stream, sizeof(plasma_context_t), seed, ticks, n_cpus, path);
+	ctxt = til_module_context_new(module, sizeof(plasma_context_t), stream, seed, ticks, n_cpus, path);
 	if (!ctxt)
 		return NULL;
 

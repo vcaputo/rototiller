@@ -245,7 +245,7 @@ static void gamma_init(float gamma)
 }
 
 
-static til_module_context_t * flui2d_create_context(til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
+static til_module_context_t * flui2d_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
 	static int		initialized;
 	flui2d_context_t	*ctxt;
@@ -253,7 +253,7 @@ static til_module_context_t * flui2d_create_context(til_stream_t *stream, unsign
 	if (!setup)
 		setup = &flui2d_default_setup.til_setup;
 
-	ctxt = til_module_context_new(stream, sizeof(flui2d_context_t), seed, ticks, n_cpus, path);
+	ctxt = til_module_context_new(module, sizeof(flui2d_context_t), stream, seed, ticks, n_cpus, path);
 	if (!ctxt)
 		return NULL;
 

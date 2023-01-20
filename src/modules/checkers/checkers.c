@@ -79,7 +79,7 @@ static checkers_setup_t checkers_default_setup = {
 };
 
 
-static til_module_context_t * checkers_create_context(til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
+static til_module_context_t * checkers_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
 	size_t			size = sizeof(checkers_context_t);
 	checkers_context_t	*ctxt;
@@ -90,7 +90,7 @@ static til_module_context_t * checkers_create_context(til_stream_t *stream, unsi
 	if (((checkers_setup_t *)setup)->fill_module)
 		size += sizeof(til_module_context_t *) * n_cpus;
 
-	ctxt = til_module_context_new(stream, size, ticks, seed, n_cpus, path);
+	ctxt = til_module_context_new(module, size, stream, ticks, seed, n_cpus, path);
 	if (!ctxt)
 		return NULL;
 

@@ -16,7 +16,7 @@ typedef struct montage_context_t {
 	size_t			n_modules;
 } montage_context_t;
 
-static til_module_context_t * montage_create_context(til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup);
+static til_module_context_t * montage_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup);
 static void montage_destroy_context(til_module_context_t *context);
 static void montage_prepare_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan);
 static void montage_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr);
@@ -32,13 +32,13 @@ til_module_t	montage_module = {
 };
 
 
-static til_module_context_t * montage_create_context(til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
+static til_module_context_t * montage_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
 	const til_module_t	**modules, *rtv_module, *compose_module;
 	size_t			n_modules;
 	montage_context_t	*ctxt;
 
-	ctxt = til_module_context_new(stream, sizeof(montage_context_t), seed, ticks, n_cpus, path);
+	ctxt = til_module_context_new(module, sizeof(montage_context_t), stream, seed, ticks, n_cpus, path);
 	if (!ctxt)
 		return NULL;
 

@@ -22,11 +22,11 @@ typedef struct snow_context_t {
 } snow_context_t;
 
 
-static til_module_context_t * snow_create_context(til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
+static til_module_context_t * snow_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
 	snow_context_t	*ctxt;
 
-	ctxt = til_module_context_new(stream, sizeof(snow_context_t) + n_cpus * sizeof(snow_seed_t), seed, ticks, n_cpus, path);
+	ctxt = til_module_context_new(module, sizeof(snow_context_t) + n_cpus * sizeof(snow_seed_t), stream, seed, ticks, n_cpus, path);
 	if (!ctxt)
 		return NULL;
 
