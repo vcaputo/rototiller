@@ -80,8 +80,10 @@ struct til_stream_pipe_t {
 };
 
 typedef struct til_stream_t {
-	pthread_mutex_t		mutex;
-	til_stream_pipe_t	*buckets[TIL_STREAM_BUCKETS_COUNT];
+	pthread_mutex_t			mutex;
+	const til_stream_hooks_t	*hooks;
+	void				*hooks_context;
+	til_stream_pipe_t		*buckets[TIL_STREAM_BUCKETS_COUNT];
 } til_stream_t;
 
 
@@ -119,6 +121,49 @@ til_stream_t * til_stream_free(til_stream_t *stream)
 }
 
 
+/* hooks are presently implemented as a singleton per-stream, I could imagine a stack
+ * form where multiple triggers filter through until one of the callbacks
+ * claim to have processed the trigger.  But let's just keep it stupid simple for now.
+ *
+ * this function is idempotent in the sense that a caller can keep resetting its hooks
+ * when it's succeeded as becoming the owner of the hooks (by being first to set them on
+ * a stream).  Only when different set of hooks are attempted to be set on a stream already
+ * having hooks will it error out, to change hooks the caller must first unset them with the
+ * matching hooks pointer.  There's no way to read the hooks out by a caller.  This is a weak
+ * defensive mechanism to prevent multiple modules silently fighting over the hooks.  As long
+ * as they're checking the return code they can say meaningful things about failing to set the
+ * hooks... and it's assumed it'd be a flawed composition attempting to use multiple hook-setting
+ * modules on the same stream (or program bug).
+ */
+int til_stream_set_hooks(til_stream_t *stream, const til_stream_hooks_t *hooks, void *context)
+{
+	assert(stream);
+	assert(hooks);
+
+	if (stream->hooks && stream->hooks != hooks)
+		return -EEXIST;
+
+	stream->hooks = hooks;
+	stream->hooks_context = context;
+
+	return 0;
+}
+
+
+int til_stream_unset_hooks(til_stream_t *stream, const til_stream_hooks_t *hooks)
+{
+	assert(stream);
+	assert(hooks);
+
+	if (stream->hooks && stream->hooks != hooks)
+		return -EINVAL;
+
+	stream->hooks = stream->hooks_context = NULL;
+
+	return 0;
+}
+
+
 /* Taps the key-named type-typed pipe on the supplied stream.
  * If this is the first use of the pipe on this stream, new pipe will be created.
  * If the pipe exists on this stream, and the type/n_elems match, existing pipe will be used as-is.
@@ -132,6 +177,8 @@ int til_stream_tap(til_stream_t *stream, const void *owner, const void *owner_fo
 {
 	uint32_t		hash, bucket;
 	til_stream_pipe_t	*pipe;
+	const void		**p_owner = &owner, **p_owner_foo = &owner_foo;
+	const til_tap_t		**p_tap = &tap;
 
 	assert(tap);
 
@@ -175,6 +222,14 @@ int til_stream_tap(til_stream_t *stream, const void *owner, const void *owner_fo
 		}
 	}
 
+	if (stream->hooks && stream->hooks->pipe_ctor) {
+		int	r;
+
+		r = stream->hooks->pipe_ctor(stream->hooks_context, stream, owner, owner_foo, parent_path, parent_hash, tap, p_owner, p_owner_foo, p_tap);
+		if (r < 0)
+			return r;
+	}
+
 	/* matching pipe not found, create new one with tap as driver */
 	pipe = calloc(1, sizeof(til_stream_pipe_t));
 	if (!pipe) {
@@ -182,9 +237,9 @@ int til_stream_tap(til_stream_t *stream, const void *owner, const void *owner_fo
 		return -ENOMEM;
 	}
 
-	pipe->owner = owner;
-	pipe->owner_foo = owner_foo;
-	pipe->driving_tap = tap;
+	pipe->owner = *p_owner;
+	pipe->owner_foo = *p_owner_foo;
+	pipe->driving_tap = *p_tap;
 
 	pipe->parent_path = strdup(parent_path);
 	if (!pipe->parent_path) {
@@ -215,6 +270,9 @@ void til_stream_untap_owner(til_stream_t *stream, const void *owner)
 					stream->buckets[i] = p_next;
 				else
 					p_prev->next = p_next;
+
+				if (stream->hooks && stream->hooks->pipe_dtor)
+					stream->hooks->pipe_dtor(stream->hooks_context, stream, p->owner, p->owner_foo, p->parent_path, p->driving_tap);
 
 				free(p);
 			} else
