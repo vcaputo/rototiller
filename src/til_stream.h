@@ -49,5 +49,6 @@ void til_stream_fprint(til_stream_t *stream, FILE *out);
 
 int til_stream_for_each_pipe(til_stream_t *stream, til_stream_iter_func_t pipe_cb, void *cb_arg);
 void til_stream_pipe_set_owner(til_stream_pipe_t *pipe, const void *owner, const void *owner_foo);
+void til_stream_pipe_set_driving_tap(til_stream_pipe_t *pipe, const til_tap_t *driving_tap);
 
 #endif
