@@ -163,11 +163,14 @@ int til_stream_tap(til_stream_t *stream, const void *owner, const void *owner_fo
 					return -1;
 				}
 
-				/* this looks to be our pipe, but we're not driving */
+				/* this looks to be the pipe, but we're not driving, should we be? */
+				if (pipe->driving_tap->inactive)
+					pipe->driving_tap = tap;
+
 				*(tap->ptr) = pipe->driving_tap->elems;
 
 				pthread_mutex_unlock(&stream->mutex);
-				return 1;
+				return (tap != pipe->driving_tap);
 			}
 		}
 	}

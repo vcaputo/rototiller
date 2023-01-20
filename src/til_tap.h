@@ -69,7 +69,8 @@ typedef struct til_tap_t {
 	size_t		n_elems;	/* when > 1, *ptr is an array of n_elems elements.  Otherwise individual variable. */
 	void		*elems;		/* points at the first element of type type, may or may not be an array of them */
 	const char	*name;
-	uint32_t	name_hash;		/* cached hash of name, set once @ initialization */
+	uint32_t	name_hash;	/* cached hash of name, set once @ initialization */
+	unsigned	inactive:1;	/* used to signal when a tap should be replaced as driver */
 } til_tap_t;
 
 /* just some forward declared higher-order vector and matrix types for the wrappers */
