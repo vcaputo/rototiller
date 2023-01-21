@@ -89,11 +89,11 @@ static til_module_context_t * stars_create_context(const til_module_t *module, t
 	ctxt->vars.offset_x = 0.5;
 	ctxt->vars.offset_angle = 0.01;
 
-	ctxt->taps.rot_rate = til_tap_init_float(&ctxt->rot_rate, 1, &ctxt->vars.rot_rate, "rot_rate");
-	ctxt->taps.rot_angle = til_tap_init_float(&ctxt->rot_angle, 1, &ctxt->vars.rot_angle, "rot_angle");
-	ctxt->taps.offset_x = til_tap_init_float(&ctxt->offset_x, 1, &ctxt->vars.offset_x, "offset_x");
-	ctxt->taps.offset_y = til_tap_init_float(&ctxt->offset_y, 1, &ctxt->vars.offset_y, "offset_y");
-	ctxt->taps.offset_angle = til_tap_init_float(&ctxt->offset_angle, 1, &ctxt->vars.offset_angle, "offset_angle");
+	ctxt->taps.rot_rate = til_tap_init_float(ctxt, &ctxt->rot_rate, 1, &ctxt->vars.rot_rate, "rot_rate");
+	ctxt->taps.rot_angle = til_tap_init_float(ctxt, &ctxt->rot_angle, 1, &ctxt->vars.rot_angle, "rot_angle");
+	ctxt->taps.offset_x = til_tap_init_float(ctxt, &ctxt->offset_x, 1, &ctxt->vars.offset_x, "offset_x");
+	ctxt->taps.offset_y = til_tap_init_float(ctxt, &ctxt->offset_y, 1, &ctxt->vars.offset_y, "offset_y");
+	ctxt->taps.offset_angle = til_tap_init_float(ctxt, &ctxt->offset_angle, 1, &ctxt->vars.offset_angle, "offset_angle");
 
 	//add a bunch of points
 	for(z=0.01; z<1; z=z+0.01) {

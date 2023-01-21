@@ -64,6 +64,7 @@ typedef enum til_tap_type_t {
 /* this is deliberately left entirely public so taps can be easily embedded in contexts */
 typedef struct til_tap_t {
 	til_tap_type_t	type;
+	const void	*owner;		/* identity of tap's owner, primarily for stream/pipe-oriented cleanup purposes */
 	void		**ptr;		/* points at the caller-provided tap-managed indirection pointer */
 	size_t		n_elems;	/* when > 1, *ptr is an array of n_elems elements.  Otherwise individual variable. */
 	void		*elems;		/* points at the first element of type type, may or may not be an array of them */
@@ -78,7 +79,7 @@ typedef struct v4f_t v4f_t;
 typedef struct m4f_t m4f_t;
 
 /* This is the bare tap initializer but use the type-checked wrappers below and add one if one's missing */
-static inline til_tap_t til_tap_init(til_tap_type_t type, void *ptr, size_t n_elems, void *elems, const char *name)
+static inline til_tap_t til_tap_init(const void *owner, til_tap_type_t type, void *ptr, size_t n_elems, void *elems, const char *name)
 {
 	assert(type < TIL_TAP_TYPE_MAX);
 	assert(ptr);
@@ -89,6 +90,7 @@ static inline til_tap_t til_tap_init(til_tap_type_t type, void *ptr, size_t n_el
 	*((void **)ptr) = elems;
 
 	return (til_tap_t){
+		.owner = owner,
 		.type = type,
 		.ptr = ptr,
 		.n_elems = n_elems,
@@ -101,79 +103,79 @@ static inline til_tap_t til_tap_init(til_tap_type_t type, void *ptr, size_t n_el
 /* typed wrappers, just supply n_elems=1 for individual variables - note n_elems is just a defensive
  * programming sanity check to catch callers mismatching array sizes
  */
-static inline til_tap_t til_tap_init_i8(int8_t **ptr, size_t n_elems, int8_t *elems, const char *name)
+static inline til_tap_t til_tap_init_i8(const void *owner, int8_t **ptr, size_t n_elems, int8_t *elems, const char *name)
 {
-	return til_tap_init(TIL_TAP_TYPE_I8, ptr, n_elems, elems, name);
+	return til_tap_init(owner, TIL_TAP_TYPE_I8, ptr, n_elems, elems, name);
 }
 
-static inline til_tap_t til_tap_init_i16(int16_t **ptr, size_t n_elems, int16_t *elems, const char *name)
+static inline til_tap_t til_tap_init_i16(const void *owner, int16_t **ptr, size_t n_elems, int16_t *elems, const char *name)
 {
-	return til_tap_init(TIL_TAP_TYPE_I16, ptr, n_elems, elems, name);
+	return til_tap_init(owner, TIL_TAP_TYPE_I16, ptr, n_elems, elems, name);
 }
 
-static inline til_tap_t til_tap_init_i32(int32_t **ptr, size_t n_elems, int32_t *elems, const char *name)
+static inline til_tap_t til_tap_init_i32(const void *owner, int32_t **ptr, size_t n_elems, int32_t *elems, const char *name)
 {
-	return til_tap_init(TIL_TAP_TYPE_I32, ptr, n_elems, elems, name);
+	return til_tap_init(owner, TIL_TAP_TYPE_I32, ptr, n_elems, elems, name);
 }
 
-static inline til_tap_t til_tap_init_i64(int64_t **ptr, size_t n_elems, int64_t *elems, const char *name)
+static inline til_tap_t til_tap_init_i64(const void *owner, int64_t **ptr, size_t n_elems, int64_t *elems, const char *name)
 {
-	return til_tap_init(TIL_TAP_TYPE_I64, ptr, n_elems, elems, name);
+	return til_tap_init(owner, TIL_TAP_TYPE_I64, ptr, n_elems, elems, name);
 }
 
-static inline til_tap_t til_tap_init_u8(uint8_t **ptr, size_t n_elems, uint8_t *elems, const char *name)
+static inline til_tap_t til_tap_init_u8(const void *owner, uint8_t **ptr, size_t n_elems, uint8_t *elems, const char *name)
 {
-	return til_tap_init(TIL_TAP_TYPE_U8, ptr, n_elems, elems, name);
+	return til_tap_init(owner, TIL_TAP_TYPE_U8, ptr, n_elems, elems, name);
 }
 
-static inline til_tap_t til_tap_init_u16(uint16_t **ptr, size_t n_elems, uint16_t *elems, const char *name)
+static inline til_tap_t til_tap_init_u16(const void *owner, uint16_t **ptr, size_t n_elems, uint16_t *elems, const char *name)
 {
-	return til_tap_init(TIL_TAP_TYPE_U16, ptr, n_elems, elems, name);
+	return til_tap_init(owner, TIL_TAP_TYPE_U16, ptr, n_elems, elems, name);
 }
 
-static inline til_tap_t til_tap_init_u32(uint32_t **ptr, size_t n_elems, uint32_t *elems, const char *name)
+static inline til_tap_t til_tap_init_u32(const void *owner, uint32_t **ptr, size_t n_elems, uint32_t *elems, const char *name)
 {
-	return til_tap_init(TIL_TAP_TYPE_U32, ptr, n_elems, elems, name);
+	return til_tap_init(owner, TIL_TAP_TYPE_U32, ptr, n_elems, elems, name);
 }
 
-static inline til_tap_t til_tap_init_u64(uint64_t **ptr, size_t n_elems, uint64_t *elems, const char *name)
+static inline til_tap_t til_tap_init_u64(const void *owner, uint64_t **ptr, size_t n_elems, uint64_t *elems, const char *name)
 {
-	return til_tap_init(TIL_TAP_TYPE_U64, ptr, n_elems, elems, name);
+	return til_tap_init(owner, TIL_TAP_TYPE_U64, ptr, n_elems, elems, name);
 }
 
-static inline til_tap_t til_tap_init_float(float **ptr, size_t n_elems, float *elems, const char *name)
+static inline til_tap_t til_tap_init_float(const void *owner, float **ptr, size_t n_elems, float *elems, const char *name)
 {
-	return til_tap_init(TIL_TAP_TYPE_FLOAT, ptr, n_elems, elems, name);
+	return til_tap_init(owner, TIL_TAP_TYPE_FLOAT, ptr, n_elems, elems, name);
 }
 
-static inline til_tap_t til_tap_init_double(double **ptr, size_t n_elems, double *elems, const char *name)
+static inline til_tap_t til_tap_init_double(const void *owner, double **ptr, size_t n_elems, double *elems, const char *name)
 {
-	return til_tap_init(TIL_TAP_TYPE_DOUBLE, ptr, n_elems, elems, name);
+	return til_tap_init(owner, TIL_TAP_TYPE_DOUBLE, ptr, n_elems, elems, name);
 }
 
-static inline til_tap_t til_tap_init_v2f(v2f_t **ptr, size_t n_elems, v2f_t *elems, const char *name)
+static inline til_tap_t til_tap_init_v2f(const void *owner, v2f_t **ptr, size_t n_elems, v2f_t *elems, const char *name)
 {
-	return til_tap_init(TIL_TAP_TYPE_V2F, ptr, n_elems, elems, name);
+	return til_tap_init(owner, TIL_TAP_TYPE_V2F, ptr, n_elems, elems, name);
 }
 
-static inline til_tap_t til_tap_init_v3f(v3f_t **ptr, size_t n_elems, v3f_t *elems, const char *name)
+static inline til_tap_t til_tap_init_v3f(const void *owner, v3f_t **ptr, size_t n_elems, v3f_t *elems, const char *name)
 {
-	return til_tap_init(TIL_TAP_TYPE_V3F, ptr, n_elems, elems, name);
+	return til_tap_init(owner, TIL_TAP_TYPE_V3F, ptr, n_elems, elems, name);
 }
 
-static inline til_tap_t til_tap_init_v4f(v4f_t **ptr, size_t n_elems, v4f_t *elems, const char *name)
+static inline til_tap_t til_tap_init_v4f(const void *owner, v4f_t **ptr, size_t n_elems, v4f_t *elems, const char *name)
 {
-	return til_tap_init(TIL_TAP_TYPE_V4F, ptr, n_elems, elems, name);
+	return til_tap_init(owner, TIL_TAP_TYPE_V4F, ptr, n_elems, elems, name);
 }
 
-static inline til_tap_t til_tap_init_m4f(m4f_t **ptr, size_t n_elems, m4f_t *elems, const char *name)
+static inline til_tap_t til_tap_init_m4f(const void *owner, m4f_t **ptr, size_t n_elems, m4f_t *elems, const char *name)
 {
-	return til_tap_init(TIL_TAP_TYPE_M4F, ptr, n_elems, elems, name);
+	return til_tap_init(owner, TIL_TAP_TYPE_M4F, ptr, n_elems, elems, name);
 }
 
-static inline til_tap_t til_tap_init_til_tap_voidp(void **ptr, size_t n_elems, til_tap_t *elems, const char *name)
+static inline til_tap_t til_tap_init_til_tap_voidp(const void *owner, void **ptr, size_t n_elems, til_tap_t *elems, const char *name)
 {
-	return til_tap_init(TIL_TAP_TYPE_VOIDP, ptr, n_elems, elems, name);
+	return til_tap_init(owner, TIL_TAP_TYPE_VOIDP, ptr, n_elems, elems, name);
 }
 
 #endif

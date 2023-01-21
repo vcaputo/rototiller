@@ -640,8 +640,8 @@ static til_module_context_t * plato_create_context(const til_module_t *module, t
 
 	ctxt->setup = *((plato_setup_t *)setup);
 
-	ctxt->taps.spin_rate = til_tap_init_float(&ctxt->spin_rate, 1, &ctxt->setup.spin_rate, "spin_rate");
-	ctxt->taps.orbit_rate = til_tap_init_float(&ctxt->orbit_rate, 1, &ctxt->setup.orbit_rate, "orbit_rate");
+	ctxt->taps.spin_rate = til_tap_init_float(ctxt, &ctxt->spin_rate, 1, &ctxt->setup.spin_rate, "spin_rate");
+	ctxt->taps.orbit_rate = til_tap_init_float(ctxt, &ctxt->orbit_rate, 1, &ctxt->setup.orbit_rate, "orbit_rate");
 
 	return &ctxt->til_module_context;
 }
