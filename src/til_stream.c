@@ -203,14 +203,14 @@ int til_stream_tap(til_stream_t *stream, const void *owner, const void *owner_fo
 }
 
 
-/* remove all pipes belonging to owner in stream */
+/* remove all pipes belonging to owner in stream, including pipes whose driving_tap is owned by owner */
 void til_stream_untap_owner(til_stream_t *stream, const void *owner)
 {
 	for (int i = 0; i < TIL_STREAM_BUCKETS_COUNT; i++) {
 		for (til_stream_pipe_t *p = stream->buckets[i], *p_next, *p_prev; p != NULL; p = p_next) {
 			p_next = p->next;
 
-			if (p->owner == owner) {
+			if (p->owner == owner || p->driving_tap->owner == owner) {
 				if (p == stream->buckets[i])
 					stream->buckets[i] = p_next;
 				else
