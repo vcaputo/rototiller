@@ -22,12 +22,14 @@
 #include "til.h"
 #include "til_fb.h"
 #include "til_module_context.h"
+#include "til_stream.h"
+#include "til_tap.h"
 
 #include "puddle/puddle.h"
 
 /* TODO: make size a setting from like 128-1024, and cnt something settable for a fraction per frame (one every Nth frame) up to 20 per frame, though it should probably be less framerate dependent */
 #define PUDDLE_SIZE		512
-#define DRIZZLE_CNT		20
+#define RAINFALL_CNT		20
 #define DEFAULT_VISCOSITY	.01
 #define DEFAULT_STYLE		DRIZZLE_STYLE_MASK
 
@@ -52,6 +54,15 @@ typedef struct drizzle_setup_t {
 
 typedef struct drizzle_context_t {
 	til_module_context_t	til_module_context;
+	struct {
+		til_tap_t	viscosity, rainfall;
+	} taps;
+
+	struct {
+		float		viscosity, rainfall;
+	} vars;
+
+	float			*viscosity, *rainfall;
 	til_fb_fragment_t	*snapshot;
 	puddle_t		*puddle;
 	drizzle_setup_t		setup;
@@ -102,6 +113,9 @@ static til_module_context_t * drizzle_create_context(const til_module_t *module,
 		return NULL;
 	}
 
+	ctxt->taps.viscosity = til_tap_init_float(ctxt, &ctxt->viscosity, 1, &ctxt->vars.viscosity, "viscosity");
+	ctxt->taps.rainfall = til_tap_init_float(ctxt, &ctxt->rainfall, 1, &ctxt->vars.rainfall, "rainfall");
+
 	ctxt->setup = *(drizzle_setup_t *)setup;
 
 	return &ctxt->til_module_context;
@@ -121,9 +135,15 @@ static void drizzle_prepare_frame(til_module_context_t *context, til_stream_t *s
 {
 	drizzle_context_t	*ctxt = (drizzle_context_t *)context;
 
+	if (!til_stream_tap_context(stream, context, NULL, &ctxt->taps.viscosity))
+		*ctxt->viscosity = ctxt->setup.viscosity;
+
+	if (!til_stream_tap_context(stream, context, NULL, &ctxt->taps.rainfall))
+		*ctxt->rainfall = RAINFALL_CNT;
+
 	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu };
 
-	for (int i = 0; i < DRIZZLE_CNT; i++) {
+	for (unsigned i = 0; i < (unsigned)*ctxt->rainfall; i++) {
 		int	x = rand_r(&ctxt->til_module_context.seed) % (PUDDLE_SIZE - 1);
 		int	y = rand_r(&ctxt->til_module_context.seed) % (PUDDLE_SIZE - 1);
 
@@ -137,7 +157,7 @@ static void drizzle_prepare_frame(til_module_context_t *context, til_stream_t *s
 		puddle_set(ctxt->puddle, x + 1, y + 1, 1.f);
 	}
 
-	puddle_tick(ctxt->puddle, ctxt->setup.viscosity);
+	puddle_tick(ctxt->puddle, *ctxt->viscosity);
 
 	if ((*fragment_ptr)->cleared)
 		ctxt->snapshot = til_fb_fragment_snapshot(fragment_ptr, 0);
