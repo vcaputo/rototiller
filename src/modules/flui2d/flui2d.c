@@ -8,6 +8,8 @@
 #include "til_fb.h"
 #include "til_module_context.h"
 #include "til_settings.h"
+#include "til_stream.h"
+#include "til_tap.h"
 
 
 /* This code is almost entirely taken from the paper:
@@ -188,9 +190,19 @@ typedef struct flui2d_setup_t {
 
 typedef struct flui2d_context_t {
 	til_module_context_t	til_module_context;
+	flui2d_setup_t		setup;
+
+	struct {
+		til_tap_t	viscosity, diffusion, decay;
+	} taps;
+
+	struct {
+		float		viscosity, diffusion, decay;
+	} vars;
+
+	float			*viscosity, *diffusion, *decay;
+
 	flui2d_t		fluid;
-	flui2d_emitters_t	emitters;
-	float			clockstep;
 	float			xf, yf;
 } flui2d_context_t;
 
@@ -262,11 +274,11 @@ static til_module_context_t * flui2d_create_context(const til_module_t *module, 
 		gamma_init(1.4f);
 	}
 
-	ctxt->fluid.visc = ((flui2d_setup_t *)setup)->viscosity;
-	ctxt->fluid.diff = ((flui2d_setup_t *)setup)->diffusion;
-	ctxt->fluid.decay = ((flui2d_setup_t *)setup)->decay;
-	ctxt->emitters = ((flui2d_setup_t *)setup)->emitters;
-	ctxt->clockstep = ((flui2d_setup_t *)setup)->clockstep;
+	ctxt->setup = *((flui2d_setup_t *)setup);
+
+	ctxt->taps.viscosity = til_tap_init_float(ctxt, &ctxt->viscosity, 1, &ctxt->vars.viscosity, "viscosity");
+	ctxt->taps.diffusion = til_tap_init_float(ctxt, &ctxt->diffusion, 1, &ctxt->vars.diffusion, "diffusion");
+	ctxt->taps.decay = til_tap_init_float(ctxt, &ctxt->decay, 1, &ctxt->vars.decay, "decay");
 
 	return &ctxt->til_module_context;
 }
@@ -282,7 +294,23 @@ static void flui2d_prepare_frame(til_module_context_t *context, til_stream_t *st
 
 	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_tile64 };
 
-	switch (ctxt->emitters) {
+	if (!til_stream_tap_context(stream, context, NULL, &ctxt->taps.viscosity))
+		*ctxt->viscosity = ctxt->setup.viscosity;
+
+	if (!til_stream_tap_context(stream, context, NULL, &ctxt->taps.diffusion))
+		*ctxt->diffusion = ctxt->setup.diffusion;
+
+	if (!til_stream_tap_context(stream, context, NULL, &ctxt->taps.decay))
+		*ctxt->decay = ctxt->setup.decay;
+
+	/* this duplication of visc/diff/decay is silly, it's just a product of this
+	 * module being written as a flui2d_t class in-situ but distinct from the module.
+	 */
+	ctxt->fluid.visc = *ctxt->viscosity;
+	ctxt->fluid.diff = *ctxt->diffusion;
+	ctxt->fluid.decay = *ctxt->decay;
+
+	switch (ctxt->setup.emitters) {
 	case FLUI2D_EMITTERS_FIGURE8: {
 		int	x = (cos(r) * .4f + .5f) * (float)ROOT;	/* figure eight pattern for the added densities */
 		int	y = (sin(r * 2.f) * .4f + .5f) * (float)ROOT;
@@ -304,7 +332,7 @@ static void flui2d_prepare_frame(til_module_context_t *context, til_stream_t *st
 #define FLUI2D_CLOCKGRID_SIZE	(ROOT>>4)
 #define FLUI2D_CLOCKGRID_STEP	(ROOT/FLUI2D_CLOCKGRID_SIZE)
 		for (int y = FLUI2D_CLOCKGRID_STEP; y < ROOT; y += FLUI2D_CLOCKGRID_STEP) {
-			for (int x = FLUI2D_CLOCKGRID_STEP; x < ROOT; x += FLUI2D_CLOCKGRID_STEP, r += ctxt->clockstep * M_PI * 2) {
+			for (int x = FLUI2D_CLOCKGRID_STEP; x < ROOT; x += FLUI2D_CLOCKGRID_STEP, r += ctxt->setup.clockstep * M_PI * 2) {
 
 				ctxt->fluid.dens_prev_r[IX(x, y)] = .5f + cos(r) * .5f;
 				ctxt->fluid.dens_prev_g[IX(x, y)] = .5f + sin(r) * .5f;
