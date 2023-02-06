@@ -22,6 +22,8 @@
 #include "til.h"
 #include "til_fb.h"
 #include "til_module_context.h"
+#include "til_stream.h"
+#include "til_tap.h"
 
 #include "din/din.h"
 
@@ -38,6 +40,17 @@ typedef struct meta2d_ball_t {
 
 typedef struct meta2d_context_t {
 	til_module_context_t	til_module_context;
+
+	struct {
+		til_tap_t	min_t, max_t;
+	} taps;
+
+	struct {
+		float		min_t, max_t;
+	} vars;
+
+	float			*min_t, *max_t;
+
 	unsigned		n;
 	din_t			*din_a, *din_b;
 	float			din_t;
@@ -87,6 +100,9 @@ static til_module_context_t * meta2d_create_context(const til_module_t *module, 
 		v3f_rand(&ball->color, &ctxt->til_module_context.seed, &(v3f_t){0.f, 0.f, 0.f}, &(v3f_t){1.f, 1.f, 1.f});
 	}
 
+	ctxt->taps.min_t = til_tap_init_float(ctxt, &ctxt->min_t, 1, &ctxt->vars.min_t, "min_t");
+	ctxt->taps.max_t = til_tap_init_float(ctxt, &ctxt->max_t, 1, &ctxt->vars.max_t, "max_t");
+
 	return &ctxt->til_module_context;
 }
 
@@ -106,6 +122,12 @@ static void meta2d_prepare_frame(til_module_context_t *context, til_stream_t *st
 	meta2d_context_t	*ctxt = (meta2d_context_t *)context;
 
 	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu };
+
+	if (!til_stream_tap_context(stream, context, NULL, &ctxt->taps.min_t))
+		*ctxt->min_t = .7f;
+
+	if (!til_stream_tap_context(stream, context, NULL, &ctxt->taps.max_t))
+		*ctxt->max_t = .8f;
 
 	/* move the balls around */
 	for (int i = 0; i < META2D_NUM_BALLS; i++) {
@@ -208,7 +230,7 @@ static void meta2d_render_fragment(til_module_context_t *context, til_stream_t *
 			}
 
 			/* these thresholds define the thickness of the ribbon */
-			if (t < .7f || t > .8f)
+			if (t < *ctxt->min_t || t > *ctxt->max_t)
 				color = (v3f_t){};
 
 			pixel = color_to_uint32(color);
