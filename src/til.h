@@ -16,7 +16,6 @@ typedef struct til_frame_plan_t {
 } til_frame_plan_t;
 
 typedef struct til_module_t til_module_t;
-typedef struct til_knob_t til_knob_t;
 typedef struct til_settings_t settings;
 typedef struct til_setting_desc_t til_setting_desc_t;
 typedef struct til_stream_t til_stream_t;
@@ -32,7 +31,6 @@ struct til_module_t {
 	void			(*render_fragment)(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr);
 	void			(*finish_frame)(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr);
 	int			(*setup)(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
-	size_t			(*knobs)(til_module_context_t *context, til_knob_t **res_knobs);
 	char			*name;
 	char			*description;
 	char			*author;
