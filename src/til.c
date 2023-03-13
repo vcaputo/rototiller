@@ -37,7 +37,7 @@ extern til_module_t	pixbounce_module;
 extern til_module_t	plasma_module;
 extern til_module_t	plato_module;
 extern til_module_t	ray_module;
-extern til_module_t	rocket_module;
+extern til_module_t	rkt_module;
 extern til_module_t	roto_module;
 extern til_module_t	rtv_module;
 extern til_module_t	shapes_module;
@@ -65,7 +65,7 @@ static const til_module_t	*modules[] = {
 	&plasma_module,
 	&plato_module,
 	&ray_module,
-	&rocket_module,
+	&rkt_module,
 	&roto_module,
 	&rtv_module,
 	&shapes_module,
