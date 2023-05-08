@@ -45,7 +45,7 @@ void til_get_modules(const til_module_t ***res_modules, size_t *res_n_modules);
 void til_module_render(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr);
 int til_module_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, const char *parent_path, til_setup_t *setup, til_module_context_t **res_context);
 til_module_context_t * til_module_destroy_context(til_module_context_t *context, til_stream_t *stream);
-int til_module_setup(til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
+int til_module_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
 int til_module_randomize_setup(const til_module_t *module, unsigned seed, til_setup_t **res_setup, char **res_arg);
 int til_fragmenter_slice_per_cpu(til_module_context_t *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment);
 int til_fragmenter_tile64(til_module_context_t *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment);

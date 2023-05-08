@@ -264,7 +264,7 @@ int til_module_create_context(const til_module_t *module, til_stream_t *stream, 
 
 
 /* select module if not yet selected, then setup the module. */
-int til_module_setup(til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
+int til_module_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	til_setting_t		*setting;
 	const til_module_t	*module;
