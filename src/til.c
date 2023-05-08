@@ -270,7 +270,7 @@ int til_module_setup(const til_settings_t *settings, til_setting_t **res_setting
 	const til_module_t	*module;
 	const char		*name;
 
-	name = til_settings_get_key(settings, 0, &setting);
+	name = til_settings_get_value_by_idx(settings, 0, &setting);
 	if (!name) {
 		const char		*values[nelems(modules) + 1] = {};
 		const char		*annotations[nelems(modules) + 1] = {};

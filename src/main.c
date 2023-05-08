@@ -83,7 +83,7 @@ static int setup_video(const til_settings_t *settings, til_setting_t **res_setti
 	til_setting_t	*setting;
 	const char	*video;
 
-	video = til_settings_get_key(settings, 0, &setting);
+	video = til_settings_get_value_by_idx(settings, 0, &setting);
 	if (!video || !setting->desc) {
 		til_setting_desc_t	*desc;
 		const char		*values[] = {
@@ -377,8 +377,8 @@ int main(int argc, const char *argv[])
 	exit_if(r && print_setup_as_args(&setup, !rototiller.args.gogogo) < 0,
 		"unable to print setup");
 
-	exit_if(!(rototiller.module = til_lookup_module(til_settings_get_key(setup.module_settings, 0, NULL))),
-		"unable to lookup module from settings \"%s\"", til_settings_get_key(setup.module_settings, 0, NULL));
+	exit_if(!(rototiller.module = til_lookup_module(til_settings_get_value_by_idx(setup.module_settings, 0, NULL))),
+		"unable to lookup module from settings \"%s\"", til_settings_get_value_by_idx(setup.module_settings, 0, NULL));
 
 	exit_if((r = til_fb_new(fb_ops, setup.video_setup, NUM_FB_PAGES, &rototiller.fb)) < 0,
 		"unable to create fb: %s", strerror(-r));

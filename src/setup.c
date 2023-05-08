@@ -6,21 +6,6 @@
 #include "til_setup.h"
 #include "til_util.h"
 
-/* add key=value, but if key is NULL, use value as key. */
-static int add_value(til_settings_t *settings, const char *key, const char *value)
-{
-	assert(settings);
-
-	if (!key) {
-		key = value;
-		value = NULL;
-	}
-
-	assert(key);
-
-	return til_settings_add_value(settings, key, value, NULL);
-}
-
 
 /* returns negative on error, otherwise number of additions made to settings */
 int setup_interactively(til_settings_t *settings, int (*setup_func)(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup), int defaults, til_setup_t **res_setup, const til_setting_desc_t **res_failed_desc)
@@ -115,7 +100,7 @@ int setup_interactively(til_settings_t *settings, int (*setup_func)(const til_se
 
 		if (*buf == '\n') {
 			/* accept preferred */
-			add_value(settings, desc->key, desc->preferred);
+			til_settings_add_value(settings, desc->key, desc->preferred, NULL);
 		} else {
 			buf[strlen(buf) - 1] = '\0';
 
@@ -131,7 +116,7 @@ int setup_interactively(til_settings_t *settings, int (*setup_func)(const til_se
 
 				for (found = i = 0; desc->values[i]; i++) {
 					if (i == j) {
-						add_value(settings, desc->key, desc->values[i]);
+						til_settings_add_value(settings, desc->key, desc->values[i], NULL);
 						found = 1;
 						break;
 					}
@@ -146,7 +131,7 @@ int setup_interactively(til_settings_t *settings, int (*setup_func)(const til_se
 
 			} else {
 				/* use typed input as setting, TODO: apply regex */
-				add_value(settings, desc->key, buf);
+				til_settings_add_value(settings, desc->key, buf, NULL);
 			}
 		}
 _next:

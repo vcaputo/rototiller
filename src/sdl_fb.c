@@ -73,7 +73,7 @@ static int sdl_fb_setup(const til_settings_t *settings, til_setting_t **res_sett
 							res_desc);
 		if (r)
 			return r;
-	} else if ((size = til_settings_get_value(settings, "size", res_setting)) && !(*res_setting)->desc) {
+	} else if ((size = til_settings_get_value_by_key(settings, "size", res_setting)) && !(*res_setting)->desc) {
 		/* if fullscreen=on AND size=WxH is specified, we'll do a more legacy style SDL fullscreen
 		 * where it tries to change the video mode.  But if size is unspecified, it'll be a desktop
 		 * style fullscreen where it just uses a fullscreen window in the existing video mode, and

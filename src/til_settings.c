@@ -38,6 +38,7 @@ typedef struct til_settings_t {
 
 typedef enum til_settings_fsm_state_t {
 	TIL_SETTINGS_FSM_STATE_KEY,
+	TIL_SETTINGS_FSM_STATE_KEY_ESCAPED,
 	TIL_SETTINGS_FSM_STATE_EQUAL,
 	TIL_SETTINGS_FSM_STATE_VALUE,
 	TIL_SETTINGS_FSM_STATE_VALUE_ESCAPED,
@@ -45,27 +46,39 @@ typedef enum til_settings_fsm_state_t {
 } til_settings_fsm_state_t;
 
 
-static int add_value(til_settings_t *settings, const char *key, const char *value, const til_setting_desc_t *desc)
+static til_setting_t * add_setting(til_settings_t *settings, const char *key, const char *value, const til_setting_desc_t *desc)
 {
+	til_setting_t	**new_settings;
+	til_setting_t	*s;
+
 	assert(settings);
 
-	settings->num++;
-	/* TODO errors */
-	settings->settings = realloc(settings->settings, settings->num * sizeof(til_setting_t *));
-	settings->settings[settings->num - 1] = calloc(1, sizeof(til_setting_t));
-	settings->settings[settings->num - 1]->key = key;
-	settings->settings[settings->num - 1]->value = value;
-	settings->settings[settings->num - 1]->desc = desc;
+	s = calloc(1, sizeof(til_setting_t));
+	if (!s)
+		return NULL;
 
-	return 0;
+	new_settings = realloc(settings->settings, (settings->num + 1) * sizeof(til_setting_t *));
+	if (!new_settings) {
+		free(s);
+		return NULL;
+	}
+
+	settings->settings = new_settings;
+	settings->settings[settings->num] = s;
+	settings->settings[settings->num]->key = key;
+	settings->settings[settings->num]->value = value;
+	settings->settings[settings->num]->desc = desc;
+	settings->num++;
+
+	return s;
 }
 
 
 /* split settings_string into a data structure */
 til_settings_t * til_settings_new(const char *label, const char *settings_string)
 {
-	til_settings_fsm_state_t	state = TIL_SETTINGS_FSM_STATE_KEY;
-	const char			*p, *token;
+	til_settings_fsm_state_t	state = TIL_SETTINGS_FSM_STATE_COMMA;
+	const char			*p;
 	til_settings_t			*settings;
 	FILE				*value_fp;
 	char				*value_buf;
@@ -84,31 +97,44 @@ til_settings_t * til_settings_new(const char *label, const char *settings_string
 	if (!settings_string)
 		return settings;
 
-	for (token = p = settings_string; ;p++) {
+	for (p = settings_string;;p++) {
 
 		switch (state) {
 		case TIL_SETTINGS_FSM_STATE_COMMA:
-			token = p;
-			state = TIL_SETTINGS_FSM_STATE_KEY;
-			break;
-
-		case TIL_SETTINGS_FSM_STATE_KEY:
-			if (*p == '=' || *p == ',' || *p == '\0') {
-				add_value(settings, strndup(token, p - token), NULL, NULL);
-
-				if (*p == '=')
-					state = TIL_SETTINGS_FSM_STATE_EQUAL;
-				else if (*p == ',')
-					state = TIL_SETTINGS_FSM_STATE_COMMA;
-			}
-			break;
-
-		case TIL_SETTINGS_FSM_STATE_EQUAL:
-			value_fp = open_memstream(&value_buf, &value_sz);
+			value_fp = open_memstream(&value_buf, &value_sz); /* TODO FIXME: open_memstream() isn't portable */
 			if (!value_fp)
 				goto _err;
 
-			token = p;
+			state = TIL_SETTINGS_FSM_STATE_KEY;
+			/* fallthrough */
+
+		case TIL_SETTINGS_FSM_STATE_KEY:
+			if (*p == '\\')
+				state = TIL_SETTINGS_FSM_STATE_KEY_ESCAPED;
+			else if (*p == '=' || *p == ',' || *p == '\0') {
+				fclose(value_fp);
+
+				if (*p == '=') { /* key= */
+					(void) add_setting(settings, value_buf, NULL, NULL);
+					state = TIL_SETTINGS_FSM_STATE_EQUAL;
+				} else { /* bare value */
+					(void) add_setting(settings, NULL, value_buf, NULL);
+					state = TIL_SETTINGS_FSM_STATE_COMMA;
+				}
+			} else
+				fputc(*p, value_fp);
+			break;
+
+		case TIL_SETTINGS_FSM_STATE_KEY_ESCAPED:
+			fputc(*p, value_fp);
+			state = TIL_SETTINGS_FSM_STATE_KEY;
+			break;
+
+		case TIL_SETTINGS_FSM_STATE_EQUAL:
+			value_fp = open_memstream(&value_buf, &value_sz); /* TODO FIXME: open_memstream() isn't portable */
+			if (!value_fp)
+				goto _err;
+
 			state = TIL_SETTINGS_FSM_STATE_VALUE;
 			/* fallthrough, necessary to not leave NULL values for empty "key=\0" settings */
 
@@ -125,6 +151,13 @@ til_settings_t * til_settings_new(const char *label, const char *settings_string
 			break;
 
 		case TIL_SETTINGS_FSM_STATE_VALUE_ESCAPED:
+			/* TODO: note currently we just pass-through literally whatever char was escaped,
+			 * but in cases like \n it should really be turned into 0xa so we can actually have
+			 * a setting contain a raw newline post-unescaping (imagine a marquee module supporting
+			 * arbitray text to be drawn, newlines would be ok yeah? should it be responsible for
+			 * unescaping "\n" itself or just look for '\n' (0xa) to insert linefeeds?  I think
+			 * the latter...)  But until there's a real need for that, this can just stay as-is.
+			 */
 			fputc(*p, value_fp);
 			state = TIL_SETTINGS_FSM_STATE_VALUE;
 			break;
@@ -166,13 +199,16 @@ til_settings_t * til_settings_free(til_settings_t *settings)
 }
 
 
-/* find key= in settings, return dup of value side or NULL if missing */
-const char * til_settings_get_value(const til_settings_t *settings, const char *key, til_setting_t **res_setting)
+/* find key= in settings, return value NULL if missing, optionally store setting @res_setting if found */
+const char * til_settings_get_value_by_key(const til_settings_t *settings, const char *key, til_setting_t **res_setting)
 {
 	assert(settings);
 	assert(key);
 
 	for (int i = 0; i < settings->num; i++) {
+		if (!settings->settings[i]->key)
+			continue;
+
 		if (!strcasecmp(key, settings->settings[i]->key)) {
 			if (res_setting)
 				*res_setting = settings->settings[i];
@@ -185,16 +221,16 @@ const char * til_settings_get_value(const til_settings_t *settings, const char *
 }
 
 
-/* return positional key from settings */
-const char * til_settings_get_key(const til_settings_t *settings, unsigned pos, til_setting_t **res_setting)
+/* return positional value from settings, NULL if missing, optionally store setting @res_setting if found */
+const char * til_settings_get_value_by_idx(const til_settings_t *settings, unsigned idx, til_setting_t **res_setting)
 {
 	assert(settings);
 
-	if (pos < settings->num) {
+	if (idx < settings->num) {
 		if (res_setting)
-			*res_setting = settings->settings[pos];
+			*res_setting = settings->settings[idx];
 
-		return settings->settings[pos]->key;
+		return settings->settings[idx]->value;
 	}
 
 	return NULL;
@@ -216,7 +252,7 @@ int til_settings_get_and_describe_value(const til_settings_t *settings, const ti
 	assert(desc);
 	assert(res_value);
 
-	value = til_settings_get_value(settings, desc->key, &setting);
+	value = til_settings_get_value_by_key(settings, desc->key, &setting);
 	if (!value || !setting->desc) {
 		int	r;
 
@@ -243,17 +279,16 @@ int til_settings_get_and_describe_value(const til_settings_t *settings, const ti
 }
 
 
-/* add key=value to the settings,
- * or just key if value is NULL.
+/* add key,value as a new setting to settings,
+ * NULL keys and/or values are passed through as-is
  * desc may be NULL, it's simply passed along as a passenger.
  */
-/* returns < 0 on error */
-int til_settings_add_value(til_settings_t *settings, const char *key, const char *value, const til_setting_desc_t *desc)
+/* returns the added setting, or NULL on error (ENOMEM) */
+til_setting_t * til_settings_add_value(til_settings_t *settings, const char *key, const char *value, const til_setting_desc_t *desc)
 {
 	assert(settings);
-	assert(key);
 
-	return add_value(settings, strdup(key), value ? strdup(value) : NULL, desc);
+	return add_setting(settings, key ? strdup(key) : NULL, value ? strdup(value) : NULL, desc);
 }
 
 
