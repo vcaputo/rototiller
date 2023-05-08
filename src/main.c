@@ -279,7 +279,7 @@ static int print_setup_as_args(setup_t *setup, int wait)
 	if (!video_args)
 		goto _out_module;
 
-	r = printf("\nConfigured settings as flags:\n  --seed=%s --module=%s --video=%s\n",
+	r = printf("\nConfigured settings as flags:\n  --seed=%s '--module=%s' '--video=%s'\n",
 		seed_arg,
 		module_args,
 		video_args);
