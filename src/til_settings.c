@@ -431,18 +431,28 @@ til_setting_desc_t * til_setting_desc_free(const til_setting_desc_t *desc)
 }
 
 
+/* TODO: spec checking in general needs refinement and to be less intolerant of
+ * creative experimentation.
+ */
 int til_setting_spec_check(const til_setting_spec_t *spec, const char *value)
 {
 	assert(spec);
 	assert(value);
 
-	if (spec->values) {
+	/* XXX: this check can't really be performed on anything but "leaf" settings. */
+	if (spec->values && !spec->as_nested_settings) {
 
 		for (int i = 0; spec->values[i]; i++) {
 			if (!strcasecmp(spec->values[i], value))
 				return 0;
 		}
 
+		/* TODO: there probably needs to be a way to make this less fatal
+		 * in the spec and/or at runtime via a flag.  The values[] are more like presets,
+		 * and especially for numeric settings we should be able to explicitly specify a
+		 * perfectly usable number that isn't within the presets, if the module can live
+		 * with it (think arbitrary floats)...
+		 */
 		return -EINVAL;
 	}
 
