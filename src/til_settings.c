@@ -363,6 +363,8 @@ int til_setting_desc_new(const til_settings_t *settings, const til_setting_spec_
 	if (!d)
 		return -ENOMEM;
 
+	/* XXX: intentionally casting away the const here, since the purpose of desc->container is to point where to actually put the setting for the front-end setup code */
+	d->container = (til_settings_t *)settings;
 
 	if (spec->name)
 		d->spec.name = strdup(spec->name);

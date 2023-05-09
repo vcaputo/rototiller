@@ -100,7 +100,7 @@ int setup_interactively(til_settings_t *settings, int (*setup_func)(const til_se
 
 		if (*buf == '\n') {
 			/* accept preferred */
-			til_settings_add_value(settings, desc->spec.key, desc->spec.preferred, NULL);
+			til_settings_add_value(desc->container, desc->spec.key, desc->spec.preferred, NULL);
 		} else {
 			buf[strlen(buf) - 1] = '\0';
 
@@ -116,7 +116,7 @@ int setup_interactively(til_settings_t *settings, int (*setup_func)(const til_se
 
 				for (found = i = 0; desc->spec.values[i]; i++) {
 					if (i == j) {
-						til_settings_add_value(settings, desc->spec.key, desc->spec.values[i], NULL);
+						til_settings_add_value(desc->container, desc->spec.key, desc->spec.values[i], NULL);
 						found = 1;
 						break;
 					}
@@ -131,7 +131,7 @@ int setup_interactively(til_settings_t *settings, int (*setup_func)(const til_se
 
 			} else {
 				/* use typed input as setting, TODO: apply regex */
-				til_settings_add_value(settings, desc->spec.key, buf, NULL);
+				til_settings_add_value(desc->container, desc->spec.key, buf, NULL);
 			}
 		}
 _next:
