@@ -464,62 +464,76 @@ int til_setting_spec_check(const til_setting_spec_t *spec, const char *value)
 }
 
 
-/* wrapper around sprintf for convenient buffer size computation */
-/* supply NULL buf when computing size, size and offset are ignored.
- * supply non-NULL for actual writing into buf of size bytes @ offset.
- * return value is number of bytes (potentially if !buf) written
- */
-static int snpf(char *buf, size_t size, off_t offset, const char *format, ...)
+static inline void fputc_escaped(FILE *out, int c, unsigned depth)
 {
-	size_t	avail = 0;
-	va_list	ap;
-	int	r;
+	unsigned	escapes = 0;
 
-	if (buf) {
-		assert(size > offset);
-
-		avail = size - offset;
-		buf += offset;
+	for (unsigned i = 0; i < depth; i++) {
+		escapes <<= 1;
+		escapes += 1;
 	}
 
-	va_start(ap, format);
-	r = vsnprintf(buf, avail, format, ap);
-	va_end(ap);
+	for (unsigned i = 0; i < escapes; i++)
+		fputc('\\', out);
 
-	return r;
+	fputc(c, out);
+}
+
+
+static inline void fputs_escaped(FILE *out, const char *value, unsigned depth)
+{
+	char	c;
+
+	while ((c = *value++)) {
+		switch (c) {
+		case '\'': /* this isn't strictly necessary, but let's just make settings-as-arg easily quotable for shell purposes, excessive escaping is otherwise benign */
+		case '=':
+		case ',':
+		case '\\':
+			fputc_escaped(out, c, depth);
+			break;
+		default:
+			fputc(c, out);
+			break;
+		}
+	}
+}
+
+
+static void settings_as_arg(const til_settings_t *settings, unsigned depth, FILE *out)
+{
+	for (size_t i = 0; i < settings->num; i++) {
+		if (i > 0)
+			fputc_escaped(out, ',', depth);
+
+		if (settings->settings[i]->key) {
+			fputs_escaped(out, settings->settings[i]->key, depth);
+			if (settings->settings[i]->value)
+				fputc_escaped(out, '=', depth);
+		}
+
+		if (settings->settings[i]->value_as_nested_settings) {
+			settings_as_arg(settings->settings[i]->value_as_nested_settings, depth + 1, out);
+		} else if (settings->settings[i]->value) {
+			fputs_escaped(out, settings->settings[i]->value, depth);
+		}
+	}
 }
 
 
 char * til_settings_as_arg(const til_settings_t *settings)
 {
-	char	*buf = NULL;
-	size_t	off, size;
+	FILE	*out;
+	char	*outbuf;
+	size_t	outsize;
 
-	/* intentionally avoided open_memstream for portability reasons */
-	for (;;) {
-		unsigned	i;
+	out = open_memstream(&outbuf, &outsize); /* TODO FIXME: open_memstream() isn't portable */
+	if (!out)
+		return NULL;
 
-		for (i = off = 0; i < settings->num; i++) {
-			if (i > 0)
-				off += snpf(buf, size, off, ",");
+	settings_as_arg(settings, 0, out);
 
-			off += snpf(buf, size, off, "%s", settings->settings[i]->key);
+	fclose(out);
 
-			if (settings->settings[i]->value)
-				off += snpf(buf, size, off, "=%s", settings->settings[i]->value);
-		}
-
-		if (!buf) {
-			size = off + 1;
-			buf = calloc(size, sizeof(char));
-			if (!buf)
-				return NULL;
-
-			continue;
-		}
-
-		break;
-	}
-
-	return buf;
+	return outbuf;
 }
