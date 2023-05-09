@@ -199,6 +199,14 @@ til_settings_t * til_settings_free(til_settings_t *settings)
 }
 
 
+unsigned til_settings_get_count(const til_settings_t *settings)
+{
+	assert(settings);
+
+	return settings->num;
+}
+
+
 /* find key= in settings, return value NULL if missing, optionally store setting @res_setting if found */
 const char * til_settings_get_value_by_key(const til_settings_t *settings, const char *key, til_setting_t **res_setting)
 {
