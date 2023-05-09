@@ -69,16 +69,17 @@ static const char * connector_type_name(uint32_t type) {
 }
 
 
-static int dev_desc_generator(til_setup_t *setup_context, const til_setting_desc_t **res_desc)
+static int dev_desc_generator(const til_settings_t *settings, til_setup_t *setup_context, const til_setting_desc_t **res_desc)
 {
-	return  til_setting_desc_clone(&(til_setting_desc_t){
-					.name = "DRM device path",
-					.key = "dev",
-					.regex = "/dev/dri/card[0-9]",
-					.preferred = "/dev/dri/card0",
-					.values = NULL,
-					.annotations = NULL
-				}, res_desc);
+	return  til_setting_desc_new(	settings,
+					&(til_setting_spec_t){
+						.name = "DRM device path",
+						.key = "dev",
+						.regex = "/dev/dri/card[0-9]",
+						.preferred = "/dev/dri/card0",
+						.values = NULL,
+						.annotations = NULL
+					}, res_desc);
 }
 
 
@@ -146,7 +147,7 @@ static void free_strv(const char **strv)
 }
 
 
-static int connector_desc_generator(til_setup_t *setup_context, const til_setting_desc_t **res_desc)
+static int connector_desc_generator(const til_settings_t *settings, til_setup_t *setup_context, const til_setting_desc_t **res_desc)
 {
 	drm_fb_setup_t	*s = (drm_fb_setup_t *)setup_context;
 	const char	**connectors;
@@ -158,14 +159,15 @@ static int connector_desc_generator(til_setup_t *setup_context, const til_settin
 	if (r < 0)
 		return r;
 
-	r = til_setting_desc_clone(&(til_setting_desc_t){
-					.name = "DRM connector",
-					.key = "connector",
-					.regex = "[a-zA-Z0-9]+",
-					.preferred = connectors[0],
-					.values = connectors,
-					.annotations = NULL
-				}, res_desc);
+	r = til_setting_desc_new(	settings,
+					&(til_setting_spec_t){
+						.name = "DRM connector",
+						.key = "connector",
+						.regex = "[a-zA-Z0-9]+",
+						.preferred = connectors[0],
+						.values = connectors,
+						.annotations = NULL
+					}, res_desc);
 	free_strv(connectors);
 
 	return r;
@@ -255,7 +257,7 @@ _out:
 }
 
 
-static int mode_desc_generator(til_setup_t *setup_context, const til_setting_desc_t **res_desc)
+static int mode_desc_generator(const til_settings_t *settings, til_setup_t *setup_context, const til_setting_desc_t **res_desc)
 {
 	drm_fb_setup_t	*s = (drm_fb_setup_t *)setup_context;
 	const char	**modes;
@@ -267,14 +269,15 @@ static int mode_desc_generator(til_setup_t *setup_context, const til_setting_des
 	if (r < 0)
 		return r;
 
-	r = til_setting_desc_clone(&(til_setting_desc_t){
-					.name = "DRM video mode",
-					.key = "mode",
-					.regex = "[0-9]+[xX][0-9]+@[0-9]+",
-					.preferred = modes[0],
-					.values = modes,
-					.annotations = NULL
-				}, res_desc);
+	r = til_setting_desc_new(	settings,
+					&(til_setting_spec_t){
+						.name = "DRM video mode",
+						.key = "mode",
+						.regex = "[0-9]+[xX][0-9]+@[0-9]+",
+						.preferred = modes[0],
+						.values = modes,
+						.annotations = NULL
+					}, res_desc);
 	free_strv(modes);
 
 	return r;

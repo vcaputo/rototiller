@@ -462,7 +462,7 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 	int		r;
 
 	r = til_settings_get_and_describe_value(settings,
-						&(til_setting_desc_t){
+						&(til_setting_spec_t){
 							.name = "Checker size",
 							.key = "size",
 							.regex = "\\.[0-9]+",
@@ -477,7 +477,7 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 		return r;
 
 	r = til_settings_get_and_describe_value(settings,
-						&(til_setting_desc_t){
+						&(til_setting_spec_t){
 							.name = "Checkers pattern",
 							.key = "pattern",
 							.preferred = pattern_values[0],
@@ -491,7 +491,7 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 		return r;
 
 	r = til_settings_get_and_describe_value(settings,
-						&(til_setting_desc_t){
+						&(til_setting_spec_t){
 							.name = "Filled cell module (\"none\" for plain checkers)",
 							.key = "fill_module",
 							.preferred = fill_module_values[0],
@@ -505,7 +505,7 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 		return r;
 
 	r = til_settings_get_and_describe_value(settings,
-						&(til_setting_desc_t){
+						&(til_setting_spec_t){
 							.name = "Checkers dynamics",
 							.key = "dynamics",
 							.preferred = dynamics_values[0],
@@ -520,7 +520,7 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 
 	if (strcasecmp(dynamics, "odd") && strcasecmp(dynamics, "even")) {
 		r = til_settings_get_and_describe_value(settings,
-							&(til_setting_desc_t){
+							&(til_setting_spec_t){
 								.name = "Checkers dynamics rate",
 								.key = "dynamics_rate",
 								.preferred = dynamics_rate_values[0],
@@ -535,7 +535,7 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 	}
 
 	r = til_settings_get_and_describe_value(settings,
-						&(til_setting_desc_t){
+						&(til_setting_spec_t){
 							.name = "Fill mode",
 							.key = "fill",
 							.preferred = fill_values[CHECKERS_DEFAULT_FILL],
@@ -552,7 +552,7 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 	 * if there's no texture or no underlay to sample, we should have a color to fallback on.
 	 */
 	r = til_settings_get_and_describe_value(settings,
-						&(til_setting_desc_t){
+						&(til_setting_spec_t){
 							.name = "Fill color",
 							.key = "color",
 							.preferred = TIL_SETTINGS_STR(CHECKERS_DEFAULT_COLOR),

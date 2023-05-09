@@ -340,7 +340,7 @@ static int submit_setup(const til_settings_t *settings, til_setting_t **res_sett
 	int		r;
 
 	r = til_settings_get_and_describe_value(settings,
-						&(til_setting_desc_t){
+						&(til_setting_spec_t){
 							.name = "Bilinearly interpolate cell colors",
 							.key = "bilerp",
 							.regex = NULL,

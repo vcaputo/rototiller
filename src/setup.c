@@ -29,16 +29,16 @@ int setup_interactively(til_settings_t *settings, int (*setup_func)(const til_se
 		 */
 		if (setting && !setting->desc) {
 			 /* XXX FIXME: this key as value exception is janky, make a helper to access the value or stop doing that. */
-			r = til_setting_desc_check(desc, setting->value ? : setting->key);
+			r = til_setting_spec_check(&desc->spec, setting->value ? : setting->key);
 			if (r < 0) {
 				*res_failed_desc = desc;
 
 				return r;
 			}
 
-			if (desc->as_nested_settings && !setting->settings) {
-				setting->settings = til_settings_new(setting->key, setting->value);
-				if (!setting->settings) {
+			if (desc->spec.as_nested_settings && !setting->value_as_nested_settings) {
+				setting->value_as_nested_settings = til_settings_new(setting->key, setting->value);
+				if (!setting->value_as_nested_settings) {
 					*res_failed_desc = desc;
 
 					/* FIXME: til_settings_new() seems like it should return an errno, since it can encounter parse errors too? */
@@ -54,39 +54,39 @@ int setup_interactively(til_settings_t *settings, int (*setup_func)(const til_se
 		if (!defaults)
 			puts("");
 
-		if (desc->values) {
+		if (desc->spec.values) {
 			unsigned	i, preferred = 0;
 			int		width = 0;
 
-			for (i = 0; desc->values[i]; i++) {
+			for (i = 0; desc->spec.values[i]; i++) {
 				int	len;
 
-				len = strlen(desc->values[i]);
+				len = strlen(desc->spec.values[i]);
 				if (len > width)
 					width = len;
 			}
 
 			/* multiple choice */
 			if (!defaults)
-				printf("%s:\n", desc->name);
+				printf("%s:\n", desc->spec.name);
 
-			for (i = 0; desc->values[i]; i++) {
+			for (i = 0; desc->spec.values[i]; i++) {
 				if (!defaults)
-					printf("%2u: %*s%s%s\n", i, width, desc->values[i],
-						desc->annotations ? ": " : "",
-						desc->annotations ? desc->annotations[i] : "");
+					printf("%2u: %*s%s%s\n", i, width, desc->spec.values[i],
+						desc->spec.annotations ? ": " : "",
+						desc->spec.annotations ? desc->spec.annotations[i] : "");
 
-				if (!strcasecmp(desc->preferred, desc->values[i]))
+				if (!strcasecmp(desc->spec.preferred, desc->spec.values[i]))
 					preferred = i;
 			}
 
 			if (!defaults)
 				printf("Enter a value 0-%u [%u (%s)]: ",
-					i - 1, preferred, desc->preferred);
+					i - 1, preferred, desc->spec.preferred);
 		} else {
 			/* arbitrarily typed input */
 			if (!defaults)
-				printf("%s [%s]: ", desc->name, desc->preferred);
+				printf("%s [%s]: ", desc->spec.name, desc->spec.preferred);
 		}
 
 		if (!defaults) {
@@ -100,11 +100,11 @@ int setup_interactively(til_settings_t *settings, int (*setup_func)(const til_se
 
 		if (*buf == '\n') {
 			/* accept preferred */
-			til_settings_add_value(settings, desc->key, desc->preferred, NULL);
+			til_settings_add_value(settings, desc->spec.key, desc->spec.preferred, NULL);
 		} else {
 			buf[strlen(buf) - 1] = '\0';
 
-			if (desc->values) {
+			if (desc->spec.values) {
 				unsigned	i, j, found;
 
 				/* multiple choice, map numeric input to values entry */
@@ -114,9 +114,9 @@ int setup_interactively(til_settings_t *settings, int (*setup_func)(const til_se
 					goto _next;
 				}
 
-				for (found = i = 0; desc->values[i]; i++) {
+				for (found = i = 0; desc->spec.values[i]; i++) {
 					if (i == j) {
-						til_settings_add_value(settings, desc->key, desc->values[i], NULL);
+						til_settings_add_value(settings, desc->spec.key, desc->spec.values[i], NULL);
 						found = 1;
 						break;
 					}
@@ -131,7 +131,7 @@ int setup_interactively(til_settings_t *settings, int (*setup_func)(const til_se
 
 			} else {
 				/* use typed input as setting, TODO: apply regex */
-				til_settings_add_value(settings, desc->key, buf, NULL);
+				til_settings_add_value(settings, desc->spec.key, buf, NULL);
 			}
 		}
 _next:

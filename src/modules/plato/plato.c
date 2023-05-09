@@ -711,7 +711,7 @@ static int plato_setup(const til_settings_t *settings, til_setting_t **res_setti
 	int		r;
 
 	r = til_settings_get_and_describe_value(settings,
-						&(til_setting_desc_t){
+						&(til_setting_spec_t){
 							.name = "Orbit rate and direction",
 							.key = "orbit_rate",
 							.regex = "\\.[0-9]+", /* FIXME */
@@ -726,7 +726,7 @@ static int plato_setup(const til_settings_t *settings, til_setting_t **res_setti
 		return r;
 
 	r = til_settings_get_and_describe_value(settings,
-						&(til_setting_desc_t){
+						&(til_setting_spec_t){
 							.name = "Spin rate and direction",
 							.key = "spin_rate",
 							.regex = "\\.[0-9]+", /* FIXME */

@@ -98,14 +98,15 @@ static int setup_video(const til_settings_t *settings, til_setting_t **res_setti
 					};
 		int			r;
 
-		r = til_setting_desc_clone(&(til_setting_desc_t){
-						.name = "Video backend",
-						.key = NULL,
-						.regex = "[a-z]+",
-						.preferred = DEFAULT_VIDEO,
-						.values = values,
-						.annotations = NULL
-					}, res_desc);
+		r = til_setting_desc_new(	settings,
+						&(til_setting_spec_t){
+							.name = "Video backend",
+							.key = NULL,
+							.regex = "[a-z]+",
+							.preferred = DEFAULT_VIDEO,
+							.values = values,
+							.annotations = NULL
+						}, res_desc);
 
 		if (r < 0)
 			return r;
@@ -370,7 +371,7 @@ int main(int argc, const char *argv[])
 	exit_if((r = setup_from_args(&rototiller.args, &setup, &failed_desc)) < 0,
 		"unable to use args%s%s%s: %s",
 		failed_desc ? " for setting \"" : "",
-		failed_desc ? failed_desc->key : "",
+		failed_desc ? failed_desc->spec.key : "",
 		failed_desc ? "\"" : "",
 		strerror(-r));
 

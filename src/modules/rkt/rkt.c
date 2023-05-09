@@ -287,7 +287,7 @@ static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting
 	 * might work for getting full-blown demos sequenced via rocket.
 	 */
 	r = til_settings_get_and_describe_value(settings,
-						&(til_setting_desc_t){
+						&(til_setting_spec_t){
 							.name = "Module to sequence",
 							.key = "seq_module",
 							.preferred = "compose",
@@ -300,7 +300,7 @@ static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting
 		return r;
 
 	r = til_settings_get_and_describe_value(settings,
-						&(til_setting_desc_t){
+						&(til_setting_spec_t){
 							.name = "Rocket \"base\" label",
 							.key = "base",
 							.preferred = "tiller",
@@ -313,7 +313,7 @@ static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting
 		return r;
 
 	r = til_settings_get_and_describe_value(settings,
-						&(til_setting_desc_t){
+						&(til_setting_spec_t){
 							.name = "Beats per minute",
 							.key = "bpm",
 							.preferred = "125",
@@ -326,7 +326,7 @@ static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting
 		return r;
 
 	r = til_settings_get_and_describe_value(settings,
-						&(til_setting_desc_t){
+						&(til_setting_spec_t){
 							.name = "Rows per beat",
 							.key = "rpb",
 							.preferred = "8",
@@ -339,7 +339,7 @@ static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting
 		return r;
 
 	r = til_settings_get_and_describe_value(settings,
-						&(til_setting_desc_t){
+						&(til_setting_spec_t){
 							.name = "Editor connection toggle",
 							.key = "connect",
 							/* TODO: regex */
@@ -355,7 +355,7 @@ static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting
 
 	if (!strcasecmp(connect, "on")) {
 		r = til_settings_get_and_describe_value(settings,
-							&(til_setting_desc_t){
+							&(til_setting_spec_t){
 								.name = "Editor host",
 								.key = "host",
 								.preferred = "localhost",
@@ -369,7 +369,7 @@ static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting
 			return r;
 
 		r = til_settings_get_and_describe_value(settings,
-							&(til_setting_desc_t){
+							&(til_setting_spec_t){
 								.name = "Editor port",
 								.key = "port",
 								.preferred = TIL_SETTINGS_STR(SYNC_DEFAULT_PORT),

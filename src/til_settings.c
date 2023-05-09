@@ -243,23 +243,23 @@ const char * til_settings_get_value_by_idx(const til_settings_t *settings, unsig
  * 0 when setting is present and described, res_value and res_setting will be populated w/non-NULL, and res_desc NULL in this case.
  * 1 when setting is either present but undescribed, or absent (and undescribed), res_* will be populated but res_{value,setting} may be NULL if absent and simply described.
  */
-int til_settings_get_and_describe_value(const til_settings_t *settings, const til_setting_desc_t *desc, const char **res_value, til_setting_t **res_setting, const til_setting_desc_t **res_desc)
+int til_settings_get_and_describe_value(const til_settings_t *settings, const til_setting_spec_t *spec, const char **res_value, til_setting_t **res_setting, const til_setting_desc_t **res_desc)
 {
 	til_setting_t	*setting;
 	const char	*value;
 
 	assert(settings);
-	assert(desc);
+	assert(spec);
 	assert(res_value);
 
-	value = til_settings_get_value_by_key(settings, desc->key, &setting);
+	value = til_settings_get_value_by_key(settings, spec->key, &setting);
 	if (!value || !setting->desc) {
 		int	r;
 
 		assert(res_setting);
 		assert(res_desc);
 
-		r = til_setting_desc_clone(desc, res_desc);
+		r = til_setting_desc_new(settings, spec, res_desc);
 		if (r < 0)
 			return r;
 
@@ -318,11 +318,11 @@ int til_settings_apply_desc_generators(const til_settings_t *settings, const til
 		const til_setting_desc_t		*desc;
 		int					r;
 
-		r = g->func(setup, &desc);
+		r = g->func(settings, setup, &desc);
 		if (r < 0)
 			return r;
 
-		r = til_settings_get_and_describe_value(settings, desc, g->value_ptr, res_setting, res_desc);
+		r = til_settings_get_and_describe_value(settings, &desc->spec, g->value_ptr, res_setting, res_desc);
 		til_setting_desc_free(desc); /* always need to cleanup the desc from g->func(), res_desc gets its own copy */
 		if (r)
 			return r;
@@ -338,49 +338,56 @@ int til_settings_apply_desc_generators(const til_settings_t *settings, const til
 /* convenience helper for creating a new setting description */
 /* copies of everything supplied are made in newly allocated memory, stored @ res_desc */
 /* returns < 0 on error */
-int til_setting_desc_clone(const til_setting_desc_t *desc, const til_setting_desc_t **res_desc)
+int til_setting_desc_new(const til_settings_t *settings, const til_setting_spec_t *spec, const til_setting_desc_t **res_desc)
 {
 	til_setting_desc_t	*d;
 
-	assert(desc);
-	assert(desc->name);
-	assert(desc->preferred);	/* XXX: require a preferred default? */
-	assert(!desc->annotations || desc->values);
+	assert(settings);
+	assert(spec);
+	if (!spec->as_nested_settings) { /* this feels dirty, but sometimes you just need a bare nested settings created */
+		assert(spec->name);
+		assert(spec->preferred);	/* XXX: require a preferred default? */
+	}
+	assert((!spec->annotations || spec->values) || spec->as_nested_settings);
 	assert(res_desc);
 
 	d = calloc(1, sizeof(til_setting_desc_t));
 	if (!d)
 		return -ENOMEM;
 
-	d->name = strdup(desc->name);
-	if (desc->key)	/* This is inappropriately subtle, but when key is NULL, the value will be the key, and there will be no value side at all. */
-		d->key = strdup(desc->key);
-	if (desc->regex)
-		d->regex = strdup(desc->regex);
 
-	d->preferred = strdup(desc->preferred);
+	if (spec->name)
+		d->spec.name = strdup(spec->name);
+	if (spec->key)	/* This is inappropriately subtle, but when key is NULL, the value will be the key, and there will be no value side at all. */
+		d->spec.key = strdup(spec->key);
+	if (spec->regex)
+		d->spec.regex = strdup(spec->regex);
 
-	if (desc->values) {
+	if (spec->preferred)
+		d->spec.preferred = strdup(spec->preferred);
+
+	if (spec->values) {
 		unsigned	i;
 
-		for (i = 0; desc->values[i]; i++);
+		for (i = 0; spec->values[i]; i++);
 
-		d->values = calloc(i + 1, sizeof(*desc->values));
+		d->spec.values = calloc(i + 1, sizeof(*spec->values));
 
-		if (desc->annotations)
-			d->annotations = calloc(i + 1, sizeof(*desc->annotations));
+		if (spec->annotations)
+			d->spec.annotations = calloc(i + 1, sizeof(*spec->annotations));
 
-		for (i = 0; desc->values[i]; i++) {
-			d->values[i] = strdup(desc->values[i]);
+		for (i = 0; spec->values[i]; i++) {
+			d->spec.values[i] = strdup(spec->values[i]);
 
-			if (desc->annotations) {
-				assert(desc->annotations[i]);
-				d->annotations[i] = strdup(desc->annotations[i]);
+			if (spec->annotations) {
+				assert(spec->annotations[i]);
+				d->spec.annotations[i] = strdup(spec->annotations[i]);
 			}
 		}
 	}
 
-	d->random = desc->random;
+	d->spec.random = spec->random;
+	d->spec.as_nested_settings = spec->as_nested_settings;
 
 	/* TODO: handle allocation errors above... */
 	*res_desc = d;
@@ -392,21 +399,21 @@ int til_setting_desc_clone(const til_setting_desc_t *desc, const til_setting_des
 til_setting_desc_t * til_setting_desc_free(const til_setting_desc_t *desc)
 {
 	if (desc) {
-		free((void *)desc->name);
-		free((void *)desc->key);
-		free((void *)desc->regex);
-		free((void *)desc->preferred);
+		free((void *)desc->spec.name);
+		free((void *)desc->spec.key);
+		free((void *)desc->spec.regex);
+		free((void *)desc->spec.preferred);
 
-		if (desc->values) {
-			for (unsigned i = 0; desc->values[i]; i++) {
-				free((void *)desc->values[i]);
+		if (desc->spec.values) {
+			for (unsigned i = 0; desc->spec.values[i]; i++) {
+				free((void *)desc->spec.values[i]);
 
-				if (desc->annotations)
-					free((void *)desc->annotations[i]);
+				if (desc->spec.annotations)
+					free((void *)desc->spec.annotations[i]);
 			}
 
-			free((void *)desc->values);
-			free((void *)desc->annotations);
+			free((void *)desc->spec.values);
+			free((void *)desc->spec.annotations);
 		}
 
 		free((void *)desc);
@@ -416,15 +423,15 @@ til_setting_desc_t * til_setting_desc_free(const til_setting_desc_t *desc)
 }
 
 
-int til_setting_desc_check(const til_setting_desc_t *desc, const char *value)
+int til_setting_spec_check(const til_setting_spec_t *spec, const char *value)
 {
-	assert(desc);
+	assert(spec);
 	assert(value);
 
-	if (desc->values) {
+	if (spec->values) {
 
-		for (int i = 0; desc->values[i]; i++) {
-			if (!strcasecmp(desc->values[i], value))
+		for (int i = 0; spec->values[i]; i++) {
+			if (!strcasecmp(spec->values[i], value))
 				return 0;
 		}
 

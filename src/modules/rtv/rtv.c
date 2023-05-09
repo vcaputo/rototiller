@@ -322,7 +322,7 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 	int		r;
 
 	r = til_settings_get_and_describe_value(settings,
-						&(til_setting_desc_t){
+						&(til_setting_spec_t){
 							.name = "Colon-separated list of channel modules, \"all\" for all",
 							.key = "channels",
 							.preferred = "compose",
@@ -335,7 +335,7 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 		return r;
 
 	r = til_settings_get_and_describe_value(settings,
-						&(til_setting_desc_t){
+						&(til_setting_spec_t){
 							.name = "Channel duration, in seconds",
 							.key = "duration",
 							.regex = "\\.[0-9]+",
@@ -349,7 +349,7 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 		return r;
 
 	r = til_settings_get_and_describe_value(settings,
-						&(til_setting_desc_t){
+						&(til_setting_spec_t){
 							.name = "Context duration, in seconds",
 							.key = "context_duration",
 							.regex = "\\.[0-9]+",
@@ -363,7 +363,7 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 		return r;
 
 	r = til_settings_get_and_describe_value(settings,
-						&(til_setting_desc_t){
+						&(til_setting_spec_t){
 							.name = "Caption duration, in seconds",
 							.key = "caption_duration",
 							.regex = "\\.[0-9]+",
@@ -377,7 +377,7 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 		return r;
 
 	r = til_settings_get_and_describe_value(settings,
-						&(til_setting_desc_t){
+						&(til_setting_spec_t){
 							.name = "Snow on channel-switch duration, in seconds",
 							.key = "snow_duration",
 							.regex = "\\.[0-9]+",
@@ -391,7 +391,7 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 		return r;
 
 	r = til_settings_get_and_describe_value(settings,
-						&(til_setting_desc_t){
+						&(til_setting_spec_t){
 							.name = "Module for snow (\"blank\" for blanking, \"none\" to disable)",
 							.key = "snow_module",
 							.preferred = RTV_DEFAULT_SNOW_MODULE,

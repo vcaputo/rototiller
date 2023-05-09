@@ -266,7 +266,7 @@ int stars_setup(const til_settings_t *settings, til_setting_t **res_setting, con
 	int		r;
 
 	r = til_settings_get_and_describe_value(settings,
-						&(til_setting_desc_t){
+						&(til_setting_spec_t){
 							.name = "Rotation rate",
 							.key = "rot_adj",
 							.regex = "\\.[0-9]+",

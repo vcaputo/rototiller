@@ -377,7 +377,7 @@ static int drizzle_setup(const til_settings_t *settings, til_setting_t **res_set
 	int		r;
 
 	r = til_settings_get_and_describe_value(settings,
-						&(til_setting_desc_t){
+						&(til_setting_spec_t){
 							.name = "Puddle viscosity",
 							.key = "viscosity",
 							.regex = "\\.[0-9]+",
@@ -392,7 +392,7 @@ static int drizzle_setup(const til_settings_t *settings, til_setting_t **res_set
 		return r;
 
 	r = til_settings_get_and_describe_value(settings,
-						&(til_setting_desc_t){
+						&(til_setting_spec_t){
 							.name = "Overlay style",
 							.key = "style",
 							.regex = "[a-z]+",

@@ -350,7 +350,7 @@ static int shapes_setup(const til_settings_t *settings, til_setting_t **res_sett
 	int		r;
 
 	r = til_settings_get_and_describe_value(settings,
-						&(til_setting_desc_t){
+						&(til_setting_spec_t){
 							.name = "Shape type",
 							.key = "type",
 							.regex = "[a-zA-Z]+",
@@ -365,7 +365,7 @@ static int shapes_setup(const til_settings_t *settings, til_setting_t **res_sett
 		return r;
 
 	r = til_settings_get_and_describe_value(settings,
-						&(til_setting_desc_t){
+						&(til_setting_spec_t){
 							.name = "Scaling factor",
 							.key = "scale",
 							.regex = "(1|0?\\.[0-9]{1,2})",
@@ -380,7 +380,7 @@ static int shapes_setup(const til_settings_t *settings, til_setting_t **res_sett
 		return r;
 
 	r = til_settings_get_and_describe_value(settings,
-						&(til_setting_desc_t){
+						&(til_setting_spec_t){
 							.name = "Pinch factor",
 							.key = "pinch",
 							.regex = "(1|0?\\.[0-9]{1,2})",
@@ -396,7 +396,7 @@ static int shapes_setup(const til_settings_t *settings, til_setting_t **res_sett
 
 	if (strcasecmp(pinch, "0")) {
 		r = til_settings_get_and_describe_value(settings,
-							&(til_setting_desc_t){
+							&(til_setting_spec_t){
 								.name = "Pinch spin factor",
 								.key = "pinch_spin",
 								.regex = "-?(0|1|0?\\.[0-9]{1,2})",
@@ -411,7 +411,7 @@ static int shapes_setup(const til_settings_t *settings, til_setting_t **res_sett
 			return r;
 
 		r = til_settings_get_and_describe_value(settings,
-							&(til_setting_desc_t){
+							&(til_setting_spec_t){
 								.name = "Number of pinches",
 								.key = "pinches",
 								.regex = "[0-9]+",
@@ -428,7 +428,7 @@ static int shapes_setup(const til_settings_t *settings, til_setting_t **res_sett
 
 	if (!strcasecmp(type, "star") || !strcasecmp(type, "pinwheel")) {
 		r = til_settings_get_and_describe_value(settings,
-							&(til_setting_desc_t){
+							&(til_setting_spec_t){
 								.name = "Number of points",
 								.key = "points",
 								.regex = "[0-9]+",
@@ -443,7 +443,7 @@ static int shapes_setup(const til_settings_t *settings, til_setting_t **res_sett
 			return r;
 
 		r = til_settings_get_and_describe_value(settings,
-							&(til_setting_desc_t){
+							&(til_setting_spec_t){
 								.name = "Spin factor",
 								.key = "spin",
 								.regex = "-?(0|1|0?\\.[0-9]{1,2})", /* Derived from pixbounce, I'm sure when regexes start getting actually applied we're going to have to revisit all of these and fix them with plenty of lols. */

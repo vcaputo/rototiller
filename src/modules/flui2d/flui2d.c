@@ -455,7 +455,7 @@ static int flui2d_setup(const til_settings_t *settings, til_setting_t **res_sett
 	int		r;
 
 	r = til_settings_get_and_describe_value(settings,
-						&(til_setting_desc_t){
+						&(til_setting_spec_t){
 							.name = "Fluid viscosity",
 							.key = "viscosity",
 							.regex = "\\.[0-9]+",
@@ -470,7 +470,7 @@ static int flui2d_setup(const til_settings_t *settings, til_setting_t **res_sett
 		return r;
 
 	r = til_settings_get_and_describe_value(settings,
-						&(til_setting_desc_t){
+						&(til_setting_spec_t){
 							.name = "Fluid diffusion",
 							.key = "diffusion",
 							.regex = "\\.[0-9]+",
@@ -485,7 +485,7 @@ static int flui2d_setup(const til_settings_t *settings, til_setting_t **res_sett
 		return r;
 
 	r = til_settings_get_and_describe_value(settings,
-						&(til_setting_desc_t){
+						&(til_setting_spec_t){
 							.name = "Fluid decay",
 							.key = "decay",
 							.regex = "\\.[0-9]+",
@@ -500,7 +500,7 @@ static int flui2d_setup(const til_settings_t *settings, til_setting_t **res_sett
 		return r;
 
 	r = til_settings_get_and_describe_value(settings,
-						&(til_setting_desc_t){
+						&(til_setting_spec_t){
 							.name = "Fluid emitters style",
 							.key = "emitters",
 							.regex = "^(figure8|clockgrid)",
@@ -516,7 +516,7 @@ static int flui2d_setup(const til_settings_t *settings, til_setting_t **res_sett
 
 	if (!strcasecmp(emitters, "clockgrid")) {
 		r = til_settings_get_and_describe_value(settings,
-							&(til_setting_desc_t){
+							&(til_setting_spec_t){
 								.name = "Fluid clockgrid emitters clock step",
 								.key = "clockstep",
 								.regex = "\\.[0-9]+",

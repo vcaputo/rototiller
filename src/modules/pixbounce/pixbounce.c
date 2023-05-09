@@ -347,7 +347,7 @@ int pixbounce_setup(const til_settings_t *settings, til_setting_t **res_setting,
 	int		r;
 
 	r = til_settings_get_and_describe_value(settings,
-						&(til_setting_desc_t){
+						&(til_setting_spec_t){
 							.name = "Pixmap size",
 							.key = "pixmap_size",
 							.regex = "(0|1|0\\.[0-9]{1,2})",
@@ -362,7 +362,7 @@ int pixbounce_setup(const til_settings_t *settings, til_setting_t **res_setting,
 		return r;
 
 	r = til_settings_get_and_describe_value(settings,
-						&(til_setting_desc_t){
+						&(til_setting_spec_t){
 							.name = "Pixmap",
 							.key = "pixmap",
 							.regex = ":[alnum]:+",

@@ -260,7 +260,7 @@ static int compose_setup(const til_settings_t *settings, til_setting_t **res_set
 	int		r;
 
 	r = til_settings_get_and_describe_value(settings,
-						&(til_setting_desc_t){
+						&(til_setting_spec_t){
 							.name = "Colon-separated list of module layers, in draw-order",
 							.key = "layers",
 							.preferred = "drizzle:stars:spiro:plato",
@@ -274,7 +274,7 @@ static int compose_setup(const til_settings_t *settings, til_setting_t **res_set
 		return r;
 
 	r = til_settings_get_and_describe_value(settings,
-						&(til_setting_desc_t){
+						&(til_setting_spec_t){
 							.name = "Module to use for source texture, \"none\" to disable",
 							.key = "texture",
 							.preferred = texture_values[0],

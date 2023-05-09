@@ -285,14 +285,15 @@ int til_module_setup(const til_settings_t *settings, til_setting_t **res_setting
 			annotations[i] = modules[i]->description;
 		}
 
-		r = til_setting_desc_clone(&(til_setting_desc_t){
-						.name = "Renderer module",
-						.key = NULL,
-						.regex = "[a-zA-Z0-9]+",
-						.preferred = DEFAULT_MODULE,
-						.values = values,
-						.annotations = annotations
-					}, res_desc);
+		r = til_setting_desc_new(	settings,
+						&(til_setting_spec_t){
+							.name = "Renderer module",
+							.key = NULL,
+							.regex = "[a-zA-Z0-9]+",
+							.preferred = DEFAULT_MODULE,
+							.values = values,
+							.annotations = annotations
+						}, res_desc);
 		if (r < 0)
 			return r;
 
@@ -332,22 +333,22 @@ int til_module_randomize_setup(const til_module_t *module, unsigned seed, til_se
 		return -ENOMEM;
 
 	while (module->setup(settings, &setting, &desc, res_setup) > 0) {
-		if (desc->random) {
+		if (desc->spec.random) {
 			char	*value;
 
-			value = desc->random(rand_r(&seed));
-			til_settings_add_value(settings, desc->key, value, desc);
+			value = desc->spec.random(rand_r(&seed));
+			til_settings_add_value(settings, desc->spec.key, value, desc);
 			free(value);
-		} else if (desc->values) {
+		} else if (desc->spec.values) {
 			int	n;
 
-			for (n = 0; desc->values[n]; n++);
+			for (n = 0; desc->spec.values[n]; n++);
 
 			n = rand_r(&seed) % n;
 
-			til_settings_add_value(settings, desc->key, desc->values[n], desc);
+			til_settings_add_value(settings, desc->spec.key, desc->spec.values[n], desc);
 		} else {
-			til_settings_add_value(settings, desc->key, desc->preferred, desc);
+			til_settings_add_value(settings, desc->spec.key, desc->spec.preferred, desc);
 		}
 	}
 

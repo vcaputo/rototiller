@@ -31,7 +31,7 @@ static int mem_fb_setup(const til_settings_t *settings, til_setting_t **res_sett
 	int		r;
 
 	r = til_settings_get_and_describe_value(settings,
-						&(til_setting_desc_t){
+						&(til_setting_spec_t){
 							.name = "Virtual window size",
 							.key = "size",
 							.regex = "[1-9][0-9]*[xX][1-9][0-9]*",
