@@ -537,3 +537,37 @@ char * til_settings_as_arg(const til_settings_t *settings)
 
 	return outbuf;
 }
+
+
+/* generate a positional label for a given setting, stored @ res_label.
+ * this is added specifically for labeling bare-value settings in an array subscript fashion...
+ */
+int til_settings_label_setting(const til_settings_t *settings, const til_setting_t *setting, char **res_label)
+{
+	char	*label;
+
+	assert(settings && settings->label);
+	assert(setting);
+	assert(res_label);
+
+	/* Have to search for the setting, but shouldn't be perf-sensitive
+	 * since we don't do stuff like this every frame or anything.
+	 * I suppose til_setting_t could cache its position when added... TODO
+	 */
+	for (unsigned i = 0; i < settings->num; i++) {
+		if (settings->settings[i] == setting) {
+			size_t	len = snprintf(NULL, 0, "%s[%u]", settings->label, i) + 1;
+
+			label = calloc(1, len);
+			if (!label)
+				return -ENOMEM;
+
+			snprintf(label, len, "%s[%u]", settings->label, i);
+			*res_label = label;
+
+			return 0;
+		}
+	}
+
+	return -ENOENT;
+}
