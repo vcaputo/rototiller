@@ -28,7 +28,6 @@
 typedef struct compose_layer_t {
 	const til_module_t	*module;
 	til_module_context_t	*module_ctxt;
-	char			*settings;
 } compose_layer_t;
 
 typedef struct compose_context_t {
@@ -40,21 +39,22 @@ typedef struct compose_context_t {
 	compose_layer_t		layers[];
 } compose_context_t;
 
+typedef struct compose_setup_layer_t {
+	char			*module;
+	til_setup_t		*setup;
+} compose_setup_layer_t;
+
 typedef struct compose_setup_t {
 	til_setup_t		til_setup;
-	char			*texture;
+	compose_setup_layer_t	texture;
 	size_t			n_layers;
-	char			*layers[];
+	compose_setup_layer_t	layers[];
 } compose_setup_t;
 
 static til_module_context_t * compose_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup);
 static void compose_destroy_context(til_module_context_t *context);
 static void compose_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr);
 static int compose_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
-
-static compose_setup_t compose_default_setup = {
-	.layers = { "drizzle", "stars", "spiro", "plato", NULL },
-};
 
 
 til_module_t	compose_module = {
@@ -69,40 +69,62 @@ til_module_t	compose_module = {
 
 static til_module_context_t * compose_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
+	compose_setup_t		*s = (compose_setup_t *)setup;
+	size_t			layers_path_len;
+	char			*layers_path;
 	compose_context_t	*ctxt;
-	size_t			n;
 
-	if (!setup)
-		setup = &compose_default_setup.til_setup;
+	assert(setup);
 
-	for (n = 0; ((compose_setup_t *)setup)->layers[n]; n++);
-
-	ctxt = til_module_context_new(module, sizeof(compose_context_t) + n * sizeof(compose_layer_t), stream, seed, ticks, n_cpus, path, setup);
+	ctxt = til_module_context_new(module, sizeof(compose_context_t) + s->n_layers * sizeof(compose_layer_t), stream, seed, ticks, n_cpus, path, setup);
 	if (!ctxt)
 		return NULL;
 
-	for (size_t i = 0; i < n; i++) {
+	layers_path_len = snprintf(NULL, 0, "%s/%s", path, "layers") + 1;
+	layers_path = calloc(1, layers_path_len);
+	/* FIXME TODO: path allocation/construction needs revisiting something fierce:
+	 * 1. Layers can have the same module recur, using compose/layers/$modname will just collide.
+	 * 2. We don't want to be ad-hoc constructing these things like this, but I'm deliberately leaving it ridiculous for now.
+	 * 3. Giving the til_setup_t a settings-instance-derived path might Just Fix Everything and eliminate the need for passing around a path altogether:
+	 *
+	 *    In scenarios like layers the settings code already generate instance labels in an enumerated array subscript fashion, so the path would be:
+	 *    compose/layers/layers[N]
+	 *
+	 *    Some things need to change before that happens though, for starters always creating and supplying a til_setup_t to modules even ones without
+	 *    a .setup() method would be necessary.  Also there isn't a trivial way to take an arbitrary settings instance anywhere in the heirarchy and
+	 *    ask til_settings to generate its path - there are no parent pointers going up the tree to construct it in reverse, and the instances don't
+	 *    get a full path copy placed into them at creation time, only the label.  The label could be changed to an absolute path though, which would
+	 *    really be fine since these things don't move around the heirarchy, they just stay where they were created.
+	 */
+	if (!layers_path)
+		return til_module_context_free(&ctxt->til_module_context);
+
+	snprintf(layers_path, layers_path_len, "%s/%s", path, "layers");
+
+	for (size_t i = 0; i < s->n_layers; i++) {
 		const til_module_t	*layer_module;
-		til_setup_t		*layer_setup = NULL;
 
-		layer_module = til_lookup_module(((compose_setup_t *)setup)->layers[i]);
-		(void) til_module_randomize_setup(layer_module, rand_r(&seed), &layer_setup, NULL);
-
+		layer_module = til_lookup_module(((compose_setup_t *)setup)->layers[i].module);
 		ctxt->layers[i].module = layer_module;
-		(void) til_module_create_context(layer_module, stream, rand_r(&seed), ticks, n_cpus, path, layer_setup, &ctxt->layers[i].module_ctxt);
-		til_setup_free(layer_setup);
+		(void) til_module_create_context(layer_module, stream, rand_r(&seed), ticks, n_cpus, layers_path, s->layers[i].setup, &ctxt->layers[i].module_ctxt); /* TODO: errors */
 
 		ctxt->n_layers++;
 	}
 
-	if (((compose_setup_t *)setup)->texture) {
-		til_setup_t	*texture_setup = NULL;
+	free(layers_path);
 
-		ctxt->texture.module = til_lookup_module(((compose_setup_t *)setup)->texture);
-		(void) til_module_randomize_setup(ctxt->texture.module, rand_r(&seed), &texture_setup, NULL);
+	if (((compose_setup_t *)setup)->texture.module) {
+		size_t	texture_path_len = snprintf(NULL, 0, "%s/%s", path, "texture") + 1;
+		char	*texture_path = calloc(1, texture_path_len);
 
-		(void) til_module_create_context(ctxt->texture.module, stream, rand_r(&seed), ticks, n_cpus, path, texture_setup, &ctxt->texture.module_ctxt);
-		til_setup_free(texture_setup);
+		if (!texture_path)
+			return til_module_context_free(&ctxt->til_module_context);
+
+		snprintf(texture_path, texture_path_len, "%s/%s", path, "texture");
+
+		ctxt->texture.module = til_lookup_module(((compose_setup_t *)setup)->texture.module);
+		(void) til_module_create_context(ctxt->texture.module, stream, rand_r(&seed), ticks, n_cpus, texture_path, s->texture.setup, &ctxt->texture.module_ctxt); /* TODO: errors */
+		free(texture_path);
 	}
 
 	return &ctxt->til_module_context;
@@ -113,7 +135,7 @@ static void compose_destroy_context(til_module_context_t *context)
 {
 	compose_context_t	*ctxt = (compose_context_t *)context;
 
-	for (int i = 0; i < ctxt->n_layers; i++)
+	for (size_t i = 0; i < ctxt->n_layers; i++)
 		til_module_context_free(ctxt->layers[i].module_ctxt);
 
 	if (ctxt->texture.module)
@@ -178,7 +200,8 @@ static char * compose_random_layers_setting(unsigned seed)
 	til_get_modules(&modules, &n_modules);
 
 	for (size_t i = 0; i < n_modules; i++) {
-		if ((modules[i]->flags & (TIL_MODULE_HERMETIC | TIL_MODULE_EXPERIMENTAL))) {
+		if ((modules[i]->flags & (TIL_MODULE_HERMETIC | TIL_MODULE_EXPERIMENTAL)) ||
+		    modules[i] == &compose_module) {
 			n_unusable++;
 
 			continue;
@@ -190,7 +213,8 @@ static char * compose_random_layers_setting(unsigned seed)
 
 	base_idx = rand_r(&seed) % (n_modules - (n_overlayable + n_unusable));
 	for (size_t i = 0, j = 0; !layers && i < n_modules; i++) {
-		if ((modules[i]->flags & (TIL_MODULE_HERMETIC | TIL_MODULE_EXPERIMENTAL)))
+		if ((modules[i]->flags & (TIL_MODULE_HERMETIC | TIL_MODULE_EXPERIMENTAL)) ||
+		    modules[i] == &compose_module)
 			continue;
 
 		if (modules[i]->flags & TIL_MODULE_OVERLAYABLE)
@@ -210,7 +234,8 @@ static char * compose_random_layers_setting(unsigned seed)
 		size_t	rand_idx = rand_r(&seed) % n_overlayable;
 
 		for (size_t i = 0, j = 0; i < n_modules; i++) {
-			if ((modules[i]->flags & (TIL_MODULE_HERMETIC | TIL_MODULE_EXPERIMENTAL)))
+			if ((modules[i]->flags & (TIL_MODULE_HERMETIC | TIL_MODULE_EXPERIMENTAL)) ||
+			    modules[i] == &compose_module)
 				continue;
 
 			if (!(modules[i]->flags & TIL_MODULE_OVERLAYABLE))
@@ -225,7 +250,7 @@ static char * compose_random_layers_setting(unsigned seed)
 					return NULL;
 				}
 
-				strcat(new, ":");
+				strcat(new, ",");
 				strcat(new, modules[i]->name);
 				layers = new;
 
@@ -238,40 +263,120 @@ static char * compose_random_layers_setting(unsigned seed)
 }
 
 
+static void compose_setup_free(til_setup_t *setup)
+{
+	compose_setup_t	*s = (compose_setup_t *)setup;
+
+	if (s) {
+		for (size_t i = 0; i < s->n_layers; i++) {
+			free(s->layers[i].module);
+			til_setup_free(s->layers[i].setup);
+		}
+		til_setup_free(s->texture.setup);
+		free(s->texture.module);
+		free(setup);
+	}
+}
+
+
 static int compose_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
-	const char	*layers;
-	const char	*texture;
-	const char	*texture_values[] = {
-				"none",
-				"blinds",
-				"checkers",
-				"drizzle",
-				"julia",
-				"moire",
-				"plasma",
-				"roto",
-				"stars",
-				"submit",
-				"swab",
-				"voronoi",
-				NULL
-			};
-	int		r;
+	const til_settings_t	*layers_settings, *texture_settings;
+	const char		*layers;
+	const char		*texture;
+	const char		*texture_values[] = {
+					"none",
+					"blinds",
+					"checkers",
+					"drizzle",
+					"julia",
+					"moire",
+					"plasma",
+					"roto",
+					"stars",
+					"submit",
+					"swab",
+					"voronoi",
+					NULL
+				};
+	int			r;
 
 	r = til_settings_get_and_describe_value(settings,
 						&(til_setting_spec_t){
-							.name = "Colon-separated list of module layers, in draw-order",
+							.name = "Comma-separated list of module layers, in draw-order",
 							.key = "layers",
-							.preferred = "drizzle:stars:spiro:plato",
+							.preferred = "drizzle,stars,spiro,plato",
 							.annotations = NULL,
 							.random = compose_random_layers_setting,
+							.as_nested_settings = 1,
 						},
-						&layers,
+						&layers, /* XXX: unused in raw-value form, we want the settings instance */
 						res_setting,
 						res_desc);
 	if (r)
 		return r;
+
+	/* once layers is described and present, we reach here, and it should have stored its nested settings instance @ res_settings */
+	assert(res_setting && *res_setting && (*res_setting)->value_as_nested_settings);
+	layers_settings = (*res_setting)->value_as_nested_settings;
+	{
+		til_setting_t	*layer_setting;
+		const char	*layer;
+
+		/* Now that we have the layers value in its own settings instance,
+		 * iterate across the settings @ layers_settings, turning each of
+		 * those into a nested settings instance as well.
+		 * Ultimately turning layers= into an array of unnamed settings
+		 * instances (they still get automagically labeled as "layers[N]")
+		 */
+
+		/*
+		 * Note this relies on til_settings_get_value_by_idx() returning NULL once idx runs off the end,
+		 * which is indistinguishable from a NULL-valued setting, so if the user were to fat-finger
+		 * an empty layer like "layers=foo,,bar" maybe we'd never reach bar.  This could be made more robust
+		 * by explicitly looking at the number of settings and just ignoring NULL values, but maybe
+		 * instead we should just prohibit such settings constructions?  Like an empty value should still get
+		 * "" not NULL put in it.  FIXME TODO XXX verify/clarify/assert this in code
+		 */
+		for (size_t i = 0; til_settings_get_value_by_idx(layers_settings, i, &layer_setting); i++) {
+			if (!layer_setting->value_as_nested_settings) {
+				r = til_setting_desc_new(	layers_settings,
+								&(til_setting_spec_t){
+									.as_nested_settings = 1,
+								}, res_desc);
+				if (r < 0)
+					return r;
+
+				*res_setting = layer_setting;
+
+				return 1;
+			}
+		}
+
+		/* At this point, whatever layers were provided have now been turned into a settings
+		 * heirarchy.  But haven't yet actually resolved the names of and called down into those
+		 * modules' respective setup functions to fully populate the settings as needed.
+		 *
+		 * Again iterate the layers, but this time resolving module names and calling their setup funcs.
+		 * No res_setup is provided here so these will only be building up settings, not producing
+		 * baked setups yet.
+		 */
+		for (size_t i = 0; til_settings_get_value_by_idx(layers_settings, i, &layer_setting); i++) {
+			const char		*layer = til_settings_get_value_by_idx(layer_setting->value_as_nested_settings, 0, NULL);
+			const til_module_t	*layer_module = til_lookup_module(layer);
+
+			if (!layer_module)
+				return -EINVAL;
+
+			if (layer_module->setup) {
+				r = layer_module->setup(layer_setting->value_as_nested_settings, res_setting, res_desc, NULL);
+				if (r)
+					return r;
+			}
+		}
+
+		/* at this point all the layers should have all their settings built up in their respective settings instances */
+	}
 
 	r = til_settings_get_and_describe_value(settings,
 						&(til_setting_spec_t){
@@ -280,6 +385,7 @@ static int compose_setup(const til_settings_t *settings, til_setting_t **res_set
 							.preferred = texture_values[0],
 							.annotations = NULL,
 							.values = texture_values,
+							.as_nested_settings = 1,
 						},
 						&texture,
 						res_setting,
@@ -287,83 +393,87 @@ static int compose_setup(const til_settings_t *settings, til_setting_t **res_set
 	if (r)
 		return r;
 
-	/* turn layers colon-separated list into a null-terminated array of strings */
-	if (res_setup) {
-		compose_setup_t		*setup;
-		const til_module_t	**modules;
-		size_t			n_modules;
-		char			*toklayers, *layer;
-		int			n = 2;
+	assert(res_setting && *res_setting && (*res_setting)->value_as_nested_settings);
+	texture_settings = (*res_setting)->value_as_nested_settings;
+	if (strcasecmp(texture, "none")) {
+		const char		*texture = til_settings_get_value_by_idx(texture_settings, 0, NULL);
+		const til_module_t	*texture_module = til_lookup_module(texture);
 
-		til_get_modules(&modules, &n_modules);
-
-		toklayers = strdup(layers);
-		if (!toklayers)
-			return -ENOMEM;
-
-		layer = strtok(toklayers, ":");
-		if (!layer)
+		if (!texture_module)
 			return -EINVAL;
 
-		setup = til_setup_new(sizeof(*setup), (void(*)(til_setup_t *))free);
+		if (texture_module->setup) {
+			r = texture_module->setup(texture_settings, res_setting, res_desc, NULL);
+			if (r)
+				return r;
+		}
+
+		/* now texture settings are complete, but not yet baked (no res_setup) */
+	}
+
+	if (res_setup) { /* turn layers settings into an array of compose_setup_layer_t's {name,til_setup_t} */
+		size_t			n_layers = til_settings_get_count(layers_settings);
+		til_setting_t		*layer_setting;
+		compose_setup_t		*setup;
+
+		setup = til_setup_new(sizeof(*setup) + n_layers * sizeof(*setup->layers), compose_setup_free);
 		if (!setup)
 			return -ENOMEM;
 
-		do {
-			compose_setup_t	*new;
-			size_t		i;
+		setup->n_layers = n_layers;
 
-			/* other meta-modules like montage and rtv may need to
-			 * have some consideration here, but for now I'm just
-			 * going to let the user potentially compose with montage
-			 * or rtv as one of the layers.
-			 */
-			if (!strcasecmp(layer, "compose")) { /* XXX: prevent infinite recursion */
+		for (size_t i = 0; til_settings_get_value_by_idx(layers_settings, i, &layer_setting); i++) {
+			const char		*layer = til_settings_get_value_by_idx(layer_setting->value_as_nested_settings, 0, NULL);
+			const til_module_t	*layer_module = til_lookup_module(layer);
+
+			if (!layer_module) {
 				til_setup_free(&setup->til_setup);
 
 				return -EINVAL;
 			}
 
-			for (i = 0; i < n_modules; i++) {
-				if (!strcasecmp(layer, modules[i]->name))
-					break;
-			}
-
-			if (i >= n_modules) {
-				til_setup_free(&setup->til_setup);
-
-				return -EINVAL;
-			}
-
-			new = realloc(setup, sizeof(*setup) + n * sizeof(*setup->layers));
-			if (!new) {
+			setup->layers[i].module = strdup(layer);
+			if (!setup->layers[i].module) {
 				til_setup_free(&setup->til_setup);
 
 				return -ENOMEM;
 			}
 
-			new->layers[n - 2] = layer;
-			new->layers[n - 1] = NULL;
-			n++;
+			if (layer_module->setup) {
+				r = layer_module->setup(layer_setting->value_as_nested_settings, res_setting, res_desc, &setup->layers[i].setup);
+				if (r < 0) {
+					til_setup_free(&setup->til_setup);
 
-			setup = new;
-		} while ((layer = strtok(NULL, ":")));
+					return r;
+				}
+			}
+		}
 
 		if (strcasecmp(texture, "none")) {
-			const til_module_t	*texture_module;
+			const char		*texture = til_settings_get_value_by_idx(texture_settings, 0, NULL);
+			const til_module_t	*texture_module = til_lookup_module(texture);
 
-			texture_module = til_lookup_module(texture);
 			if (!texture_module) {
 				til_setup_free(&setup->til_setup);
 
 				return -EINVAL;
 			}
 
-			setup->texture = strdup(texture);
-			if (!setup->texture) {
+			setup->texture.module = strdup(texture);
+			if (!setup->texture.module) {
 				til_setup_free(&setup->til_setup);
 
 				return -ENOMEM;
+			}
+
+			if (texture_module->setup) {
+				/* bake the texture settings */
+				r = texture_module->setup(texture_settings, res_setting, res_desc, &setup->texture.setup);
+				if (r < 0) {
+					til_setup_free(&setup->til_setup);
+
+					return r;
+				}
 			}
 		}
 
