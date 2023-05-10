@@ -89,7 +89,7 @@ static til_module_context_t * compose_create_context(const til_module_t *module,
 		(void) til_module_randomize_setup(layer_module, rand_r(&seed), &layer_setup, NULL);
 
 		ctxt->layers[i].module = layer_module;
-		(void) til_module_create_context(layer_module, stream, rand_r(&seed), ticks, 0, path, layer_setup, &ctxt->layers[i].module_ctxt);
+		(void) til_module_create_context(layer_module, stream, rand_r(&seed), ticks, n_cpus, path, layer_setup, &ctxt->layers[i].module_ctxt);
 		til_setup_free(layer_setup);
 
 		ctxt->n_layers++;
@@ -101,7 +101,7 @@ static til_module_context_t * compose_create_context(const til_module_t *module,
 		ctxt->texture.module = til_lookup_module(((compose_setup_t *)setup)->texture);
 		(void) til_module_randomize_setup(ctxt->texture.module, rand_r(&seed), &texture_setup, NULL);
 
-		(void) til_module_create_context(ctxt->texture.module, stream, rand_r(&seed), ticks, 0, path, texture_setup, &ctxt->texture.module_ctxt);
+		(void) til_module_create_context(ctxt->texture.module, stream, rand_r(&seed), ticks, n_cpus, path, texture_setup, &ctxt->texture.module_ctxt);
 		til_setup_free(texture_setup);
 	}
 
