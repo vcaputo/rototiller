@@ -61,6 +61,7 @@ typedef struct checkers_setup_t {
 	checkers_fill_t		fill;
 	uint32_t		color;
 	const til_module_t	*fill_module;
+	til_setup_t		*fill_module_setup;
 } checkers_setup_t;
 
 typedef struct checkers_context_t {
@@ -86,19 +87,34 @@ static til_module_context_t * checkers_create_context(const til_module_t *module
 
 	if (ctxt->setup->fill_module) {
 		const til_module_t	*module = ctxt->setup->fill_module;
-		til_setup_t		*module_setup = NULL;
+		size_t			fill_module_path_len = snprintf(NULL, 0, "%s/fill_module", path) + 1; /* FIXME TODO: revisit path construction, see big comment in modules/compose FIXME TODO */
+		char			*fill_module_path = calloc(1, fill_module_path_len);
 
-		(void) til_module_randomize_setup(module, seed, &module_setup, NULL);
+		if (!fill_module_path)
+			return til_module_context_free(&ctxt->til_module_context);
+
+		snprintf(fill_module_path, fill_module_path_len, "%s/fill_module", path);
 
 		/* since checkers is already threaded, create an n_cpus=1 context per-cpu */
 		for (unsigned i = 0; i < n_cpus; i++) /* TODO: errors */
-			(void) til_module_create_context(module, stream, seed, ticks, 1, path /* FIXME TODO path-per-context breaks down on these per-cpu-context abuses */, module_setup, &ctxt->fill_module_contexts[i]);
+			(void) til_module_create_context(module, stream, seed, ticks, 1, fill_module_path, ctxt->setup->fill_module_setup, &ctxt->fill_module_contexts[i]);
+			 /* FIXME TODO ^^^ sharing the fill_module_path across the per-cpu contexts aliases them _across_threads_ no less, this needs attention/thought FIXME TODO */
+			 /* but the problem with just doing something like suffixing the cpu # to give each context a unique path per-cpu is then the taps/pipes would all be
+			  * unique on a per-cpu basis.  That's _very_ undesirable in terms of sequencing the pipes by name, we don't want sequencing tracks per-cpu and that's
+			  * a non-deterministic quantity depending on the host anyways.  So the path can't encode a cpu number, that's just a hard NOPE.  What may need to be
+			  * done here is to stop creating the context per-cpu in checkers and instead be able to simply do a single n_cpus create context at the single path,
+			  * then be able to perform a forced cpu-specific render on a given context.  Then whatever the context-specific module does with threaded rendering
+			  * on a shared context is its problem, and we already told it the n_cpus value so it could do whatever it needed to.  The problem with this as-is is
+			  * that some modules just don't implement threaded rendering at all and can't share their context across threads as a result, so checkers can't make
+			  * that assumption.  This hack here of creating a context per-cpu works around that problem entirely, so even simple modules magically become threaded.
+			  * Maybe what needs to happen is everything path-bound needs to just have some magic surrounding cpu-local state.  As in, the tap/tap-driving stuff could
+			  * just roll with the punches and share the first instance of tap variables then all the others just get left alone. FIXME TODO FIXME TODO
+			  */
 
+		free(fill_module_path);
 		/* XXX: it would be interesting to support various patterns/layouts by varying the seed, but this will require
 		 * more complex context allocation strategies while also maintaining the per-cpu allocation.
 		 */
-
-		til_setup_free(module_setup);
 	}
 
 	return &ctxt->til_module_context;
@@ -385,69 +401,81 @@ static int checkers_rgb_to_uint32(const char *in, uint32_t *out)
 }
 
 
+static void checkers_setup_free(til_setup_t *setup)
+{
+	checkers_setup_t	*s = (checkers_setup_t *)setup;
+
+	if (s) {
+		til_setup_free(s->fill_module_setup);
+		free(setup);
+	}
+}
+
+
 static int checkers_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
-	const char	*size;
-	const char	*pattern;
-	const char	*fill_module;
-	const char	*dynamics;
-	const char	*dynamics_rate;
-	const char	*fill;
-	const char	*color;
-	const char	*size_values[] = {
-				"4",
-				"8",
-				"16",
-				"32",
-				"64",
-				"128",
-				NULL
-			};
-	const char	*pattern_values[] = {
-				"checkered",
-				"random",
-				NULL
-			};
-	const char	*fill_module_values[] = {
-				"none",
-				"blinds",
-				"moire",
-				"pixbounce",
-				"plato",
-				"roto",
-				"shapes",
-				"snow",
-				"spiro",
-				"stars",
-				NULL
-			};
-	const char	*dynamics_values[] = {
-				"odd",
-				"even",
-				"alternating",
-				"random",
-				NULL
-			};
-	const char	*dynamics_rate_values[] = {
-				"1.0",
-				".75",
-				".5",
-				".25",
-				".1",
-				".01",
-				".001",
-				".0001",
-				NULL
-			};
-	const char	*fill_values[] = {
-				"color",
-				"sampled",
-				"textured",
-				"random",
-				"mixed",
-				NULL
-			};
-	int		r;
+	const char		*size;
+	const char		*pattern;
+	const char		*fill_module;
+	const til_settings_t	*fill_module_settings;
+	const char		*dynamics;
+	const char		*dynamics_rate;
+	const char		*fill;
+	const char		*color;
+	const char		*size_values[] = {
+					"4",
+					"8",
+					"16",
+					"32",
+					"64",
+					"128",
+					NULL
+				};
+	const char		*pattern_values[] = {
+					"checkered",
+					"random",
+					NULL
+				};
+	const char		*fill_module_values[] = {
+					"none",
+					"blinds",
+					"moire",
+					"pixbounce",
+					"plato",
+					"roto",
+					"shapes",
+					"snow",
+					"spiro",
+					"stars",
+					NULL
+				};
+	const char		*dynamics_values[] = {
+					"odd",
+					"even",
+					"alternating",
+					"random",
+					NULL
+				};
+	const char		*dynamics_rate_values[] = {
+					"1.0",
+					".75",
+					".5",
+					".25",
+					".1",
+					".01",
+					".001",
+					".0001",
+					NULL
+				};
+	const char		*fill_values[] = {
+					"color",
+					"sampled",
+					"textured",
+					"random",
+					"mixed",
+					NULL
+				};
+	int			r;
 
 	r = til_settings_get_and_describe_value(settings,
 						&(til_setting_spec_t){
@@ -484,13 +512,76 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 							.key = "fill_module",
 							.preferred = fill_module_values[0],
 							.values = fill_module_values,
-							.annotations = NULL
+							.annotations = NULL,
+							.as_nested_settings = 1,
 						},
-						&fill_module,
+						&fill_module, /* XXX: this isn't really of direct use now that it's a potentially full-blown settings string, see fill_module_settings */
 						res_setting,
 						res_desc);
 	if (r)
 		return r;
+
+	/* hmm, we're about to assume this is always valid, so let's assert that's actually the case...
+	 * looking at til_settings_get_and_describe_value() it looks to be optional there.
+	 * TODO: since _we_ require the res_setting, we should provide a temporary place for it
+	 * here if it's not guaranteed, then copy it into *res_setting if wanted.
+	 */
+	assert(res_setting && *res_setting);
+	assert((*res_setting)->value_as_nested_settings);
+
+	fill_module_settings = (*res_setting)->value_as_nested_settings;
+	fill_module = til_settings_get_value_by_idx(fill_module_settings, 0, NULL);
+	{
+		if (strcasecmp(fill_module, "none")) {
+			const til_module_t	*mod = til_lookup_module(fill_module);
+
+			if (!mod)
+				return -EINVAL;
+
+			if (mod->setup) {
+				r = mod->setup(fill_module_settings, res_setting, res_desc, NULL);
+				if (r)
+					return r;
+
+				/* XXX: note no res_setup was provided, so while yes the fill_module_settings are
+				 * fully populated according to the setup's return value, we don't yet have the baked
+				 * setup.  That occurs below while baking the checkers res_setup.
+				 */
+			}
+		}
+	}
+	/* TODO: here we would do nested setup for fill_module via (*res_setting)->settings until that returned 0.
+	 * It seems like we would just leave res_setup NULL for nested setup at this phase, then in our if (res_setup)
+	 * branch down below the nested setup would have to recur with res_setup supplied but pointing at a nested
+	 * setup pointer hosted within this setup. */
+
+	/* XXX but this is a little more complicated than simply performing exhaustive setup of the fill_module here.
+	 * it's kind of like how in scripting languages you have two forms of interpolation while initializing variables;
+	 * there's the immediate interpolation at the time of intialization, and there's the delayed interpolation at
+	 * time of variable use.  i.e. foo="$a $b" vs. foo:="$a $b", the latter may expand $a and $b once and store the
+	 * result in foo, whereas the former may just store the literal "$a $b" in foo and (re)perform the expansion of
+	 * $a and $b every time $foo is evaluated.
+	 *
+	 * should every module have its own separate setting or snowflake syntax to control exhaustive setup up-front
+	 * vs. just taking what settings have been provided and randomizing what's not provided at context create time?
+	 * in the case of checkers::fill_module it's arguably less relevant (though the current frontends don't have a
+	 * randomize settings feature, so if exhaustive setup of fill_module were forced up-front using the existing frontends
+	 * would mean loss of fill_module randomized setup)  But that might be O.K. for something like checkers::fill_module
+	 *
+	 * where it becomes more relevant is something like rtv::channels, where the single rtv instance will repeatedly
+	 * create+destroy channel contexts using the supplied (or omitted) settings.  We may want to have the settings
+	 * exhaustively applied once when rtv was intantiated, giving the frontend setup opportunity to explicitly configure
+	 * the channels exhaustively.  Or we may want to just partially specify some settings for the channels, and for
+	 * the settings non-specified use the defaults OR for those unsepcified have them be randomized.  Then there's the
+	 * question of should the randomizing recur for every channel switch or just occur once at time of rtv instantiation?
+	 * 
+	 * it feels like the module settings syntax should probably control this behavior in a general way so the modules don't
+	 * start inventing their own approaches.  Perhaps the module name at the start of the settings string could simply have
+	 * an optional leading modifier character from a reserved set module names can't start with.  Someting like %modulename
+	 * for randomizing unspecified settings, : for evaluating settings just once up-front then reusing them, @modulename for
+	 * accepting defaults for anything unspecified, and !modulename to fail if any settings aren't specified.  Maybe also
+	 * something like * for making the current qualifiers apply recursively.
+	 */
 
 	r = til_settings_get_and_describe_value(settings,
 						&(til_setting_spec_t){
@@ -557,7 +648,7 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 	if (res_setup) {
 		checkers_setup_t	*setup;
 
-		setup = til_setup_new(sizeof(*setup), (void(*)(til_setup_t *))free);
+		setup = til_setup_new(sizeof(*setup), checkers_setup_free);
 		if (!setup)
 			return -ENOMEM;
 
@@ -568,15 +659,23 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 		else if (!strcasecmp(pattern, "random"))
 			setup->pattern = CHECKERS_PATTERN_RANDOM;
 		else {
-			free(setup);
+			til_setup_free(&setup->til_setup);
 			return -EINVAL;
 		}
 
 		if (strcasecmp(fill_module, "none")) {
 			setup->fill_module = til_lookup_module(fill_module);
 			if (!setup->fill_module) {
-				free(setup);
+				til_setup_free(&setup->til_setup);
 				return -ENOMEM;
+			}
+
+			if (setup->fill_module->setup) {
+				r = setup->fill_module->setup(fill_module_settings, res_setting, res_desc, &setup->fill_module_setup);
+				if (r) {
+					til_setup_free(&setup->til_setup);
+					return r;
+				}
 			}
 		}
 
@@ -589,7 +688,7 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 		else if (!strcasecmp(dynamics, "random"))
 			setup->dynamics = CHECKERS_DYNAMICS_RANDOM;
 		else {
-			free(setup);
+			til_setup_free(&setup->til_setup);
 			return -EINVAL;
 		}
 
@@ -607,7 +706,7 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 		else if (!strcasecmp(fill, "mixed"))
 			setup->fill = CHECKERS_FILL_MIXED;
 		else {
-			free(setup);
+			til_setup_free(&setup->til_setup);
 			return -EINVAL;
 		}
 
