@@ -1,4 +1,6 @@
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 #include "til.h"
@@ -22,6 +24,7 @@
 #define RTV_CONTEXT_DURATION_SECS	4
 #define RTV_CAPTION_DURATION_SECS	2
 #define RTV_DEFAULT_SNOW_MODULE		"none"
+#define RTV_DEFAULT_LOG_SETTINGS	0
 
 typedef struct rtv_channel_t {
 	const til_module_t	*module;
@@ -43,6 +46,7 @@ typedef struct rtv_context_t {
 	unsigned		context_duration;
 	unsigned		snow_duration;
 	unsigned		caption_duration;
+	unsigned		log_channels:1;
 
 	rtv_channel_t		snow_channel;
 
@@ -57,6 +61,7 @@ typedef struct rtv_setup_t {
 	unsigned		snow_duration;
 	unsigned		caption_duration;
 	char			*snow_module;
+	unsigned		log_channels:1;
 	char			*channels[];
 } rtv_setup_t;
 
@@ -181,6 +186,9 @@ static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks)
 
 			ctxt->caption = ctxt->channel->caption = caption;
 			ctxt->channel->settings_as_arg = settings_as_arg ? settings_as_arg : strdup("");
+
+			if (ctxt->log_channels) /* TODO: we need to capture seed state too, a general solution capturing such global state would be nice */
+				fprintf(stderr, "rtv channel settings: \'%s\'\n", ctxt->channel->settings_as_arg);
 		}
 
 		ctxt->next_switch = now + ctxt->duration;
@@ -252,6 +260,8 @@ static til_module_context_t * rtv_create_context(const til_module_t *module, til
 		(void) til_module_create_context(ctxt->snow_channel.module, stream, rand_r(&seed), ticks, 0, path, NULL, &ctxt->snow_channel.module_ctxt);
 	}
 
+	ctxt->log_channels = ((rtv_setup_t *)setup)->log_channels;
+
 	for (size_t i = 0; i < n_modules; i++) {
 		if (!rtv_should_skip_module((rtv_setup_t *)setup, modules[i]))
 			ctxt->channels[ctxt->n_channels++].module = modules[i];
@@ -319,6 +329,12 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 	const char	*caption_duration;
 	const char	*snow_duration;
 	const char	*snow_module;
+	const char	*log_channels;
+	const char	*log_channels_values[] = {
+				"no",
+				"yes",
+				NULL
+			};
 	int		r;
 
 	r = til_settings_get_and_describe_value(settings,
@@ -403,6 +419,20 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 	if (r)
 		return r;
 
+	r = til_settings_get_and_describe_value(settings,
+						&(til_setting_spec_t){
+							.name = "Log channel settings to stderr",
+							.key = "log_channels",
+							.preferred = log_channels_values[RTV_DEFAULT_LOG_SETTINGS],
+							.values = log_channels_values,
+							.annotations = NULL
+						},
+						&log_channels,
+						res_setting,
+						res_desc);
+	if (r)
+		return r;
+
 	if (res_setup) {
 		rtv_setup_t	*setup;
 
@@ -466,6 +496,9 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 		sscanf(context_duration, "%u", &setup->context_duration);
 		sscanf(caption_duration, "%u", &setup->caption_duration);
 		sscanf(snow_duration, "%u", &setup->snow_duration);
+
+		if (!strcasecmp(log_channels, log_channels_values[1]))
+			setup->log_channels = 1;
 
 		*res_setup = &setup->til_setup;
 	}
