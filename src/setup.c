@@ -37,7 +37,18 @@ int setup_interactively(til_settings_t *settings, int (*setup_func)(const til_se
 			}
 
 			if (desc->spec.as_nested_settings && !setting->value_as_nested_settings) {
-				setting->value_as_nested_settings = til_settings_new(setting->key, setting->value);
+				char	*label = NULL;
+
+				if (!desc->spec.key) {
+					/* generate a positional label for bare-value specs */
+					r = til_settings_label_setting(desc->container, setting, &label);
+					if (r < 0)
+						return r;
+				}
+
+				setting->value_as_nested_settings = til_settings_new(desc->spec.key ? : label, setting->value);
+				free(label);
+
 				if (!setting->value_as_nested_settings) {
 					*res_failed_desc = desc;
 
