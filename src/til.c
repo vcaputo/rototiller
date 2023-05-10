@@ -332,23 +332,44 @@ int til_module_randomize_setup(const til_module_t *module, unsigned seed, til_se
 	if (!settings)
 		return -ENOMEM;
 
-	while (module->setup(settings, &setting, &desc, res_setup) > 0) {
-		if (desc->spec.random) {
-			char	*value;
+	for (setting = NULL; module->setup(settings, &setting, &desc, res_setup) > 0; setting = NULL) {
+		if (!setting) {
+			if (desc->spec.random) {
+				char	*value;
 
-			value = desc->spec.random(rand_r(&seed));
-			til_settings_add_value(desc->container, desc->spec.key, value, desc);
-			free(value);
-		} else if (desc->spec.values) {
-			int	n;
+				value = desc->spec.random(rand_r(&seed));
+				setting = til_settings_add_value(desc->container, desc->spec.key, value, desc);
+				free(value);
+			} else if (desc->spec.values) {
+				int	n;
 
-			for (n = 0; desc->spec.values[n]; n++);
+				for (n = 0; desc->spec.values[n]; n++);
 
-			n = rand_r(&seed) % n;
+				n = rand_r(&seed) % n;
 
-			til_settings_add_value(desc->container, desc->spec.key, desc->spec.values[n], desc);
-		} else {
-			til_settings_add_value(desc->container, desc->spec.key, desc->spec.preferred, desc);
+				setting = til_settings_add_value(desc->container, desc->spec.key, desc->spec.values[n], desc);
+			} else {
+				setting = til_settings_add_value(desc->container, desc->spec.key, desc->spec.preferred, desc);
+			}
+		}
+
+		assert(setting);
+
+		if (desc->spec.as_nested_settings && !setting->value_as_nested_settings) {
+			char	*label = NULL;
+
+			if (!desc->spec.key) {
+				/* generate a positional label for bare-value specs */
+				r = til_settings_label_setting(desc->container, setting, &label);
+				if (r < 0)
+					return r;
+			}
+
+			setting->value_as_nested_settings = til_settings_new(desc->spec.key ? : label, setting->value);
+			free(label);
+
+			if (!setting->value_as_nested_settings)
+				return -ENOMEM;
 		}
 	}
 
