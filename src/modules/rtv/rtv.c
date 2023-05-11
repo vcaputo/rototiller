@@ -60,7 +60,8 @@ typedef struct rtv_setup_t {
 	unsigned		context_duration;
 	unsigned		snow_duration;
 	unsigned		caption_duration;
-	char			*snow_module;
+	char			*snow_module_name;
+	til_setup_t		*snow_module_setup;
 	unsigned		log_channels:1;
 	char			*channels[];
 } rtv_setup_t;
@@ -196,7 +197,7 @@ static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks)
 static int rtv_should_skip_module(const rtv_setup_t *setup, const til_module_t *module)
 {
 	if (module == &rtv_module ||
-	    (setup->snow_module && !strcasecmp(module->name, setup->snow_module)))
+	    (setup->snow_module_name && !strcasecmp(module->name, setup->snow_module_name)))
 		return 1;
 
 	/* An empty channels list is a special case for representing "all", an
@@ -243,9 +244,13 @@ static til_module_context_t * rtv_create_context(const til_module_t *module, til
 	ctxt->caption_duration = ((rtv_setup_t *)setup)->caption_duration;
 
 	ctxt->snow_channel.module = &rtv_none_module;
-	if (((rtv_setup_t *)setup)->snow_module) {
-		ctxt->snow_channel.module = til_lookup_module(((rtv_setup_t *)setup)->snow_module);
-		(void) til_module_create_context(ctxt->snow_channel.module, stream, rand_r(&seed), ticks, 0, path, NULL, &ctxt->snow_channel.module_ctxt);
+	if (((rtv_setup_t *)setup)->snow_module_name) {
+		/* ctxt takes ownership of the snow_module_setup */
+		ctxt->snow_channel.module_setup = ((rtv_setup_t *)setup)->snow_module_setup;
+		((rtv_setup_t *)setup)->snow_module_setup = NULL;
+
+		ctxt->snow_channel.module = til_lookup_module(((rtv_setup_t *)setup)->snow_module_name);
+		(void) til_module_create_context(ctxt->snow_channel.module, stream, rand_r(&seed), ticks, 0, path, ctxt->snow_channel.module_setup, &ctxt->snow_channel.module_ctxt);
 	}
 
 	ctxt->log_channels = ((rtv_setup_t *)setup)->log_channels;
@@ -266,6 +271,7 @@ static void rtv_destroy_context(til_module_context_t *context)
 	rtv_context_t	*ctxt = (rtv_context_t *)context;
 
 	/* TODO FIXME: cleanup better, snow module etc */
+	til_setup_free(ctxt->snow_channel.module_setup);
 	cleanup_channel(ctxt);
 	free(context);
 }
@@ -311,20 +317,34 @@ static void rtv_finish_frame(til_module_context_t *context, til_stream_t *stream
 
 static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
-	const char	*channels;
-	const char	*duration;
-	const char	*context_duration;
-	const char	*caption_duration;
-	const char	*snow_duration;
-	const char	*snow_module;
-	const char	*log_channels;
-	const char	*log_channels_values[] = {
-				"no",
-				"yes",
-				NULL
-			};
-	int		r;
+	const til_settings_t	*snow_module_settings;
+	const char		*channels;
+	const char		*duration;
+	const char		*context_duration;
+	const char		*caption_duration;
+	const char		*snow_duration;
+	const char		*snow_module;
+	const char		*log_channels;
+	const char		*log_channels_values[] = {
+					"no",
+					"yes",
+					NULL
+				};
+	int			r;
 
+	/* TODO: turn channels[] into settings instances full of settings instances, like modules/compose::layers */
+	/* except the difference here is, we don't want to _require_ the setup process to fill out all the settings.
+	 * We'd like to allow leaving any to be randomized by rototiller on channel switch as unset or something.
+	 * But if we're calling down into the per-channel-module .setup() to
+	 * get the settings populated, it's out of our hands on if that setting
+	 * is required to be present or not.  The per-channel-module will
+	 * refuse to proceed to the next setting unless it's present and
+	 * described etc.  So it's like the front-end needs a way to set the
+	 * setting with a "randomize" attribute or somesuch, and rtv needs a way
+	 * to make that an available thing like we're in some kind of deferred
+	 * setup preparation phase for a settings instance that will be re-evaluated
+
+	 */
 	r = til_settings_get_and_describe_value(settings,
 						&(til_setting_spec_t){
 							.name = "Colon-separated list of channel modules, \"all\" for all",
@@ -399,13 +419,32 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 							.name = "Module for snow (\"blank\" for blanking, \"none\" to disable)",
 							.key = "snow_module",
 							.preferred = RTV_DEFAULT_SNOW_MODULE,
-							.annotations = NULL
+							.annotations = NULL,
+							.as_nested_settings = 1,
 						},
 						&snow_module,
 						res_setting,
 						res_desc);
 	if (r)
 		return r;
+
+	assert(res_setting && *res_setting && (*res_setting)->value_as_nested_settings);
+	snow_module_settings = (*res_setting)->value_as_nested_settings;
+	if (strcasecmp(snow_module, "none")) {
+		const char		*snow_module_name = til_settings_get_value_by_idx(snow_module_settings, 0, NULL);
+		const til_module_t	*snow_module = til_lookup_module(snow_module_name);
+
+		if (!snow_module)
+			return -EINVAL;
+
+		if (snow_module->setup) {
+			r = snow_module->setup(snow_module_settings, res_setting, res_desc, NULL);
+			if (r)
+				return r;
+		}
+
+		/* now snow_module settings are complete, but not yet baked (no res_setup) */
+	}
 
 	r = til_settings_get_and_describe_value(settings,
 						&(til_setting_spec_t){
@@ -476,8 +515,33 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 			} while ((channel = strtok(NULL, ":")));
 		}
 
-		if (strcasecmp(snow_module, "none"))
-			setup->snow_module = strdup(snow_module);
+		if (strcasecmp(snow_module, "none")) {
+			const char		*snow_module_name = til_settings_get_value_by_idx(snow_module_settings, 0, NULL);
+			const til_module_t	*snow_module = til_lookup_module(snow_module_name);
+
+			if (!snow_module) {
+				til_setup_free(&setup->til_setup);
+
+				return -EINVAL;
+			}
+
+			setup->snow_module_name = strdup(snow_module_name);
+			if (!setup->snow_module_name) {
+				til_setup_free(&setup->til_setup);
+
+				return -ENOMEM;
+			}
+
+			if (snow_module->setup) {
+				/* bake the snow_module settings */
+				r = snow_module->setup(snow_module_settings, res_setting, res_desc, &setup->snow_module_setup);
+				if (r < 0) {
+					til_setup_free(&setup->til_setup);
+
+					return r;
+				}
+			}
+		}
 
 		/* TODO FIXME: parse errors */
 		sscanf(duration, "%u", &setup->duration);
