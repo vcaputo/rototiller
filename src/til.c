@@ -232,6 +232,7 @@ int til_module_create_context(const til_module_t *module, til_stream_t *stream, 
 
 	assert(module);
 	assert(parent_path);
+	assert(setup || !module->setup); /* if a module provides a .setup() method, it can assume a provided setup */
 	assert(res_context);
 
 	{
