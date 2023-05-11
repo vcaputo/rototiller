@@ -73,7 +73,7 @@ static til_module_context_t * roto_create_context(const til_module_t *module, ti
 		init_roto(texture, costab, sintab);
 	}
 
-	ctxt = til_module_context_new(module, sizeof(roto_context_t), stream, seed, ticks, n_cpus, path);
+	ctxt = til_module_context_new(module, sizeof(roto_context_t), stream, seed, ticks, n_cpus, path, setup);
 	if (!ctxt)
 		return NULL;
 

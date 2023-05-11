@@ -97,7 +97,7 @@ static til_module_context_t * shapes_create_context(const til_module_t *module, 
 {
 	shapes_context_t	*ctxt;
 
-	ctxt = til_module_context_new(module, sizeof(shapes_context_t), stream, seed, ticks, n_cpus, path);
+	ctxt = til_module_context_new(module, sizeof(shapes_context_t), stream, seed, ticks, n_cpus, path, setup);
 	if (!ctxt)
 		return NULL;
 

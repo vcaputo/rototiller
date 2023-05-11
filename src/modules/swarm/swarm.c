@@ -181,7 +181,7 @@ static til_module_context_t * swarm_create_context(const til_module_t *module, t
 {
 	swarm_context_t	*ctxt;
 
-	ctxt = til_module_context_new(module, sizeof(swarm_context_t) + sizeof(*(ctxt->boids)) * SWARM_SIZE, stream, seed, ticks, n_cpus, path);
+	ctxt = til_module_context_new(module, sizeof(swarm_context_t) + sizeof(*(ctxt->boids)) * SWARM_SIZE, stream, seed, ticks, n_cpus, path, setup);
 	if (!ctxt)
 		return NULL;
 

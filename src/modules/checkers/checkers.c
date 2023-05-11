@@ -78,7 +78,7 @@ static til_module_context_t * checkers_create_context(const til_module_t *module
 	if (((checkers_setup_t *)setup)->fill_module)
 		size += sizeof(til_module_context_t *) * n_cpus;
 
-	ctxt = til_module_context_new(module, size, stream, ticks, seed, n_cpus, path);
+	ctxt = til_module_context_new(module, size, stream, ticks, seed, n_cpus, path, setup);
 	if (!ctxt)
 		return NULL;
 

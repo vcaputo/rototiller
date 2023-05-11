@@ -6,6 +6,7 @@
 #include "til.h"
 #include "til_jenkins.h"
 #include "til_module_context.h"
+#include "til_setup.h"
 #include "til_stream.h"
 
 
@@ -28,7 +29,7 @@
  *
  * path must not be NULL, and the context always takes ownership of the path; it's freed @ context_free().
  */
-void * til_module_context_new(const til_module_t *module, size_t size, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path)
+void * til_module_context_new(const til_module_t *module, size_t size, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
 	til_module_context_t	*module_context;
 
@@ -51,6 +52,8 @@ void * til_module_context_new(const til_module_t *module, size_t size, til_strea
 	module_context->n_cpus = n_cpus;
 	module_context->path = path;
 	module_context->path_hash = til_jenkins((uint8_t *)path, strlen(path));
+	if (setup)
+		module_context->setup = til_setup_ref(setup);
 
 	return module_context;
 }
@@ -65,12 +68,14 @@ void * til_module_context_free(til_module_context_t *module_context)
 {
 	char		*path;
 	til_stream_t	*stream;
+	til_setup_t	*setup;
 
 	if (!module_context)
 		return NULL;
 
 	path = module_context->path; /* free last just in case the module destructor makes use of it */
 	stream = module_context->stream;
+	setup = module_context->setup;
 
 	if (module_context->module->destroy_context)
 		module_context->module->destroy_context(module_context);
@@ -78,6 +83,7 @@ void * til_module_context_free(til_module_context_t *module_context)
 		free(module_context);
 
 	free(path);
+	(void) til_setup_free(setup);
 
 	/* cleanup any pipes this context might have had in the stream, if the
 	 * module's destroy_context() also does this it's harmlessly idempotent

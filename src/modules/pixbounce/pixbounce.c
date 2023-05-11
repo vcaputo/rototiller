@@ -239,7 +239,7 @@ static til_module_context_t * pixbounce_create_context(const til_module_t *modul
 {
 	pixbounce_context_t *ctxt;
 
-	ctxt = til_module_context_new(module, sizeof(pixbounce_context_t), stream, seed, ticks, n_cpus, path);
+	ctxt = til_module_context_new(module, sizeof(pixbounce_context_t), stream, seed, ticks, n_cpus, path, setup);
 	if (!ctxt)
 		return NULL;
 

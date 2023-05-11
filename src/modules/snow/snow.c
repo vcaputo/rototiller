@@ -26,7 +26,7 @@ static til_module_context_t * snow_create_context(const til_module_t *module, ti
 {
 	snow_context_t	*ctxt;
 
-	ctxt = til_module_context_new(module, sizeof(snow_context_t) + n_cpus * sizeof(snow_seed_t), stream, seed, ticks, n_cpus, path);
+	ctxt = til_module_context_new(module, sizeof(snow_context_t) + n_cpus * sizeof(snow_seed_t), stream, seed, ticks, n_cpus, path, setup);
 	if (!ctxt)
 		return NULL;
 
