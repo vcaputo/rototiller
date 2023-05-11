@@ -65,7 +65,7 @@ typedef struct drizzle_context_t {
 	float			*viscosity, *rainfall;
 	til_fb_fragment_t	*snapshot;
 	puddle_t		*puddle;
-	drizzle_setup_t		setup;
+	drizzle_setup_t		*setup;
 } drizzle_context_t;
 
 
@@ -108,7 +108,7 @@ static til_module_context_t * drizzle_create_context(const til_module_t *module,
 	ctxt->taps.viscosity = til_tap_init_float(ctxt, &ctxt->viscosity, 1, &ctxt->vars.viscosity, "viscosity");
 	ctxt->taps.rainfall = til_tap_init_float(ctxt, &ctxt->rainfall, 1, &ctxt->vars.rainfall, "rainfall");
 
-	ctxt->setup = *(drizzle_setup_t *)setup;
+	ctxt->setup = (drizzle_setup_t *)setup;
 
 	return &ctxt->til_module_context;
 }
@@ -128,7 +128,7 @@ static void drizzle_prepare_frame(til_module_context_t *context, til_stream_t *s
 	drizzle_context_t	*ctxt = (drizzle_context_t *)context;
 
 	if (!til_stream_tap_context(stream, context, NULL, &ctxt->taps.viscosity))
-		*ctxt->viscosity = ctxt->setup.viscosity;
+		*ctxt->viscosity = ctxt->setup->viscosity;
 
 	if (!til_stream_tap_context(stream, context, NULL, &ctxt->taps.rainfall))
 		*ctxt->rainfall = RAINFALL_CNT;
@@ -292,7 +292,7 @@ static void drizzle_render_fragment(til_module_context_t *context, til_stream_t 
 		return;
 	}
 
-	switch (ctxt->setup.style) {
+	switch (ctxt->setup->style) {
 	case DRIZZLE_STYLE_MASK:
 		coord.y = yf * (float)fragment->y;
 		for (int y = fragment->y; y < fragment->y + fragment->height; y++) {

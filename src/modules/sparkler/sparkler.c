@@ -28,7 +28,7 @@ typedef struct sparkler_setup_t {
 typedef struct sparkler_context_t {
 	til_module_context_t	til_module_context;
 	particles_t		*particles;
-	sparkler_setup_t	setup;
+	sparkler_setup_t	*setup;
 } sparkler_context_t;
 
 extern particle_ops_t	simple_ops;
@@ -41,7 +41,7 @@ static til_module_context_t * sparkler_create_context(const til_module_t *module
 	if (!ctxt)
 		return NULL;
 
-	ctxt->setup = *(sparkler_setup_t *)setup;
+	ctxt->setup = (sparkler_setup_t *)setup;
 
 	ctxt->particles = particles_new(&(particles_conf_t){
 						.show_bsp_leafs = ((sparkler_setup_t *)setup)->show_bsp_leafs,
@@ -77,7 +77,7 @@ static void sparkler_prepare_frame(til_module_context_t *context, til_stream_t *
 
 	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu };
 
-	if (ctxt->setup.show_bsp_matches)
+	if (ctxt->setup->show_bsp_matches)
 		til_fb_fragment_clear(fragment);
 
 	particles_sim(ctxt->particles, fragment);
@@ -92,7 +92,7 @@ static void sparkler_render_fragment(til_module_context_t *context, til_stream_t
 	sparkler_context_t	*ctxt = (sparkler_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;
 
-	if (!ctxt->setup.show_bsp_matches)
+	if (!ctxt->setup->show_bsp_matches)
 		til_fb_fragment_clear(fragment);
 
 	particles_draw(ctxt->particles, fragment);

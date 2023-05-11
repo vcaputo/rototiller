@@ -38,7 +38,7 @@ typedef struct moire_center_t {
 
 typedef struct moire_context_t {
 	til_module_context_t	til_module_context;
-	moire_setup_t		setup;
+	moire_setup_t		*setup;
 	moire_center_t		centers[];
 } moire_context_t;
 
@@ -50,7 +50,7 @@ static til_module_context_t * moire_create_context(const til_module_t *module, t
 	if (!ctxt)
 		return NULL;
 
-	ctxt->setup = *(moire_setup_t *)setup;
+	ctxt->setup = (moire_setup_t *)setup;
 
 	for (unsigned i = 0; i < ((moire_setup_t *)setup)->n_centers; i++) {
 		ctxt->centers[i].seed = rand_r(&seed) * (1.f / (float)RAND_MAX) * 2 * M_PI;
@@ -69,7 +69,7 @@ static void moire_prepare_frame(til_module_context_t *context, til_stream_t *str
 
 	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu };
 
-	for (unsigned i = 0; i < ctxt->setup.n_centers; i++) {
+	for (unsigned i = 0; i < ctxt->setup->n_centers; i++) {
 		ctxt->centers[i].x = cosf(ctxt->centers[i].seed + (float)ticks * .001f * ctxt->centers[i].dir);
 		ctxt->centers[i].y = sinf(ctxt->centers[i].seed + (float)ticks * .001f * ctxt->centers[i].dir);
 	}
@@ -93,7 +93,7 @@ static void moire_render_fragment(til_module_context_t *context, til_stream_t *s
 		for (int x = fragment->x; x < fragment->x + fragment->width; x++, cx += xf) {
 			int	filled = 0;
 
-			for (unsigned i = 0; i < ctxt->setup.n_centers; i++) {
+			for (unsigned i = 0; i < ctxt->setup->n_centers; i++) {
 				float	dx, dy;
 
 				dx = cx - ctxt->centers[i].x;

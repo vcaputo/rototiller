@@ -65,7 +65,7 @@ typedef struct checkers_setup_t {
 
 typedef struct checkers_context_t {
 	til_module_context_t	til_module_context;
-	checkers_setup_t	setup;
+	checkers_setup_t	*setup;
 	til_module_context_t	*fill_module_contexts[];
 } checkers_context_t;
 
@@ -82,10 +82,10 @@ static til_module_context_t * checkers_create_context(const til_module_t *module
 	if (!ctxt)
 		return NULL;
 
-	ctxt->setup = *(checkers_setup_t *)setup;
+	ctxt->setup = (checkers_setup_t *)setup;
 
-	if (ctxt->setup.fill_module) {
-		const til_module_t	*module = ctxt->setup.fill_module;
+	if (ctxt->setup->fill_module) {
+		const til_module_t	*module = ctxt->setup->fill_module;
 		til_setup_t		*module_setup = NULL;
 
 		(void) til_module_randomize_setup(module, seed, &module_setup, NULL);
@@ -109,7 +109,7 @@ static void checkers_destroy_context(til_module_context_t *context)
 {
 	checkers_context_t	*ctxt = (checkers_context_t *)context;
 
-	if (ctxt->setup.fill_module) {
+	if (ctxt->setup->fill_module) {
 		for (unsigned i = 0; i < context->n_cpus; i++)
 			til_module_context_free(ctxt->fill_module_contexts[i]);
 	}
@@ -211,7 +211,7 @@ static int checkers_fragmenter(til_module_context_t *context, const til_fb_fragm
 {
 	checkers_context_t	*ctxt = (checkers_context_t *)context;
 
-	return checkers_fragment_tile_single(fragment, ctxt->setup.size, number, res_fragment);
+	return checkers_fragment_tile_single(fragment, ctxt->setup->size, number, res_fragment);
 }
 
 
@@ -228,7 +228,7 @@ static void checkers_prepare_frame(til_module_context_t *context, til_stream_t *
 	 * is actually *the* reason til_frame_plan_t.cpu_affinity got implemented, before this there
 	 * wasn't even a til_frame_plan_t container; a bare til_fragmenter_t was returned.
 	 */
-	*res_frame_plan = (til_frame_plan_t){ .fragmenter = checkers_fragmenter, .cpu_affinity = !!ctxt->setup.fill_module };
+	*res_frame_plan = (til_frame_plan_t){ .fragmenter = checkers_fragmenter, .cpu_affinity = !!ctxt->setup->fill_module };
 }
 
 
@@ -248,16 +248,16 @@ static void checkers_render_fragment(til_module_context_t *context, til_stream_t
 	checkers_context_t	*ctxt = (checkers_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;
 
-	uint32_t		color = ctxt->setup.color, flags = 0;
-	checkers_fill_t		fill = ctxt->setup.fill;
+	uint32_t		color = ctxt->setup->color, flags = 0;
+	checkers_fill_t		fill = ctxt->setup->fill;
 	int			state;
 
-	switch (ctxt->setup.pattern) {
+	switch (ctxt->setup->pattern) {
 	case CHECKERS_PATTERN_CHECKERED: {
 		unsigned	tiles_per_row, row, col;
 
-		tiles_per_row = fragment->frame_width / ctxt->setup.size;
-		if (tiles_per_row * ctxt->setup.size < fragment->frame_width)
+		tiles_per_row = fragment->frame_width / ctxt->setup->size;
+		if (tiles_per_row * ctxt->setup->size < fragment->frame_width)
 			tiles_per_row++;
 
 		row = fragment->number / tiles_per_row;
@@ -271,27 +271,27 @@ static void checkers_render_fragment(til_module_context_t *context, til_stream_t
 	}
 
 	/* now that state has been determined, set the frame size */
-	fragment->frame_width = ctxt->setup.size;
-	fragment->frame_height = ctxt->setup.size;
+	fragment->frame_width = ctxt->setup->size;
+	fragment->frame_height = ctxt->setup->size;
 
-	switch (ctxt->setup.dynamics) {
+	switch (ctxt->setup->dynamics) {
 	case CHECKERS_DYNAMICS_ODD:
 		break;
 	case CHECKERS_DYNAMICS_EVEN:
 		state = ~state & 0x1;
 		break;
 	case CHECKERS_DYNAMICS_ALTERNATING:
-		state ^= ((unsigned)((float)ticks * ctxt->setup.rate) & 0x1);
+		state ^= ((unsigned)((float)ticks * ctxt->setup->rate) & 0x1);
 		break;
 	case CHECKERS_DYNAMICS_RANDOM: /* note: the big multiply here is just to get up out of the low bits */
-		state &= hash(fragment->number * 0x61C88647 + (unsigned)((float)ticks * ctxt->setup.rate)) & 0x1;
+		state &= hash(fragment->number * 0x61C88647 + (unsigned)((float)ticks * ctxt->setup->rate)) & 0x1;
 		break;
 	}
 
 	if (fill == CHECKERS_FILL_RANDOM || fill == CHECKERS_FILL_MIXED)
 		fill = rand_r(&ctxt->til_module_context.seed) % CHECKERS_FILL_RANDOM; /* TODO: mixed should have a setting for controlling the ratios */
 
-	switch (ctxt->setup.fill) {
+	switch (ctxt->setup->fill) {
 	case CHECKERS_FILL_SAMPLED:
 		if (fragment->cleared)
 			color = til_fb_fragment_get_pixel_unchecked(fragment, fragment->x + (fragment->width >> 1), fragment->y + (fragment->height >> 1));
@@ -307,7 +307,7 @@ static void checkers_render_fragment(til_module_context_t *context, til_stream_t
 	if (!state)
 		til_fb_fragment_clear(fragment);
 	else {
-		if (!ctxt->setup.fill_module)
+		if (!ctxt->setup->fill_module)
 			til_fb_fragment_fill(fragment, flags, color);
 		else {
 			/* TODO: we need a way to send down color and flags, and use the module render as a brush of sorts */

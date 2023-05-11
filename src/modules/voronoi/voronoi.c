@@ -45,7 +45,7 @@ typedef struct voronoi_distances_t {
 typedef struct voronoi_context_t {
 	til_module_context_t	til_module_context;
 	unsigned		seed;
-	voronoi_setup_t		setup;
+	voronoi_setup_t		*setup;
 	voronoi_distances_t	distances;
 	voronoi_cell_t		cells[];
 } voronoi_context_t;
@@ -60,7 +60,7 @@ static void voronoi_randomize(voronoi_context_t *ctxt)
 {
 	float	inv_rand_max= 1.f / (float)RAND_MAX;
 
-	for (size_t i = 0; i < ctxt->setup.n_cells; i++) {
+	for (size_t i = 0; i < ctxt->setup->n_cells; i++) {
 		voronoi_cell_t	*p = &ctxt->cells[i];
 
 		p->origin.x = ((float)rand_r(&ctxt->seed) * inv_rand_max) * 2.f - 1.f;
@@ -81,7 +81,7 @@ static til_module_context_t * voronoi_create_context(const til_module_t *module,
 	if (!ctxt)
 		return NULL;
 
-	ctxt->setup = *(voronoi_setup_t *)setup;
+	ctxt->setup = (voronoi_setup_t *)setup;
 	ctxt->seed = seed;
 
 	voronoi_randomize(ctxt);
@@ -210,7 +210,7 @@ static void voronoi_calculate_distances(voronoi_context_t *ctxt)
 
 #if 0
 	/* naive inefficient brute-force but correct algorithm */
-	for (size_t i = 0; i < ctxt->setup.n_cells; i++) {
+	for (size_t i = 0; i < ctxt->setup->n_cells; i++) {
 		voronoi_distance_t	*d = ctxt->distances.buf;
 		v2f_t			dp = {};
 
@@ -233,7 +233,7 @@ static void voronoi_calculate_distances(voronoi_context_t *ctxt)
 	/* An attempt at implementing https://en.wikipedia.org/wiki/Jump_flooding_algorithm */
 
 	/* first assign the obvious zero-distance cell origins */
-	for (size_t i = 0; i < ctxt->setup.n_cells; i++) {
+	for (size_t i = 0; i < ctxt->setup->n_cells; i++) {
 		voronoi_cell_t		*c = &ctxt->cells[i];
 		size_t			idx;
 		voronoi_distance_t	*d;
@@ -246,7 +246,7 @@ static void voronoi_calculate_distances(voronoi_context_t *ctxt)
 	}
 
 	/* now for every distance sample neighbors */
-	if (ctxt->setup.dirty) {
+	if (ctxt->setup->dirty) {
 		for (size_t step = 2; step <= MAX(ctxt->distances.width, ctxt->distances.height); step *= 2)
 			voronoi_jumpfill_pass(ctxt, &ds, step);
 	} else {
@@ -259,7 +259,7 @@ static void voronoi_calculate_distances(voronoi_context_t *ctxt)
 
 static void voronoi_sample_colors(voronoi_context_t *ctxt, til_fb_fragment_t *fragment)
 {
-	for (size_t i = 0; i < ctxt->setup.n_cells; i++) {
+	for (size_t i = 0; i < ctxt->setup->n_cells; i++) {
 		voronoi_cell_t	*p = &ctxt->cells[i];
 		int		x, y;
 
@@ -288,13 +288,13 @@ static void voronoi_prepare_frame(til_module_context_t *context, til_stream_t *s
 		ctxt->distances.size = fragment->frame_width * fragment->frame_height;
 		ctxt->distances.buf = malloc(sizeof(voronoi_distance_t) * ctxt->distances.size);
 
-		if (!ctxt->setup.randomize)
+		if (!ctxt->setup->randomize)
 			voronoi_calculate_distances(ctxt);
 	}
 
 	/* TODO: explore moving voronoi_calculate_distances() into render_fragment (threaded) */
 
-	if (ctxt->setup.randomize) {
+	if (ctxt->setup->randomize) {
 		voronoi_randomize(ctxt);
 		voronoi_calculate_distances(ctxt);
 	}

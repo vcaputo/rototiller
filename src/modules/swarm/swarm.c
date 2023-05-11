@@ -57,7 +57,7 @@ typedef struct swarm_context_t {
 	til_module_context_t	til_module_context;
 	v3f_t			color;
 	float			ztweak;
-	swarm_setup_t		setup;
+	swarm_setup_t		*setup;
 	boid_t			boids[];
 } swarm_context_t;
 
@@ -185,7 +185,7 @@ static til_module_context_t * swarm_create_context(const til_module_t *module, t
 	if (!ctxt)
 		return NULL;
 
-	ctxt->setup = *(swarm_setup_t *)setup;
+	ctxt->setup = (swarm_setup_t *)setup;
 
 	for (unsigned i = 0; i < SWARM_SIZE; i++)
 		boid_randomize(&ctxt->boids[i], &seed);
@@ -403,7 +403,7 @@ static void swarm_render_fragment(til_module_context_t *context, til_stream_t *s
 
 	til_fb_fragment_clear(fragment);
 
-	switch (ctxt->setup.draw_style) {
+	switch (ctxt->setup->draw_style) {
 	case SWARM_DRAW_STYLE_POINTS:
 		return swarm_draw_as_points(ctxt, fragment);
 	case SWARM_DRAW_STYLE_LINES:

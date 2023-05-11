@@ -89,7 +89,7 @@ typedef struct shapes_setup_t {
 
 typedef struct shapes_context_t {
 	til_module_context_t	til_module_context;
-	shapes_setup_t		setup;
+	shapes_setup_t		*setup;
 } shapes_context_t;
 
 
@@ -101,7 +101,7 @@ static til_module_context_t * shapes_create_context(const til_module_t *module, 
 	if (!ctxt)
 		return NULL;
 
-	ctxt->setup = *(shapes_setup_t *)setup;
+	ctxt->setup = (shapes_setup_t *)setup;
 
 	return &ctxt->til_module_context;
 }
@@ -112,7 +112,7 @@ static void shapes_render_fragment(til_module_context_t *context, til_stream_t *
 	shapes_context_t	*ctxt = (shapes_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;
 
-	unsigned		size = MIN(fragment->frame_width, fragment->frame_height) * ctxt->setup.scale;
+	unsigned		size = MIN(fragment->frame_width, fragment->frame_height) * ctxt->setup->scale;
 	unsigned		xoff = (fragment->frame_width - size) >> 1;
 	unsigned		yoff = (fragment->frame_height - size) >> 1;
 
@@ -141,7 +141,7 @@ static void shapes_render_fragment(til_module_context_t *context, til_stream_t *
 	/* eventually these should probably get broken out into functions,
 	 * but it's not too unwieldy for now.
 	 */
-	switch (ctxt->setup.type) {
+	switch (ctxt->setup->type) {
 	case SHAPES_TYPE_CIRCLE: {
 		unsigned	yskip = (fragment->y > yoff ? (fragment->y - yoff) : 0);
 		unsigned	xskip = (fragment->x > xoff ? (fragment->x - xoff) : 0);
@@ -158,7 +158,7 @@ static void shapes_render_fragment(til_module_context_t *context, til_stream_t *
 			for (unsigned x = MAX(fragment->x, xoff); x < xoff + size; x++, X++, XX += s) {
 				float	rad = atan2f(YY, XX);
 
-				if (Y*Y+X*X < r_sq * (1.f - fabsf(cosf(ctxt->setup.n_pinches * rad + (float)ticks * ctxt->setup.pinch_spin * SHAPES_SPIN_BASE)) * ctxt->setup.pinch))
+				if (Y*Y+X*X < r_sq * (1.f - fabsf(cosf(ctxt->setup->n_pinches * rad + (float)ticks * ctxt->setup->pinch_spin * SHAPES_SPIN_BASE)) * ctxt->setup->pinch))
 					til_fb_fragment_put_pixel_checked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x, y, 0xffffffff); /* TODO: stop relying on checked for clipping */
 				else if (!fragment->cleared)
 					til_fb_fragment_put_pixel_checked(fragment, 0, x, y, 0x0);
@@ -179,9 +179,9 @@ static void shapes_render_fragment(til_module_context_t *context, til_stream_t *
 			XX = -1.f + xskip * s;
 			for (unsigned x = MAX(fragment->x, xoff); x < xoff + size; x++, XX += s) {
 				float	rad = atan2f(YY, XX);
-				float	r = cosf((float)ctxt->setup.n_points * (rad + (float)ticks * ctxt->setup.spin * SHAPES_SPIN_BASE)) * .5f + .5f;
+				float	r = cosf((float)ctxt->setup->n_points * (rad + (float)ticks * ctxt->setup->spin * SHAPES_SPIN_BASE)) * .5f + .5f;
 
-				r *= 1.f - fabsf(cosf(ctxt->setup.n_pinches * rad + (float)ticks * ctxt->setup.pinch_spin * SHAPES_SPIN_BASE)) * ctxt->setup.pinch;
+				r *= 1.f - fabsf(cosf(ctxt->setup->n_pinches * rad + (float)ticks * ctxt->setup->pinch_spin * SHAPES_SPIN_BASE)) * ctxt->setup->pinch;
 
 				if (XX * XX + YY * YY < r * r)
 					til_fb_fragment_put_pixel_checked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x, y, 0xffffffff); /* stop relying on checked for clipping */
@@ -209,7 +209,7 @@ static void shapes_render_fragment(til_module_context_t *context, til_stream_t *
 			for (unsigned x = MAX(fragment->x, xoff); x < xoff + size; x++, X++, XX += s) {
 				float	rad = atan2f(YY, XX);
 
-				if (abs(Y) + abs(X) < r * (1.f - fabsf(cosf(ctxt->setup.n_pinches * rad + (float)ticks * ctxt->setup.pinch_spin * SHAPES_SPIN_BASE)) * ctxt->setup.pinch))
+				if (abs(Y) + abs(X) < r * (1.f - fabsf(cosf(ctxt->setup->n_pinches * rad + (float)ticks * ctxt->setup->pinch_spin * SHAPES_SPIN_BASE)) * ctxt->setup->pinch))
 					til_fb_fragment_put_pixel_checked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x, y, 0xffffffff);
 				else if (!fragment->cleared)
 					til_fb_fragment_put_pixel_checked(fragment, 0, x, y, 0x0);
@@ -230,10 +230,10 @@ static void shapes_render_fragment(til_module_context_t *context, til_stream_t *
 			XX = -1.f + xskip * s;
 			for (unsigned x = MAX(fragment->x, xoff); x < xoff + size; x++, XX += s) {
 				float	rad = atan2f(YY, XX);
-				float	r = (M_2_PI * asinf(sinf((float)ctxt->setup.n_points * (rad + (float)ticks * ctxt->setup.spin * SHAPES_SPIN_BASE)) * .5f + .5f)) * .5f + .5f;
+				float	r = (M_2_PI * asinf(sinf((float)ctxt->setup->n_points * (rad + (float)ticks * ctxt->setup->spin * SHAPES_SPIN_BASE)) * .5f + .5f)) * .5f + .5f;
 					/*   ^^^^^^^^^^^^^^^^^^^ approximates a triangle wave */
 
-				r *= 1.f - fabsf(cosf(ctxt->setup.n_pinches * rad + (float)ticks * ctxt->setup.pinch_spin * SHAPES_SPIN_BASE)) * ctxt->setup.pinch;
+				r *= 1.f - fabsf(cosf(ctxt->setup->n_pinches * rad + (float)ticks * ctxt->setup->pinch_spin * SHAPES_SPIN_BASE)) * ctxt->setup->pinch;
 
 				if (XX * XX + YY * YY < r * r)
 					til_fb_fragment_put_pixel_checked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x, y, 0xffffffff);

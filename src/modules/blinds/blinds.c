@@ -38,7 +38,7 @@ typedef struct blinds_context_t {
 	} vars;
 
 	float			*t, *step, *count;
-	blinds_setup_t		setup;
+	blinds_setup_t		*setup;
 } blinds_context_t;
 
 
@@ -54,7 +54,7 @@ static til_module_context_t * blinds_create_context(const til_module_t *module, 
 	ctxt->taps.step = til_tap_init_float(ctxt, &ctxt->step, 1, &ctxt->vars.step, "step");
 	ctxt->taps.count = til_tap_init_float(ctxt, &ctxt->count, 1, &ctxt->vars.count, "count");
 
-	ctxt->setup = *(blinds_setup_t *)setup;
+	ctxt->setup = (blinds_setup_t *)setup;
 
 	return &ctxt->til_module_context;
 }
@@ -104,17 +104,17 @@ static void blinds_render_fragment(til_module_context_t *context, til_stream_t *
 		*ctxt->step = .1f;
 
 	if (!til_stream_tap_context(stream, context, NULL, &ctxt->taps.count))
-		*ctxt->count = ctxt->setup.count;
+		*ctxt->count = ctxt->setup->count;
 
 	til_fb_fragment_clear(fragment);
 
 	for (t = *ctxt->t, blind = 0; blind < (unsigned)*ctxt->count; blind++, t += *ctxt->step) {
-		switch (ctxt->setup.orientation) {
+		switch (ctxt->setup->orientation) {
 		case BLINDS_ORIENTATION_HORIZONTAL:
-			draw_blind_horizontal(fragment, blind, ctxt->setup.count, 1.f - fabsf(cosf(t)));
+			draw_blind_horizontal(fragment, blind, ctxt->setup->count, 1.f - fabsf(cosf(t)));
 			break;
 		case BLINDS_ORIENTATION_VERTICAL:
-			draw_blind_vertical(fragment, blind, ctxt->setup.count, 1.f - fabsf(cosf(t)));
+			draw_blind_vertical(fragment, blind, ctxt->setup->count, 1.f - fabsf(cosf(t)));
 			break;
 		}
 	}
