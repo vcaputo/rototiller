@@ -72,15 +72,6 @@ static void rtv_render_fragment(til_module_context_t *context, til_stream_t *str
 static void rtv_finish_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr);
 static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
 
-static rtv_setup_t rtv_default_setup = {
-	.duration = RTV_DURATION_SECS,
-	.context_duration = RTV_CONTEXT_DURATION_SECS,
-	.snow_duration = RTV_SNOW_DURATION_SECS,
-	.caption_duration = RTV_CAPTION_DURATION_SECS,
-	.snow_module = RTV_DEFAULT_SNOW_MODULE,
-	.channels = { NULL }, /* NULL == "all" */
-};
-
 static til_module_t	rtv_none_module = {};
 
 til_module_t	rtv_module = {
@@ -233,9 +224,6 @@ static til_module_context_t * rtv_create_context(const til_module_t *module, til
 	rtv_context_t		*ctxt;
 	const til_module_t	**modules;
 	size_t			n_modules, n_channels = 0;
-
-	if (!setup)
-		setup = &rtv_default_setup.til_setup;
 
 	til_get_modules(&modules, &n_modules);
 

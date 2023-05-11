@@ -64,8 +64,6 @@ typedef struct submit_setup_t {
 	unsigned	bilerp:1;
 } submit_setup_t;
 
-static submit_setup_t submit_default_setup;
-
 /* convert a color into a packed, 32-bit rgb pixel value (taken from libs/ray/ray_color.h) */
 static inline uint32_t color_to_uint32(color_t color) {
 	uint32_t	pixel;
@@ -270,9 +268,6 @@ static void setup_grid(submit_context_t *ctxt)
 static til_module_context_t * submit_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
 	submit_context_t	*ctxt;
-
-	if (!setup)
-		setup = &submit_default_setup.til_setup;
 
 	ctxt = til_module_context_new(module, sizeof(submit_context_t), stream, seed, ticks, n_cpus, path);
 	if (!ctxt)

@@ -56,13 +56,6 @@ typedef struct voronoi_context_t {
 #define VORONOI_DEFAULT_RANDOMIZE	0
 
 
-static voronoi_setup_t voronoi_default_setup = {
-	.n_cells = VORONOI_DEFAULT_N_CELLS,
-	.dirty = VORONOI_DEFAULT_DIRTY,
-	.randomize = VORONOI_DEFAULT_RANDOMIZE,
-};
-
-
 static void voronoi_randomize(voronoi_context_t *ctxt)
 {
 	float	inv_rand_max= 1.f / (float)RAND_MAX;
@@ -83,9 +76,6 @@ static void voronoi_randomize(voronoi_context_t *ctxt)
 static til_module_context_t * voronoi_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
 	voronoi_context_t	*ctxt;
-
-	if (!setup)
-		setup = &voronoi_default_setup.til_setup;
 
 	ctxt = til_module_context_new(module, sizeof(voronoi_context_t) + ((voronoi_setup_t *)setup)->n_cells * sizeof(voronoi_cell_t), stream, seed, ticks, n_cpus, path);
 	if (!ctxt)

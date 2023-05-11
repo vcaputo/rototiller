@@ -215,14 +215,6 @@ typedef struct flui2d_context_t {
 #define FLUI2D_DEFAULT_DECAY		.0001
 
 
-static flui2d_setup_t flui2d_default_setup = {
-	.viscosity = FLUI2D_DEFAULT_VISCOSITY,
-	.diffusion = FLUI2D_DEFAULT_DIFFUSION,
-	.decay = FLUI2D_DEFAULT_DECAY,
-	.emitters = FLUI2D_DEFAULT_EMITTERS,
-};
-
-
 /* gamma correction derived from libs/ray/ray_gamma.[ch] */
 static uint8_t	gamma_table[1024];
 
@@ -261,9 +253,6 @@ static til_module_context_t * flui2d_create_context(const til_module_t *module, 
 {
 	static int		initialized;
 	flui2d_context_t	*ctxt;
-
-	if (!setup)
-		setup = &flui2d_default_setup.til_setup;
 
 	ctxt = til_module_context_new(module, sizeof(flui2d_context_t), stream, seed, ticks, n_cpus, path);
 	if (!ctxt)

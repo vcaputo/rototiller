@@ -60,10 +60,6 @@ typedef struct stars_setup_t {
 	float			rot_adj;
 } stars_setup_t;
 
-static stars_setup_t stars_default_setup = {
-	.rot_adj = DEFAULT_ROT_ADJ,
-};
-
 
 float get_random_unit_coord(unsigned *seed) {
 	return (((float)rand_r(seed)/(float)RAND_MAX)*2.0)-1.0;
@@ -75,9 +71,6 @@ static til_module_context_t * stars_create_context(const til_module_t *module, t
 	stars_context_t *ctxt;
 	float		z;
 	struct points* p_ptr = NULL;
-
-	if (!setup)
-		setup = &stars_default_setup.til_setup;
 
 	ctxt = til_module_context_new(module, sizeof(stars_context_t), stream, seed, ticks, n_cpus, path);
 	if (!ctxt)

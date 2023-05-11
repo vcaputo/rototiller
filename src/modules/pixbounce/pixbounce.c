@@ -27,11 +27,6 @@ typedef struct pixbounce_setup_t {
 	pixbounce_pixmaps_t	pixmap;
 } pixbounce_setup_t;
 
-static pixbounce_setup_t pixbounce_default_setup = {
-        .pixmap_size = DEFAULT_PIXMAP_SIZE,
-	.pixmap = DEFAULT_PIXMAP
-};
-
 typedef struct pixbounce_pixmap_t {
 	int width, height;
 	int pix_map[34*35];

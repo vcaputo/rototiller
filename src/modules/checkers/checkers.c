@@ -70,22 +70,10 @@ typedef struct checkers_context_t {
 } checkers_context_t;
 
 
-static checkers_setup_t checkers_default_setup = {
-	.size = CHECKERS_DEFAULT_SIZE,
-	.pattern = CHECKERS_DEFAULT_PATTERN,
-	.dynamics = CHECKERS_DEFAULT_DYNAMICS,
-	.rate = CHECKERS_DEFAULT_DYNAMICS_RATE,
-	.color = CHECKERS_DEFAULT_COLOR,
-};
-
-
 static til_module_context_t * checkers_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
 	size_t			size = sizeof(checkers_context_t);
 	checkers_context_t	*ctxt;
-
-	if (!setup)
-		setup = &checkers_default_setup.til_setup;
 
 	if (((checkers_setup_t *)setup)->fill_module)
 		size += sizeof(til_module_context_t *) * n_cpus;

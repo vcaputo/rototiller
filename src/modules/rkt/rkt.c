@@ -46,16 +46,11 @@ typedef struct rkt_setup_t {
 	unsigned short		port;
 } rkt_setup_t;
 
-static rkt_setup_t rkt_default_setup = { .seq_module_name = "compose" };
-
 
 static til_module_context_t * rkt_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
 	rkt_context_t	*ctxt;
 	const til_module_t	*seq_module;
-
-	if (!setup)
-		setup = &rkt_default_setup.til_setup;
 
 	seq_module = til_lookup_module(((rkt_setup_t *)setup)->seq_module_name);
 	if (!seq_module)

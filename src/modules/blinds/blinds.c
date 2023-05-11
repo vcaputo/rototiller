@@ -42,18 +42,9 @@ typedef struct blinds_context_t {
 } blinds_context_t;
 
 
-static blinds_setup_t blinds_default_setup = {
-	.count = BLINDS_DEFAULT_COUNT,
-	.orientation = BLINDS_DEFAULT_ORIENTATION,
-};
-
-
 static til_module_context_t * blinds_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
 	blinds_context_t	*ctxt;
-
-	if (!setup)
-		setup = &blinds_default_setup.til_setup;
 
 	ctxt = til_module_context_new(module, sizeof(blinds_context_t), stream, seed, ticks, n_cpus, path);
 	if (!ctxt)

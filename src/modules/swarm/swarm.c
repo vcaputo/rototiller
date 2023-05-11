@@ -65,10 +65,6 @@ typedef struct swarm_context_t {
 #define SWARM_ZCONST		4.f
 #define SWARM_DEFAULT_STYLE	SWARM_DRAW_STYLE_LINES
 
-static swarm_setup_t swarm_default_setup = {
-	.draw_style = SWARM_DEFAULT_STYLE,
-};
-
 
 static inline float randf(unsigned *seed, float min, float max)
 {
@@ -184,9 +180,6 @@ static inline uint32_t color_to_uint32(v3f_t color) {
 static til_module_context_t * swarm_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
 {
 	swarm_context_t	*ctxt;
-
-	if (!setup)
-		setup = &swarm_default_setup.til_setup;
 
 	ctxt = til_module_context_new(module, sizeof(swarm_context_t) + sizeof(*(ctxt->boids)) * SWARM_SIZE, stream, seed, ticks, n_cpus, path);
 	if (!ctxt)
