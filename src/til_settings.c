@@ -33,7 +33,7 @@ char * strndup(const char *s, size_t n)
 typedef struct til_settings_t {
 	const char	*label;
 	unsigned	num;
-	til_setting_t	**settings;
+	til_setting_t	**entries;
 } til_settings_t;
 
 typedef enum til_settings_fsm_state_t {
@@ -48,7 +48,7 @@ typedef enum til_settings_fsm_state_t {
 
 static til_setting_t * add_setting(til_settings_t *settings, const char *key, const char *value, const til_setting_desc_t *desc)
 {
-	til_setting_t	**new_settings;
+	til_setting_t	**new_entries;
 	til_setting_t	*s;
 
 	assert(settings);
@@ -57,17 +57,17 @@ static til_setting_t * add_setting(til_settings_t *settings, const char *key, co
 	if (!s)
 		return NULL;
 
-	new_settings = realloc(settings->settings, (settings->num + 1) * sizeof(til_setting_t *));
-	if (!new_settings) {
+	new_entries = realloc(settings->entries, (settings->num + 1) * sizeof(til_setting_t *));
+	if (!new_entries) {
 		free(s);
 		return NULL;
 	}
 
-	settings->settings = new_settings;
-	settings->settings[settings->num] = s;
-	settings->settings[settings->num]->key = key;
-	settings->settings[settings->num]->value = value;
-	settings->settings[settings->num]->desc = desc;
+	settings->entries = new_entries;
+	settings->entries[settings->num] = s;
+	settings->entries[settings->num]->key = key;
+	settings->entries[settings->num]->value = value;
+	settings->entries[settings->num]->desc = desc;
 	settings->num++;
 
 	return s;
@@ -143,7 +143,7 @@ til_settings_t * til_settings_new(const char *label, const char *settings_string
 				state = TIL_SETTINGS_FSM_STATE_VALUE_ESCAPED;
 			else if (*p == ',' || *p == '\0') {
 				fclose(value_fp);
-				settings->settings[settings->num - 1]->value = value_buf;
+				settings->entries[settings->num - 1]->value = value_buf;
 				state = TIL_SETTINGS_FSM_STATE_COMMA;
 			} else
 				fputc(*p, value_fp);
@@ -185,13 +185,13 @@ til_settings_t * til_settings_free(til_settings_t *settings)
 
 	if (settings) {
 		for (unsigned i = 0; i < settings->num; i++) {
-			free((void *)settings->settings[i]->key);
-			free((void *)settings->settings[i]->value);
-			til_setting_desc_free((void *)settings->settings[i]->desc);
-			free((void *)settings->settings[i]);
+			free((void *)settings->entries[i]->key);
+			free((void *)settings->entries[i]->value);
+			til_setting_desc_free((void *)settings->entries[i]->desc);
+			free((void *)settings->entries[i]);
 		}
 
-		free((void *)settings->settings);
+		free((void *)settings->entries);
 		free(settings);
 	}
 
@@ -214,14 +214,14 @@ const char * til_settings_get_value_by_key(const til_settings_t *settings, const
 	assert(key);
 
 	for (int i = 0; i < settings->num; i++) {
-		if (!settings->settings[i]->key)
+		if (!settings->entries[i]->key)
 			continue;
 
-		if (!strcasecmp(key, settings->settings[i]->key)) {
+		if (!strcasecmp(key, settings->entries[i]->key)) {
 			if (res_setting)
-				*res_setting = settings->settings[i];
+				*res_setting = settings->entries[i];
 
-			return settings->settings[i]->value;
+			return settings->entries[i]->value;
 		}
 	}
 
@@ -236,9 +236,9 @@ const char * til_settings_get_value_by_idx(const til_settings_t *settings, unsig
 
 	if (idx < settings->num) {
 		if (res_setting)
-			*res_setting = settings->settings[idx];
+			*res_setting = settings->entries[idx];
 
-		return settings->settings[idx]->value;
+		return settings->entries[idx]->value;
 	}
 
 	return NULL;
@@ -305,7 +305,7 @@ void til_settings_reset_descs(til_settings_t *settings)
 	assert(settings);
 
 	for (unsigned i = 0; i < settings->num; i++)
-		settings->settings[i]->desc = NULL;
+		settings->entries[i]->desc = NULL;
 }
 
 
@@ -506,16 +506,16 @@ static void settings_as_arg(const til_settings_t *settings, unsigned depth, FILE
 		if (i > 0)
 			fputc_escaped(out, ',', depth);
 
-		if (settings->settings[i]->key) {
-			fputs_escaped(out, settings->settings[i]->key, depth);
-			if (settings->settings[i]->value)
+		if (settings->entries[i]->key) {
+			fputs_escaped(out, settings->entries[i]->key, depth);
+			if (settings->entries[i]->value)
 				fputc_escaped(out, '=', depth);
 		}
 
-		if (settings->settings[i]->value_as_nested_settings) {
-			settings_as_arg(settings->settings[i]->value_as_nested_settings, depth + 1, out);
-		} else if (settings->settings[i]->value) {
-			fputs_escaped(out, settings->settings[i]->value, depth);
+		if (settings->entries[i]->value_as_nested_settings) {
+			settings_as_arg(settings->entries[i]->value_as_nested_settings, depth + 1, out);
+		} else if (settings->entries[i]->value) {
+			fputs_escaped(out, settings->entries[i]->value, depth);
 		}
 	}
 }
@@ -555,7 +555,7 @@ int til_settings_label_setting(const til_settings_t *settings, const til_setting
 	 * I suppose til_setting_t could cache its position when added... TODO
 	 */
 	for (unsigned i = 0; i < settings->num; i++) {
-		if (settings->settings[i] == setting) {
+		if (settings->entries[i] == setting) {
 			size_t	len = snprintf(NULL, 0, "%s[%u]", settings->label, i) + 1;
 
 			label = calloc(1, len);

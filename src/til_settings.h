@@ -32,7 +32,7 @@ typedef struct til_setting_desc_generator_t {
 	int		(*func)(const til_settings_t *settings, til_setup_t *setup_context, const til_setting_desc_t **res_desc);
 } til_setting_desc_generator_t;
 
-/* Encapsulates a single til_settings_t.settings[] entry */
+/* Encapsulates a single til_settings_t.entries[] entry */
 struct til_setting_t {
 	til_settings_t			*value_as_nested_settings;	/* XXX: non-NULL when setup turned this setting's value into a nested settings instance */
 	const char			*key;
