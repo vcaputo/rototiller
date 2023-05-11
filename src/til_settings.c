@@ -185,6 +185,9 @@ til_settings_t * til_settings_free(til_settings_t *settings)
 
 	if (settings) {
 		for (unsigned i = 0; i < settings->num; i++) {
+			if (settings->entries[i]->value_as_nested_settings)
+				til_settings_free(settings->entries[i]->value_as_nested_settings);
+
 			free((void *)settings->entries[i]->key);
 			free((void *)settings->entries[i]->value);
 			til_setting_desc_free((void *)settings->entries[i]->desc);
