@@ -278,12 +278,13 @@ int til_module_setup(const til_settings_t *settings, til_setting_t **res_setting
 		til_setting_desc_t	*desc;
 		int			r;
 
-		for (unsigned i = 0; i < nelems(modules); i++) {
+		for (unsigned i = 0, j = 0; i < nelems(modules); i++) {
 			if ((modules[i]->flags & TIL_MODULE_EXPERIMENTAL))
 				continue;
 
-			values[i] = modules[i]->name;
-			annotations[i] = modules[i]->description;
+			values[j] = modules[i]->name;
+			annotations[j] = modules[i]->description;
+			j++;
 		}
 
 		r = til_setting_desc_new(	settings,
