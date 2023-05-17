@@ -83,6 +83,13 @@ til_module_t	rtv_module = {
 	.name = "rtv",
 	.description = "Rototiller TV",
 	.setup = rtv_setup,
+	.flags = TIL_MODULE_HERMETIC	/* XXX TODO: this isn't strictly necessary, but;
+					 *  - it often just bogs things down when rtv gets into a random composition, and serves as path to recursive compose (potentially infinite)
+					 *  - one could argue that rtv may bring value in compositions as something reconfiguring a layer in a greater composition, and for that reason maybe it shouldn't be hermetic
+					 *  - if it comes back as non-hermetic, its log_channels setting should probably be prevented from randomization,
+					 *    either by hooking a fixed random() function on it or adding a spec flag for disabling randomization.
+					 *    - there should also be a more robust general defense against infinite (or even just stupidly deep) recursion via setup randomization
+					 */
 };
 
 
