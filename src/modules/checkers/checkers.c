@@ -289,6 +289,10 @@ static void checkers_render_fragment(til_module_context_t *context, til_stream_t
 	/* now that state has been determined, set the frame size */
 	fragment->frame_width = ctxt->setup->size;
 	fragment->frame_height = ctxt->setup->size;
+	if (fragment->texture) {
+		fragment->texture->frame_width = ctxt->setup->size;
+		fragment->texture->frame_height = ctxt->setup->size;
+	}
 
 	switch (ctxt->setup->dynamics) {
 	case CHECKERS_DYNAMICS_ODD:
