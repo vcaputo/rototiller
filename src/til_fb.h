@@ -80,18 +80,31 @@ static inline uint32_t til_fb_fragment_get_pixel_unchecked(til_fb_fragment_t *fr
 }
 
 
-/* gets a pixel from the fragment, coordinates are clipped to the fragment's frame bounds */
+/* gets a pixel from the fragment, coordinates are clipped to the fragment's bounds */
 static inline uint32_t til_fb_fragment_get_pixel_clipped(til_fb_fragment_t *fragment, int x, int y)
 {
-	if (x < 0)
-		x = 0;
-	else if (x >= fragment->frame_width)
-		x = fragment->frame_width - 1;
+	/* XXX: this originally clipped to the fragment's frame bounds, but checkers introduced
+	 * a practice of shifting edge fragments to center the filled checkers, while preserving the
+	 * whole frame size.  So if something like fill_module=drizzle got used, and the edge cells
+	 * were clipped by the fragment while the frame hung off the edge, the snapshot would be of
+	 * strictly the fragment with the logical frame size running off the buffer, resulting in a
+	 * segfault.  It's slightly complicated in that drizzle::style=map would actually appreciate
+	 * being able to access pixels outside the fragment, but that's only really remotely safe when
+	 * the snapshot it's operating on is a full page snapshot - not the fragment-sized copy-based
+	 * snapshot you get from something like checkers::fill_module=drizzle.  So for now, this is
+	 * simply getting clipped to the fragment bounds, which is the simple and correct thing to do.
+	 * For drizzle to be able to sample outside its given fragment, it's just not viable today as-is,
+	 * let's just stop the crashing for now.
+	 */
+	if (x < fragment->x)
+		x = fragment->x;
+	else if (x >= fragment->x + fragment->width)
+		x = fragment->x + fragment->width - 1;
 
-	if (y < 0)
-		y = 0;
-	else if (y >= fragment->frame_height)
-		y = fragment->frame_height - 1;
+	if (y < fragment->y)
+		y = fragment->y;
+	else if (y >= fragment->y + fragment->height)
+		y = fragment->y + fragment->height - 1;
 
 	return til_fb_fragment_get_pixel_unchecked(fragment, x, y);
 }
