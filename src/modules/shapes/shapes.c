@@ -121,20 +121,20 @@ static void shapes_render_fragment(til_module_context_t *context, til_stream_t *
 		if (xoff > fragment->x) {
 			for (int y = fragment->y; y < fragment->y + fragment->height; y++) {
 				for (int x = fragment->x; x < xoff; x++)
-					til_fb_fragment_put_pixel_checked(fragment, 0, fragment->x, fragment->y, 0x0);
+					til_fb_fragment_put_pixel_checked(fragment, 0, x, y, 0x0);
 				for (int x = fragment->frame_width - (size + xoff); x < fragment->x + fragment->width; x++)
-					til_fb_fragment_put_pixel_checked(fragment, 0, fragment->x, fragment->y, 0x0);
+					til_fb_fragment_put_pixel_checked(fragment, 0, x, y, 0x0);
 			}
 		}
 
 		if (yoff > fragment->y) {
 			for (int y = fragment->y; y < yoff; y++)
 				for (int x = fragment->x; x < fragment->x + fragment->width; x++)
-					til_fb_fragment_put_pixel_unchecked(fragment, 0, fragment->x, fragment->y, 0x0);
+					til_fb_fragment_put_pixel_unchecked(fragment, 0, x, y, 0x0);
 
 			for (int y = fragment->frame_height - (size + yoff); y < fragment->y + fragment->height; y++)
 				for (int x = fragment->x; x < fragment->x + fragment->width; x++)
-					til_fb_fragment_put_pixel_unchecked(fragment, 0, fragment->x, fragment->y, 0x0);
+					til_fb_fragment_put_pixel_unchecked(fragment, 0, x, y, 0x0);
 		}
 	}
 
