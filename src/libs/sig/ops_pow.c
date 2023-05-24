@@ -5,7 +5,7 @@
 
 
 typedef struct ops_pow_ctxt_t {
-	sig_t	*x, *y;
+	sig_sig_t	*x, *y;
 } ops_pow_ctxt_t;
 
 
@@ -21,8 +21,8 @@ static void ops_pow_init(void *context, va_list ap)
 
 	assert(ctxt);
 
-	ctxt->x = va_arg(ap, sig_t *);
-	ctxt->y = va_arg(ap, sig_t *);
+	ctxt->x = va_arg(ap, sig_sig_t *);
+	ctxt->y = va_arg(ap, sig_sig_t *);
 }
 
 

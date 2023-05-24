@@ -4,7 +4,7 @@
 
 
 typedef struct ops_clamp_ctxt_t {
-	sig_t	*value, *min, *max;
+	sig_sig_t	*value, *min, *max;
 } ops_clamp_ctxt_t;
 
 
@@ -20,9 +20,9 @@ static void ops_clamp_init(void *context, va_list ap)
 
 	assert(ctxt);
 
-	ctxt->value = va_arg(ap, sig_t *);
-	ctxt->min = va_arg(ap, sig_t *);
-	ctxt->max = va_arg(ap, sig_t *);
+	ctxt->value = va_arg(ap, sig_sig_t *);
+	ctxt->min = va_arg(ap, sig_sig_t *);
+	ctxt->max = va_arg(ap, sig_sig_t *);
 }
 
 

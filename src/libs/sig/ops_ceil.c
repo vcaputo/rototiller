@@ -5,7 +5,7 @@
 
 
 typedef struct ops_ceil_ctxt_t {
-	sig_t	*x;
+	sig_sig_t	*x;
 } ops_ceil_ctxt_t;
 
 
@@ -21,7 +21,7 @@ static void ops_ceil_init(void *context, va_list ap)
 
 	assert(ctxt);
 
-	ctxt->x = va_arg(ap, sig_t *);
+	ctxt->x = va_arg(ap, sig_sig_t *);
 }
 
 

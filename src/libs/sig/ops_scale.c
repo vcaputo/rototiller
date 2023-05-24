@@ -4,7 +4,7 @@
 
 
 typedef struct ops_scale_ctxt_t {
-	sig_t	*value, *min, *max;
+	sig_sig_t	*value, *min, *max;
 } ops_scale_ctxt_t;
 
 
@@ -14,7 +14,7 @@ static size_t ops_scale_size(va_list ap)
 }
 
 
-/* expects three sig_t's: value, min, max.
+/* expects three sig_sig_t's: value, min, max.
  * min is assumed to be always <= max,
  * and value is assumed to always be 0-1
  */
@@ -24,9 +24,9 @@ static void ops_scale_init(void *context, va_list ap)
 
 	assert(ctxt);
 
-	ctxt->value = va_arg(ap, sig_t *);
-	ctxt->min = va_arg(ap, sig_t *);
-	ctxt->max = va_arg(ap, sig_t *);
+	ctxt->value = va_arg(ap, sig_sig_t *);
+	ctxt->min = va_arg(ap, sig_sig_t *);
+	ctxt->max = va_arg(ap, sig_sig_t *);
 }
 
 

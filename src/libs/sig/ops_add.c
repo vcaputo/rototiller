@@ -4,7 +4,7 @@
 
 
 typedef struct ops_add_ctxt_t {
-	sig_t	*a, *b;
+	sig_sig_t	*a, *b;
 } ops_add_ctxt_t;
 
 
@@ -20,8 +20,8 @@ static void ops_add_init(void *context, va_list ap)
 
 	assert(ctxt);
 
-	ctxt->a = va_arg(ap, sig_t *);
-	ctxt->b = va_arg(ap, sig_t *);
+	ctxt->a = va_arg(ap, sig_sig_t *);
+	ctxt->b = va_arg(ap, sig_sig_t *);
 }
 
 

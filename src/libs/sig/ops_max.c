@@ -4,7 +4,7 @@
 
 
 typedef struct ops_max_ctxt_t {
-	sig_t	*a, *b;
+	sig_sig_t	*a, *b;
 } ops_max_ctxt_t;
 
 
@@ -14,9 +14,9 @@ static size_t ops_max_size(va_list ap)
 }
 
 
-/* supply two sig_t's to be multiplied, this sig_t takes
+/* supply two sig_sig_t's to be multiplied, this sig_sig_t takes
  * ownership of them so they'll be freed by the multiplier
- * on destroy when that sig_t is freed.
+ * on destroy when that sig_sig_t is freed.
  */
 static void ops_max_init(void *context, va_list ap)
 {
@@ -24,8 +24,8 @@ static void ops_max_init(void *context, va_list ap)
 
 	assert(ctxt);
 
-	ctxt->a = va_arg(ap, sig_t *);
-	ctxt->b = va_arg(ap, sig_t *);
+	ctxt->a = va_arg(ap, sig_sig_t *);
+	ctxt->b = va_arg(ap, sig_sig_t *);
 }
 
 

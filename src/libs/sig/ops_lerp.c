@@ -4,7 +4,7 @@
 
 
 typedef struct ops_lerp_ctxt_t {
-	sig_t	*a, *b, *t;
+	sig_sig_t	*a, *b, *t;
 } ops_lerp_ctxt_t;
 
 
@@ -14,9 +14,9 @@ static size_t ops_lerp_size(va_list ap)
 }
 
 
-/* Supply two sig_t's to be interpolated and another for the t, this sig_t
+/* Supply two sig_sig_t's to be interpolated and another for the t, this sig_sig_t
  * takes ownership of them so they'll be freed on destroy when the ops_lerp
- * sig_t is freed.
+ * sig_sig_t is freed.
  */
 static void ops_lerp_init(void *context, va_list ap)
 {
@@ -24,9 +24,9 @@ static void ops_lerp_init(void *context, va_list ap)
 
 	assert(ctxt);
 
-	ctxt->a = va_arg(ap, sig_t *);
-	ctxt->b = va_arg(ap, sig_t *);
-	ctxt->t = va_arg(ap, sig_t *);
+	ctxt->a = va_arg(ap, sig_sig_t *);
+	ctxt->b = va_arg(ap, sig_sig_t *);
+	ctxt->t = va_arg(ap, sig_sig_t *);
 }
 
 

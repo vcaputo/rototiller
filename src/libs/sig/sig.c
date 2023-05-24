@@ -5,7 +5,7 @@
 #include "sig.h"
 
 /* This is to try ensure ctxt's alignment accomodates all the base type sizes,
- * it may waste some space in sig_t but since the caller supplies just a size
+ * it may waste some space in sig_sig_t but since the caller supplies just a size
  * via the supplied sig_ops_t.size(), we know nothing of the alignment reqs.
  *
  * XXX: If callers start using other types like xmmintrinsics __m128, this
@@ -23,19 +23,19 @@ typedef union sig_context_t {
 	void		*p;
 } sig_context_t;
 
-typedef struct sig_t {
+typedef struct sig_sig_t {
 	const sig_ops_t	*ops;
 	unsigned	refcount;
 	sig_context_t	ctxt[];
-} sig_t;
+} sig_sig_t;
 
 
 /* return a new signal generator of ops type, configured according to va_list */
-sig_t * sig_new(const sig_ops_t *ops, ...)
+sig_sig_t * sig_new(const sig_ops_t *ops, ...)
 {
 	static const sig_ops_t	null_ops;
 	size_t			ctxt_size = 0;
-	sig_t			*sig;
+	sig_sig_t		*sig;
 	va_list			ap;
 
 	if (!ops)
@@ -46,7 +46,7 @@ sig_t * sig_new(const sig_ops_t *ops, ...)
 		ctxt_size = ops->size(ap);
 	va_end(ap);
 
-	sig = calloc(1, sizeof(sig_t) + ctxt_size);
+	sig = calloc(1, sizeof(sig_sig_t) + ctxt_size);
 	if (!sig)
 		return NULL;
 
@@ -65,7 +65,7 @@ sig_t * sig_new(const sig_ops_t *ops, ...)
 /* add a reference to an existing signal generator,
  * free/unref using sig_free() just like it had been returned by sig_new()
  */
-sig_t * sig_ref(sig_t *sig)
+sig_sig_t * sig_ref(sig_sig_t *sig)
 {
 	assert(sig);
 
@@ -78,7 +78,7 @@ sig_t * sig_ref(sig_t *sig)
 /* free a signal generator, returns sig if sig still has references,
  * otherwise returns NULL
  */
-sig_t * sig_free(sig_t *sig)
+sig_sig_t * sig_free(sig_sig_t *sig)
 {
 	if (sig) {
 		assert(sig->refcount > 0);
@@ -100,7 +100,7 @@ sig_t * sig_free(sig_t *sig)
 /* produce the value for time ticks_ms from the supplied signal generator,
  * the returned value should always be kept in the range 0-1.
  */
-float sig_output(sig_t *sig, unsigned ticks_ms)
+float sig_output(sig_sig_t *sig, unsigned ticks_ms)
 {
 	assert(sig);
 	assert(sig->ops);
@@ -120,91 +120,91 @@ float sig_output(sig_t *sig, unsigned ticks_ms)
  * they offer type checking of the arguments, as well less verbosity.
  */
 
-sig_t * sig_new_abs(sig_t *x)
+sig_sig_t * sig_new_abs(sig_sig_t *x)
 {
 	return sig_new(&sig_ops_abs, x);
 }
 
 
-sig_t * sig_new_add(sig_t *a, sig_t *b)
+sig_sig_t * sig_new_add(sig_sig_t *a, sig_sig_t *b)
 {
 	return sig_new(&sig_ops_add, a, b);
 }
 
 
-sig_t * sig_new_ceil(sig_t *x)
+sig_sig_t * sig_new_ceil(sig_sig_t *x)
 {
 	return sig_new(&sig_ops_ceil, x);
 }
 
 
-sig_t * sig_new_clamp(sig_t *x, sig_t *min, sig_t *max)
+sig_sig_t * sig_new_clamp(sig_sig_t *x, sig_sig_t *min, sig_sig_t *max)
 {
 	return sig_new(&sig_ops_clamp, x, min, max);
 }
 
 
-sig_t * sig_new_const(float x)
+sig_sig_t * sig_new_const(float x)
 {
 	return sig_new(&sig_ops_const, x);
 }
 
 
-sig_t * sig_new_div(sig_t *a, sig_t *b)
+sig_sig_t * sig_new_div(sig_sig_t *a, sig_sig_t *b)
 {
 	return sig_new(&sig_ops_div, a, b);
 }
 
 
-sig_t * sig_new_expand(sig_t *x)
+sig_sig_t * sig_new_expand(sig_sig_t *x)
 {
 	return sig_new(&sig_ops_expand, x);
 }
 
 
-sig_t * sig_new_floor(sig_t *x)
+sig_sig_t * sig_new_floor(sig_sig_t *x)
 {
 	return sig_new(&sig_ops_floor, x);
 }
 
 
-sig_t * sig_new_inv(sig_t *x)
+sig_sig_t * sig_new_inv(sig_sig_t *x)
 {
 	return sig_new(&sig_ops_inv, x);
 }
 
 
-sig_t * sig_new_lerp(sig_t *a, sig_t *b, sig_t *t)
+sig_sig_t * sig_new_lerp(sig_sig_t *a, sig_sig_t *b, sig_sig_t *t)
 {
 	return sig_new(&sig_ops_lerp, a, b, t);
 }
 
 
-sig_t * sig_new_max(sig_t *a, sig_t *b)
+sig_sig_t * sig_new_max(sig_sig_t *a, sig_sig_t *b)
 {
 	return sig_new(&sig_ops_max, a, b);
 }
 
 
-sig_t * sig_new_min(sig_t *a, sig_t *b)
+sig_sig_t * sig_new_min(sig_sig_t *a, sig_sig_t *b)
 {
 	return sig_new(&sig_ops_min, a, b);
 }
 
 
-sig_t * sig_new_mult(sig_t *a, sig_t *b)
+sig_sig_t * sig_new_mult(sig_sig_t *a, sig_sig_t *b)
 {
 	return sig_new(&sig_ops_mult, a, b);
 }
 
 
-sig_t * sig_new_neg(sig_t *x)
+sig_sig_t * sig_new_neg(sig_sig_t *x)
 {
 	return sig_new(&sig_ops_neg, x);
 }
 
 
-sig_t * sig_new_pow(sig_t *x, sig_t *y)
+sig_sig_t * sig_new_pow(sig_sig_t *x, sig_sig_t *y)
 {
 	return sig_new(&sig_ops_pow, x, y);
 }
@@ -216,43 +216,43 @@ sig_t * sig_new_pow(sig_t *x, sig_t *y)
  * But that prevents uniqueness across rand sigs at the same tick, which seems obviously
  * undesirable.
  */
-sig_t * sig_new_rand(void)
+sig_sig_t * sig_new_rand(void)
 {
 	return sig_new(&sig_ops_rand);
 }
 
 
-sig_t * sig_new_round(sig_t *x)
+sig_sig_t * sig_new_round(sig_sig_t *x)
 {
 	return sig_new(&sig_ops_round, x);
 }
 
 
-sig_t * sig_new_scale(sig_t *x, sig_t *min, sig_t *max)
+sig_sig_t * sig_new_scale(sig_sig_t *x, sig_sig_t *min, sig_sig_t *max)
 {
 	return sig_new(&sig_ops_scale, x, min, max);
 }
 
 
-sig_t * sig_new_sin(sig_t *hz)
+sig_sig_t * sig_new_sin(sig_sig_t *hz)
 {
 	return sig_new(&sig_ops_sin, hz);
 }
 
 
-sig_t * sig_new_sqr(sig_t *hz)
+sig_sig_t * sig_new_sqr(sig_sig_t *hz)
 {
 	return sig_new(&sig_ops_sqr, hz);
 }
 
 
-sig_t * sig_new_tri(sig_t *hz)
+sig_sig_t * sig_new_tri(sig_sig_t *hz)
 {
 	return sig_new(&sig_ops_tri, hz);
 }
 
 
-sig_t * sig_new_sub(sig_t *a, sig_t *b)
+sig_sig_t * sig_new_sub(sig_sig_t *a, sig_sig_t *b)
 {
 	return sig_new(&sig_ops_sub, a, b);
 }
@@ -264,7 +264,7 @@ sig_t * sig_new_sub(sig_t *a, sig_t *b)
 
 int main(int argc, char *argv[])
 {
-	sig_t	*sig;
+	sig_sig_t	*sig;
 
 	sig = sig_new(NULL);
 	printf("null output=%f\n", sig_output(sig, 0));

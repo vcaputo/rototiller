@@ -4,7 +4,7 @@
 
 
 typedef struct ops_expand_ctxt_t {
-	sig_t	*value;
+	sig_sig_t	*value;
 } ops_expand_ctxt_t;
 
 
@@ -14,7 +14,7 @@ static size_t ops_expand_size(va_list ap)
 }
 
 
-/* expects a single sig_t: value
+/* expects a single sig_sig_t: value
  * input range is assumed to be 0..1, outputs expanded
  * range of -1..+1
  */
@@ -24,7 +24,7 @@ static void ops_expand_init(void *context, va_list ap)
 
 	assert(ctxt);
 
-	ctxt->value = va_arg(ap, sig_t *);
+	ctxt->value = va_arg(ap, sig_sig_t *);
 }
 
 

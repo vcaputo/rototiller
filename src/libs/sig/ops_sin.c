@@ -5,7 +5,7 @@
 
 
 typedef struct ops_sin_ctxt_t {
-	sig_t	*hz;
+	sig_sig_t	*hz;
 } ops_sin_ctxt_t;
 
 
@@ -21,7 +21,7 @@ static void ops_sin_init(void *context, va_list ap)
 
 	assert(ctxt);
 
-	ctxt->hz = va_arg(ap, sig_t *);
+	ctxt->hz = va_arg(ap, sig_sig_t *);
 }
 
 
