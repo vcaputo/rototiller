@@ -333,8 +333,8 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 	const char		*snow_module;
 	const char		*log_channels;
 	const char		*log_channels_values[] = {
-					"no",
-					"yes",
+					"off",
+					"on",
 					NULL
 				};
 	int			r;
