@@ -282,7 +282,7 @@ static void checkers_render_fragment(til_module_context_t *context, til_stream_t
 		break;
 	}
 	case CHECKERS_PATTERN_RANDOM:
-		state = hash(fragment->number * 0x61C88647) & 0x1;
+		state = hash((context->seed + fragment->number) * 0x61C88647) & 0x1;
 		break;
 	}
 
@@ -304,7 +304,7 @@ static void checkers_render_fragment(til_module_context_t *context, til_stream_t
 		state ^= ((unsigned)((float)ticks * ctxt->setup->rate) & 0x1);
 		break;
 	case CHECKERS_DYNAMICS_RANDOM: /* note: the big multiply here is just to get up out of the low bits */
-		state &= hash(fragment->number * 0x61C88647 + (unsigned)((float)ticks * ctxt->setup->rate)) & 0x1;
+		state &= hash((context->seed + fragment->number) * 0x61C88647 + (unsigned)((float)ticks * ctxt->setup->rate)) & 0x1;
 		break;
 	}
 
