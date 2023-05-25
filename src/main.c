@@ -220,11 +220,11 @@ static int setup_from_args(til_args_t *args, setup_t *res_setup, const til_setti
 	 */
 	srand(setup.seed);
 
-	setup.module_settings = til_settings_new("module", args->module);
+	setup.module_settings = til_settings_new(NULL, "module", args->module);
 	if (!setup.module_settings)
 		goto _err;
 
-	setup.video_settings = til_settings_new("video", args->video);
+	setup.video_settings = til_settings_new(NULL, "video", args->video);
 	if (!setup.video_settings)
 		goto _err;
 

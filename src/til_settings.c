@@ -31,9 +31,10 @@ char * strndup(const char *s, size_t n)
 
 /* Split form of key=value[,key=value...] settings string */
 typedef struct til_settings_t {
-	const char	*label;
-	unsigned	num;
-	til_setting_t	**entries;
+	const til_settings_t	*parent;
+	const char		*label;
+	unsigned		num;
+	til_setting_t		**entries;
 } til_settings_t;
 
 typedef enum til_settings_fsm_state_t {
@@ -57,6 +58,11 @@ static til_setting_t * add_setting(til_settings_t *settings, const char *key, co
 	if (!s)
 		return NULL;
 
+	s->parent = settings;
+	s->key = key;
+	s->value = value;
+	s->desc = desc;
+
 	new_entries = realloc(settings->entries, (settings->num + 1) * sizeof(til_setting_t *));
 	if (!new_entries) {
 		free(s);
@@ -65,9 +71,6 @@ static til_setting_t * add_setting(til_settings_t *settings, const char *key, co
 
 	settings->entries = new_entries;
 	settings->entries[settings->num] = s;
-	settings->entries[settings->num]->key = key;
-	settings->entries[settings->num]->value = value;
-	settings->entries[settings->num]->desc = desc;
 	settings->num++;
 
 	return s;
@@ -75,7 +78,7 @@ static til_setting_t * add_setting(til_settings_t *settings, const char *key, co
 
 
 /* split settings_string into a data structure */
-til_settings_t * til_settings_new(const char *label, const char *settings_string)
+til_settings_t * til_settings_new(const til_settings_t *parent, const char *label, const char *settings_string)
 {
 	til_settings_fsm_state_t	state = TIL_SETTINGS_FSM_STATE_COMMA;
 	const char			*p;
@@ -90,6 +93,7 @@ til_settings_t * til_settings_new(const char *label, const char *settings_string
 	if (!settings)
 		goto _err;
 
+	settings->parent = parent;
 	settings->label = strdup(label);
 	if (!settings->label)
 		goto _err;

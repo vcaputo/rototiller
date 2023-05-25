@@ -330,7 +330,20 @@ int til_module_randomize_setup(const til_module_t *module, unsigned seed, til_se
 	if (!module->setup)
 		return 0;
 
-	settings = til_settings_new(module->name, NULL);
+	/* FIXME TODO:
+	 * This seems wrong for two reasons:
+	 * 1. There's no parent settings to attach this to, and there really shouldn't be such
+	 *    orphaned settings instances as we're supposed ot be able to influence their values
+	 *    externally via settings.  At the very least this seems like it should be part of a
+	 *    heirarchy somewhere... which leads to #2
+	 *
+	 * 2. Not only does lacking a parent suggest a problem, but there should be an incoming
+	 *    settings instance to randomize which may contain some values already set which we
+	 *    would skip randomizing.  The settings don't currently have any kind of attributes or
+	 *    other state to indicate which ones should always be randomized vs. ones which were
+	 *    explicitly specified to stay fixed.
+	 */
+	settings = til_settings_new(NULL, module->name, NULL);
 	if (!settings)
 		return -ENOMEM;
 
@@ -367,7 +380,7 @@ int til_module_randomize_setup(const til_module_t *module, unsigned seed, til_se
 					return r;
 			}
 
-			setting->value_as_nested_settings = til_settings_new(desc->spec.key ? : label, setting->value);
+			setting->value_as_nested_settings = til_settings_new(desc->container, desc->spec.key ? : label, setting->value);
 			free(label);
 
 			if (!setting->value_as_nested_settings)
