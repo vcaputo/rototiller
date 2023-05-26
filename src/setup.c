@@ -22,6 +22,8 @@ int setup_interactively(til_settings_t *settings, int (*setup_func)(const til_se
 	/* TODO: regex and error handling */
 
 	while ((r = setup_func(settings, &setting, &desc, res_setup)) > 0) {
+		assert(desc);
+
 		additions++;
 
 		/* if setup_func() has returned a description for an undescribed preexisting setting,

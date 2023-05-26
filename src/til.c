@@ -348,6 +348,8 @@ int til_module_randomize_setup(const til_module_t *module, unsigned seed, til_se
 		return -ENOMEM;
 
 	for (setting = NULL; module->setup(settings, &setting, &desc, res_setup) > 0; setting = NULL) {
+		assert(desc);
+
 		if (!setting) {
 			if (desc->spec.random) {
 				char	*value;
