@@ -563,13 +563,13 @@ int til_settings_label_setting(const til_settings_t *settings, const til_setting
 	 */
 	for (unsigned i = 0; i < settings->num; i++) {
 		if (settings->entries[i] == setting) {
-			size_t	len = snprintf(NULL, 0, "%s[%u]", settings->label, i) + 1;
+			size_t	len = snprintf(NULL, 0, "[%u]", i) + 1;
 
 			label = calloc(1, len);
 			if (!label)
 				return -ENOMEM;
 
-			snprintf(label, len, "%s[%u]", settings->label, i);
+			snprintf(label, len, "[%u]", i);
 			*res_label = label;
 
 			return 0;
