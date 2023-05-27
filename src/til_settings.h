@@ -17,6 +17,7 @@ typedef struct til_setting_spec_t {
 	const char	**annotations;	/* if a set of values is provided, annotations for those values may be listed here */
 	char *		(*random)(unsigned seed);/* if set, returns a valid random value for this setting */
 	unsigned	as_nested_settings:1;	/* if set, this setting expects a settings string for its value and wants a til_setting_t.value_as_nested_settings instance created for it */
+	unsigned	as_label:1;	/* if set, this setting's value is to be used as a label component in path construction - only applies to the first setting entry in an instance (til_settings_t.entries[0]) */
 } til_setting_spec_t;
 
 /* a setting_desc is a setting_spec that's been described to a specific containing settings instance via desc_new(), though desc_new() takes a const settings it's cast away when placed into the allocated desc. */

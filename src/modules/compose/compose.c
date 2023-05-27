@@ -375,6 +375,7 @@ static int compose_setup(const til_settings_t *settings, til_setting_t **res_set
 								&(til_setting_spec_t){
 									.name = "Layer module name",
 									.preferred = "none",
+									.as_label = 1,
 								}, res_desc);
 				if (r < 0)
 					return r;
@@ -402,6 +403,7 @@ static int compose_setup(const til_settings_t *settings, til_setting_t **res_set
 							.annotations = NULL,
 							.values = texture_values,
 							.as_nested_settings = 1,
+							.as_label = 1,
 						},
 						&texture,
 						res_setting,
@@ -421,6 +423,7 @@ static int compose_setup(const til_settings_t *settings, til_setting_t **res_set
 						/* this is basically just to get the .as_label */
 						.name = "Texture module name",
 						.preferred = "none",
+						.as_label = 1,
 					},
 					res_desc);
 		if (r < 0)

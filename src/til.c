@@ -294,7 +294,8 @@ int til_module_setup(const til_settings_t *settings, til_setting_t **res_setting
 							.regex = "[a-zA-Z0-9]+",
 							.preferred = DEFAULT_MODULE,
 							.values = values,
-							.annotations = annotations
+							.annotations = annotations,
+							.as_label = 1
 						}, res_desc);
 		if (r < 0)
 			return r;

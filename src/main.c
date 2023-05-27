@@ -105,7 +105,8 @@ static int setup_video(const til_settings_t *settings, til_setting_t **res_setti
 							.regex = "[a-z]+",
 							.preferred = DEFAULT_VIDEO,
 							.values = values,
-							.annotations = NULL
+							.annotations = NULL,
+							.as_label = 1,
 						}, res_desc);
 
 		if (r < 0)

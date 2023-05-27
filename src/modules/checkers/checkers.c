@@ -544,6 +544,7 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 					&(til_setting_spec_t){
 						.name = "Filled cell module name",
 						.preferred = "none",
+						.as_label = 1,
 					},
 					res_desc);
 		if (r < 0)
