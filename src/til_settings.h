@@ -56,8 +56,10 @@ int til_settings_apply_desc_generators(const til_settings_t *settings, const til
 
 int til_setting_desc_new(const til_settings_t *settings, const til_setting_spec_t *spec, const til_setting_desc_t **res_desc);
 til_setting_desc_t * til_setting_desc_free(const til_setting_desc_t *desc);
+int til_setting_desc_print_path(const til_setting_desc_t *desc, FILE *out);
 int til_setting_spec_check(const til_setting_spec_t *spec, const char *value);
 int til_settings_label_setting(const til_settings_t *settings, const til_setting_t *setting, char **res_label);
+int til_settings_print_path(const til_settings_t *settings, FILE *out);
 
 #ifndef TIL_SETTINGS_STR
 #define _TIL_SETTINGS_STR(s)	#s

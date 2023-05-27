@@ -441,6 +441,36 @@ til_setting_desc_t * til_setting_desc_free(const til_setting_desc_t *desc)
 }
 
 
+int til_setting_desc_print_path(const til_setting_desc_t *desc, FILE *out)
+{
+	int	r;
+
+	assert(desc);
+	assert(out);
+
+	r = til_settings_print_path(desc->container, out);
+	if (r < 0)
+		return r;
+
+	/* XXX: spec.as_label handling is done in til_settings_print_path() since it
+	 * must apply anywhere within a path, potentially in a recurring fashion.
+	 * So all we're dealing with here is tacking a potentially named desc onto the end,
+	 * treating named descs as a sort of leaf of the path.  Though the desc may actually
+	 * describe a setting w/nested settings, i.e. it doesn't actually have to be a leaf
+	 * for this to be correct.  When its a parent of nested settings scenario, its key
+	 * would have been used to label the nested settings, but this print won't traverse
+	 * down from desc->container, only up the parents.
+	 */
+	if (desc->spec.key) {
+		r = fprintf(out, "/%s", desc->spec.key);
+		if (r < 0)
+			return r;
+	}
+
+	return 0;
+}
+
+
 /* TODO: spec checking in general needs refinement and to be less intolerant of
  * creative experimentation.
  */
@@ -578,4 +608,44 @@ int til_settings_label_setting(const til_settings_t *settings, const til_setting
 	}
 
 	return -ENOENT;
+}
+
+
+int til_settings_print_path(const til_settings_t *settings, FILE *out)
+{
+	const til_settings_t	*p, *parents[64];
+	size_t			i, n_parents;
+
+	assert(settings);
+	assert(out);
+
+	for (p = settings, n_parents = 0; p != NULL; p = p->parent)
+		n_parents++;
+
+	/* XXX: if this limitation becomes a problem we can always malloc()
+	 * space, but I can't imagine such deep settings heirarchies being real.
+	 */
+	assert(n_parents <= nelems(parents));
+
+	for (i = 0, p = settings; i < n_parents; p = p->parent, i++)
+		parents[n_parents - i - 1] = p;
+
+	for (i = 0; i < n_parents; i++) {
+		int	r;
+
+		r = fprintf(out, "/%s", parents[i]->label);
+		if (r < 0)
+			return r;
+
+		if (parents[i]->num > 0 &&
+		    parents[i]->entries[0]->desc &&
+		    parents[i]->entries[0]->desc->spec.as_label) {
+
+			r = fprintf(out, "/%s", parents[i]->entries[0]->value);
+			if (r < 0)
+				return r;
+		}
+	}
+
+	return 0;
 }
