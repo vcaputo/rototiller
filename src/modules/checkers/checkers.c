@@ -422,6 +422,7 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 	const char		*pattern;
 	const char		*fill_module;
 	const til_settings_t	*fill_module_settings;
+	til_setting_t		*fill_module_setting;
 	const char		*dynamics;
 	const char		*dynamics_rate;
 	const char		*fill;
@@ -534,24 +535,40 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 	assert((*res_setting)->value_as_nested_settings);
 
 	fill_module_settings = (*res_setting)->value_as_nested_settings;
-	fill_module = til_settings_get_value_by_idx(fill_module_settings, 0, NULL);
-	{
-		if (strcasecmp(fill_module, "none")) {
-			const til_module_t	*mod = til_lookup_module(fill_module);
+	fill_module = til_settings_get_value_by_idx(fill_module_settings, 0, &fill_module_setting);
+	if (!fill_module)
+		return -EINVAL;
 
-			if (!mod)
-				return -EINVAL;
+	if (!fill_module_setting->desc) {
+		r = til_setting_desc_new(fill_module_settings,
+					&(til_setting_spec_t){
+						.name = "Filled cell module name",
+						.preferred = "none",
+					},
+					res_desc);
+		if (r < 0)
+			return r;
 
-			if (mod->setup) {
-				r = mod->setup(fill_module_settings, res_setting, res_desc, NULL);
-				if (r)
-					return r;
+		*res_setting = fill_module_setting;
 
-				/* XXX: note no res_setup was provided, so while yes the fill_module_settings are
-				 * fully populated according to the setup's return value, we don't yet have the baked
-				 * setup.  That occurs below while baking the checkers res_setup.
-				 */
-			}
+		return 1;
+	}
+
+	if (strcasecmp(fill_module, "none")) {
+		const til_module_t	*mod = til_lookup_module(fill_module);
+
+		if (!mod)
+			return -EINVAL;
+
+		if (mod->setup) {
+			r = mod->setup(fill_module_settings, res_setting, res_desc, NULL);
+			if (r)
+				return r;
+
+			/* XXX: note no res_setup was provided, so while yes the fill_module_settings are
+			 * fully populated according to the setup's return value, we don't yet have the baked
+			 * setup.  That occurs below while baking the checkers res_setup.
+			 */
 		}
 	}
 	/* TODO: here we would do nested setup for fill_module via (*res_setting)->settings until that returned 0.
