@@ -272,7 +272,7 @@ int til_module_setup(const til_settings_t *settings, til_setting_t **res_setting
 	const char		*name;
 
 	name = til_settings_get_value_by_idx(settings, 0, &setting);
-	if (!name) {
+	if (!name || !setting->desc) {
 		const char		*values[nelems(modules) + 1] = {};
 		const char		*annotations[nelems(modules) + 1] = {};
 		til_setting_desc_t	*desc;
@@ -331,13 +331,13 @@ int til_module_randomize_setup(const til_module_t *module, unsigned seed, til_se
 		return 0;
 
 	/* FIXME TODO:
-	 * This seems wrong for two reasons:
-	 * 1. There's no parent settings to attach this to, and there really shouldn't be such
+	 * this seems wrong for two reasons:
+	 * 1. there's no parent settings to attach this to, and there really shouldn't be such
 	 *    orphaned settings instances as we're supposed ot be able to influence their values
 	 *    externally via settings.  At the very least this seems like it should be part of a
 	 *    heirarchy somewhere... which leads to #2
 	 *
-	 * 2. Not only does lacking a parent suggest a problem, but there should be an incoming
+	 * 2. not only does lacking a parent suggests a problem, but there should be an incoming
 	 *    settings instance to randomize which may contain some values already set which we
 	 *    would skip randomizing.  The settings don't currently have any kind of attributes or
 	 *    other state to indicate which ones should always be randomized vs. ones which were
@@ -388,6 +388,8 @@ int til_module_randomize_setup(const til_module_t *module, unsigned seed, til_se
 			if (!setting->value_as_nested_settings)
 				return -ENOMEM;
 		}
+
+		setting->desc = desc;
 	}
 
 	if (res_arg) {
