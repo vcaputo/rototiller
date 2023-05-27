@@ -195,7 +195,7 @@ static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks)
 	}
 
 	if (!ctxt->channel->module_ctxt)
-		(void) til_module_create_context(ctxt->channel->module, ctxt->til_module_context.stream, rand_r(&ctxt->til_module_context.seed), ticks, 0, ctxt->til_module_context.path, ctxt->channel->module_setup, &ctxt->channel->module_ctxt);
+		(void) til_module_create_context(ctxt->channel->module, ctxt->til_module_context.stream, rand_r(&ctxt->til_module_context.seed), ticks, ctxt->til_module_context.n_cpus, ctxt->til_module_context.path, ctxt->channel->module_setup, &ctxt->channel->module_ctxt);
 
 	ctxt->channel->last_on_time = now;
 }
@@ -257,7 +257,7 @@ static til_module_context_t * rtv_create_context(const til_module_t *module, til
 		((rtv_setup_t *)setup)->snow_module_setup = NULL;
 
 		ctxt->snow_channel.module = til_lookup_module(((rtv_setup_t *)setup)->snow_module_name);
-		(void) til_module_create_context(ctxt->snow_channel.module, stream, rand_r(&seed), ticks, 0, path, ctxt->snow_channel.module_setup, &ctxt->snow_channel.module_ctxt);
+		(void) til_module_create_context(ctxt->snow_channel.module, stream, rand_r(&seed), ticks, n_cpus, path, ctxt->snow_channel.module_setup, &ctxt->snow_channel.module_ctxt);
 	}
 
 	ctxt->log_channels = ((rtv_setup_t *)setup)->log_channels;
