@@ -28,8 +28,7 @@ int setup_interactively(til_settings_t *settings, int (*setup_func)(const til_se
 		 * validate its value against the description and assign the description if it passes.
 		 */
 		if (setting && !setting->desc) {
-			 /* XXX FIXME: this key as value exception is janky, make a helper to access the value or stop doing that. */
-			r = til_setting_spec_check(&desc->spec, setting->value ? : setting->key);
+			r = til_setting_spec_check(&desc->spec, setting->value);
 			if (r < 0) {
 				*res_failed_desc = desc;
 
