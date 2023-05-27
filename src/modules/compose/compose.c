@@ -284,6 +284,7 @@ static int compose_setup(const til_settings_t *settings, til_setting_t **res_set
 	const til_settings_t	*layers_settings, *texture_settings;
 	const char		*layers;
 	const char		*texture;
+	til_setting_t		*texture_module_setting;
 	const char		*texture_values[] = {
 					"none",
 					"blinds",
@@ -362,11 +363,26 @@ static int compose_setup(const til_settings_t *settings, til_setting_t **res_set
 		 * baked setups yet.
 		 */
 		for (size_t i = 0; til_settings_get_value_by_idx(layers_settings, i, &layer_setting); i++) {
-			const char		*layer = til_settings_get_value_by_idx(layer_setting->value_as_nested_settings, 0, NULL);
+			til_setting_t		*layer_module_setting;
+			const char		*layer = til_settings_get_value_by_idx(layer_setting->value_as_nested_settings, 0, &layer_module_setting);
 			const til_module_t	*layer_module = til_lookup_module(layer);
 
-			if (!layer_module)
+			if (!layer_module || !layer_module_setting)
 				return -EINVAL;
+
+			if (!layer_module_setting->desc) {
+				r = til_setting_desc_new(	layer_setting->value_as_nested_settings,
+								&(til_setting_spec_t){
+									.name = "Layer module name",
+									.preferred = "none",
+								}, res_desc);
+				if (r < 0)
+					return r;
+
+				*res_setting = layer_module_setting;
+
+				return 1;
+			}
 
 			if (layer_module->setup) {
 				r = layer_module->setup(layer_setting->value_as_nested_settings, res_setting, res_desc, NULL);
@@ -395,8 +411,27 @@ static int compose_setup(const til_settings_t *settings, til_setting_t **res_set
 
 	assert(res_setting && *res_setting && (*res_setting)->value_as_nested_settings);
 	texture_settings = (*res_setting)->value_as_nested_settings;
+	texture = til_settings_get_value_by_idx(texture_settings, 0, &texture_module_setting);
+		if (!texture)
+			return -EINVAL;
+
+	if (!texture_module_setting->desc) {
+		r = til_setting_desc_new(texture_settings,
+					&(til_setting_spec_t){
+						/* this is basically just to get the .as_label */
+						.name = "Texture module name",
+						.preferred = "none",
+					},
+					res_desc);
+		if (r < 0)
+			return r;
+
+		*res_setting = texture_module_setting;
+
+		return 1;
+	}
+
 	if (strcasecmp(texture, "none")) {
-		const char		*texture = til_settings_get_value_by_idx(texture_settings, 0, NULL);
 		const til_module_t	*texture_module = til_lookup_module(texture);
 
 		if (!texture_module)
