@@ -414,8 +414,8 @@ static int compose_setup(const til_settings_t *settings, til_setting_t **res_set
 	assert(res_setting && *res_setting && (*res_setting)->value_as_nested_settings);
 	texture_settings = (*res_setting)->value_as_nested_settings;
 	texture = til_settings_get_value_by_idx(texture_settings, 0, &texture_module_setting);
-		if (!texture)
-			return -EINVAL;
+	if (!texture)
+		return -EINVAL;
 
 	if (!texture_module_setting->desc) {
 		r = til_setting_desc_new(texture_settings,
