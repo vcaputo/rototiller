@@ -330,7 +330,8 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 	const char		*context_duration;
 	const char		*caption_duration;
 	const char		*snow_duration;
-	const char		*snow_module;
+	const char		*snow_module, *snow_module_name;
+	til_setting_t		*snow_module_name_setting;
 	const char		*log_channels;
 	const char		*log_channels_values[] = {
 					"off",
@@ -437,8 +438,28 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 
 	assert(res_setting && *res_setting && (*res_setting)->value_as_nested_settings);
 	snow_module_settings = (*res_setting)->value_as_nested_settings;
-	if (strcasecmp(snow_module, "none")) {
-		const char		*snow_module_name = til_settings_get_value_by_idx(snow_module_settings, 0, NULL);
+	snow_module_name = til_settings_get_value_by_idx(snow_module_settings, 0, &snow_module_name_setting);
+	if (!snow_module_name)
+		return -EINVAL;
+
+	if (!snow_module_name_setting->desc) {
+		r = til_setting_desc_new(snow_module_settings,
+					&(til_setting_spec_t){
+						/* this is basically just to get the .as_label */
+						.name = "Snow module name",
+						.preferred = "none",
+						.as_label = 1,
+					},
+					res_desc);
+		if (r < 0)
+			return r;
+
+		*res_setting = snow_module_name_setting;
+
+		return 1;
+	}
+
+	if (strcasecmp(snow_module_name, "none")) {
 		const til_module_t	*snow_module = til_lookup_module(snow_module_name);
 
 		if (!snow_module)
