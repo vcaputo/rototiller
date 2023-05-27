@@ -79,12 +79,14 @@ int setup_interactively(til_settings_t *settings, int (*setup_func)(const til_se
 			}
 
 			/* multiple choice */
-			if (!defaults)
-				printf("%s:\n", desc->spec.name);
+			if (!defaults) {
+				til_setting_desc_print_path(desc, stdout);
+				printf(":\n %s:\n", desc->spec.name);
+			}
 
 			for (i = 0; desc->spec.values[i]; i++) {
 				if (!defaults)
-					printf("%2u: %*s%s%s\n", i, width, desc->spec.values[i],
+					printf(" %2u: %*s%s%s\n", i, width, desc->spec.values[i],
 						desc->spec.annotations ? ": " : "",
 						desc->spec.annotations ? desc->spec.annotations[i] : "");
 
@@ -93,12 +95,14 @@ int setup_interactively(til_settings_t *settings, int (*setup_func)(const til_se
 			}
 
 			if (!defaults)
-				printf("Enter a value 0-%u [%u (%s)]: ",
+				printf(" Enter a value 0-%u [%u (%s)]: ",
 					i - 1, preferred, desc->spec.preferred);
 		} else {
 			/* arbitrarily typed input */
-			if (!defaults)
-				printf("%s [%s]: ", desc->spec.name, desc->spec.preferred);
+			if (!defaults) {
+				til_setting_desc_print_path(desc, stdout);
+				printf(":\n %s [%s]: ", desc->spec.name, desc->spec.preferred);
+			}
 		}
 
 		if (!defaults) {
