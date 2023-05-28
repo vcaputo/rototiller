@@ -257,7 +257,7 @@ static void voronoi_calculate_distances(voronoi_context_t *ctxt)
 }
 
 
-static void voronoi_sample_colors(voronoi_context_t *ctxt, til_fb_fragment_t *fragment)
+static void voronoi_sample_colors(voronoi_context_t *ctxt, const til_fb_fragment_t *fragment)
 {
 	for (size_t i = 0; i < ctxt->setup->n_cells; i++) {
 		voronoi_cell_t	*p = &ctxt->cells[i];
