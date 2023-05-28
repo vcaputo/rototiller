@@ -112,21 +112,25 @@ static inline size_t voronoi_cell_origin_to_distance_idx(const voronoi_context_t
 }
 
 
-static void voronoi_jumpfill_pass(voronoi_context_t *ctxt, v2f_t *ds, size_t step)
+static void voronoi_jumpfill_pass(voronoi_context_t *ctxt, v2f_t *db, v2f_t *ds, size_t step, const til_fb_fragment_t *fragment)
 {
-	voronoi_distance_t	*d = ctxt->distances.buf;
 	v2f_t			dp = {};
 
-	dp.y = -1.f;
-	for (int y = 0; y < ctxt->distances.height; y++, dp.y += ds->y) {
+	dp.y = db->y;
+	for (int y = 0; y < fragment->height; y++, dp.y += ds->y) {
+		voronoi_distance_t	*d = &ctxt->distances.buf[(fragment->y + y) * ctxt->distances.width + fragment->x];
 
-		dp.x = -1.f;
-		for (int x = 0; x < ctxt->distances.width; x++, dp.x += ds->x, d++) {
+		dp.x = db->x;
+		for (int x = 0; x < fragment->width; x++, dp.x += ds->x, d++) {
 			voronoi_distance_t	*dq;
 
 			if (d->cell && d->distance_sq == 0)
 				continue;
 
+			/* FIXME TODO: this almost certainly needs to use some atomics or at least more care in dereferencing dq->cell and
+			 * writing to d->cell, since we perform jumpfill concurrently in render_fragment, and the step range deliberately
+			 * puts us outside the current fragment's boundaries.
+			 */
 #define VORONOI_JUMPFILL																\
 				if (dq->cell) {														\
 					float	dist_sq = v2f_distance_sq(&dq->cell->origin, &dp);							\
@@ -140,20 +144,20 @@ static void voronoi_jumpfill_pass(voronoi_context_t *ctxt, v2f_t *ds, size_t ste
 					}														\
 				}
 
-			if (x >= step) {
+			if (fragment->x + x >= step) {
 				/* can sample to the left */
 				dq = d - step;
 
 				VORONOI_JUMPFILL;
 
-				if (y >= step) {
+				if (fragment->y + y >= step) {
 					/* can sample above and to the left */
 					dq = d - step * ctxt->distances.width - step;
 
 					VORONOI_JUMPFILL;
 				}
 
-				if (ctxt->distances.height - y > step) {
+				if (fragment->frame_height - (fragment->y + y) > step) {
 					/* can sample below and to the left */
 					dq = d + step * ctxt->distances.width - step;
 
@@ -162,20 +166,20 @@ static void voronoi_jumpfill_pass(voronoi_context_t *ctxt, v2f_t *ds, size_t ste
 
 			}
 
-			if (ctxt->distances.width - x > step) {
+			if (fragment->frame_width - (fragment->x + x) > step) {
 				/* can sample to the right */
 				dq = d + step;
 
 				VORONOI_JUMPFILL;
 
-				if (y >= step) {
+				if (fragment->y + y >= step) {
 					/* can sample above and to the right */
 					dq = d - step * ctxt->distances.width + step;
 
 					VORONOI_JUMPFILL;
 				}
 
-				if (ctxt->distances.height - y > step) {
+				if (fragment->frame_height - (fragment->y + y) > step) {
 					/* can sample below */
 					dq = d + step * ctxt->distances.width + step;
 
@@ -183,14 +187,14 @@ static void voronoi_jumpfill_pass(voronoi_context_t *ctxt, v2f_t *ds, size_t ste
 				}
 			}
 
-			if (y >= step) {
+			if (fragment->y + y >= step) {
 				/* can sample above */
 				dq = d - step * ctxt->distances.width;
 
 				VORONOI_JUMPFILL;
 			}
 
-			if (ctxt->distances.height - y > step) {
+			if (fragment->frame_height - (fragment->y + y) > step) {
 				/* can sample below */
 				dq = d + step * ctxt->distances.width;
 
@@ -231,15 +235,34 @@ static void voronoi_calculate_distances_prepare_pass(voronoi_context_t *ctxt)
 static void voronoi_calculate_distances_render_pass(voronoi_context_t *ctxt, const til_fb_fragment_t *fragment)
 {
 	v2f_t	ds = (v2f_t){
-			.x = 2.f / ctxt->distances.width,
-			.y = 2.f / ctxt->distances.height,
+			.x = 2.f / fragment->frame_width,
+			.y = 2.f / fragment->frame_height,
+		};
+	v2f_t	db = (v2f_t){
+			.x = fragment->x * ds.x - 1.f,
+			.y = fragment->y * ds.y - 1.f,
 		};
 
 	/* An attempt at implementing https://en.wikipedia.org/wiki/Jump_flooding_algorithm */
 
 	/* now for every distance sample neighbors */
-	for (size_t step = MAX(ctxt->distances.width, ctxt->distances.height) / 2; step > 0; step >>= 1)
-		voronoi_jumpfill_pass(ctxt, &ds, step);
+
+	/* The step range still has to access the entire frame to ensure we can still find "seed" cells
+	 * even when the current fragment/tile doesn't encompass any of them.
+	 *
+	 * i.e. if we strictly sampled within our fragment's bounds, we'd potentially not find a seed cell
+	 * at all - epsecially in scenarios having small numbers of cells relative to the number of fragments/tiles.
+	 *
+	 * But aside from the potentially-missed-seed-cell bug, staying strictly without our fragment's
+	 * boundaries for sampling also would result in clearly visible tile edges in the diagram.
+	 *
+	 * So no, we can't just treat every fragment as its own little isolated distances buf within the greater
+	 * one.  This does make it more complicated since outside our fragment's bounds other threads may be
+	 * changing the cell pointers while we try dereference them.  But all we really care about is finding
+	 * seeds reliably, and those should already be populated in the prepare phase.
+	 */
+	for (size_t step = MAX(fragment->frame_width, fragment->frame_height) / 2; step > 0; step >>= 1)
+		voronoi_jumpfill_pass(ctxt, &db, &ds, step, fragment);
 }
 
 
@@ -276,20 +299,15 @@ static void voronoi_prepare_frame(til_module_context_t *context, til_stream_t *s
 		ctxt->distances.recalc_needed = 1;
 	}
 
-	/* TODO: explore moving voronoi_calculate_distances() into render_fragment (threaded) */
-
 	if (ctxt->setup->randomize)
 		voronoi_randomize(ctxt);
-
-	if (ctxt->distances.recalc_needed) {
-		voronoi_calculate_distances_prepare_pass(ctxt);
-		voronoi_calculate_distances_render_pass(ctxt, fragment);
-		ctxt->distances.recalc_needed = 0;
-	}
 
 	/* if the fragment comes in already cleared/initialized, use it for the colors, producing a mosaic */
 	if (fragment->cleared)
 		voronoi_sample_colors(ctxt, fragment);
+
+	if (ctxt->distances.recalc_needed)
+		voronoi_calculate_distances_prepare_pass(ctxt);
 }
 
 
@@ -298,11 +316,22 @@ static void voronoi_render_fragment(til_module_context_t *context, til_stream_t 
 	voronoi_context_t	*ctxt = (voronoi_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;
 
+	if (ctxt->distances.recalc_needed)
+		voronoi_calculate_distances_render_pass(ctxt, fragment);
+
 	for (int y = 0; y < fragment->height; y++) {
 		for (int x = 0; x < fragment->width; x++) {
 			fragment->buf[y * fragment->pitch + x] = ctxt->distances.buf[(y + fragment->y) * ctxt->distances.width + (fragment->x + x)].cell->color;
 		}
 	}
+}
+
+
+static void voronoi_finish_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr)
+{
+	voronoi_context_t	*ctxt = (voronoi_context_t *)context;
+
+	ctxt->distances.recalc_needed = 0;
 }
 
 
@@ -380,9 +409,10 @@ til_module_t	voronoi_module = {
 	.destroy_context = voronoi_destroy_context,
 	.prepare_frame = voronoi_prepare_frame,
 	.render_fragment = voronoi_render_fragment,
+	.finish_frame = voronoi_finish_frame,
 	.setup = voronoi_setup,
 	.name = "voronoi",
-	.description = "Voronoi diagram",
+	.description = "Voronoi diagram (threaded)",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",
 	.flags = TIL_MODULE_OVERLAYABLE,
 };
