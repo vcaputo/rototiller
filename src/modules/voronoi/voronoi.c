@@ -39,6 +39,7 @@ typedef struct voronoi_distances_t {
 	int			width, height;
 	size_t			size;
 	voronoi_distance_t	*buf;
+	unsigned		recalc_needed:1;
 } voronoi_distances_t;
 
 typedef struct voronoi_context_t {
@@ -69,6 +70,8 @@ static void voronoi_randomize(voronoi_context_t *ctxt)
 		p->color |= ((uint32_t)(rand_r(&ctxt->seed) % 256)) << 8;
 		p->color |= ((uint32_t)(rand_r(&ctxt->seed) % 256));
 	}
+
+	ctxt->distances.recalc_needed = 1;
 }
 
 
@@ -198,38 +201,17 @@ static void voronoi_jumpfill_pass(voronoi_context_t *ctxt, v2f_t *ds, size_t ste
 }
 
 
-static void voronoi_calculate_distances(voronoi_context_t *ctxt)
+/* distance calculating is split into two halves:
+ * 1. a serialized global/cell-oriented part, where the distances are wholesale
+ *    reset then the "seeds" placed according to the cells.
+ * 2. a concurrent distance-oriented part, where per-pixel distances are computed
+ *    within the bounds of the supplied fragment (tiled)
+ *
+ * These occur in prepare_pass/render_pass, respectively.
+ */
+static void voronoi_calculate_distances_prepare_pass(voronoi_context_t *ctxt)
 {
-	v2f_t	ds = (v2f_t){
-			.x = 2.f / ctxt->distances.width,
-			.y = 2.f / ctxt->distances.height,
-		};
-
 	memset(ctxt->distances.buf, 0, ctxt->distances.size * sizeof(*ctxt->distances.buf));
-
-#if 0
-	/* naive inefficient brute-force but correct algorithm */
-	for (size_t i = 0; i < ctxt->setup->n_cells; i++) {
-		voronoi_distance_t	*d = ctxt->distances.buf;
-		v2f_t			dp = {};
-
-		dp.y = -1.f;
-		for (int y = 0; y < ctxt->distances.height; y++, dp.y += ds.y) {
-
-			dp.x = -1.f;
-			for (int x = 0; x < ctxt->distances.width; x++, dp.x += ds.x, d++) {
-				float	dist_sq;
-
-				dist_sq = v2f_distance_sq(&ctxt->cells[i].origin, &dp);
-				if (!d->cell || dist_sq < d->distance_sq) {
-					d->cell = &ctxt->cells[i];
-					d->distance_sq = dist_sq;
-				}
-			}
-		}
-	}
-#else
-	/* An attempt at implementing https://en.wikipedia.org/wiki/Jump_flooding_algorithm */
 
 	/* first assign the obvious zero-distance cell origins */
 	for (size_t i = 0; i < ctxt->setup->n_cells; i++) {
@@ -243,11 +225,21 @@ static void voronoi_calculate_distances(voronoi_context_t *ctxt)
 		d->cell = c;
 		d->distance_sq = 0.f;
 	}
+}
+
+
+static void voronoi_calculate_distances_render_pass(voronoi_context_t *ctxt, const til_fb_fragment_t *fragment)
+{
+	v2f_t	ds = (v2f_t){
+			.x = 2.f / ctxt->distances.width,
+			.y = 2.f / ctxt->distances.height,
+		};
+
+	/* An attempt at implementing https://en.wikipedia.org/wiki/Jump_flooding_algorithm */
 
 	/* now for every distance sample neighbors */
 	for (size_t step = MAX(ctxt->distances.width, ctxt->distances.height) / 2; step > 0; step >>= 1)
 		voronoi_jumpfill_pass(ctxt, &ds, step);
-#endif
 }
 
 
@@ -281,16 +273,18 @@ static void voronoi_prepare_frame(til_module_context_t *context, til_stream_t *s
 		ctxt->distances.height = fragment->frame_height;
 		ctxt->distances.size = fragment->frame_width * fragment->frame_height;
 		ctxt->distances.buf = malloc(sizeof(voronoi_distance_t) * ctxt->distances.size);
-
-		if (!ctxt->setup->randomize)
-			voronoi_calculate_distances(ctxt);
+		ctxt->distances.recalc_needed = 1;
 	}
 
 	/* TODO: explore moving voronoi_calculate_distances() into render_fragment (threaded) */
 
-	if (ctxt->setup->randomize) {
+	if (ctxt->setup->randomize)
 		voronoi_randomize(ctxt);
-		voronoi_calculate_distances(ctxt);
+
+	if (ctxt->distances.recalc_needed) {
+		voronoi_calculate_distances_prepare_pass(ctxt);
+		voronoi_calculate_distances_render_pass(ctxt, fragment);
+		ctxt->distances.recalc_needed = 0;
 	}
 
 	/* if the fragment comes in already cleared/initialized, use it for the colors, producing a mosaic */
