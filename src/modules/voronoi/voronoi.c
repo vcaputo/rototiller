@@ -56,19 +56,33 @@ typedef struct voronoi_context_t {
 #define VORONOI_DEFAULT_RANDOMIZE	0
 
 
-static void voronoi_randomize(voronoi_context_t *ctxt)
+/* TODO: stuff like this makes me think there needs to be support for threaded prepare_frame(),
+ * since this could just have per-cpu lists of cells and per-cpu rand_r seeds which could make
+ * a significant difference for large numbers of cells.
+ */
+static void voronoi_randomize(voronoi_context_t *ctxt, int do_colors)
 {
 	float	inv_rand_max= 1.f / (float)RAND_MAX;
 
-	for (size_t i = 0; i < ctxt->setup->n_cells; i++) {
-		voronoi_cell_t	*p = &ctxt->cells[i];
+	if (!do_colors) {
+		/* we can skip setting the colors when overlayed since they get sampled */
+		for (size_t i = 0; i < ctxt->setup->n_cells; i++) {
+			voronoi_cell_t	*p = &ctxt->cells[i];
 
-		p->origin.x = ((float)rand_r(&ctxt->seed) * inv_rand_max) * 2.f - 1.f;
-		p->origin.y = ((float)rand_r(&ctxt->seed) * inv_rand_max) * 2.f - 1.f;
+			p->origin.x = ((float)rand_r(&ctxt->seed) * inv_rand_max) * 2.f - 1.f;
+			p->origin.y = ((float)rand_r(&ctxt->seed) * inv_rand_max) * 2.f - 1.f;
+		}
+	} else {
+		for (size_t i = 0; i < ctxt->setup->n_cells; i++) {
+			voronoi_cell_t	*p = &ctxt->cells[i];
 
-		p->color = ((uint32_t)(rand_r(&ctxt->seed) % 256)) << 16;
-		p->color |= ((uint32_t)(rand_r(&ctxt->seed) % 256)) << 8;
-		p->color |= ((uint32_t)(rand_r(&ctxt->seed) % 256));
+			p->origin.x = ((float)rand_r(&ctxt->seed) * inv_rand_max) * 2.f - 1.f;
+			p->origin.y = ((float)rand_r(&ctxt->seed) * inv_rand_max) * 2.f - 1.f;
+
+			p->color = ((uint32_t)(rand_r(&ctxt->seed) % 256)) << 16;
+			p->color |= ((uint32_t)(rand_r(&ctxt->seed) % 256)) << 8;
+			p->color |= ((uint32_t)(rand_r(&ctxt->seed) % 256));
+		}
 	}
 
 	ctxt->distances.recalc_needed = 1;
@@ -86,7 +100,7 @@ static til_module_context_t * voronoi_create_context(const til_module_t *module,
 	ctxt->setup = (voronoi_setup_t *)setup;
 	ctxt->seed = seed;
 
-	voronoi_randomize(ctxt);
+	voronoi_randomize(ctxt, 1);
 
 	return &ctxt->til_module_context;
 }
@@ -300,7 +314,7 @@ static void voronoi_prepare_frame(til_module_context_t *context, til_stream_t *s
 	}
 
 	if (ctxt->setup->randomize)
-		voronoi_randomize(ctxt);
+		voronoi_randomize(ctxt, !fragment->cleared);
 
 	/* if the fragment comes in already cleared/initialized, use it for the colors, producing a mosaic */
 	if (fragment->cleared)
