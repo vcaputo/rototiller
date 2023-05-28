@@ -23,7 +23,6 @@ typedef struct voronoi_setup_t {
 	til_setup_t		til_setup;
 	size_t			n_cells;
 	unsigned		randomize:1;
-	unsigned		dirty:1;
 } voronoi_setup_t;
 
 typedef struct voronoi_cell_t {
@@ -125,7 +124,7 @@ static void voronoi_jumpfill_pass(voronoi_context_t *ctxt, v2f_t *ds, size_t ste
 			if (d->cell && d->distance_sq == 0)
 				continue;
 
-#define VORONOI_JUMPFILL																	\
+#define VORONOI_JUMPFILL																\
 				if (dq->cell) {														\
 					float	dist_sq = v2f_distance_sq(&dq->cell->origin, &dp);							\
 																			\
@@ -246,13 +245,8 @@ static void voronoi_calculate_distances(voronoi_context_t *ctxt)
 	}
 
 	/* now for every distance sample neighbors */
-	if (ctxt->setup->dirty) {
-		for (size_t step = 2; step <= MAX(ctxt->distances.width, ctxt->distances.height); step *= 2)
-			voronoi_jumpfill_pass(ctxt, &ds, step);
-	} else {
-		for (size_t step = MAX(ctxt->distances.width, ctxt->distances.height) / 2; step > 0; step >>= 1)
-			voronoi_jumpfill_pass(ctxt, &ds, step);
-	}
+	for (size_t step = MAX(ctxt->distances.width, ctxt->distances.height) / 2; step > 0; step >>= 1)
+		voronoi_jumpfill_pass(ctxt, &ds, step);
 #endif
 }
 
@@ -337,7 +331,6 @@ static int voronoi_setup(const til_settings_t *settings, til_setting_t **res_set
 				"on",
 				NULL
 			};
-	const char	*dirty;
 	int		r;
 
 	r = til_settings_get_and_describe_value(settings,
@@ -370,21 +363,6 @@ static int voronoi_setup(const til_settings_t *settings, til_setting_t **res_set
 	if (r)
 		return r;
 
-	r = til_settings_get_and_describe_value(settings,
-						&(til_setting_spec_t){
-							.name = "Use faster, imperfect method",
-							.key = "dirty",
-							.regex = "^(on|off)",
-							.preferred = bool_values[VORONOI_DEFAULT_DIRTY],
-							.values = bool_values,
-							.annotations = NULL
-						},
-						&dirty,
-						res_setting,
-						res_desc);
-	if (r)
-		return r;
-
 	if (res_setup) {
 		voronoi_setup_t	*setup;
 
@@ -396,9 +374,6 @@ static int voronoi_setup(const til_settings_t *settings, til_setting_t **res_set
 
 		if (!strcasecmp(randomize, "on"))
 			setup->randomize = 1;
-
-		if (!strcasecmp(dirty, "on"))
-			setup->dirty = 1;
 
 		*res_setup = &setup->til_setup;
 	}
