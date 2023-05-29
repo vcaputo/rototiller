@@ -322,6 +322,7 @@ int til_module_setup(const til_settings_t *settings, til_setting_t **res_setting
 }
 
 
+/* TODO: rename to til_module_setup_randomize() */
 /* originally taken from rtv, this randomizes a module's setup @res_setup, args @res_arg
  * returns 0 on no setup, 1 on setup successful with results stored @res_*, -errno on error.
  */
@@ -410,6 +411,49 @@ int til_module_randomize_setup(const til_module_t *module, unsigned seed, til_se
 	}
 
 	til_settings_free(settings);
+
+	return r;
+}
+
+
+/* This turns the incoming module+setings into a "baked" til_setup_t,
+ * if module->setup() isn't provided, a minimal til_setup_t is still produced.
+ */
+int til_module_setup_finalize(const til_module_t *module, const til_settings_t *module_settings, til_setup_t **res_setup)
+{
+	til_setting_t			*setting;
+	const til_setting_desc_t	*desc;
+	int				r;
+
+	assert(module);
+	assert(module_settings);
+	assert(res_setup);
+
+	if (!module->setup) {
+		til_setup_t	*setup;
+
+		setup = til_setup_new(module_settings, sizeof(*setup), NULL);
+		if (!setup)
+			return -ENOMEM;
+
+		*res_setup = setup;
+
+		return 0;
+	}
+
+	/* TODO: note passing &setting and &desc when finalizing is really only necessary
+	 * because of how nested settings get found via &setting, and modules that do this
+	 * currently tend to access (*res_setting)->value_as_nested_settings and that needs
+	 * to occur even when just finalizing.  A future change may rework how modules do
+	 * this, but let's just pass the res_setting and res_desc pointers to keep things
+	 * happy for now.  Long-term it should really be possible to pass NULL for those,
+	 * at least when you're just finalizing.
+	 */
+	r = module->setup(module_settings, &setting, &desc, res_setup);
+	if (r < 0)
+		return r;
+	if (r > 0)	/* FIXME: this should probably free desc */
+		return -EINVAL; /* module_settings is incomplete, but we're not performing setup here. */
 
 	return r;
 }
