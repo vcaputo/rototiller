@@ -184,7 +184,7 @@ static int sparkler_setup(const til_settings_t *settings, til_setting_t **res_se
 	if (res_setup) {
 		sparkler_setup_t	*setup;
 
-		setup = til_setup_new(sizeof(*setup), (void(*)(til_setup_t *))free);
+		setup = til_setup_new(sizeof(*setup), NULL);
 		if (!setup)
 			return -ENOMEM;
 
