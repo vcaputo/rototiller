@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "til_jenkins.h"
 #include "til_settings.h"
 #include "til_setup.h"
 
@@ -23,6 +24,7 @@
 void * til_setup_new(const til_settings_t *settings, size_t size, void (*free_func)(til_setup_t *setup))
 {
 	char		*path_buf = NULL;
+	size_t		path_sz;
 	til_setup_t	*setup;
 
 	assert(settings);
@@ -30,7 +32,6 @@ void * til_setup_new(const til_settings_t *settings, size_t size, void (*free_fu
 
 	{ /* TODO FIXME: more unportable memstream use! */
 		FILE	*path_fp;
-		size_t	path_sz;
 		int	r;
 
 		path_fp = open_memstream(&path_buf, &path_sz);
@@ -52,6 +53,7 @@ void * til_setup_new(const til_settings_t *settings, size_t size, void (*free_fu
 	}
 
 	setup->path = path_buf;
+	setup->path_hash = til_jenkins((uint8_t *)path_buf, path_sz);
 	setup->refcount = 1;
 	setup->free = free_func;
 

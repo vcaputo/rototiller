@@ -1,11 +1,14 @@
 #ifndef _TIL_SETUP_H
 #define _TIL_SETUP_H
 
+#include <stdint.h>
+
 typedef struct til_settings_t til_settings_t;
 typedef struct til_setup_t til_setup_t;
 
 struct til_setup_t {
 	const char	*path;
+	uint32_t	path_hash;
 	unsigned	refcount;
 	void		(*free)(til_setup_t *setup);
 };
