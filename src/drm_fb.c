@@ -301,7 +301,7 @@ static void drm_fb_setup_free(til_setup_t *setup)
 /* positive value indicates another setting is needed, described in next_setting */
 static int drm_fb_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
-	drm_fb_setup_t			*setup = til_setup_new(sizeof(*setup), drm_fb_setup_free);
+	drm_fb_setup_t			*setup = til_setup_new(settings, sizeof(*setup), drm_fb_setup_free);
 	til_setting_desc_generator_t	generators[] = {
 						{
 							.key = "dev",

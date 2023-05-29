@@ -744,7 +744,7 @@ static int plato_setup(const til_settings_t *settings, til_setting_t **res_setti
 		plato_setup_t	*setup;
 		int		i;
 
-		setup = til_setup_new(sizeof(*setup), NULL);
+		setup = til_setup_new(settings, sizeof(*setup), NULL);
 		if (!setup)
 			return -ENOMEM;
 

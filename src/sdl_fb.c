@@ -102,7 +102,7 @@ static int sdl_fb_setup(const til_settings_t *settings, til_setting_t **res_sett
 	if (res_setup) {
 		sdl_fb_setup_t	*setup;
 
-		setup = til_setup_new(sizeof(*setup), NULL);
+		setup = til_setup_new(settings, sizeof(*setup), NULL);
 		if (!setup)
 			return -ENOMEM;
 

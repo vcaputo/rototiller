@@ -1,7 +1,9 @@
 #include <assert.h>
 #include <errno.h>
+#include <stdio.h>
 #include <stdlib.h>
 
+#include "til_settings.h"
 #include "til_setup.h"
 
 
@@ -10,20 +12,46 @@
  * instance returned when destroyed.  If free_func is NULL, free() will be
  * used by default.
  *
+ * A copy of the provided settings' path is stored at til_setup_t.path, and will
+ * always be freed automatically when the setup instance is freed, independent of
+ * free_func.
+ *
  * Note this returns void * despite creating a til_setup_t, this is for convenience
  * as the callers are generally using it in place of calloc(), and assign it to a
  * container struct of some other type but having an embedded til_setup_t.
  */
-void * til_setup_new(size_t size, void (*free_func)(til_setup_t *setup))
+void * til_setup_new(const til_settings_t *settings, size_t size, void (*free_func)(til_setup_t *setup))
 {
+	char		*path_buf = NULL;
 	til_setup_t	*setup;
 
+	assert(settings);
 	assert(size >= sizeof(til_setup_t));
 
-	setup = calloc(1, size);
-	if (!setup)
-		return NULL;
+	{ /* TODO FIXME: more unportable memstream use! */
+		FILE	*path_fp;
+		size_t	path_sz;
+		int	r;
 
+		path_fp = open_memstream(&path_buf, &path_sz);
+		if (!path_fp)
+			return NULL;
+
+		r = til_settings_print_path(settings, path_fp);
+		fclose(path_fp);
+		if (r < 0) {
+			free(path_buf);
+			return NULL;
+		}
+	}
+
+	setup = calloc(1, size);
+	if (!setup) {
+		free(path_buf);
+		return NULL;
+	}
+
+	setup->path = path_buf;
 	setup->refcount = 1;
 	setup->free = free_func;
 
@@ -57,6 +85,9 @@ static void * til_setup_unref(til_setup_t *setup)
 
 	setup->refcount--;
 	if (!setup->refcount) {
+		/* don't make setup->free() free the path when provided */
+		free((void *)setup->path);
+
 		if (setup->free)
 			setup->free(setup);
 		else

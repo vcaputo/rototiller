@@ -670,7 +670,7 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 	if (res_setup) {
 		checkers_setup_t	*setup;
 
-		setup = til_setup_new(sizeof(*setup), checkers_setup_free);
+		setup = til_setup_new(settings, sizeof(*setup), checkers_setup_free);
 		if (!setup)
 			return -ENOMEM;
 

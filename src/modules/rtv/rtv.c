@@ -492,7 +492,7 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 		rtv_setup_t	*setup;
 
 		/* FIXME: rtv_setup_t.snow_module needs freeing, so we need a bespoke free_func */
-		setup = til_setup_new(sizeof(*setup) + sizeof(setup->channels[0]), NULL);
+		setup = til_setup_new(settings, sizeof(*setup) + sizeof(setup->channels[0]), NULL);
 		if (!setup)
 			return -ENOMEM;
 
