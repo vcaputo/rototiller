@@ -279,7 +279,13 @@ int til_module_setup(const til_settings_t *settings, til_setting_t **res_setting
 		int			r;
 
 		for (unsigned i = 0, j = 0; i < nelems(modules); i++) {
-			if ((modules[i]->flags & TIL_MODULE_EXPERIMENTAL))
+			/* XXX: This only skips experimental modules when no module setting was pre-specified,
+			 * which allows accessing the experimental modules via the CLI without showing them
+			 * in the interactive setup where the desc provides the displayed list of values before
+			 * the module setting gets added.  It seems a big kludge-y and fragile, but works well
+			 * enough for now to get at the experimental modules during testing/development.
+			 */
+			if (!name && (modules[i]->flags & TIL_MODULE_EXPERIMENTAL))
 				continue;
 
 			values[j] = modules[i]->name;
