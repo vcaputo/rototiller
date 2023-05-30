@@ -174,7 +174,7 @@ static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks)
 			char	*settings_as_arg = NULL;
 			txt_t	*caption;
 
-			(void) til_module_randomize_setup(ctxt->channel->module, rand_r(&ctxt->til_module_context.seed), &ctxt->channel->module_setup, &settings_as_arg);
+			(void) til_module_setup_randomize(ctxt->channel->module, rand_r(&ctxt->til_module_context.seed), &ctxt->channel->module_setup, &settings_as_arg);
 			caption = txt_newf("Title: %s%s%s\nDescription: %s%s%s",
 						 ctxt->channel->module->name,
 						 ctxt->channel->module->author ? "\nAuthor: " : "",

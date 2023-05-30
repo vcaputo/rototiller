@@ -75,7 +75,7 @@ static til_module_context_t * rkt_create_context(const til_module_t *module, til
 	{
 		til_setup_t	*module_setup = NULL;
 
-		(void) til_module_randomize_setup(ctxt->seq_module, rand_r(&seed), &module_setup, NULL);
+		(void) til_module_setup_randomize(ctxt->seq_module, rand_r(&seed), &module_setup, NULL);
 
 		(void) til_module_create_context(ctxt->seq_module, stream, rand_r(&seed), ticks, 0, module_setup, &ctxt->seq_module_ctxt);
 		til_setup_free(module_setup);

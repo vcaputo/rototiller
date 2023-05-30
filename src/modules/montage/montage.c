@@ -90,7 +90,7 @@ static til_module_context_t * montage_create_context(const til_module_t *module,
 		const til_module_t	*module = ctxt->modules[i];
 		til_setup_t		*setup = NULL;
 
-		(void) til_module_randomize_setup(module, rand_r(&seed), &setup, NULL);
+		(void) til_module_setup_randomize(module, rand_r(&seed), &setup, NULL);
 
 		/* FIXME errors */
 		(void) til_module_create_context(module, stream, rand_r(&seed), ticks, 1, setup, &ctxt->contexts[i]);
