@@ -67,7 +67,7 @@ typedef struct rtv_setup_t {
 } rtv_setup_t;
 
 static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks);
-static til_module_context_t * rtv_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup);
+static til_module_context_t * rtv_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup);
 static void rtv_destroy_context(til_module_context_t *context);
 static void rtv_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr);
 static void rtv_finish_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr);
@@ -195,7 +195,7 @@ static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks)
 	}
 
 	if (!ctxt->channel->module_ctxt)
-		(void) til_module_create_context(ctxt->channel->module, ctxt->til_module_context.stream, rand_r(&ctxt->til_module_context.seed), ticks, ctxt->til_module_context.n_cpus, ctxt->til_module_context.path, ctxt->channel->module_setup, &ctxt->channel->module_ctxt);
+		(void) til_module_create_context(ctxt->channel->module, ctxt->til_module_context.stream, rand_r(&ctxt->til_module_context.seed), ticks, ctxt->til_module_context.n_cpus, ctxt->channel->module_setup, &ctxt->channel->module_ctxt);
 
 	ctxt->channel->last_on_time = now;
 }
@@ -227,7 +227,7 @@ static int rtv_should_skip_module(const rtv_setup_t *setup, const til_module_t *
 }
 
 
-static til_module_context_t * rtv_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
+static til_module_context_t * rtv_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	rtv_context_t		*ctxt;
 	const til_module_t	**modules;
@@ -241,7 +241,7 @@ static til_module_context_t * rtv_create_context(const til_module_t *module, til
 			n_channels++;
 	}
 
-	ctxt = til_module_context_new(module, sizeof(rtv_context_t) + n_channels * sizeof(rtv_channel_t), stream, seed, ticks, n_cpus, path, setup);
+	ctxt = til_module_context_new(module, sizeof(rtv_context_t) + n_channels * sizeof(rtv_channel_t), stream, seed, ticks, n_cpus, setup);
 	if (!ctxt)
 		return NULL;
 
@@ -257,7 +257,7 @@ static til_module_context_t * rtv_create_context(const til_module_t *module, til
 		((rtv_setup_t *)setup)->snow_module_setup = NULL;
 
 		ctxt->snow_channel.module = til_lookup_module(((rtv_setup_t *)setup)->snow_module_name);
-		(void) til_module_create_context(ctxt->snow_channel.module, stream, rand_r(&seed), ticks, n_cpus, path, ctxt->snow_channel.module_setup, &ctxt->snow_channel.module_ctxt);
+		(void) til_module_create_context(ctxt->snow_channel.module, stream, rand_r(&seed), ticks, n_cpus, ctxt->snow_channel.module_setup, &ctxt->snow_channel.module_ctxt);
 	}
 
 	ctxt->log_channels = ((rtv_setup_t *)setup)->log_channels;

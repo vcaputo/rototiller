@@ -225,35 +225,21 @@ void til_module_render(til_module_context_t *context, til_stream_t *stream, unsi
  * the purpose of explicitly constraining rendering parallelization to less than n_threads,
  * if n_cpus is specified > n_threads it won't increase n_threads...
  */
-int til_module_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, const char *parent_path, til_setup_t *setup, til_module_context_t **res_context)
+int til_module_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup, til_module_context_t **res_context)
 {
 	til_module_context_t	*context;
-	char			*path;
 
 	assert(module);
-	assert(parent_path);
-	assert(setup || !module->setup); /* if a module provides a .setup() method, it can assume a provided setup */
+	assert(setup); /* we *always* want a setup, even if the module has no setup() method - for the path */
 	assert(res_context);
-
-	{
-		size_t	path_len;
-
-		/* TODO: when til_setup_t learns to name settings blocks, this would be where to override module->name with the setup-specified name */
-		path_len = strlen(parent_path) + 1 + strlen(module->name) + 1;
-		path = calloc(1, path_len);
-		if (!path)
-			return -ENOMEM;
-
-		snprintf(path, path_len, "%s/%s", parent_path, module->name);
-	}
 
 	if (!n_cpus)
 		n_cpus = til_threads_num_threads(til_threads);
 
 	if (!module->create_context)
-		context = til_module_context_new(module, sizeof(til_module_context_t), stream, seed, ticks, n_cpus, path, setup);
+		context = til_module_context_new(module, sizeof(til_module_context_t), stream, seed, ticks, n_cpus, setup);
 	else
-		context = module->create_context(module, stream, seed, ticks, n_cpus, path, setup);
+		context = module->create_context(module, stream, seed, ticks, n_cpus, setup);
 
 	if (!context)
 		return -ENOMEM;

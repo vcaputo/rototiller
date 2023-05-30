@@ -51,7 +51,7 @@ typedef struct compose_setup_t {
 	compose_setup_layer_t	layers[];
 } compose_setup_t;
 
-static til_module_context_t * compose_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup);
+static til_module_context_t * compose_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup);
 static void compose_destroy_context(til_module_context_t *context);
 static void compose_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr);
 static int compose_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
@@ -67,64 +67,30 @@ til_module_t	compose_module = {
 };
 
 
-static til_module_context_t * compose_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
+static til_module_context_t * compose_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	compose_setup_t		*s = (compose_setup_t *)setup;
-	size_t			layers_path_len;
-	char			*layers_path;
 	compose_context_t	*ctxt;
 
 	assert(setup);
 
-	ctxt = til_module_context_new(module, sizeof(compose_context_t) + s->n_layers * sizeof(compose_layer_t), stream, seed, ticks, n_cpus, path, setup);
+	ctxt = til_module_context_new(module, sizeof(compose_context_t) + s->n_layers * sizeof(compose_layer_t), stream, seed, ticks, n_cpus, setup);
 	if (!ctxt)
 		return NULL;
-
-	layers_path_len = snprintf(NULL, 0, "%s/%s", path, "layers") + 1;
-	layers_path = calloc(1, layers_path_len);
-	/* FIXME TODO: path allocation/construction needs revisiting something fierce:
-	 * 1. Layers can have the same module recur, using compose/layers/$modname will just collide.
-	 * 2. We don't want to be ad-hoc constructing these things like this, but I'm deliberately leaving it ridiculous for now.
-	 * 3. Giving the til_setup_t a settings-instance-derived path might Just Fix Everything and eliminate the need for passing around a path altogether:
-	 *
-	 *    In scenarios like layers the settings code already generate instance labels in an enumerated array subscript fashion, so the path would be:
-	 *    compose/layers/layers[N]
-	 *
-	 *    Some things need to change before that happens though, for starters always creating and supplying a til_setup_t to modules even ones without
-	 *    a .setup() method would be necessary.  Also there isn't a trivial way to take an arbitrary settings instance anywhere in the heirarchy and
-	 *    ask til_settings to generate its path - there are no parent pointers going up the tree to construct it in reverse, and the instances don't
-	 *    get a full path copy placed into them at creation time, only the label.  The label could be changed to an absolute path though, which would
-	 *    really be fine since these things don't move around the heirarchy, they just stay where they were created.
-	 */
-	if (!layers_path)
-		return til_module_context_free(&ctxt->til_module_context);
-
-	snprintf(layers_path, layers_path_len, "%s/%s", path, "layers");
 
 	for (size_t i = 0; i < s->n_layers; i++) {
 		const til_module_t	*layer_module;
 
 		layer_module = til_lookup_module(((compose_setup_t *)setup)->layers[i].module);
 		ctxt->layers[i].module = layer_module;
-		(void) til_module_create_context(layer_module, stream, rand_r(&seed), ticks, n_cpus, layers_path, s->layers[i].setup, &ctxt->layers[i].module_ctxt); /* TODO: errors */
+		(void) til_module_create_context(layer_module, stream, rand_r(&seed), ticks, n_cpus, s->layers[i].setup, &ctxt->layers[i].module_ctxt); /* TODO: errors */
 
 		ctxt->n_layers++;
 	}
 
-	free(layers_path);
-
 	if (((compose_setup_t *)setup)->texture.module) {
-		size_t	texture_path_len = snprintf(NULL, 0, "%s/%s", path, "texture") + 1;
-		char	*texture_path = calloc(1, texture_path_len);
-
-		if (!texture_path)
-			return til_module_context_free(&ctxt->til_module_context);
-
-		snprintf(texture_path, texture_path_len, "%s/%s", path, "texture");
-
 		ctxt->texture.module = til_lookup_module(((compose_setup_t *)setup)->texture.module);
-		(void) til_module_create_context(ctxt->texture.module, stream, rand_r(&seed), ticks, n_cpus, texture_path, s->texture.setup, &ctxt->texture.module_ctxt); /* TODO: errors */
-		free(texture_path);
+		(void) til_module_create_context(ctxt->texture.module, stream, rand_r(&seed), ticks, n_cpus, s->texture.setup, &ctxt->texture.module_ctxt); /* TODO: errors */
 	}
 
 	return &ctxt->til_module_context;

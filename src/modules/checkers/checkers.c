@@ -71,7 +71,7 @@ typedef struct checkers_context_t {
 } checkers_context_t;
 
 
-static til_module_context_t * checkers_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
+static til_module_context_t * checkers_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	size_t			size = sizeof(checkers_context_t);
 	checkers_context_t	*ctxt;
@@ -79,7 +79,7 @@ static til_module_context_t * checkers_create_context(const til_module_t *module
 	if (((checkers_setup_t *)setup)->fill_module)
 		size += sizeof(til_module_context_t *) * n_cpus;
 
-	ctxt = til_module_context_new(module, size, stream, seed, ticks, n_cpus, path, setup);
+	ctxt = til_module_context_new(module, size, stream, seed, ticks, n_cpus, setup);
 	if (!ctxt)
 		return NULL;
 
@@ -87,17 +87,10 @@ static til_module_context_t * checkers_create_context(const til_module_t *module
 
 	if (ctxt->setup->fill_module) {
 		const til_module_t	*module = ctxt->setup->fill_module;
-		size_t			fill_module_path_len = snprintf(NULL, 0, "%s/fill_module", path) + 1; /* FIXME TODO: revisit path construction, see big comment in modules/compose FIXME TODO */
-		char			*fill_module_path = calloc(1, fill_module_path_len);
-
-		if (!fill_module_path)
-			return til_module_context_free(&ctxt->til_module_context);
-
-		snprintf(fill_module_path, fill_module_path_len, "%s/fill_module", path);
 
 		/* since checkers is already threaded, create an n_cpus=1 context per-cpu */
 		for (unsigned i = 0; i < n_cpus; i++) /* TODO: errors */
-			(void) til_module_create_context(module, stream, seed, ticks, 1, fill_module_path, ctxt->setup->fill_module_setup, &ctxt->fill_module_contexts[i]);
+			(void) til_module_create_context(module, stream, seed, ticks, 1, ctxt->setup->fill_module_setup, &ctxt->fill_module_contexts[i]);
 			 /* FIXME TODO ^^^ sharing the fill_module_path across the per-cpu contexts aliases them _across_threads_ no less, this needs attention/thought FIXME TODO */
 			 /* but the problem with just doing something like suffixing the cpu # to give each context a unique path per-cpu is then the taps/pipes would all be
 			  * unique on a per-cpu basis.  That's _very_ undesirable in terms of sequencing the pipes by name, we don't want sequencing tracks per-cpu and that's
@@ -111,7 +104,6 @@ static til_module_context_t * checkers_create_context(const til_module_t *module
 			  * just roll with the punches and share the first instance of tap variables then all the others just get left alone. FIXME TODO FIXME TODO
 			  */
 
-		free(fill_module_path);
 		/* XXX: it would be interesting to support various patterns/layouts by varying the seed, but this will require
 		 * more complex context allocation strategies while also maintaining the per-cpu allocation.
 		 */

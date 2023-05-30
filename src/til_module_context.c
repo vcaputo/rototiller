@@ -27,33 +27,29 @@
  * as the callers are generally using it in place of calloc(), and assign it to a
  * container struct of some other type but having an embedded til_module_context_t.
  *
- * path must not be NULL, and the context always takes ownership of the path; it's freed @ context_free().
+ * setup must not be NULL, even for modules without a setup method, as the setup *always* provides the path
+ * for the context.  The context takes a reference on the provided setup, which will be dropped when the
+ * context is freed.
  */
-void * til_module_context_new(const til_module_t *module, size_t size, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, char *path, til_setup_t *setup)
+void * til_module_context_new(const til_module_t *module, size_t size, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	til_module_context_t	*module_context;
 
 	assert(module);
 	assert(size >= sizeof(til_module_context_t));
 	assert(n_cpus > 0);
-	assert(path); /* modules must be able to key things like taps off their context's path */
+	assert(setup); /* modules must be able to key things like taps off their context's path @ setup->path */
 
 	module_context = calloc(1, size);
-	if (!module_context) {
-		free(path);
-
+	if (!module_context)
 		return NULL;
-	}
 
 	module_context->module = module;
 	module_context->stream = stream;
 	module_context->seed = seed;
 	module_context->ticks = ticks;
 	module_context->n_cpus = n_cpus;
-	module_context->path = path;
-	module_context->path_hash = til_jenkins((uint8_t *)path, strlen(path));
-	if (setup)
-		module_context->setup = til_setup_ref(setup);
+	module_context->setup = til_setup_ref(setup);
 
 	return module_context;
 }
@@ -66,14 +62,12 @@ void * til_module_context_new(const til_module_t *module, size_t size, til_strea
  */
 void * til_module_context_free(til_module_context_t *module_context)
 {
-	char		*path;
 	til_stream_t	*stream;
 	til_setup_t	*setup;
 
 	if (!module_context)
 		return NULL;
 
-	path = module_context->path; /* free last just in case the module destructor makes use of it */
 	stream = module_context->stream;
 	setup = module_context->setup;
 
@@ -82,8 +76,7 @@ void * til_module_context_free(til_module_context_t *module_context)
 	else
 		free(module_context);
 
-	free(path);
-	(void) til_setup_free(setup);
+	(void) til_setup_free(setup); /* free last just in case the module destructor makes use of it */
 
 	/* cleanup any pipes this context might have had in the stream, if the
 	 * module's destroy_context() also does this it's harmlessly idempotent
