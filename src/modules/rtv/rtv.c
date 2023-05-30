@@ -560,14 +560,12 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 				return -ENOMEM;
 			}
 
-			if (snow_module->setup) {
-				/* bake the snow_module settings */
-				r = snow_module->setup(snow_module_settings, res_setting, res_desc, &setup->snow_module_setup);
-				if (r < 0) {
-					til_setup_free(&setup->til_setup);
+			/* bake the snow_module settings */
+			r = til_module_setup_finalize(snow_module, snow_module_settings, &setup->snow_module_setup);
+			if (r < 0) {
+				til_setup_free(&setup->til_setup);
 
-					return r;
-				}
+				return r;
 			}
 		}
 

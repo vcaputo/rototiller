@@ -477,13 +477,11 @@ static int compose_setup(const til_settings_t *settings, til_setting_t **res_set
 				return -ENOMEM;
 			}
 
-			if (layer_module->setup) {
-				r = layer_module->setup(layer_setting->value_as_nested_settings, res_setting, res_desc, &setup->layers[i].setup);
-				if (r < 0) {
-					til_setup_free(&setup->til_setup);
+			r = til_module_setup_finalize(layer_module, layer_setting->value_as_nested_settings, &setup->layers[i].setup);
+			if (r < 0) {
+				til_setup_free(&setup->til_setup);
 
-					return r;
-				}
+				return r;
 			}
 		}
 
@@ -504,14 +502,11 @@ static int compose_setup(const til_settings_t *settings, til_setting_t **res_set
 				return -ENOMEM;
 			}
 
-			if (texture_module->setup) {
-				/* bake the texture settings */
-				r = texture_module->setup(texture_settings, res_setting, res_desc, &setup->texture.setup);
-				if (r < 0) {
-					til_setup_free(&setup->til_setup);
+			r = til_module_setup_finalize(texture_module, texture_settings, &setup->texture.setup);
+			if (r < 0) {
+				til_setup_free(&setup->til_setup);
 
-					return r;
-				}
+				return r;
 			}
 		}
 
