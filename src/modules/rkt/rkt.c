@@ -171,15 +171,13 @@ typedef struct rkt_pipe_t {
 	} ptr;
 
 	const struct sync_track	*track;
-	char			track_name[];
 } rkt_pipe_t;
 
 
 int rkt_stream_pipe_ctor(void *context, til_stream_t *stream, const void *owner, const void *owner_foo, const char *parent_path, uint32_t parent_hash, const til_tap_t *tap, const void **res_owner, const void **res_owner_foo, const til_tap_t **res_driving_tap)
 {
 	rkt_context_t	*ctxt = context;
-	rkt_pipe_t		*rkt_pipe;
-	size_t			track_name_len;
+	rkt_pipe_t	*rkt_pipe;
 
 	assert(stream);
 	assert(tap);
@@ -191,19 +189,14 @@ int rkt_stream_pipe_ctor(void *context, til_stream_t *stream, const void *owner,
 	    tap->type != TIL_TAP_TYPE_DOUBLE)
 		return 0;	/* not interesting to us */
 
-	/* we take ownership, and create our own tap and rocket track to stow @ owner_foo */
+	/* assume pipe ownership, create driving tap and rocket track to stow @ owner_foo */
 
-	/* rocket has its own syntax for track names so instead of consttructing a concatenated path
-	 * in til_stream_pipe_t and passing it to the ctor, just construct our own in the end of rkt_pipe_t
-	 */
-	track_name_len = strlen(parent_path) + 1 + strlen(tap->name) + 1;
-	rkt_pipe = calloc(1, sizeof(rkt_pipe_t) + track_name_len);
+	rkt_pipe = calloc(1, sizeof(rkt_pipe_t));
 	if (!rkt_pipe)
 		return -ENOMEM;
 
-	snprintf(rkt_pipe->track_name, track_name_len, "%s:%s", parent_path, tap->name);
 	rkt_pipe->tap = til_tap_init(ctxt, tap->type, &rkt_pipe->ptr, 1, &rkt_pipe->var, tap->name);
-	rkt_pipe->track = sync_get_track(ctxt->sync_device, rkt_pipe->track_name);
+	rkt_pipe->track = sync_get_trackf(ctxt->sync_device, "%s:%s", parent_path, tap->name);
 
 	*res_owner = ctxt;
 	*res_owner_foo = rkt_pipe;
