@@ -71,10 +71,11 @@ static const struct sync_track * sync_get_trackf(struct sync_device *device, con
 
 static til_module_context_t * rkt_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
-	rkt_context_t		*ctxt;
+	rkt_setup_t		*s = (rkt_setup_t *)setup;
 	const til_module_t	*seq_module;
+	rkt_context_t		*ctxt;
 
-	seq_module = til_lookup_module(((rkt_setup_t *)setup)->seq_module_name);
+	seq_module = til_lookup_module(s->seq_module_name);
 	if (!seq_module)
 		return NULL;
 
@@ -82,13 +83,13 @@ static til_module_context_t * rkt_create_context(const til_module_t *module, til
 	if (!ctxt)
 		return NULL;
 
-	ctxt->sync_device = sync_create_device(((rkt_setup_t *)setup)->base);
+	ctxt->sync_device = sync_create_device(s->base);
 	if (!ctxt->sync_device)
 		return til_module_context_free(&ctxt->til_module_context);
 
-	if (((rkt_setup_t *)setup)->connect) {
+	if (s->connect) {
 		/* XXX: it'd be better if we just reconnected periodically instead of hard failing */
-		if (sync_tcp_connect(ctxt->sync_device, ((rkt_setup_t *)setup)->host, ((rkt_setup_t *)setup)->port))
+		if (sync_tcp_connect(ctxt->sync_device, s->host, s->port))
 			return til_module_context_free(&ctxt->til_module_context);
 	}
 
@@ -103,7 +104,7 @@ static til_module_context_t * rkt_create_context(const til_module_t *module, til
 		til_setup_free(module_setup);
 	}
 
-	ctxt->rows_per_ms = ((rkt_setup_t *)setup)->rows_per_ms;
+	ctxt->rows_per_ms = s->rows_per_ms;
 	ctxt->last_ticks = ticks;
 
 	return &ctxt->til_module_context;
