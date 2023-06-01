@@ -24,27 +24,37 @@
  * GNU Rocket (https://github.com/rocket/rocket)
  */
 
+typedef struct rkt_scene_t {
+	const til_module_t	*module;
+	til_module_context_t	*module_ctxt;
+} rkt_scene_t;
+
 typedef struct rkt_context_t {
 	til_module_context_t	til_module_context;
 
-	const til_module_t	*seq_module;
-	til_module_context_t	*seq_module_ctxt;
-
 	struct sync_device	*sync_device;
+	const struct sync_track	*scene_track;
 	double			rows_per_ms;
 	double			rocket_row;
 	unsigned		last_ticks;
 	unsigned		paused:1;
+	rkt_scene_t		scenes[];
 } rkt_context_t;
+
+typedef struct rkt_setup_scene_t {
+	char			*module_name;
+	til_setup_t		*setup;
+} rkt_setup_scene_t;
 
 typedef struct rkt_setup_t {
 	til_setup_t		til_setup;
-	const char		*seq_module_name;
 	const char		*base;
 	double			rows_per_ms;
 	unsigned		connect:1;
 	const char		*host;
 	unsigned short		port;
+	size_t			n_scenes;
+	rkt_setup_scene_t	scenes[];
 } rkt_setup_t;
 
 
@@ -71,15 +81,10 @@ static const struct sync_track * sync_get_trackf(struct sync_device *device, con
 
 static til_module_context_t * rkt_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
-	rkt_setup_t		*s = (rkt_setup_t *)setup;
-	const til_module_t	*seq_module;
-	rkt_context_t		*ctxt;
+	rkt_setup_t	*s = (rkt_setup_t *)setup;
+	rkt_context_t	*ctxt;
 
-	seq_module = til_lookup_module(s->seq_module_name);
-	if (!seq_module)
-		return NULL;
-
-	ctxt = til_module_context_new(module, sizeof(rkt_context_t), stream, seed, ticks, n_cpus, setup);
+	ctxt = til_module_context_new(module, sizeof(rkt_context_t) + s->n_scenes * sizeof(*ctxt->scenes), stream, seed, ticks, n_cpus, setup);
 	if (!ctxt)
 		return NULL;
 
@@ -93,14 +98,18 @@ static til_module_context_t * rkt_create_context(const til_module_t *module, til
 			return til_module_context_free(&ctxt->til_module_context);
 	}
 
-	ctxt->seq_module = seq_module;
+	ctxt->scene_track = sync_get_trackf(ctxt->sync_device, "%s:scene", setup->path);
+	if (!ctxt->scene_track)
+		return til_module_context_free(&ctxt->til_module_context);
 
-	{
+	for (size_t i = 0; i < s->n_scenes; i++) {
 		til_setup_t	*module_setup = NULL;
 
-		(void) til_module_setup_randomize(ctxt->seq_module, rand_r(&seed), &module_setup, NULL);
+		ctxt->scenes[i].module = til_lookup_module(s->scenes[i].module_name);
+		if (!ctxt->scenes[i].module) /* this isn't really expected since setup already does this */
+			return til_module_context_free(&ctxt->til_module_context);
 
-		(void) til_module_create_context(ctxt->seq_module, stream, rand_r(&seed), ticks, 0, module_setup, &ctxt->seq_module_ctxt);
+		(void) til_module_create_context(ctxt->scenes[i].module, stream, rand_r(&seed), ticks, 0, s->scenes[i].setup, &ctxt->scenes[i].module_ctxt);
 		til_setup_free(module_setup);
 	}
 
@@ -117,7 +126,10 @@ static void rkt_destroy_context(til_module_context_t *context)
 
 	if (ctxt->sync_device)
 		sync_destroy_device(ctxt->sync_device);
-	til_module_context_free(ctxt->seq_module_ctxt);
+
+	for (size_t i = 0; i < ((rkt_setup_t *)context->setup)->n_scenes; i++)
+		til_module_context_free(ctxt->scenes[i].module_ctxt);
+
 	free(context);
 }
 
@@ -215,9 +227,9 @@ static const til_stream_hooks_t	rkt_stream_hooks = {
 
 static int rkt_pipe_update(void *context, til_stream_pipe_t *pipe, const void *owner, const void *owner_foo, const til_tap_t *driving_tap)
 {
-	rkt_pipe_t		*rkt_pipe = (rkt_pipe_t *)owner_foo;
+	rkt_pipe_t	*rkt_pipe = (rkt_pipe_t *)owner_foo;
 	rkt_context_t	*ctxt = context;
-	double			val;
+	double		val;
 
 	/* just ignore pipes we don't own (they're not types we can drive w/rocket) */
 	if (owner != ctxt)
@@ -271,44 +283,136 @@ static void rkt_render_fragment(til_module_context_t *context, til_stream_t *str
 	/* this drives our per-rocket-track updates, with the tracks registered as owner_foo on the pipes, respectively */
 	til_stream_for_each_pipe(stream, rkt_pipe_update, ctxt);
 
-	til_module_render(ctxt->seq_module_ctxt, stream, ticks, fragment_ptr);
+	{
+		unsigned	scene;
+
+		scene = (unsigned)sync_get_val(ctxt->scene_track, ctxt->rocket_row);
+		if (scene < ((rkt_setup_t *)context->setup)->n_scenes)
+			til_module_render(ctxt->scenes[scene].module_ctxt, stream, ticks, fragment_ptr);
+		else {
+			txt_t	*msg = txt_newf("%s: NO SCENE @ %u", context->setup->path, scene);
+
+			/* TODO: creating/destroying this every frame is dumb, but
+			 * as this is a diagnostic it's not so important.
+			 *
+			 * Once this module deals with disconnects and transparently reconnects, it'll need
+			 * to show some connection status information as well... when that gets added this will
+			 * likely get reworked to become part of that status text.
+			 */
+			til_fb_fragment_clear(*fragment_ptr);
+			txt_render_fragment(msg, *fragment_ptr, 0xffffffff,
+					    0, 0,
+					    (txt_align_t){
+						.horiz = TXT_HALIGN_LEFT,
+						.vert = TXT_VALIGN_TOP,
+					   });
+			txt_free(msg);
+		}
+	}
+}
+
+
+static void rkt_setup_free(til_setup_t *setup)
+{
+	rkt_setup_t	*s = (rkt_setup_t *)setup;
+
+	if (s) {
+		for (size_t i = 0; i < s->n_scenes; i++) {
+			free(s->scenes[i].module_name);
+			til_setup_free(s->scenes[i].setup);
+		}
+		free((void *)s->base);
+		free((void *)s->host);
+		free(setup);
+	}
 }
 
 
 static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
-	const char	*connect_values[] = {
-				"off",
-				"on",
-				NULL
-			};
-	const char	*seq_module;
-	const char	*base;
-	const char	*bpm;
-	const char	*rpb;
-	const char	*connect;
-	const char	*host;
-	const char	*port;
-	int		r;
+	const til_settings_t	*scenes_settings;
+	const char		*connect_values[] = {
+					"off",
+					"on",
+					NULL
+				};
+	const char		*scenes;
+	const char		*base;
+	const char		*bpm;
+	const char		*rpb;
+	const char		*connect;
+	const char		*host;
+	const char		*port;
+	int			r;
 
-	/* TODO:
-	 * Instead of driving a single module, we could accept a list of module specifiers
-	 * including settings for each (requiring the recursive settings support to land).
-	 * Then just use a module selector track for switching between the modules... that
-	 * might work for getting full-blown demos sequenced via rocket.
+	/* This is largely taken from compose::layers, but might just go away when I add tables to rocket,
+	 * or maybe they can coexist.
 	 */
 	r = til_settings_get_and_describe_value(settings,
 						&(til_setting_spec_t){
-							.name = "Module to sequence",
-							.key = "seq_module",
-							.preferred = "compose",
+							.name = "Comma-separated list of modules for scenes to sequence",
+							.key = "scenes",
+							.preferred = "compose,compose,compose,compose",
 							.annotations = NULL,
+							.as_nested_settings = 1,
 						},
-						&seq_module,
+						&scenes,
 						res_setting,
 						res_desc);
 	if (r)
 		return r;
+
+	assert(res_setting && *res_setting && (*res_setting)->value_as_nested_settings);
+	scenes_settings = (*res_setting)->value_as_nested_settings;
+	{
+		til_setting_t	*scene_setting;
+		const char	*scene_module;
+
+		for (size_t i = 0; til_settings_get_value_by_idx(scenes_settings, i, &scene_setting); i++) {
+			if (!scene_setting->value_as_nested_settings) {
+				r = til_setting_desc_new(	scenes_settings,
+								&(til_setting_spec_t){
+									.as_nested_settings = 1,
+								}, res_desc);
+				if (r < 0)
+					return r;
+
+				*res_setting = scene_setting;
+
+				return 1;
+			}
+		}
+
+		for (size_t i = 0; til_settings_get_value_by_idx(scenes_settings, i, &scene_setting); i++) {
+			til_setting_t		*scene_module_setting;
+			const char		*scene_module_name = til_settings_get_value_by_idx(scene_setting->value_as_nested_settings, 0, &scene_module_setting);
+			const til_module_t	*scene_module = til_lookup_module(scene_module_name);
+
+			if (!scene_module || !scene_module_setting)
+				return -EINVAL;
+
+			if (!scene_module_setting->desc) {
+				r = til_setting_desc_new(	scene_setting->value_as_nested_settings,
+								&(til_setting_spec_t){
+									.name = "Scene module name",
+									.preferred = "none",
+									.as_label = 1,
+								}, res_desc);
+				if (r < 0)
+					return r;
+
+				*res_setting = scene_module_setting;
+
+				return 1;
+			}
+
+			if (scene_module->setup) {
+				r = scene_module->setup(scene_setting->value_as_nested_settings, res_setting, res_desc, NULL);
+				if (r)
+					return r;
+			}
+		}
+	}
 
 	r = til_settings_get_and_describe_value(settings,
 						&(til_setting_spec_t){
@@ -395,29 +499,67 @@ static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting
 	}
 
 	if (res_setup) {
-		const til_module_t	*til_seq_module;
+		size_t			n_scenes = til_settings_get_count(scenes_settings);
+		til_setting_t		*scene_setting;
 		rkt_setup_t		*setup;
 		unsigned		ibpm, irpb;
 
-		if (!strcmp(seq_module, "rkt"))
-			return -EINVAL;
-
-		til_seq_module = til_lookup_module(seq_module);
-		if (!til_seq_module)
-			return -ENOENT;
-
-		/* TODO: we're going to need a custom setup_free to cleanup host+base etc. */
-		setup = til_setup_new(settings, sizeof(*setup), NULL);
+		setup = til_setup_new(settings, sizeof(*setup) + n_scenes * sizeof(*setup->scenes), rkt_setup_free);
 		if (!setup)
 			return -ENOMEM;
 
-		setup->seq_module_name = til_seq_module->name;
-		setup->base = strdup(base); /* FIXME errors */
+		setup->n_scenes = n_scenes;
+
+		for (size_t i = 0; til_settings_get_value_by_idx(scenes_settings, i, &scene_setting); i++) {
+			const char		*scene_module_name = til_settings_get_value_by_idx(scene_setting->value_as_nested_settings, 0, NULL);
+			const til_module_t	*scene_module = til_lookup_module(scene_module_name);
+
+			if (!scene_module || !strcmp(scene_module_name, "rkt")) {
+				til_setup_free(&setup->til_setup);
+
+				return -EINVAL;
+			}
+
+			/* XXX If it's appropriate stow the resolved til_module_t* or the name is still unclear, since
+			 * the module names will soon be able to address existing contexts in the stream at their path.
+			 * So for now I'm just going to continue stowing the name, even though the lookup above prevents
+			 * any sort of context address being used...
+			 */
+			setup->scenes[i].module_name = strdup(scene_module_name);
+			if (!setup->scenes[i].module_name) {
+				til_setup_free(&setup->til_setup);
+
+				return -ENOMEM;
+			}
+
+			r = til_module_setup_finalize(scene_module, scene_setting->value_as_nested_settings, &setup->scenes[i].setup);
+			if (r < 0) {
+				til_setup_free(&setup->til_setup);
+
+				return r;
+			}
+		}
+
+		setup->base = strdup(base);
+		if (!setup->base) {
+			til_setup_free(&setup->til_setup);
+
+			return -ENOMEM;
+		}
+
 		if (!strcasecmp(connect, "on")) {
 			setup->connect = 1;
-			setup->host = strdup(host); /* FIXME errors */
+
+			setup->host = strdup(host);
+			if (!setup->host) {
+				til_setup_free(&setup->til_setup);
+
+				return -ENOMEM;
+			}
+
 			sscanf(port, "%hu", &setup->port); /* FIXME parse errors */
 		}
+
 		sscanf(bpm, "%u", &ibpm);
 		sscanf(rpb, "%u", &irpb);
 		setup->rows_per_ms = ((double)(ibpm * irpb)) * (1.0 / (60.0 * 1000.0));
