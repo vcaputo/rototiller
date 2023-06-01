@@ -1,3 +1,4 @@
+#include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -45,6 +46,27 @@ typedef struct rkt_setup_t {
 	const char		*host;
 	unsigned short		port;
 } rkt_setup_t;
+
+
+/* variadic helper wrapping librocket's sync_get_track() */
+static const struct sync_track * sync_get_trackf(struct sync_device *device, const char *format, ...)
+{
+	char	buf[4096];
+	size_t	len;
+	va_list	ap;
+
+	assert(device);
+	assert(format);
+
+	va_start(ap, format);
+	len = vsnprintf(buf, sizeof(buf), format, ap);
+	va_end(ap);
+
+	if (len >= sizeof(buf))
+		return NULL;
+
+	return sync_get_track(device, buf);
+}
 
 
 static til_module_context_t * rkt_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
