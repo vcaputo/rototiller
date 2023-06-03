@@ -4,6 +4,7 @@
 #include <fcntl.h>
 #include <inttypes.h>
 #include <pthread.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
@@ -163,6 +164,35 @@ void til_get_modules(const til_module_t ***res_modules, size_t *res_n_modules)
 
 	*res_modules = modules;
 	*res_n_modules = nelems(modules);
+}
+
+
+char * til_get_module_names(unsigned flags_excluded)
+{
+	const til_module_t	**modules;
+	size_t			n_modules;
+	char			*buf;
+	size_t			bufsz;
+	FILE			*fp;
+
+	/* FIXME TODO: more unportable memstream! */
+	fp = open_memstream(&buf, &bufsz);
+	if (!fp)
+		return NULL;
+
+	til_get_modules(&modules, &n_modules);
+	for (size_t i = 0, j = 0; i < n_modules; i++) {
+		const til_module_t	*mod = modules[i];
+
+		if ((mod->flags & flags_excluded))
+			continue;
+
+		fprintf(fp, "%s%s", j ? "," : "", mod->name);
+		j++;
+	}
+	fclose(fp);
+
+	return buf;
 }
 
 
