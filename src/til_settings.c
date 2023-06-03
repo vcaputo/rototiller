@@ -295,15 +295,18 @@ int til_settings_get_and_describe_value(const til_settings_t *settings, const ti
 
 
 /* add key,value as a new setting to settings,
- * NULL keys and/or values are passed through as-is
+ * NULL keys are passed through as-is
+ * values must not be NULL
  * desc may be NULL, it's simply passed along as a passenger.
  */
 /* returns the added setting, or NULL on error (ENOMEM) */
 til_setting_t * til_settings_add_value(til_settings_t *settings, const char *key, const char *value, const til_setting_desc_t *desc)
 {
 	assert(settings);
+	assert(value);
+	/* XXX: ^^ non-NULL values makes til_settings_get_value_by_idx() NULL-return-for-end-of-settings OK */
 
-	return add_setting(settings, key ? strdup(key) : NULL, value ? strdup(value) : NULL, desc);
+	return add_setting(settings, key ? strdup(key) : NULL, strdup(value), desc);
 }
 
 
