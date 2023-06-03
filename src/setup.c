@@ -30,6 +30,22 @@ int setup_interactively(til_settings_t *settings, int (*setup_func)(const til_se
 		 * validate its value against the description and assign the description if it passes.
 		 */
 		if (setting && !setting->desc) {
+			/* Apply override before, or after the spec_check()? unclear.
+			 * TODO This probably also needs to move into a til_settings helper
+			 */
+			if (desc->spec.override) {
+				const char	*o;
+
+				o = desc->spec.override(setting->value);
+				if (!o)
+					return -ENOMEM;
+
+				if (o != setting->value) {
+					free((void *)setting->value);
+					setting->value = o;
+				}
+			}
+
 			r = til_setting_spec_check(&desc->spec, setting->value);
 			if (r < 0) {
 				*res_failed_desc = desc;

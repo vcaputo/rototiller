@@ -401,6 +401,23 @@ int til_module_setup_randomize(const til_module_t *module, unsigned seed, til_se
 
 			assert(setting);
 
+			/*
+			 * TODO This probably also needs to move into a til_settings helper,
+			 * copy-n-pasta alert, taken from setup.c
+			 */
+			if (desc->spec.override) {
+				const char	*o;
+
+				o = desc->spec.override(setting->value);
+				if (!o)
+					return -ENOMEM;
+
+				if (o != setting->value) {
+					free((void *)setting->value);
+					setting->value = o;
+				}
+			}
+
 			if (desc->spec.as_nested_settings && !setting->value_as_nested_settings) {
 				char	*label = NULL;
 

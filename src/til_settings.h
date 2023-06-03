@@ -16,6 +16,7 @@ typedef struct til_setting_spec_t {
 	const char	**values;	/* if a set of values is provided, listed here */
 	const char	**annotations;	/* if a set of values is provided, annotations for those values may be listed here */
 	char *		(*random)(unsigned seed);/* if set, returns a valid random value for this setting */
+	const char *	(*override)(const char *value); /* if set, returns an override for value, or value if not overridden - so NULL returns indicate error (ENOMEM), assuming value is always non-NULL */
 	unsigned	as_nested_settings:1;	/* if set, this setting expects a settings string for its value and wants a til_setting_t.value_as_nested_settings instance created for it */
 	unsigned	as_label:1;	/* if set, this setting's value is to be used as a label component in path construction - only applies to the first setting entry in an instance (til_settings_t.entries[0]) */
 } til_setting_spec_t;

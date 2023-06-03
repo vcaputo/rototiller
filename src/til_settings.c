@@ -407,6 +407,7 @@ int til_setting_desc_new(const til_settings_t *settings, const til_setting_spec_
 	}
 
 	d->spec.random = spec->random;
+	d->spec.override = spec->override;
 	d->spec.as_nested_settings = spec->as_nested_settings;
 	d->spec.as_label = spec->as_label;
 
