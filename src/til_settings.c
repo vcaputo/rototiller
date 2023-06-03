@@ -47,7 +47,7 @@ typedef enum til_settings_fsm_state_t {
 } til_settings_fsm_state_t;
 
 
-static til_setting_t * add_setting(til_settings_t *settings, const char *key, const char *value, const til_setting_desc_t *desc)
+static til_setting_t * add_setting(til_settings_t *settings, const char *key, const char *value)
 {
 	til_setting_t	**new_entries;
 	til_setting_t	*s;
@@ -61,7 +61,6 @@ static til_setting_t * add_setting(til_settings_t *settings, const char *key, co
 	s->parent = settings;
 	s->key = key;
 	s->value = value;
-	s->desc = desc;
 
 	new_entries = realloc(settings->entries, (settings->num + 1) * sizeof(til_setting_t *));
 	if (!new_entries) {
@@ -119,10 +118,10 @@ til_settings_t * til_settings_new(const til_settings_t *parent, const char *labe
 				fclose(value_fp);
 
 				if (*p == '=') { /* key= */
-					(void) add_setting(settings, value_buf, NULL, NULL);
+					(void) add_setting(settings, value_buf, NULL);
 					state = TIL_SETTINGS_FSM_STATE_EQUAL;
 				} else { /* bare value */
-					(void) add_setting(settings, NULL, value_buf, NULL);
+					(void) add_setting(settings, NULL, value_buf);
 					state = TIL_SETTINGS_FSM_STATE_COMMA;
 				}
 			} else
@@ -297,16 +296,15 @@ int til_settings_get_and_describe_value(const til_settings_t *settings, const ti
 /* add key,value as a new setting to settings,
  * NULL keys are passed through as-is
  * values must not be NULL
- * desc may be NULL, it's simply passed along as a passenger.
  */
 /* returns the added setting, or NULL on error (ENOMEM) */
-til_setting_t * til_settings_add_value(til_settings_t *settings, const char *key, const char *value, const til_setting_desc_t *desc)
+til_setting_t * til_settings_add_value(til_settings_t *settings, const char *key, const char *value)
 {
 	assert(settings);
 	assert(value);
 	/* XXX: ^^ non-NULL values makes til_settings_get_value_by_idx() NULL-return-for-end-of-settings OK */
 
-	return add_setting(settings, key ? strdup(key) : NULL, strdup(value), desc);
+	return add_setting(settings, key ? strdup(key) : NULL, strdup(value));
 }
 
 

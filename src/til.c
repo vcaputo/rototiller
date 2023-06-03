@@ -395,7 +395,7 @@ int til_module_setup_randomize(const til_module_t *module, unsigned seed, til_se
 					char	*value;
 
 					value = desc->spec.random(rand_r(&seed));
-					setting = til_settings_add_value(desc->container, desc->spec.key, value, desc);
+					setting = til_settings_add_value(desc->container, desc->spec.key, value);
 					free(value);
 				} else if (desc->spec.values) {
 					int	n;
@@ -404,9 +404,9 @@ int til_module_setup_randomize(const til_module_t *module, unsigned seed, til_se
 
 					n = rand_r(&seed) % n;
 
-					setting = til_settings_add_value(desc->container, desc->spec.key, desc->spec.values[n], desc);
+					setting = til_settings_add_value(desc->container, desc->spec.key, desc->spec.values[n]);
 				} else {
-					setting = til_settings_add_value(desc->container, desc->spec.key, desc->spec.preferred, desc);
+					setting = til_settings_add_value(desc->container, desc->spec.key, desc->spec.preferred);
 				}
 			}
 
