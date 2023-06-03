@@ -352,31 +352,14 @@ int til_module_setup(const til_settings_t *settings, til_setting_t **res_setting
 /* originally taken from rtv, this randomizes a module's setup @res_setup, args @res_arg
  * returns 0 on on setup successful with results stored @res_*, -errno on error.
  */
-int til_module_setup_randomize(const til_module_t *module, unsigned seed, til_setup_t **res_setup, char **res_arg)
+int til_module_setup_randomize(const til_module_t *module, til_settings_t *settings, unsigned seed, til_setup_t **res_setup, char **res_arg)
 {
-	til_settings_t			*settings;
 	til_setting_t			*setting;
 	const til_setting_desc_t	*desc;
 	int				r = 0;
 
 	assert(module);
-
-	/* FIXME TODO:
-	 * this seems wrong for two reasons:
-	 * 1. there's no parent settings to attach this to, and there really shouldn't be such
-	 *    orphaned settings instances as we're supposed ot be able to influence their values
-	 *    externally via settings.  At the very least this seems like it should be part of a
-	 *    heirarchy somewhere... which leads to #2
-	 *
-	 * 2. not only does lacking a parent suggests a problem, but there should be an incoming
-	 *    settings instance to randomize which may contain some values already set which we
-	 *    would skip randomizing.  The settings don't currently have any kind of attributes or
-	 *    other state to indicate which ones should always be randomized vs. ones which were
-	 *    explicitly specified to stay fixed.
-	 */
-	settings = til_settings_new(NULL, NULL, module->name, NULL);
-	if (!settings)
-		return -ENOMEM;
+	assert(settings);
 
 	if (!module->setup) {
 		til_setup_t	*setup;
@@ -464,8 +447,6 @@ int til_module_setup_randomize(const til_module_t *module, unsigned seed, til_se
 		else
 			*res_arg = arg;
 	}
-
-	til_settings_free(settings);
 
 	return r;
 }

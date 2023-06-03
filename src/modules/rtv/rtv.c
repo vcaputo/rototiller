@@ -174,7 +174,18 @@ static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks)
 			char	*settings_as_arg = NULL;
 			txt_t	*caption;
 
-			(void) til_module_setup_randomize(ctxt->channel->module, rand_r(&ctxt->til_module_context.seed), &ctxt->channel->module_setup, &settings_as_arg);
+			/* FIXME TODO: this should get seeded with a settings string from the rtv setup, so the user can
+			 * influence the channel settings... and by just taking the per-channel settings string as-is,
+			 * it's effectively partially evaluated until this point here, so the randomizer will leave alone
+			 * whatever's specified while randomizing whatever isn't.  Meaning you could make certain things
+			 * static, while rtv varies everything else.  The down side of that approach would be the rtv setup
+			 * won't fully evaluate the channel settings, meaning you won't have structured guidance.  But that
+			 * should be possible with more work...  there just needs to be a way to put the setup in a mode
+			 * where leaving things unspecified is acceptable.
+			 */
+			til_settings_t *settings = til_settings_new(ctxt->til_module_context.setup->path, NULL, ctxt->channel->module->name, ctxt->channel->module->name /* XXX: we can at least toss the bare-value module name in there, but this should really come from the rtv channels= entries */);
+
+			(void) til_module_setup_randomize(ctxt->channel->module, settings, rand_r(&ctxt->til_module_context.seed), &ctxt->channel->module_setup, &settings_as_arg);
 			caption = txt_newf("Title: %s%s%s\nDescription: %s%s%s",
 						 ctxt->channel->module->name,
 						 ctxt->channel->module->author ? "\nAuthor: " : "",
@@ -185,6 +196,8 @@ static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks)
 
 			ctxt->caption = ctxt->channel->caption = caption;
 			ctxt->channel->settings_as_arg = settings_as_arg ? settings_as_arg : strdup("");
+
+			til_settings_free(settings);
 
 			if (ctxt->log_channels) /* TODO: we need to capture seed state too, a general solution capturing such global state would be nice */
 				fprintf(stderr, "rtv channel settings: \'%s\'\n", ctxt->channel->settings_as_arg);
