@@ -63,7 +63,7 @@ int setup_interactively(til_settings_t *settings, int (*setup_func)(const til_se
 						return r;
 				}
 
-				setting->value_as_nested_settings = til_settings_new(desc->container, desc->spec.key ? : label, setting->value);
+				setting->value_as_nested_settings = til_settings_new(NULL, desc->container, desc->spec.key ? : label, setting->value);
 				free(label);
 
 				if (!setting->value_as_nested_settings) {

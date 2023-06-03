@@ -374,7 +374,7 @@ int til_module_setup_randomize(const til_module_t *module, unsigned seed, til_se
 	 *    other state to indicate which ones should always be randomized vs. ones which were
 	 *    explicitly specified to stay fixed.
 	 */
-	settings = til_settings_new(NULL, module->name, NULL);
+	settings = til_settings_new(NULL, NULL, module->name, NULL);
 	if (!settings)
 		return -ENOMEM;
 
@@ -442,7 +442,7 @@ int til_module_setup_randomize(const til_module_t *module, unsigned seed, til_se
 						break;
 				}
 
-				setting->value_as_nested_settings = til_settings_new(desc->container, desc->spec.key ? : label, setting->value);
+				setting->value_as_nested_settings = til_settings_new(NULL, desc->container, desc->spec.key ? : label, setting->value);
 				free(label);
 
 				if (!setting->value_as_nested_settings) {

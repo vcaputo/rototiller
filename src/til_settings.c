@@ -32,6 +32,7 @@ char * strndup(const char *s, size_t n)
 /* Split form of key=value[,key=value...] settings string */
 typedef struct til_settings_t {
 	const til_settings_t	*parent;
+	const char		*prefix;
 	const char		*label;
 	unsigned		num;
 	til_setting_t		**entries;
@@ -77,7 +78,7 @@ static til_setting_t * add_setting(til_settings_t *settings, const char *key, co
 
 
 /* split settings_string into a data structure */
-til_settings_t * til_settings_new(const til_settings_t *parent, const char *label, const char *settings_string)
+til_settings_t * til_settings_new(const char *prefix, const til_settings_t *parent, const char *label, const char *settings_string)
 {
 	til_settings_fsm_state_t	state = TIL_SETTINGS_FSM_STATE_COMMA;
 	const char			*p;
@@ -91,6 +92,12 @@ til_settings_t * til_settings_new(const til_settings_t *parent, const char *labe
 	settings = calloc(1, sizeof(til_settings_t));
 	if (!settings)
 		goto _err;
+
+	if (prefix) {
+		settings->prefix = strdup(prefix);
+		if (!settings->prefix)
+			goto _err;
+	}
 
 	settings->parent = parent;
 	settings->label = strdup(label);
@@ -199,6 +206,7 @@ til_settings_t * til_settings_free(til_settings_t *settings)
 
 		free((void *)settings->entries);
 		free((void *)settings->label);
+		free((void *)settings->prefix);
 		free(settings);
 	}
 
@@ -635,6 +643,12 @@ int til_settings_print_path(const til_settings_t *settings, FILE *out)
 
 	for (i = 0; i < n_parents; i++) {
 		int	r;
+
+		if (parents[i]->prefix) {
+			r = fprintf(out, "%s", parents[i]->prefix);
+			if (r < 0)
+				return r;
+		}
 
 		r = fprintf(out, "/%s", parents[i]->label);
 		if (r < 0)
