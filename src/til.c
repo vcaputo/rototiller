@@ -167,7 +167,7 @@ void til_get_modules(const til_module_t ***res_modules, size_t *res_n_modules)
 }
 
 
-char * til_get_module_names(unsigned flags_excluded)
+char * til_get_module_names(unsigned flags_excluded, const char **exclusions)
 {
 	const til_module_t	**modules;
 	size_t			n_modules;
@@ -183,8 +183,19 @@ char * til_get_module_names(unsigned flags_excluded)
 	til_get_modules(&modules, &n_modules);
 	for (size_t i = 0, j = 0; i < n_modules; i++) {
 		const til_module_t	*mod = modules[i];
+		const char		**exclusion = exclusions;
 
 		if ((mod->flags & flags_excluded))
+			continue;
+
+		while (*exclusion) {
+			if (!strcmp(*exclusion, mod->name))
+				break;
+
+			exclusion++;
+		}
+
+		if (*exclusion)
 			continue;
 
 		fprintf(fp, "%s%s", j ? "," : "", mod->name);
