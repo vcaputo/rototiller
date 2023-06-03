@@ -198,6 +198,7 @@ til_settings_t * til_settings_free(til_settings_t *settings)
 		}
 
 		free((void *)settings->entries);
+		free((void *)settings->label);
 		free(settings);
 	}
 
