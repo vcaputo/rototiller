@@ -5,21 +5,35 @@
 #include "til.h"
 #include "til_fb.h"
 #include "til_module_context.h"
+#include "til_settings.h"
 #include "til_util.h"
 
 /* Copyright (C) 2019 - Vito Caputo <vcaputo@pengaru.com> */
 
 typedef struct montage_context_t {
 	til_module_context_t	til_module_context;
-	const til_module_t	**modules;
-	til_module_context_t	**contexts;
-	size_t			n_modules;
+
+	til_module_context_t	*tile_contexts[];
 } montage_context_t;
+
+typedef struct montage_setup_tile_t {
+	char			*module_name;
+	til_setup_t		*setup;
+} montage_setup_tile_t;
+
+typedef struct montage_setup_t {
+	til_setup_t		til_setup;
+
+	size_t			n_tiles;
+	montage_setup_tile_t	tiles[];
+} montage_setup_t;
+
 
 static til_module_context_t * montage_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup);
 static void montage_destroy_context(til_module_context_t *context);
 static void montage_prepare_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan);
 static void montage_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr);
+static int montage_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
 
 
 til_module_t	montage_module = {
@@ -27,6 +41,7 @@ til_module_t	montage_module = {
 	.destroy_context = montage_destroy_context,
 	.prepare_frame = montage_prepare_frame,
 	.render_fragment = montage_render_fragment,
+	.setup = montage_setup,
 	.name = "montage",
 	.description = "Rototiller montage (threaded)",
 };
@@ -34,68 +49,19 @@ til_module_t	montage_module = {
 
 static til_module_context_t * montage_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
-	const til_module_t	**modules, *rtv_module, *compose_module;
-	size_t			n_modules;
+	montage_setup_t		*s = (montage_setup_t *)setup;
 	montage_context_t	*ctxt;
 
-	ctxt = til_module_context_new(module, sizeof(montage_context_t), stream, seed, ticks, n_cpus, setup);
+	ctxt = til_module_context_new(module, sizeof(montage_context_t) + s->n_tiles * sizeof(ctxt->tile_contexts[0]), stream, seed, ticks, n_cpus, setup);
 	if (!ctxt)
 		return NULL;
 
-	til_get_modules(&modules, &n_modules);
+	for (size_t i = 0; i < s->n_tiles; i++) {
+		const til_module_t	*module;
 
-	ctxt->modules = calloc(n_modules, sizeof(til_module_t *));
-	if (!ctxt->modules) {
-		free(ctxt);
+		module = til_lookup_module(s->tiles[i].module_name);
 
-		return NULL;
-	}
-
-	rtv_module = til_lookup_module("rtv");
-	compose_module = til_lookup_module("compose");
-
-	for (size_t i = 0; i < n_modules; i++) {
-		const til_module_t	*module = modules[i];
-
-		if (module == &montage_module ||	/* prevents recursion */
-		    module == rtv_module ||		/* also prevents recursion, rtv can run montage */
-		    module == compose_module ||		/* also prevents recursion, compose can run montage */
-		    (module->flags & (TIL_MODULE_HERMETIC | TIL_MODULE_EXPERIMENTAL))) /* prevents breakages */
-			continue;
-
-							/* XXX FIXME: there's another recursive problem WRT threaded
-							 * rendering; even if rtv or compose don't run montage, they
-							 * render threaded modules in a threaded fashion, while montage
-							 * is already performing a threaded render, and the threaded
-							 * rendering api isn't reentrant like that so things get hung
-							 * when montage runs e.g. compose with a layer using a threaded
-							 * module.  It's something to fix eventually, maybe just make
-							 * the rototiler_module_render() function detect nested renders
-							 * and turn nested threaded renders into synchronous renders.
-							 * For now montage will just skip nested rendering modules.
-							 */
-
-		ctxt->modules[ctxt->n_modules++] = module;
-	}
-
-	ctxt->contexts = calloc(ctxt->n_modules, sizeof(til_module_context_t *));
-	if (!ctxt->contexts) {
-		free(ctxt->modules);
-		free(ctxt);
-
-		return NULL;
-	}
-
-	for (size_t i = 0; i < ctxt->n_modules; i++) {
-		const til_module_t	*module = ctxt->modules[i];
-		til_setup_t		*setup = NULL;
-
-		(void) til_module_setup_randomize(module, rand_r(&seed), &setup, NULL);
-
-		/* FIXME errors */
-		(void) til_module_create_context(module, stream, rand_r(&seed), ticks, 1, setup, &ctxt->contexts[i]);
-
-		til_setup_free(setup);
+		(void) til_module_create_context(module, stream, rand_r(&seed), ticks, 1, s->tiles[i].setup, &ctxt->tile_contexts[i]);
 	}
 
 	return &ctxt->til_module_context;
@@ -106,11 +72,9 @@ static void montage_destroy_context(til_module_context_t *context)
 {
 	montage_context_t	*ctxt = (montage_context_t *)context;
 
-	for (int i = 0; i < ctxt->n_modules; i++)
-		til_module_context_free(ctxt->contexts[i]);
+	for (int i = 0; i < ((montage_setup_t *)context->setup)->n_tiles; i++)
+		til_module_context_free(ctxt->tile_contexts[i]);
 
-	free(ctxt->contexts);
-	free(ctxt->modules);
 	free(ctxt);
 }
 
@@ -195,7 +159,7 @@ static int montage_fragment_tile(const til_fb_fragment_t *fragment, unsigned til
 static int montage_fragmenter(til_module_context_t *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
 {
 	montage_context_t	*ctxt = (montage_context_t *)context;
-	float			root = sqrtf(ctxt->n_modules);
+	float			root = sqrtf(((montage_setup_t *)context->setup)->n_tiles);
 	unsigned		tile_width = fragment->frame_width / ceilf(root);	/* screens are wide, always give excess to the width */
 	unsigned		tile_height = fragment->frame_height / rintf(root);	/* only give to the height when fraction is >= .5f */
 	int			ret;
@@ -222,11 +186,158 @@ static void montage_render_fragment(til_module_context_t *context, til_stream_t 
 	montage_context_t	*ctxt = (montage_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;
 
-	if (fragment->number >= ctxt->n_modules) {
+	if (fragment->number >= ((montage_setup_t *)context->setup)->n_tiles) {
 		til_fb_fragment_clear(fragment);
 
 		return;
 	}
 
-	til_module_render(ctxt->contexts[fragment->number], stream, ticks, fragment_ptr);
+	til_module_render(ctxt->tile_contexts[fragment->number], stream, ticks, fragment_ptr);
+}
+
+
+/* this implements the "all" -> "mod0name,mod1name,mod2name..." alias expansion */
+static const char * montage_tiles_setting_override(const char *value)
+{
+	const char	*exclusions[] = {
+				"montage",
+				"compose",
+				"rtv",
+				NULL
+			};
+
+	if (strcasecmp(value, "all"))
+		return value;
+
+	return til_get_module_names((TIL_MODULE_HERMETIC|TIL_MODULE_EXPERIMENTAL), exclusions);
+}
+
+
+static void montage_setup_free(til_setup_t *setup)
+{
+	montage_setup_t	*s = (montage_setup_t *)setup;
+
+	if (s) {
+		for (size_t i = 0; i < s->n_tiles; i++) {
+			free(s->tiles[i].module_name);
+			til_setup_free(s->tiles[i].setup);
+		}
+		free(setup);
+	}
+}
+
+
+static int montage_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
+{
+	const til_settings_t	*tiles_settings;
+	const char		*tiles;
+	int			r;
+
+	r = til_settings_get_and_describe_value(settings,
+						&(til_setting_spec_t){
+							.name = "Comma-separated list of modules, in left-to-right order, wraps top-down. (\"all\" for all)",
+							.key = "tiles",
+							.preferred = "all",
+						// TODO	.random = montage_random_tiles_setting,
+							.override = montage_tiles_setting_override,
+							.as_nested_settings = 1,
+						},
+						&tiles, /* XXX: unused in raw-value form, we want the settings instance */
+						res_setting,
+						res_desc);
+	if (r)
+		return r;
+
+	assert(res_setting && *res_setting && (*res_setting)->value_as_nested_settings);
+	tiles_settings = (*res_setting)->value_as_nested_settings;
+	{
+		til_setting_t	*tile_setting;
+		const char	*layer;
+
+		for (size_t i = 0; til_settings_get_value_by_idx(tiles_settings, i, &tile_setting); i++) {
+			if (!tile_setting->value_as_nested_settings) {
+				r = til_setting_desc_new(	tiles_settings,
+								&(til_setting_spec_t){
+									.as_nested_settings = 1,
+								}, res_desc);
+				if (r < 0)
+					return r;
+
+				*res_setting = tile_setting;
+
+				return 1;
+			}
+		}
+
+		for (size_t i = 0; til_settings_get_value_by_idx(tiles_settings, i, &tile_setting); i++) {
+			til_setting_t		*tile_module_setting;
+			const char		*tile_module_name = til_settings_get_value_by_idx(tile_setting->value_as_nested_settings, 0, &tile_module_setting);
+			const til_module_t	*tile_module = til_lookup_module(tile_module_name);
+
+			if (!tile_module || !tile_module_setting)
+				return -EINVAL;
+
+			if (!tile_module_setting->desc) {
+				r = til_setting_desc_new(	tile_setting->value_as_nested_settings,
+								&(til_setting_spec_t){
+									.name = "Layer module name",
+									.preferred = "none",
+									.as_label = 1,
+								}, res_desc);
+				if (r < 0)
+					return r;
+
+				*res_setting = tile_module_setting;
+
+				return 1;
+			}
+
+			if (tile_module->setup) {
+				r = tile_module->setup(tile_setting->value_as_nested_settings, res_setting, res_desc, NULL);
+				if (r)
+					return r;
+			}
+		}
+	}
+
+	if (res_setup) {
+		size_t			n_tiles = til_settings_get_count(tiles_settings);
+		til_setting_t		*tile_setting;
+		montage_setup_t		*setup;
+
+		setup = til_setup_new(settings, sizeof(*setup) + n_tiles * sizeof(*setup->tiles), montage_setup_free);
+		if (!setup)
+			return -ENOMEM;
+
+		setup->n_tiles = n_tiles;
+
+		for (size_t i = 0; til_settings_get_value_by_idx(tiles_settings, i, &tile_setting); i++) {
+			const char		*tile_module_name = til_settings_get_value_by_idx(tile_setting->value_as_nested_settings, 0, NULL);
+			const til_module_t	*tile_module = til_lookup_module(tile_module_name);
+
+			if (!tile_module) {
+				til_setup_free(&setup->til_setup);
+
+				return -EINVAL;
+			}
+
+			setup->tiles[i].module_name = strdup(tile_module_name);
+			if (!setup->tiles[i].module_name) {
+				til_setup_free(&setup->til_setup);
+
+				return -ENOMEM;
+			}
+
+			r = til_module_setup_finalize(tile_module, tile_setting->value_as_nested_settings, &setup->tiles[i].setup);
+			if (r < 0) {
+				til_setup_free(&setup->til_setup);
+
+				return r;
+			}
+		}
+
+		*res_setup = &setup->til_setup;
+	}
+
+	return 0;
 }
