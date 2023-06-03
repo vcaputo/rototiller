@@ -26,8 +26,8 @@
  */
 
 typedef struct compose_layer_t {
-	const til_module_t	*module;
 	til_module_context_t	*module_ctxt;
+	/* XXX: it's expected that layers will get more settable attributes to stick in here */
 } compose_layer_t;
 
 typedef struct compose_context_t {
@@ -82,15 +82,16 @@ static til_module_context_t * compose_create_context(const til_module_t *module,
 		const til_module_t	*layer_module;
 
 		layer_module = til_lookup_module(((compose_setup_t *)setup)->layers[i].module);
-		ctxt->layers[i].module = layer_module;
 		(void) til_module_create_context(layer_module, stream, rand_r(&seed), ticks, n_cpus, s->layers[i].setup, &ctxt->layers[i].module_ctxt); /* TODO: errors */
 
 		ctxt->n_layers++;
 	}
 
 	if (((compose_setup_t *)setup)->texture.module) {
-		ctxt->texture.module = til_lookup_module(((compose_setup_t *)setup)->texture.module);
-		(void) til_module_create_context(ctxt->texture.module, stream, rand_r(&seed), ticks, n_cpus, s->texture.setup, &ctxt->texture.module_ctxt); /* TODO: errors */
+		const til_module_t	*texture_module;
+
+		texture_module = til_lookup_module(((compose_setup_t *)setup)->texture.module);
+		(void) til_module_create_context(texture_module, stream, rand_r(&seed), ticks, n_cpus, s->texture.setup, &ctxt->texture.module_ctxt); /* TODO: errors */
 	}
 
 	return &ctxt->til_module_context;
@@ -104,11 +105,8 @@ static void compose_destroy_context(til_module_context_t *context)
 	for (size_t i = 0; i < ctxt->n_layers; i++)
 		til_module_context_free(ctxt->layers[i].module_ctxt);
 
-	if (ctxt->texture.module)
-		til_module_context_free(ctxt->texture.module_ctxt);
-
+	til_module_context_free(ctxt->texture.module_ctxt);
 	free(ctxt->texture_fb.buf);
-
 	free(context);
 }
 
@@ -119,7 +117,7 @@ static void compose_render_fragment(til_module_context_t *context, til_stream_t 
 	til_fb_fragment_t	*fragment = *fragment_ptr, *texture = &ctxt->texture_fb;
 	til_fb_fragment_t	*old_texture = fragment->texture;
 
-	if (ctxt->texture.module) {
+	if (ctxt->texture.module_ctxt) {
 		if (!ctxt->texture_fb.buf ||
 		    ctxt->texture_fb.frame_width != fragment->frame_width ||
 		    ctxt->texture_fb.frame_height != fragment->frame_height) {
