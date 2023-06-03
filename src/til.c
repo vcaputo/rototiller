@@ -412,6 +412,9 @@ int til_module_setup_randomize(const til_module_t *module, unsigned seed, til_se
 
 			assert(setting);
 
+			if (setting->desc)
+				continue;
+
 			/*
 			 * TODO This probably also needs to move into a til_settings helper,
 			 * copy-n-pasta alert, taken from setup.c
