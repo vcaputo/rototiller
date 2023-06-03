@@ -357,7 +357,7 @@ int til_module_setup_randomize(const til_module_t *module, unsigned seed, til_se
 	til_settings_t			*settings;
 	til_setting_t			*setting;
 	const til_setting_desc_t	*desc;
-	int				r;
+	int				r = 0;
 
 	assert(module);
 
