@@ -123,6 +123,14 @@ static void cleanup_channel(rtv_context_t *ctxt)
 
 	ctxt->channel->cumulative_time = 0;
 
+	/* we have to cleanup the non-snow module "baked" setups, it could happen
+	 * immediately after the context create instead since the context holds a reference.
+	 * just doing it here since it's an explicit cleanup block...  snow doesn't get
+	 * this treatment because we don't randomize its setup TODO revisit snow setup handling
+	 */
+	if (ctxt->channel != &ctxt->snow_channel)
+		ctxt->channel->module_setup = til_setup_free(ctxt->channel->module_setup);
+
 	ctxt->channel->module_ctxt = til_module_context_free(ctxt->channel->module_ctxt);
 
 	free(ctxt->channel->settings_as_arg);
