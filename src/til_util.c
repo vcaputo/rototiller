@@ -12,10 +12,10 @@
 #include <sys/sysctl.h>
 #endif
 
+#include "til_limits.h"
 #include "til_util.h"
 
 #define TIL_SYSFS_CPU	"/sys/devices/system/cpu/cpu"
-#define TIL_MAXCPUS	1024
 
 unsigned til_get_ncpus(void)
 {
