@@ -83,7 +83,7 @@ typedef struct til_stream_t {
 	pthread_mutex_t			mutex;
 	const til_stream_hooks_t	*hooks;
 	void				*hooks_context;
-	til_stream_pipe_t		*buckets[TIL_STREAM_BUCKETS_COUNT];
+	til_stream_pipe_t		*pipe_buckets[TIL_STREAM_BUCKETS_COUNT];
 } til_stream_t;
 
 
@@ -107,7 +107,7 @@ til_stream_t * til_stream_free(til_stream_t *stream)
 		return NULL;
 
 	for (int i = 0; i < TIL_STREAM_BUCKETS_COUNT; i++) {
-		for (til_stream_pipe_t *p = stream->buckets[i], *p_next; p != NULL; p = p_next) {
+		for (til_stream_pipe_t *p = stream->pipe_buckets[i], *p_next; p != NULL; p = p_next) {
 			p_next = p->next;
 			free(p->parent_path);
 			free(p);
@@ -192,7 +192,7 @@ int til_stream_tap(til_stream_t *stream, const void *owner, const void *owner_fo
 
 	hash = (tap->name_hash ^ parent_hash);
 	bucket = hash % TIL_STREAM_BUCKETS_COUNT;
-	for (pipe = stream->buckets[bucket]; pipe != NULL; pipe = pipe->next) {
+	for (pipe = stream->pipe_buckets[bucket]; pipe != NULL; pipe = pipe->next) {
 		if (pipe->hash == hash) {
 			if (pipe->driving_tap == tap) {
 				/* this is the pipe and we're driving */
@@ -250,8 +250,8 @@ int til_stream_tap(til_stream_t *stream, const void *owner, const void *owner_fo
 	}
 
 	pipe->hash = hash;
-	pipe->next = stream->buckets[bucket];
-	stream->buckets[bucket] = pipe;
+	pipe->next = stream->pipe_buckets[bucket];
+	stream->pipe_buckets[bucket] = pipe;
 
 	pthread_mutex_unlock(&stream->mutex);
 	return 0;
@@ -262,12 +262,12 @@ int til_stream_tap(til_stream_t *stream, const void *owner, const void *owner_fo
 void til_stream_untap_owner(til_stream_t *stream, const void *owner)
 {
 	for (int i = 0; i < TIL_STREAM_BUCKETS_COUNT; i++) {
-		for (til_stream_pipe_t *p = stream->buckets[i], *p_next, *p_prev; p != NULL; p = p_next) {
+		for (til_stream_pipe_t *p = stream->pipe_buckets[i], *p_next, *p_prev; p != NULL; p = p_next) {
 			p_next = p->next;
 
 			if (p->owner == owner || p->driving_tap->owner == owner) {
-				if (p == stream->buckets[i])
-					stream->buckets[i] = p_next;
+				if (p == stream->pipe_buckets[i])
+					stream->pipe_buckets[i] = p_next;
 				else
 					p_prev->next = p_next;
 
@@ -438,7 +438,7 @@ int til_stream_for_each_pipe(til_stream_t *stream, til_stream_iter_func_t pipe_c
 	pthread_mutex_lock(&stream->mutex);
 
 	for (int i = 0; i < TIL_STREAM_BUCKETS_COUNT; i++) {
-		for (til_stream_pipe_t *p = stream->buckets[i]; p != NULL; p = p->next) {
+		for (til_stream_pipe_t *p = stream->pipe_buckets[i]; p != NULL; p = p->next) {
 			int	r;
 
 			r = pipe_cb(cb_context, p, p->owner, p->owner_foo, p->driving_tap);
