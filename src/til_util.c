@@ -15,7 +15,7 @@
 #include "til_util.h"
 
 #define TIL_SYSFS_CPU	"/sys/devices/system/cpu/cpu"
-#define TIL_MAXCPUS		1024
+#define TIL_MAXCPUS	1024
 
 unsigned til_get_ncpus(void)
 {
@@ -24,7 +24,7 @@ unsigned til_get_ncpus(void)
 
 	GetSystemInfo(&sysinfo);
 
-	return sysinfo.dwNumberOfProcessors;
+	return MIN(sysinfo.dwNumberOfProcessors, TIL_MAXCPUS);
 #endif
 
 #ifdef __MACH__
@@ -34,7 +34,7 @@ unsigned til_get_ncpus(void)
 	if (sysctlbyname("hw.logicalcpu_max", &count, &count_len, NULL, 0) < 0)
 		return 1;
 
-	return count;
+	return MIN(count, TIL_MAXCPUS);
 #else
 	char		path[cstrlen(TIL_SYSFS_CPU "1024") + 1];
 	unsigned	n;
