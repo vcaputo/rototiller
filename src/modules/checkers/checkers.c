@@ -89,24 +89,8 @@ static til_module_context_t * checkers_create_context(const til_module_t *module
 		const til_module_t	*module = ctxt->setup->fill_module;
 
 		/* since checkers is already threaded, create an n_cpus=1 context per-cpu */
-		for (unsigned i = 0; i < n_cpus; i++) /* TODO: errors */
-			(void) til_module_create_context(module, stream, seed, ticks, 1, ctxt->setup->fill_module_setup, &ctxt->fill_module_contexts[i]);
-			 /* FIXME TODO ^^^ sharing the fill_module_path across the per-cpu contexts aliases them _across_threads_ no less, this needs attention/thought FIXME TODO */
-			 /* but the problem with just doing something like suffixing the cpu # to give each context a unique path per-cpu is then the taps/pipes would all be
-			  * unique on a per-cpu basis.  That's _very_ undesirable in terms of sequencing the pipes by name, we don't want sequencing tracks per-cpu and that's
-			  * a non-deterministic quantity depending on the host anyways.  So the path can't encode a cpu number, that's just a hard NOPE.  What may need to be
-			  * done here is to stop creating the context per-cpu in checkers and instead be able to simply do a single n_cpus create context at the single path,
-			  * then be able to perform a forced cpu-specific render on a given context.  Then whatever the context-specific module does with threaded rendering
-			  * on a shared context is its problem, and we already told it the n_cpus value so it could do whatever it needed to.  The problem with this as-is is
-			  * that some modules just don't implement threaded rendering at all and can't share their context across threads as a result, so checkers can't make
-			  * that assumption.  This hack here of creating a context per-cpu works around that problem entirely, so even simple modules magically become threaded.
-			  * Maybe what needs to happen is everything path-bound needs to just have some magic surrounding cpu-local state.  As in, the tap/tap-driving stuff could
-			  * just roll with the punches and share the first instance of tap variables then all the others just get left alone. FIXME TODO FIXME TODO
-			  */
-
-		/* XXX: it would be interesting to support various patterns/layouts by varying the seed, but this will require
-		 * more complex context allocation strategies while also maintaining the per-cpu allocation.
-		 */
+		if (til_module_create_contexts(module, stream, seed, ticks, 1, ctxt->setup->fill_module_setup, n_cpus, ctxt->fill_module_contexts) < 0)
+			return til_module_context_free(&ctxt->til_module_context);
 	}
 
 	return &ctxt->til_module_context;
