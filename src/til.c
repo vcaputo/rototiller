@@ -266,28 +266,43 @@ void til_module_render(til_module_context_t *context, til_stream_t *stream, unsi
  * the purpose of explicitly constraining rendering parallelization to less than n_threads,
  * if n_cpus is specified > n_threads it won't increase n_threads...
  */
-int til_module_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup, til_module_context_t **res_context)
+int til_module_create_contexts(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup, size_t n_contexts, til_module_context_t **res_contexts)
 {
-	til_module_context_t	*context;
 
 	assert(module);
 	assert(setup); /* we *always* want a setup, even if the module has no setup() method - for the path */
-	assert(res_context);
+	assert(n_contexts > 0);
+	assert(res_contexts);
 
 	if (!n_cpus)
 		n_cpus = til_threads_num_threads(til_threads);
 
-	if (!module->create_context)
-		context = til_module_context_new(module, sizeof(til_module_context_t), stream, seed, ticks, n_cpus, setup);
-	else
-		context = module->create_context(module, stream, seed, ticks, n_cpus, setup);
+	for (size_t i = 0; i < n_contexts; i++) {
+		til_module_context_t	*context;
 
-	if (!context)
-		return -ENOMEM;
+		if (!module->create_context)
+			context  = til_module_context_new(module, sizeof(til_module_context_t), stream, seed, ticks, n_cpus, setup);
+		else
+			context = module->create_context(module, stream, seed, ticks, n_cpus, setup);
 
-	*res_context = context;
+		if (!context) {
+			for (size_t j = 0; j < i; j++)
+				res_contexts[j] = til_module_context_free(res_contexts[j]);
+
+			return -ENOMEM;
+		}
+
+		res_contexts[i] = context;
+	}
 
 	return 0;
+}
+
+
+/* convenience single-context wrapper around til_module_create_contexts(), as most callers need just one. */
+int til_module_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup, til_module_context_t **res_context)
+{
+	return til_module_create_contexts(module, stream, seed, ticks, n_cpus, setup, 1, res_context);
 }
 
 
