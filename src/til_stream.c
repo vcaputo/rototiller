@@ -68,7 +68,6 @@ foo_render(foo_t *foo, til_fb_fragment_t *fragment)
 
 #define TIL_STREAM_BUCKETS_COUNT	256
 
-typedef struct til_stream_pipe_t til_stream_pipe_t;
 
 struct til_stream_pipe_t {
 	til_stream_pipe_t	*next;
