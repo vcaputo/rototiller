@@ -16,15 +16,6 @@
  * the output from other modules into a single frame.
  */
 
-/* some TODOs:
- * - support randomizing settings and context resets, configurable
- * - maybe add a way for the user to supply the settings on the cli
- *   for the composed layers.  That might actually need to be a more
- *   general solution in the top-level rototiller code, since the
- *   other meta modules like montage and rtv could probably benefit
- *   from the ability to feed in settings to the underlying modules.
- */
-
 typedef struct compose_layer_t {
 	til_module_context_t	*module_ctxt;
 	/* XXX: it's expected that layers will get more settable attributes to stick in here */
