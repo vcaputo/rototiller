@@ -304,7 +304,7 @@ static int til_stream_fprint_pipe_cb(void *arg, til_stream_pipe_t *pipe, const v
 {
 	FILE	*out = arg;
 
-	fprintf(out, "%s/%s: ", pipe->parent_path, pipe->driving_tap->name);
+	fprintf(out, " %s/%s: ", pipe->parent_path, pipe->driving_tap->name);
 
 	for (size_t j = 0; j < pipe->driving_tap->n_elems; j++) {
 		const char	*sep = j ? ", " : "";
@@ -420,7 +420,7 @@ static int til_stream_fprint_pipe_cb(void *arg, til_stream_pipe_t *pipe, const v
  * to acquire the mutex - but it's also an uncontended lock if that's the case so just take the
  * mutex anyways since we're accessing the underlying structure it protects.
  */
-void til_stream_fprint(til_stream_t *stream, FILE *out)
+void til_stream_fprint_pipes(til_stream_t *stream, FILE *out)
 {
 	fprintf(out, "Pipes on stream %p:\n", stream);
 	(void) til_stream_for_each_pipe(stream, til_stream_fprint_pipe_cb, out);
@@ -429,7 +429,7 @@ void til_stream_fprint(til_stream_t *stream, FILE *out)
 
 
 /* returns -errno on error (from pipe_cb), 0 otherwise */
-int til_stream_for_each_pipe(til_stream_t *stream, til_stream_iter_func_t pipe_cb, void *cb_context)
+int til_stream_for_each_pipe(til_stream_t *stream, til_stream_pipe_iter_func_t pipe_cb, void *cb_context)
 {
 	assert(stream);
 	assert(pipe_cb);

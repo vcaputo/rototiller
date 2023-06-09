@@ -340,7 +340,7 @@ static void * rototiller_thread(void *_rt)
 
 		if (rt->args.print_pipes) { /* render threads are idle at this point */
 			printf("\x1b[2J\x1b[;H"); /* ANSI codes for clear screen and move cursor to top left */
-			til_stream_fprint(rt->stream, stdout);
+			til_stream_fprint_pipes(rt->stream, stdout);
 		}
 	}
 

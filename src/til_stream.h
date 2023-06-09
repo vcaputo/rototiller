@@ -31,7 +31,7 @@ typedef struct til_tap_t til_tap_t;
  * things can be done to it (like changing the ownership?)
  * return 0 to stop iterating, 1 to continue, -errno on error
  */
-typedef int (til_stream_iter_func_t)(void *context, til_stream_pipe_t *pipe, const void *owner, const void *owner_foo, const til_tap_t *driving_tap);
+typedef int (til_stream_pipe_iter_func_t)(void *context, til_stream_pipe_t *pipe, const void *owner, const void *owner_foo, const til_tap_t *driving_tap);
 
 /* this provides a way to intercept pipe creations/deletions when they occur,
  * allowing another module to snipe ownership when they appear and cleanup
@@ -57,9 +57,9 @@ static inline int til_stream_tap_context(til_stream_t *stream, const til_module_
 }
 
 void til_stream_untap_owner(til_stream_t *stream, const void *owner);
-void til_stream_fprint(til_stream_t *stream, FILE *out);
+void til_stream_fprint_pipes(til_stream_t *stream, FILE *out);
 
-int til_stream_for_each_pipe(til_stream_t *stream, til_stream_iter_func_t pipe_cb, void *cb_arg);
+int til_stream_for_each_pipe(til_stream_t *stream, til_stream_pipe_iter_func_t pipe_cb, void *cb_arg);
 void til_stream_pipe_set_owner(til_stream_pipe_t *pipe, const void *owner, const void *owner_foo);
 void til_stream_pipe_set_driving_tap(til_stream_pipe_t *pipe, const til_tap_t *driving_tap);
 
