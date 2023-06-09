@@ -104,13 +104,17 @@ static til_module_context_t * rkt_create_context(const til_module_t *module, til
 
 	for (size_t i = 0; i < s->n_scenes; i++) {
 		til_setup_t	*module_setup = NULL;
+		int		r;
 
+		/* FIXME TODO: this needs to be handle-aware so scenes can directly reference existing contexts */
 		ctxt->scenes[i].module = til_lookup_module(s->scenes[i].module_name);
 		if (!ctxt->scenes[i].module) /* this isn't really expected since setup already does this */
 			return til_module_context_free(&ctxt->til_module_context);
 
-		(void) til_module_create_context(ctxt->scenes[i].module, stream, rand_r(&seed), ticks, 0, s->scenes[i].setup, &ctxt->scenes[i].module_ctxt);
+		r = til_module_create_context(ctxt->scenes[i].module, stream, rand_r(&seed), ticks, 0, s->scenes[i].setup, &ctxt->scenes[i].module_ctxt);
 		til_setup_free(module_setup);
+		if (r < 0)
+			return til_module_context_free(&ctxt->til_module_context);
 	}
 
 	ctxt->rows_per_ms = s->rows_per_ms;
