@@ -8,8 +8,6 @@
 #include "til_settings.h"
 #include "til_util.h"
 
-#include "txt/txt.h"
-
 /* Copyright (C) 2020 - Vito Caputo <vcaputo@pengaru.com> */
 
 /* This implements a rudimentary compositing module for layering
@@ -277,7 +275,6 @@ static int compose_setup(const til_settings_t *settings, til_setting_t **res_set
 	layers_settings = (*res_setting)->value_as_nested_settings;
 	{
 		til_setting_t	*layer_setting;
-		const char	*layer;
 
 		/* Now that we have the layers value in its own settings instance,
 		 * iterate across the settings @ layers_settings, turning each of
