@@ -32,6 +32,7 @@ extern til_module_t	drizzle_module;
 extern til_module_t	flui2d_module;
 extern til_module_t	julia_module;
 extern til_module_t	meta2d_module;
+extern til_module_t	mixer_module;
 extern til_module_t	moire_module;
 extern til_module_t	montage_module;
 extern til_module_t	pixbounce_module;
@@ -60,6 +61,7 @@ static const til_module_t	*modules[] = {
 	&flui2d_module,
 	&julia_module,
 	&meta2d_module,
+	&mixer_module,
 	&moire_module,
 	&montage_module,
 	&pixbounce_module,
