@@ -173,39 +173,44 @@ char * til_get_module_names(unsigned flags_excluded, const char **exclusions)
 {
 	const til_module_t	**modules;
 	size_t			n_modules;
-	char			*buf;
 	size_t			bufsz;
-	FILE			*fp;
-
-	/* FIXME TODO: more unportable memstream! */
-	fp = open_memstream(&buf, &bufsz);
-	if (!fp)
-		return NULL;
+	char			*buf;
 
 	til_get_modules(&modules, &n_modules);
-	for (size_t i = 0, j = 0; i < n_modules; i++) {
-		const til_module_t	*mod = modules[i];
-		const char		**exclusion = exclusions;
 
-		if ((mod->flags & flags_excluded))
-			continue;
+	for (buf = NULL, bufsz = sizeof('\0');;) {
+		for (size_t i = 0, j = 0, p = 0; i < n_modules; i++) {
+			const til_module_t	*mod = modules[i];
+			const char		**exclusion = exclusions;
 
-		while (*exclusion) {
-			if (!strcmp(*exclusion, mod->name))
-				break;
+			if ((mod->flags & flags_excluded))
+				continue;
 
-			exclusion++;
+			while (*exclusion) {
+				if (!strcmp(*exclusion, mod->name))
+					break;
+
+				exclusion++;
+			}
+
+			if (*exclusion)
+				continue;
+
+			if (!buf)
+				bufsz += snprintf(NULL, 0, "%s%s", j ? "," : "", mod->name);
+			else
+				p += snprintf(&buf[p], bufsz - p, "%s%s", j ? "," : "", mod->name);
+
+			j++;
 		}
 
-		if (*exclusion)
-			continue;
+		if (buf)
+			return buf;
 
-		fprintf(fp, "%s%s", j ? "," : "", mod->name);
-		j++;
+		buf = calloc(1, bufsz);
+		if (!buf)
+			return NULL;
 	}
-	fclose(fp);
-
-	return buf;
 }
 
 
