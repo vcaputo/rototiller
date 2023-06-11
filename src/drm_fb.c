@@ -1,4 +1,3 @@
-#define _GNU_SOURCE	/* for asprintf() */
 #include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
