@@ -24,6 +24,7 @@
 #include "til_setup.h"
 
 typedef struct til_stream_t til_stream_t;
+typedef struct til_stream_module_context_t til_stream_module_context_t;
 typedef struct til_stream_pipe_t til_stream_pipe_t;
 typedef struct til_tap_t til_tap_t;
 
@@ -62,5 +63,15 @@ void til_stream_fprint_pipes(til_stream_t *stream, FILE *out);
 int til_stream_for_each_pipe(til_stream_t *stream, til_stream_pipe_iter_func_t pipe_cb, void *cb_arg);
 void til_stream_pipe_set_owner(til_stream_pipe_t *pipe, const void *owner, const void *owner_foo);
 void til_stream_pipe_set_driving_tap(til_stream_pipe_t *pipe, const til_tap_t *driving_tap);
+
+
+typedef int (til_stream_module_context_iter_func_t)(void *context, til_stream_module_context_t *module_context, size_t n_module_contexts, const til_module_context_t **contexts);
+
+int til_stream_for_each_module_context(til_stream_t *stream, til_stream_module_context_iter_func_t module_context_cb, void *cb_arg);
+
+int til_stream_register_module_contexts(til_stream_t *stream, size_t n_contexts, til_module_context_t **contexts);
+int til_stream_find_module_contexts(til_stream_t *stream, const char *path, size_t n_contexts, til_module_context_t **res_contexts);
+void til_stream_gc_module_contexts(til_stream_t *stream);
+void til_stream_fprint_module_contexts(til_stream_t *stream, FILE *out);
 
 #endif
