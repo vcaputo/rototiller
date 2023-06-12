@@ -220,15 +220,13 @@ static void compose_setup_free(til_setup_t *setup)
 {
 	compose_setup_t	*s = (compose_setup_t *)setup;
 
-	if (s) {
-		for (size_t i = 0; i < s->n_layers; i++) {
-			free(s->layers[i].module);
-			til_setup_free(s->layers[i].setup);
-		}
-		til_setup_free(s->texture.setup);
-		free(s->texture.module);
-		free(setup);
+	for (size_t i = 0; i < s->n_layers; i++) {
+		free(s->layers[i].module);
+		til_setup_free(s->layers[i].setup);
 	}
+	til_setup_free(s->texture.setup);
+	free(s->texture.module);
+	free(setup);
 }
 
 
