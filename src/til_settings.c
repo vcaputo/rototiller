@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "til_settings.h"
+#include "til_str.h"
 #include "til_util.h"
 
 #ifdef __WIN32__
@@ -513,7 +514,7 @@ int til_setting_spec_check(const til_setting_spec_t *spec, const char *value)
 }
 
 
-static inline void fputc_escaped(FILE *out, int c, unsigned depth)
+static inline void fputc_escaped(til_str_t *out, int c, unsigned depth)
 {
 	unsigned	escapes = 0;
 
@@ -523,13 +524,13 @@ static inline void fputc_escaped(FILE *out, int c, unsigned depth)
 	}
 
 	for (unsigned i = 0; i < escapes; i++)
-		fputc('\\', out);
+		til_str_appendf(out, "\\");
 
-	fputc(c, out);
+	til_str_appendf(out, "%c", c);
 }
 
 
-static inline void fputs_escaped(FILE *out, const char *value, unsigned depth)
+static inline void fputs_escaped(til_str_t *out, const char *value, unsigned depth)
 {
 	char	c;
 
@@ -542,16 +543,17 @@ static inline void fputs_escaped(FILE *out, const char *value, unsigned depth)
 			fputc_escaped(out, c, depth);
 			break;
 		default:
-			fputc(c, out);
+			til_str_appendf(out, "%c", c);
 			break;
 		}
 	}
 }
 
 
-static void settings_as_arg(const til_settings_t *settings, unsigned depth, FILE *out)
+static int settings_as_arg(const til_settings_t *settings, unsigned depth, til_str_t *out)
 {
 	for (size_t i = 0; i < settings->num; i++) {
+		/* FIXME TODO: detect errors */
 		if (i > 0)
 			fputc_escaped(out, ',', depth);
 
@@ -567,24 +569,23 @@ static void settings_as_arg(const til_settings_t *settings, unsigned depth, FILE
 			fputs_escaped(out, settings->entries[i]->value, depth);
 		}
 	}
+
+	return 0;
 }
 
 
 char * til_settings_as_arg(const til_settings_t *settings)
 {
-	FILE	*out;
-	char	*outbuf;
-	size_t	outsize;
+	til_str_t	*str;
 
-	out = open_memstream(&outbuf, &outsize); /* TODO FIXME: open_memstream() isn't portable */
-	if (!out)
+	str = til_str_new("");
+	if (!str)
 		return NULL;
 
-	settings_as_arg(settings, 0, out);
+	if (settings_as_arg(settings, 0, str) < 0)
+		return til_str_free(str);
 
-	fclose(out);
-
-	return outbuf;
+	return til_str_to_buf(str, NULL);
 }
 
 
