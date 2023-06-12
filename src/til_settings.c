@@ -453,16 +453,23 @@ til_setting_desc_t * til_setting_desc_free(const til_setting_desc_t *desc)
 }
 
 
-int til_setting_desc_print_path(const til_setting_desc_t *desc, FILE *out)
+int til_setting_desc_fprint_path(const til_setting_desc_t *desc, FILE *out)
 {
-	int	r;
+	til_str_t	*str;
+	int		r;
 
 	assert(desc);
 	assert(out);
 
-	r = til_settings_print_path(desc->container, out);
-	if (r < 0)
+	str = til_str_new("");
+	if (!str)
+		return -ENOMEM;
+
+	r = til_settings_strprint_path(desc->container, str);
+	if (r < 0) {
+		til_str_free(str);
 		return r;
+	}
 
 	/* XXX: spec.as_label handling is done in til_settings_print_path() since it
 	 * must apply anywhere within a path, potentially in a recurring fashion.
@@ -474,12 +481,19 @@ int til_setting_desc_print_path(const til_setting_desc_t *desc, FILE *out)
 	 * down from desc->container, only up the parents.
 	 */
 	if (desc->spec.key) {
-		r = fprintf(out, "/%s", desc->spec.key);
-		if (r < 0)
+		r = til_str_appendf(str, "/%s", desc->spec.key);
+		if (r < 0) {
+			til_str_free(str);
 			return r;
+		}
 	}
 
-	return 0;
+	if (fputs(til_str_buf(str, NULL), out) == EOF)
+		r = -EPIPE;
+
+	til_str_free(str);
+
+	return r;
 }
 
 
@@ -623,13 +637,13 @@ int til_settings_label_setting(const til_settings_t *settings, const til_setting
 }
 
 
-int til_settings_print_path(const til_settings_t *settings, FILE *out)
+int til_settings_strprint_path(const til_settings_t *settings, til_str_t *str)
 {
 	const til_settings_t	*p, *parents[64];
 	size_t			i, n_parents;
 
 	assert(settings);
-	assert(out);
+	assert(str);
 
 	for (p = settings, n_parents = 0; p != NULL; p = p->parent)
 		n_parents++;
@@ -646,12 +660,12 @@ int til_settings_print_path(const til_settings_t *settings, FILE *out)
 		int	r;
 
 		if (parents[i]->prefix) {
-			r = fprintf(out, "%s", parents[i]->prefix);
+			r = til_str_appendf(str, "%s", parents[i]->prefix);
 			if (r < 0)
 				return r;
 		}
 
-		r = fprintf(out, "/%s", parents[i]->label);
+		r = til_str_appendf(str, "/%s", parents[i]->label);
 		if (r < 0)
 			return r;
 
@@ -659,11 +673,53 @@ int til_settings_print_path(const til_settings_t *settings, FILE *out)
 		    parents[i]->entries[0]->desc &&
 		    parents[i]->entries[0]->desc->spec.as_label) {
 
-			r = fprintf(out, "/%s", parents[i]->entries[0]->value);
+			r = til_str_appendf(str, "/%s", parents[i]->entries[0]->value);
 			if (r < 0)
 				return r;
 		}
 	}
 
 	return 0;
+}
+
+
+int til_settings_path_as_buf(const til_settings_t *settings, char **res_buf, size_t *res_bufsz)
+{
+	til_str_t	*str;
+	int		r;
+
+	assert(settings);
+	assert(res_buf);
+
+	str = til_str_new("");
+	if (!str)
+		return -ENOMEM;
+
+	r = til_settings_strprint_path(settings, str);
+	if (r < 0)
+		return r;
+
+	*res_buf = til_str_to_buf(str, res_bufsz);
+
+	return 0;
+}
+
+
+
+int til_settings_fprint_path(const til_settings_t *settings, FILE *out)
+{
+	char	*buf;
+	int	r = 0;
+
+	assert(settings);
+	assert(out);
+
+	r = til_settings_path_as_buf(settings, &buf, NULL);
+	if (r < 0)
+		return r;
+
+	if (fputs(buf, out) == EOF)
+		r = -EPIPE;
+
+	free(buf);
 }

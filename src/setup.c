@@ -96,7 +96,7 @@ int setup_interactively(til_settings_t *settings, int (*setup_func)(const til_se
 
 			/* multiple choice */
 			if (!defaults) {
-				til_setting_desc_print_path(desc, stdout);
+				til_setting_desc_fprint_path(desc, stdout);
 				printf(":\n %s:\n", desc->spec.name);
 			}
 
@@ -116,7 +116,7 @@ int setup_interactively(til_settings_t *settings, int (*setup_func)(const til_se
 		} else {
 			/* arbitrarily typed input */
 			if (!defaults) {
-				til_setting_desc_print_path(desc, stdout);
+				til_setting_desc_fprint_path(desc, stdout);
 				printf(":\n %s [%s]: ", desc->spec.name, desc->spec.preferred);
 			}
 		}
