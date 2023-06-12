@@ -50,6 +50,7 @@ void * til_module_context_new(const til_module_t *module, size_t size, til_strea
 	module_context->ticks = ticks;
 	module_context->n_cpus = n_cpus;
 	module_context->setup = til_setup_ref(setup);
+	module_context->refcount = 1;
 
 	return module_context;
 }
@@ -60,13 +61,13 @@ void * til_module_context_new(const til_module_t *module, size_t size, til_strea
  *
  * Note this replaces til_module_destroy_context(), which has been removed.
  */
-void * til_module_context_free(til_module_context_t *module_context)
+static inline void * module_context_free(til_module_context_t *module_context)
 {
 	til_stream_t	*stream;
 	til_setup_t	*setup;
 
-	if (!module_context)
-		return NULL;
+	assert(module_context);
+	assert(!module_context->refcount);
 
 	stream = module_context->stream;
 	setup = module_context->setup;
@@ -84,6 +85,44 @@ void * til_module_context_free(til_module_context_t *module_context)
 	 * to not leave dangling references.
 	 */
 	til_stream_untap_owner(stream, module_context);
+
+	return NULL;
+}
+
+
+/* bump refcount on context */
+void * til_module_context_ref(til_module_context_t *module_context)
+{
+	assert(module_context);
+
+	module_context->refcount++;
+
+	return module_context;
+}
+
+
+/* unref the module_context, returns non-NULL when module_context persists */
+static void * til_module_context_unref(til_module_context_t *module_context)
+{
+/* XXX this is kept private until there's a real use case in need of the distinct return values vs. free.
+ * til_setup is the same way, which this is basically mirroring
+ */
+	if (!module_context)
+		return NULL;
+
+	assert(module_context->refcount > 0);
+
+	module_context->refcount--;
+	if (!module_context->refcount)
+		return module_context_free(module_context);
+
+	return module_context;
+}
+
+
+void * til_module_context_free(til_module_context_t *module_context)
+{
+	(void) til_module_context_unref(module_context);
 
 	return NULL;
 }
