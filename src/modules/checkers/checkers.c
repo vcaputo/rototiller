@@ -28,8 +28,10 @@
 #define CHECKERS_DEFAULT_DYNAMICS	CHECKERS_DYNAMICS_ODD
 #define CHECKERS_DEFAULT_DYNAMICS_RATE	1.0
 #define CHECKERS_DEFAULT_FILL		CHECKERS_FILL_COLOR
-#define CHECKERS_DEFAULT_COLOR		0xffffff
+#define CHECKERS_DEFAULT_FILL_COLOR	0xffffff
 #define CHECKERS_DEFAULT_FILL_MODULE	"none"
+#define CHECKERS_DEFAULT_CLEAR		CHECKERS_CLEAR_CLEAR
+#define CHECKERS_DEFAULT_CLEAR_COLOR	0x000000
 
 
 typedef enum checkers_pattern_t {
@@ -48,9 +50,18 @@ typedef enum checkers_fill_t {
 	CHECKERS_FILL_COLOR,
 	CHECKERS_FILL_SAMPLED,
 	CHECKERS_FILL_TEXTURED,
-	CHECKERS_FILL_RANDOM,
-	CHECKERS_FILL_MIXED,
+	CHECKERS_FILL_RANDOM, /* position matters here; randomizes within above values */
+	CHECKERS_FILL_MIXED, /* XXX: not yet implemented, synonym for random */
 } checkers_fill_t;
+
+typedef enum checkers_clear_t {
+	CHECKERS_CLEAR_CLEAR,
+	CHECKERS_CLEAR_COLOR,
+	CHECKERS_CLEAR_SAMPLED,
+	CHECKERS_CLEAR_TEXTURED,
+	CHECKERS_CLEAR_RANDOM, /* position matters here; randomizes within above values */
+	CHECKERS_CLEAR_MIXED, /* XXX: not yet implemented, synonym for random */
+} checkers_clear_t;
 
 typedef struct checkers_setup_t {
 	til_setup_t		til_setup;
@@ -58,10 +69,14 @@ typedef struct checkers_setup_t {
 	checkers_pattern_t	pattern;
 	checkers_dynamics_t	dynamics;
 	float			rate;
+
 	checkers_fill_t		fill;
 	uint32_t		fill_color;
 	const til_module_t	*fill_module;
 	til_setup_t		*fill_module_setup;
+
+	checkers_clear_t	clear;
+	uint32_t		clear_color;
 } checkers_setup_t;
 
 typedef struct checkers_context_t {
@@ -242,6 +257,8 @@ static void checkers_render_fragment(til_module_context_t *context, til_stream_t
 
 	uint32_t		fill_color = ctxt->setup->fill_color, fill_flags = 0;
 	checkers_fill_t		fill = ctxt->setup->fill;
+	uint32_t		clear_color = ctxt->setup->clear_color, clear_flags = 0;
+	checkers_clear_t	clear = ctxt->setup->clear;
 	int			state;
 
 	switch (ctxt->setup->pattern) {
@@ -287,6 +304,9 @@ static void checkers_render_fragment(til_module_context_t *context, til_stream_t
 	if (fill == CHECKERS_FILL_RANDOM || fill == CHECKERS_FILL_MIXED)
 		fill = rand_r(&ctxt->til_module_context.seed) % CHECKERS_FILL_RANDOM; /* TODO: mixed should have a setting for controlling the ratios */
 
+	if (clear == CHECKERS_CLEAR_RANDOM || clear == CHECKERS_CLEAR_MIXED)
+		clear = rand_r(&ctxt->til_module_context.seed) % CHECKERS_CLEAR_RANDOM; /* TODO: mixed should have a setting for controlling the ratios */
+
 	switch (ctxt->setup->fill) {
 	case CHECKERS_FILL_SAMPLED:
 		if (fragment->cleared)
@@ -300,15 +320,30 @@ static void checkers_render_fragment(til_module_context_t *context, til_stream_t
 		break;
 	}
 
+	switch (ctxt->setup->clear) {
+	case CHECKERS_CLEAR_SAMPLED:
+		if (fragment->cleared)
+			clear_color = til_fb_fragment_get_pixel_unchecked(fragment, fragment->x + (fragment->width >> 1), fragment->y + (fragment->height >> 1));
+		break;
+	case CHECKERS_CLEAR_TEXTURED:
+		clear_flags = TIL_FB_DRAW_FLAG_TEXTURABLE;
+		break;
+	case CHECKERS_CLEAR_COLOR:
+	default:
+		break;
+	}
+
 	if (!state)
-		til_fb_fragment_clear(fragment);
+		if (ctxt->setup->clear == CHECKERS_CLEAR_CLEAR)
+			til_fb_fragment_clear(fragment);
+		else
+			til_fb_fragment_fill(fragment, clear_flags, clear_color);
+		/* TODO: clear_module might be interesting too, but sort out the context sets @ path first  */
 	else {
 		if (!ctxt->setup->fill_module)
 			til_fb_fragment_fill(fragment, fill_flags, fill_color);
-		else {
-			/* TODO: we need a way to send down color and flags, and use the module render as a brush of sorts */
+		else /* TODO: we need a way to send down color and flags, and use the module render as a brush of sorts */
 			til_module_render(ctxt->fill_module_contexts[cpu], stream, ticks, fragment_ptr);
-		}
 	}
 }
 
@@ -392,6 +427,20 @@ static void checkers_setup_free(til_setup_t *setup)
 }
 
 
+/* TODO: move something like this to libtil */
+static int checkers_value_to_pos(const char **options, const char *value, unsigned *res_pos)
+{
+	for (unsigned i = 0; options[i]; i++) {
+		if (!strcasecmp(value, options[i])) {
+			*res_pos = i;
+			return 0;
+		}
+	}
+
+	return -ENOENT;
+}
+
+
 static int checkers_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	const char		*size;
@@ -401,8 +450,8 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 	til_setting_t		*fill_module_setting;
 	const char		*dynamics;
 	const char		*dynamics_rate;
-	const char		*fill;
-	const char		*fill_color;
+	const char		*fill, *clear;
+	const char		*fill_color, *clear_color;
 	const char		*size_values[] = {
 					"4",
 					"8",
@@ -449,6 +498,15 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 					NULL
 				};
 	const char		*fill_values[] = {
+					"color",
+					"sampled",
+					"textured",
+					"random",
+					"mixed",
+					NULL
+				};
+	const char		*clear_values[] = {
+					"clear",
 					"color",
 					"sampled",
 					"textured",
@@ -632,7 +690,7 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 						&(til_setting_spec_t){
 							.name = "Fill color",
 							.key = "fill_color",
-							.preferred = TIL_SETTINGS_STR(CHECKERS_DEFAULT_COLOR),
+							.preferred = TIL_SETTINGS_STR(CHECKERS_DEFAULT_FILL_COLOR),
 							.random = checkers_random_color,
 							.values = NULL,
 							.annotations = NULL
@@ -642,6 +700,42 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 						res_desc);
 	if (r)
 		return r;
+
+	r = til_settings_get_and_describe_value(settings,
+						&(til_setting_spec_t){
+							.name = "Clear mode",
+							.key = "clear",
+							.preferred = clear_values[CHECKERS_DEFAULT_CLEAR],
+							.values = clear_values,
+							.annotations = NULL
+						},
+						&clear,
+						res_setting,
+						res_desc);
+	if (r)
+		return r;
+
+	if (strcasecmp(clear, "clear")) {
+		r = til_settings_get_and_describe_value(settings,
+							&(til_setting_spec_t){
+								.name = "Clear color",
+								.key = "clear_color",
+								.preferred = TIL_SETTINGS_STR(CHECKERS_DEFAULT_CLEAR_COLOR),
+								/* TODO: if it's going to randomize clear_color,
+								 * it should try pick complementary ones to fill_color,
+								 * disabled for now (stays the default/black)
+								 * .random = checkers_random_color,
+								 */
+								.values = NULL,
+								.annotations = NULL
+							},
+							&clear_color,
+							res_setting,
+							res_desc);
+		if (r)
+			return r;
+	}
+
 
 	if (res_setup) {
 		checkers_setup_t	*setup;
@@ -691,24 +785,31 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 		if (setup->dynamics != CHECKERS_DYNAMICS_ODD && setup->dynamics != CHECKERS_DYNAMICS_EVEN)
 			sscanf(dynamics_rate, "%f", &setup->rate);
 
-		if (!strcasecmp(fill, "color"))
-			setup->fill = CHECKERS_FILL_COLOR;
-		else if (!strcasecmp(fill, "sampled"))
-			setup->fill = CHECKERS_FILL_SAMPLED;
-		else if (!strcasecmp(fill, "textured"))
-			setup->fill = CHECKERS_FILL_TEXTURED;
-		else if (!strcasecmp(fill, "random"))
-			setup->fill = CHECKERS_FILL_RANDOM;
-		else if (!strcasecmp(fill, "mixed"))
-			setup->fill = CHECKERS_FILL_MIXED;
-		else {
+		r = checkers_value_to_pos(fill_values, fill, (unsigned *)&setup->fill);
+		if (r < 0) {
 			til_setup_free(&setup->til_setup);
 			return -EINVAL;
 		}
 
 		r = checkers_rgb_to_uint32(fill_color, &setup->fill_color);
-		if (r < 0)
-			return r;
+		if (r < 0) {
+			til_setup_free(&setup->til_setup);
+			return -EINVAL;
+		}
+
+		r = checkers_value_to_pos(clear_values, clear, (unsigned *)&setup->clear);
+		if (r < 0) {
+			til_setup_free(&setup->til_setup);
+			return -EINVAL;
+		}
+
+		if (setup->clear != CHECKERS_CLEAR_CLEAR) {
+			r = checkers_rgb_to_uint32(clear_color, &setup->clear_color);
+			if (r < 0) {
+				til_setup_free(&setup->til_setup);
+				return -EINVAL;
+			}
+		}
 
 		*res_setup = &setup->til_setup;
 	}
