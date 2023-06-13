@@ -6,6 +6,7 @@
 #include "til_jenkins.h"
 #include "til_settings.h"
 #include "til_setup.h"
+#include "til_str.h"
 
 
 /* Allocate and initialize a new til_setup_t of size bytes.
@@ -25,26 +26,22 @@ void * til_setup_new(const til_settings_t *settings, size_t size, void (*free_fu
 {
 	char		*path_buf = NULL;
 	size_t		path_sz;
+	til_str_t	*path_str;
 	til_setup_t	*setup;
+	int		r;
 
 	assert(settings);
 	assert(size >= sizeof(til_setup_t));
 
-	{ /* TODO FIXME: more unportable memstream use! */
-		FILE	*path_fp;
-		int	r;
+	path_str = til_str_new("");
+	if (!path_str)
+		return NULL;
 
-		path_fp = open_memstream(&path_buf, &path_sz);
-		if (!path_fp)
-			return NULL;
+	r = til_settings_strprint_path(settings, path_str);
+	if (r < 0)
+		return til_str_free(path_str);
 
-		r = til_settings_print_path(settings, path_fp);
-		fclose(path_fp);
-		if (r < 0) {
-			free(path_buf);
-			return NULL;
-		}
-	}
+	path_buf = til_str_to_buf(path_str, &path_sz);
 
 	setup = calloc(1, size);
 	if (!setup) {
