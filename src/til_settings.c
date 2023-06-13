@@ -84,9 +84,8 @@ til_settings_t * til_settings_new(const char *prefix, const til_settings_t *pare
 	til_settings_fsm_state_t	state = TIL_SETTINGS_FSM_STATE_COMMA;
 	const char			*p;
 	til_settings_t			*settings;
-	FILE				*value_fp;
+	til_str_t			*value_str;
 	char				*value_buf;
-	size_t				value_sz;
 
 	assert(label);
 
@@ -112,8 +111,8 @@ til_settings_t * til_settings_new(const char *prefix, const til_settings_t *pare
 
 		switch (state) {
 		case TIL_SETTINGS_FSM_STATE_COMMA:
-			value_fp = open_memstream(&value_buf, &value_sz); /* TODO FIXME: open_memstream() isn't portable */
-			if (!value_fp)
+			value_str = til_str_new("");
+			if (!value_str)
 				goto _err;
 
 			state = TIL_SETTINGS_FSM_STATE_KEY;
@@ -123,27 +122,26 @@ til_settings_t * til_settings_new(const char *prefix, const til_settings_t *pare
 			if (*p == '\\')
 				state = TIL_SETTINGS_FSM_STATE_KEY_ESCAPED;
 			else if (*p == '=' || *p == ',' || *p == '\0') {
-				fclose(value_fp);
 
 				if (*p == '=') { /* key= */
-					(void) add_setting(settings, value_buf, NULL);
+					(void) add_setting(settings, til_str_to_buf(value_str, NULL), NULL);
 					state = TIL_SETTINGS_FSM_STATE_EQUAL;
 				} else { /* bare value */
-					(void) add_setting(settings, NULL, value_buf);
+					(void) add_setting(settings, NULL, til_str_to_buf(value_str, NULL));
 					state = TIL_SETTINGS_FSM_STATE_COMMA;
 				}
 			} else
-				fputc(*p, value_fp);
+				til_str_appendf(value_str, "%c", *p); /* FIXME: errors */
 			break;
 
 		case TIL_SETTINGS_FSM_STATE_KEY_ESCAPED:
-			fputc(*p, value_fp);
+			til_str_appendf(value_str, "%c", *p); /* FIXME: errors */
 			state = TIL_SETTINGS_FSM_STATE_KEY;
 			break;
 
 		case TIL_SETTINGS_FSM_STATE_EQUAL:
-			value_fp = open_memstream(&value_buf, &value_sz); /* TODO FIXME: open_memstream() isn't portable */
-			if (!value_fp)
+			value_str = til_str_new("");
+			if (!value_str)
 				goto _err;
 
 			state = TIL_SETTINGS_FSM_STATE_VALUE;
@@ -153,11 +151,10 @@ til_settings_t * til_settings_new(const char *prefix, const til_settings_t *pare
 			if (*p == '\\')
 				state = TIL_SETTINGS_FSM_STATE_VALUE_ESCAPED;
 			else if (*p == ',' || *p == '\0') {
-				fclose(value_fp);
-				settings->entries[settings->num - 1]->value = value_buf;
+				settings->entries[settings->num - 1]->value = til_str_to_buf(value_str, NULL);
 				state = TIL_SETTINGS_FSM_STATE_COMMA;
 			} else
-				fputc(*p, value_fp);
+				til_str_appendf(value_str, "%c", *p); /* FIXME: errors */
 
 			break;
 
@@ -169,7 +166,7 @@ til_settings_t * til_settings_new(const char *prefix, const til_settings_t *pare
 			 * unescaping "\n" itself or just look for '\n' (0xa) to insert linefeeds?  I think
 			 * the latter...)  But until there's a real need for that, this can just stay as-is.
 			 */
-			fputc(*p, value_fp);
+			til_str_appendf(value_str, "%c", *p); /* FIXME: errors */
 			state = TIL_SETTINGS_FSM_STATE_VALUE;
 			break;
 
