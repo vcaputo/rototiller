@@ -59,7 +59,7 @@ typedef struct checkers_setup_t {
 	checkers_dynamics_t	dynamics;
 	float			rate;
 	checkers_fill_t		fill;
-	uint32_t		color;
+	uint32_t		fill_color;
 	const til_module_t	*fill_module;
 	til_setup_t		*fill_module_setup;
 } checkers_setup_t;
@@ -240,7 +240,7 @@ static void checkers_render_fragment(til_module_context_t *context, til_stream_t
 	checkers_context_t	*ctxt = (checkers_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;
 
-	uint32_t		color = ctxt->setup->color, flags = 0;
+	uint32_t		fill_color = ctxt->setup->fill_color, fill_flags = 0;
 	checkers_fill_t		fill = ctxt->setup->fill;
 	int			state;
 
@@ -290,10 +290,10 @@ static void checkers_render_fragment(til_module_context_t *context, til_stream_t
 	switch (ctxt->setup->fill) {
 	case CHECKERS_FILL_SAMPLED:
 		if (fragment->cleared)
-			color = til_fb_fragment_get_pixel_unchecked(fragment, fragment->x + (fragment->width >> 1), fragment->y + (fragment->height >> 1));
+			fill_color = til_fb_fragment_get_pixel_unchecked(fragment, fragment->x + (fragment->width >> 1), fragment->y + (fragment->height >> 1));
 		break;
 	case CHECKERS_FILL_TEXTURED:
-		flags = TIL_FB_DRAW_FLAG_TEXTURABLE;
+		fill_flags = TIL_FB_DRAW_FLAG_TEXTURABLE;
 		break;
 	case CHECKERS_FILL_COLOR:
 	default:
@@ -304,7 +304,7 @@ static void checkers_render_fragment(til_module_context_t *context, til_stream_t
 		til_fb_fragment_clear(fragment);
 	else {
 		if (!ctxt->setup->fill_module)
-			til_fb_fragment_fill(fragment, flags, color);
+			til_fb_fragment_fill(fragment, fill_flags, fill_color);
 		else {
 			/* TODO: we need a way to send down color and flags, and use the module render as a brush of sorts */
 			til_module_render(ctxt->fill_module_contexts[cpu], stream, ticks, fragment_ptr);
@@ -402,7 +402,7 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 	const char		*dynamics;
 	const char		*dynamics_rate;
 	const char		*fill;
-	const char		*color;
+	const char		*fill_color;
 	const char		*size_values[] = {
 					"4",
 					"8",
@@ -631,13 +631,13 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 	r = til_settings_get_and_describe_value(settings,
 						&(til_setting_spec_t){
 							.name = "Fill color",
-							.key = "color",
+							.key = "fill_color",
 							.preferred = TIL_SETTINGS_STR(CHECKERS_DEFAULT_COLOR),
 							.random = checkers_random_color,
 							.values = NULL,
 							.annotations = NULL
 						},
-						&color,
+						&fill_color,
 						res_setting,
 						res_desc);
 	if (r)
@@ -706,7 +706,7 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 			return -EINVAL;
 		}
 
-		r = checkers_rgb_to_uint32(color, &setup->color);
+		r = checkers_rgb_to_uint32(fill_color, &setup->fill_color);
 		if (r < 0)
 			return r;
 
