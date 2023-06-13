@@ -402,6 +402,9 @@ void til_module_render(til_module_context_t *context, til_stream_t *stream, unsi
  * to explicitly set n_cpus, just pass the value.  This is primarily intended for
  * the purpose of explicitly constraining rendering parallelization to less than n_threads,
  * if n_cpus is specified > n_threads it won't increase n_threads...
+ *
+ * if stream is non-NULL, the created contexts will be registered on-stream w/handle @setup->path.
+ * any existing contexts @setup->path, will be replaced by the new one.
  */
 int til_module_create_contexts(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup, size_t n_contexts, til_module_context_t **res_contexts)
 {
@@ -430,6 +433,18 @@ int til_module_create_contexts(const til_module_t *module, til_stream_t *stream,
 		}
 
 		res_contexts[i] = context;
+	}
+
+	if (stream) {
+		int	r;
+
+		r = til_stream_register_module_contexts(stream, n_contexts, res_contexts);
+		if (r < 0) {
+			for (size_t i = 0; i < n_contexts; i++)
+				res_contexts[i] = til_module_context_free(res_contexts[i]);
+
+			return r;
+		}
 	}
 
 	return 0;
