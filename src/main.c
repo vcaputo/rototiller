@@ -338,9 +338,15 @@ static void * rototiller_thread(void *_rt)
 		til_module_render(rt->module_context, rt->stream, ticks, &fragment);
 		til_fb_fragment_submit(fragment);
 
-		if (rt->args.print_pipes) { /* render threads are idle at this point */
+		if (rt->args.print_module_contexts || rt->args.print_pipes) {
+			/* render threads are idle at this point */
 			printf("\x1b[2J\x1b[;H"); /* ANSI codes for clear screen and move cursor to top left */
-			til_stream_fprint_pipes(rt->stream, stdout);
+
+			if (rt->args.print_module_contexts)
+				til_stream_fprint_module_contexts(rt->stream, stdout);
+
+			if (rt->args.print_pipes)
+				til_stream_fprint_pipes(rt->stream, stdout);
 		}
 	}
 
