@@ -7,6 +7,7 @@
 #include "til_fb.h"
 #include "til_module_context.h"
 #include "til_settings.h"
+#include "til_stream.h"
 #include "til_util.h"
 
 #include "txt/txt.h"
@@ -217,6 +218,8 @@ static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks)
 
 	if (!ctxt->channel->module_ctxt)
 		(void) til_module_create_context(ctxt->channel->module, ctxt->til_module_context.stream, rand_r(&ctxt->til_module_context.seed), ticks, ctxt->til_module_context.n_cpus, ctxt->channel->module_setup, &ctxt->channel->module_ctxt);
+
+	til_stream_gc_module_contexts(ctxt->til_module_context.stream);
 
 	ctxt->channel->last_on_time = now;
 }
