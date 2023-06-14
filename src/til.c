@@ -467,10 +467,9 @@ int til_module_setup(const til_settings_t *settings, til_setting_t **res_setting
 
 	name = til_settings_get_value_by_idx(settings, 0, &setting);
 	if (!name || !setting->desc) {
-		const char		*values[nelems(modules) + 1] = {};
-		const char		*annotations[nelems(modules) + 1] = {};
-		til_setting_desc_t	*desc;
-		int			r;
+		const char	*values[nelems(modules) + 1] = {};
+		const char	*annotations[nelems(modules) + 1] = {};
+		int		r;
 
 		for (unsigned i = 0, j = 0; i < nelems(modules); i++) {
 			/* XXX: This only skips experimental modules when no module setting was pre-specified,

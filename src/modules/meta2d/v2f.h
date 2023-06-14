@@ -281,8 +281,8 @@ static inline v2f_t * v2f_trilerp(v2f_t *res, const v2f_t *aaa, const v2f_t *aba
 static inline v2f_t _v2f_rand(unsigned *seedp, const v2f_t *min, const v2f_t *max)
 {
 	return (v2f_t){
-		.x = min->x + (float)rand_r(seedp) * (1.f/RAND_MAX) * (max->x - min->x),
-		.y = min->y + (float)rand_r(seedp) * (1.f/RAND_MAX) * (max->y - min->y),
+		.x = min->x + (float)rand_r(seedp) * (1.f/(float)RAND_MAX) * (max->x - min->x),
+		.y = min->y + (float)rand_r(seedp) * (1.f/(float)RAND_MAX) * (max->y - min->y),
 	};
 }
 

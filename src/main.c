@@ -85,7 +85,6 @@ static int setup_video(const til_settings_t *settings, til_setting_t **res_setti
 
 	video = til_settings_get_value_by_idx(settings, 0, &setting);
 	if (!video || !setting->desc) {
-		til_setting_desc_t	*desc;
 		const char		*values[] = {
 #ifdef HAVE_DRM
 						"drm",

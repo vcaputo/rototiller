@@ -113,7 +113,7 @@ static void mixer_destroy_context(til_module_context_t *context)
 
 static inline float randf(unsigned *seed)
 {
-	return 1.f / RAND_MAX * rand_r(seed);
+	return 1.f / ((float)RAND_MAX) * rand_r(seed);
 }
 
 static void mixer_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)

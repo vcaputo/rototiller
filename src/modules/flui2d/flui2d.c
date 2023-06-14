@@ -365,7 +365,7 @@ static void flui2d_render_fragment(til_module_context_t *context, til_stream_t *
 		y1 = y0 + 1;
 
 		for (int x = fragment->x; x < fragment->x + fragment->width; x++) {
-			float		X, dens, dx0, dx1;
+			float		X, dx0, dx1;
 			int		x0, x1;
 			float		r, g, b;
 

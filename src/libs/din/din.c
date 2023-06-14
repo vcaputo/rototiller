@@ -18,7 +18,7 @@ typedef struct din_t {
 /* return random number between -1 and +1 */
 static inline float randf(unsigned *seed)
 {
-	return 2.f / RAND_MAX * rand_r(seed) - 1.f;
+	return 2.f / ((float)RAND_MAX) * rand_r(seed) - 1.f;
 }
 
 

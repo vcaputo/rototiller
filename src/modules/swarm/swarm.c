@@ -197,9 +197,11 @@ static til_module_context_t * swarm_create_context(const til_module_t *module, t
 static void swarm_update(swarm_context_t *ctxt, unsigned ticks)
 {
 	v3f_t	avg_direction = {};
-	float	avg_velocity = 0.f;
 	v3f_t	avg_center = {};
 	float	wleader, wcenter, wdirection;
+	/* commented out since it's unused currently and upsets -Wall -Werror, but retained for potential future modifications
+	 * float	avg_velocity = 0.f;
+	 */
 
 	{ /* [0] = leader */
 		float	r = M_PI * 2 * ((cosf((float)ticks * .001f) * .5f + .5f));
@@ -239,10 +241,10 @@ static void swarm_update(swarm_context_t *ctxt, unsigned ticks)
 
 		avg_center = v3f_add(avg_center, b->position);
 		avg_direction = v3f_add(avg_direction, b->direction);
-		avg_velocity += b->velocity;
+		/* avg_velocity += b->velocity; */
 	}
 
-	avg_velocity *= (1.f / (float)SWARM_SIZE);
+	/* avg_velocity *= (1.f / (float)SWARM_SIZE); */
 	avg_center = v3f_mult_scalar(avg_center, (1.f / (float)SWARM_SIZE));
 	avg_direction = v3f_mult_scalar(avg_direction, (1.f / (float)SWARM_SIZE));
 	v3f_normalize(&avg_direction);

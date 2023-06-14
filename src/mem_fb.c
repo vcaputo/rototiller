@@ -99,9 +99,6 @@ static void mem_fb_shutdown(til_fb_t *fb, void *context)
 
 static int mem_fb_acquire(til_fb_t *fb, void *context, void *page)
 {
-	mem_fb_t	*c = context;
-	mem_fb_page_t	*p = page;
-
 	return 0;
 }
 
@@ -135,7 +132,6 @@ static void * mem_fb_page_alloc(til_fb_t *fb, void *context, til_fb_fragment_t *
 
 static int mem_fb_page_free(til_fb_t *fb, void *context, void *page)
 {
-	mem_fb_t	*c = context;
 	mem_fb_page_t	*p = page;
 
 	free(p);
@@ -146,9 +142,6 @@ static int mem_fb_page_free(til_fb_t *fb, void *context, void *page)
 
 static int mem_fb_page_flip(til_fb_t *fb, void *context, void *page)
 {
-	mem_fb_t	*c = context;
-	mem_fb_page_t	*p = page;
-
 	/* TODO: add a timer for supporting an fps setting? */
 	return 0;
 }

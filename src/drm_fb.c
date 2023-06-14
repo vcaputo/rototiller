@@ -149,7 +149,7 @@ static void free_strv(const char **strv)
 static int connector_desc_generator(const til_settings_t *settings, til_setup_t *setup_context, const til_setting_desc_t **res_desc)
 {
 	drm_fb_setup_t	*s = (drm_fb_setup_t *)setup_context;
-	const char	**connectors;
+	const char	**connectors = NULL;
 	int		r;
 
 	assert(s);
@@ -251,7 +251,7 @@ _out_con:
 	drmModeFreeConnector(con);
 _out_fd:
 	close(fd);
-_out:
+
 	return r;
 }
 
@@ -259,7 +259,7 @@ _out:
 static int mode_desc_generator(const til_settings_t *settings, til_setup_t *setup_context, const til_setting_desc_t **res_desc)
 {
 	drm_fb_setup_t	*s = (drm_fb_setup_t *)setup_context;
-	const char	**modes;
+	const char	**modes = NULL;
 	int		r;
 
 	assert(s);
@@ -357,9 +357,6 @@ static int drm_fb_init(const til_setup_t *setup, void **res_context)
 {
 	drm_fb_setup_t	*s = (drm_fb_setup_t *)setup;
 	drm_fb_t	*c;
-	const char	*dev;
-	const char	*connector;
-	const char	*mode;
 	drmModeEncoder	*enc;
 	int		r;
 

@@ -225,7 +225,6 @@ static int checkers_fragmenter(til_module_context_t *context, const til_fb_fragm
 static void checkers_prepare_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
 {
 	checkers_context_t	*ctxt = (checkers_context_t *)context;
-	til_fb_fragment_t	*fragment = *fragment_ptr;
 
 	/* XXX: note cpu_affinity is required when fill_module is used, to ensure module_contexts
 	 * have a stable relationship to fragnum.  Otherwise the output would be unstable because the
@@ -277,6 +276,8 @@ static void checkers_render_fragment(til_module_context_t *context, til_stream_t
 	case CHECKERS_PATTERN_RANDOM:
 		state = hash((context->seed + fragment->number) * 0x61C88647) & 0x1;
 		break;
+	default:
+		assert(0);
 	}
 
 	/* now that state has been determined, set the frame size */
@@ -299,6 +300,8 @@ static void checkers_render_fragment(til_module_context_t *context, til_stream_t
 	case CHECKERS_DYNAMICS_RANDOM: /* note: the big multiply here is just to get up out of the low bits */
 		state &= hash((context->seed + fragment->number) * 0x61C88647 + (unsigned)((float)ticks * ctxt->setup->rate)) & 0x1;
 		break;
+	default:
+		assert(0);
 	}
 
 	if (fill == CHECKERS_FILL_RANDOM || fill == CHECKERS_FILL_MIXED)

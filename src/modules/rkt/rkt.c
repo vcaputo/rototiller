@@ -368,7 +368,6 @@ static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting
 	scenes_settings = (*res_setting)->value_as_nested_settings;
 	{
 		til_setting_t	*scene_setting;
-		const char	*scene_module;
 
 		for (size_t i = 0; til_settings_get_value_by_idx(scenes_settings, i, &scene_setting); i++) {
 			if (!scene_setting->value_as_nested_settings) {

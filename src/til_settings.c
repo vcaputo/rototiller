@@ -85,7 +85,6 @@ til_settings_t * til_settings_new(const char *prefix, const til_settings_t *pare
 	const char			*p;
 	til_settings_t			*settings;
 	til_str_t			*value_str;
-	char				*value_buf;
 
 	assert(label);
 
@@ -719,4 +718,6 @@ int til_settings_fprint_path(const til_settings_t *settings, FILE *out)
 		r = -EPIPE;
 
 	free(buf);
+
+	return r;
 }

@@ -153,7 +153,7 @@ static int overlaps(int x1, int y1, unsigned w1, unsigned h1, int x2, int y2, un
 }
 
 
-static inline void draw_char(til_fb_fragment_t *fragment, uint32_t color, int x, int y, char c)
+static inline void draw_char(til_fb_fragment_t *fragment, uint32_t color, int x, int y, unsigned char c)
 {
 	/* TODO: this could be optimized to skip characters with no overlap */
 	for (int i = 0; i < ASCII_HEIGHT; i++) {
@@ -168,7 +168,7 @@ static inline void draw_char(til_fb_fragment_t *fragment, uint32_t color, int x,
 void txt_render_fragment(txt_t *txt, til_fb_fragment_t *fragment, uint32_t color, int x, int y, txt_align_t alignment)
 {
 	int	jx, jy, col, row;
-	char	c, *str;
+	char	*str;
 
 	assert(txt);
 	assert(fragment);

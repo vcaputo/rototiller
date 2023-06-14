@@ -31,7 +31,7 @@ static inline int ray_render_object_point_intersects_ray(ray_render_object_point
 
 static inline ray_3f_t ray_render_object_point_normal(ray_render_object_point_t *point, ray_3f_t *_point)
 {
-	ray_3f_t	normal;
+	ray_3f_t	normal = {};
 
 	return normal;
 }

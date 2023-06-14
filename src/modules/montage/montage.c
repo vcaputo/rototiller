@@ -158,11 +158,10 @@ static int montage_fragment_tile(const til_fb_fragment_t *fragment, unsigned til
  */
 static int montage_fragmenter(til_module_context_t *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
 {
-	montage_context_t	*ctxt = (montage_context_t *)context;
-	float			root = sqrtf(((montage_setup_t *)context->setup)->n_tiles);
-	unsigned		tile_width = fragment->frame_width / ceilf(root);	/* screens are wide, always give excess to the width */
-	unsigned		tile_height = fragment->frame_height / rintf(root);	/* only give to the height when fraction is >= .5f */
-	int			ret;
+	float		root = sqrtf(((montage_setup_t *)context->setup)->n_tiles);
+	unsigned	tile_width = fragment->frame_width / ceilf(root);	/* screens are wide, always give excess to the width */
+	unsigned	tile_height = fragment->frame_height / rintf(root);	/* only give to the height when fraction is >= .5f */
+	int		ret;
 
 	/* XXX: this could all be more clever and make some tiles bigger than others to deal with fractional square roots,
 	 * but this is good enough for now considering the simplicity.
@@ -252,7 +251,6 @@ static int montage_setup(const til_settings_t *settings, til_setting_t **res_set
 	tiles_settings = (*res_setting)->value_as_nested_settings;
 	{
 		til_setting_t	*tile_setting;
-		const char	*layer;
 
 		for (size_t i = 0; til_settings_get_value_by_idx(tiles_settings, i, &tile_setting); i++) {
 			if (!tile_setting->value_as_nested_settings) {

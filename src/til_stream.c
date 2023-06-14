@@ -273,7 +273,7 @@ int til_stream_tap(til_stream_t *stream, const void *owner, const void *owner_fo
 void til_stream_untap_owner(til_stream_t *stream, const void *owner)
 {
 	for (int i = 0; i < TIL_STREAM_PIPE_BUCKETS_COUNT; i++) {
-		for (til_stream_pipe_t *p = stream->pipe_buckets[i], *p_next, *p_prev; p != NULL; p = p_next) {
+		for (til_stream_pipe_t *p = stream->pipe_buckets[i], *p_next, *p_prev = NULL; p != NULL; p = p_next) {
 			p_next = p->next;
 
 			if (p->owner == owner || p->driving_tap->owner == owner) {
@@ -682,6 +682,8 @@ static int til_stream_fprint_module_context_cb(void *arg, til_stream_module_cont
 	for (size_t i = 0; i < n_module_contexts; i++)
 		fprintf(out, "%s{rc=%u, n_cpus=%u}", i ? ", " : " ", contexts[i]->refcount, contexts[i]->n_cpus);
 	fprintf(out, "\n");
+
+	return 0;
 }
 
 

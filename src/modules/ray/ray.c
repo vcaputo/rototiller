@@ -86,7 +86,7 @@ static ray_object_t	lights[] = {
 			.type = RAY_OBJECT_TYPE_LIGHT,
 			.brightness = 15.0f,
 			.emitter = {
-				.point.type = RAY_LIGHT_EMITTER_TYPE_POINT,
+				.point.type = RAY_OBJECT_TYPE_POINT,
 				.point.center = { .x = 3.0f, .y = 3.0f, .z = 3.0f },
 				.point.surface = {
 					.color = { .x = 1.0f, .y = 1.0f, .z = 1.0f },

@@ -196,7 +196,6 @@ static void sdl_fb_shutdown(til_fb_t *fb, void *context)
 static int sdl_fb_acquire(til_fb_t *fb, void *context, void *page)
 {
 	sdl_fb_t	*c = context;
-	sdl_fb_page_t	*p = page;
 
 	c->window = SDL_CreateWindow("rototiller", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, c->width, c->height, c->flags);
 	if (!c->window)
@@ -254,7 +253,6 @@ static void * sdl_fb_page_alloc(til_fb_t *fb, void *context, til_fb_fragment_t *
 
 static int sdl_fb_page_free(til_fb_t *fb, void *context, void *page)
 {
-	sdl_fb_t	*c = context;
 	sdl_fb_page_t	*p = page;
 
 	SDL_FreeSurface(p->surface);

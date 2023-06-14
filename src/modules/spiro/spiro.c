@@ -34,7 +34,6 @@ typedef struct spiro_context_t {
 static til_module_context_t * spiro_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	spiro_context_t *ctxt;
-	float		z;
 
 	ctxt = til_module_context_new(module, sizeof(spiro_context_t), stream, seed, ticks, n_cpus, setup);
 	if (!ctxt)

@@ -524,6 +524,8 @@ static inline m4f_t m4f_rotate(const m4f_t *m, const v3f_t *axis, float radians)
 	return m4f_mult(m, &rotate);
 }
 
+#if 0
+/* these aren't currently used, but may come in handy later */
 
 /* this is a simple perpsective projection matrix taken from an opengl tutorial */
 static inline m4f_t m4f_frustum(float bot, float top, float left, float right, float nnear, float ffar)
@@ -565,7 +567,7 @@ static inline uint32_t color_to_uint32(v3f_t color) {
 
 	return pixel;
 }
-
+#endif
 
 static void draw_line(til_fb_fragment_t *fragment, int x1, int y1, int x2, int y2)
 {
@@ -742,7 +744,6 @@ static int plato_setup(const til_settings_t *settings, til_setting_t **res_setti
 
 	if (res_setup) {
 		plato_setup_t	*setup;
-		int		i;
 
 		setup = til_setup_new(settings, sizeof(*setup), NULL);
 		if (!setup)

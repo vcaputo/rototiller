@@ -300,9 +300,9 @@ static inline v3f_t * v3f_cross(v3f_t *res, const v3f_t *a, const v3f_t *b)
 static inline v3f_t _v3f_rand(unsigned *seedp, const v3f_t *min, const v3f_t *max)
 {
 	return (v3f_t){
-		.x = min->x + (float)rand_r(seedp) * (1.f/RAND_MAX) * (max->x - min->x),
-		.y = min->y + (float)rand_r(seedp) * (1.f/RAND_MAX) * (max->y - min->y),
-		.z = min->z + (float)rand_r(seedp) * (1.f/RAND_MAX) * (max->z - min->z),
+		.x = min->x + (float)rand_r(seedp) * (1.f/(float)RAND_MAX) * (max->x - min->x),
+		.y = min->y + (float)rand_r(seedp) * (1.f/(float)RAND_MAX) * (max->y - min->y),
+		.z = min->z + (float)rand_r(seedp) * (1.f/(float)RAND_MAX) * (max->z - min->z),
 	};
 }
 
