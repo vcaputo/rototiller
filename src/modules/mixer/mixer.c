@@ -16,6 +16,7 @@
 /* This implements a rudimentary mixing module for things like fades */
 
 typedef enum mixer_style_t {
+	MIXER_STYLE_FADE,
 	MIXER_STYLE_FLICKER,
 } mixer_style_t;
 
@@ -38,6 +39,7 @@ typedef struct mixer_context_t {
 	float			*T;
 
 	mixer_input_t		inputs[2];
+	til_fb_fragment_t	*snapshots[2];
 } mixer_context_t;
 
 typedef struct mixer_setup_input_t {
@@ -52,23 +54,7 @@ typedef struct mixer_setup_t {
 	mixer_setup_input_t	inputs[2];
 } mixer_setup_t;
 
-#define MIXER_DEFAULT_STYLE	MIXER_STYLE_FLICKER
-
-static til_module_context_t * mixer_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup);
-static void mixer_destroy_context(til_module_context_t *context);
-static void mixer_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr);
-static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
-
-
-til_module_t	mixer_module = {
-	.create_context = mixer_create_context,
-	.destroy_context = mixer_destroy_context,
-	.render_fragment = mixer_render_fragment,
-	.name = "mixer",
-	.description = "Module blender",
-	.setup = mixer_setup,
-	.flags = TIL_MODULE_EXPERIMENTAL,
-};
+#define MIXER_DEFAULT_STYLE	MIXER_STYLE_FADE
 
 
 static til_module_context_t * mixer_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
@@ -113,11 +99,14 @@ static inline float randf(unsigned *seed)
 	return 1.f / ((float)RAND_MAX) * rand_r(seed);
 }
 
-static void mixer_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
+
+static void mixer_prepare_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
 {
 	mixer_context_t		*ctxt = (mixer_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;
 	size_t			i = 0;
+
+	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu };
 
 	if (!til_stream_tap_context(stream, context, NULL, &ctxt->taps.T))
 		*ctxt->T = cosf(ticks * .001f) * .5f + .5f;
@@ -128,15 +117,118 @@ static void mixer_render_fragment(til_module_context_t *context, til_stream_t *s
 			i = 1;
 		else
 			i = 0;
+
+		til_module_render(ctxt->inputs[i].module_ctxt, stream, ticks, &fragment);
+		break;
+
+	case MIXER_STYLE_FADE:
+		if (*ctxt->T < 1.f) {
+			til_module_render(ctxt->inputs[0].module_ctxt, stream, ticks, &fragment);
+
+			if (*ctxt->T > 0.f)
+				ctxt->snapshots[0] = til_fb_fragment_snapshot(&fragment, 0);
+		}
+
+		if (*ctxt->T > 0.f) {
+			til_module_render(ctxt->inputs[1].module_ctxt, stream, ticks, &fragment);
+			if (*ctxt->T < 1.f)
+				ctxt->snapshots[1] = til_fb_fragment_snapshot(&fragment, 0);
+		}
 		break;
 
 	default:
 		assert(0);
 	}
 
-	til_module_render(ctxt->inputs[i].module_ctxt, stream, ticks, &fragment);
+	*fragment_ptr = fragment;
+}
+
+
+/* derived from modules/drizzle pixel_mult_scalar(), there's definitely room for optimizations */
+static inline uint32_t pixels_lerp(uint32_t a_pixel, uint32_t b_pixel, float t)
+{
+	uint32_t	pixel;
+	float		a, b;
+
+	/* r */
+	a = (a_pixel >> 16) & 0xff;
+	a *= 1.f - t;
+	b = (b_pixel >> 16) & 0xff;
+	b *= t;
+
+	pixel = (((uint32_t)(a+b)) << 16);
+
+	/* g */
+	a = (a_pixel >> 8) & 0xff;
+	a *= 1.f - t;
+	b = (b_pixel >> 8) & 0xff;
+	b *= t;
+
+	pixel |= (((uint32_t)(a+b)) << 8);
+
+	/* b */
+	a = a_pixel & 0xff;
+	a *= 1.f - t;
+	b = b_pixel & 0xff;
+	b *= t;
+
+	pixel |= ((uint32_t)(a+b));
+
+	return pixel;
+}
+
+
+static void mixer_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
+{
+	mixer_context_t		*ctxt = (mixer_context_t *)context;
+	til_fb_fragment_t	*fragment = *fragment_ptr;
+
+	switch (((mixer_setup_t *)context->setup)->style) {
+	case MIXER_STYLE_FLICKER:
+		/* handled in prepare_frame() */
+		break;
+
+	case MIXER_STYLE_FADE: {
+		float	T = *ctxt->T;
+
+		if (T <= 0.f || T  >= 1.f)
+			break;
+
+		/* for the tweens, we already have snapshots sitting in ctxt->snapshots[],
+		 * which we now interpolate the pixels out of in parallel
+		 */
+		for (int y = fragment->y; y < fragment->y + fragment->height; y++) {
+			for (int x = fragment->x; x < fragment->x + fragment->width; x++) {
+				uint32_t	a_pixel = til_fb_fragment_get_pixel_unchecked(ctxt->snapshots[0], x, y);
+				uint32_t	b_pixel = til_fb_fragment_get_pixel_unchecked(ctxt->snapshots[1], x, y);
+				uint32_t	pixel;
+
+				pixel = pixels_lerp(a_pixel, b_pixel, T);
+				til_fb_fragment_put_pixel_unchecked(fragment, 0, x, y, pixel);
+			}
+		}
+
+		break;
+	}
+
+	default:
+		assert(0);
+	}
 
 	*fragment_ptr = fragment;
+}
+
+
+static void mixer_finish_frame(til_module_context_t *context, til_stream_t *stream, unsigned int ticks, til_fb_fragment_t **fragment_ptr)
+{
+	mixer_context_t	*ctxt = (mixer_context_t *)context;
+
+	for (int i = 0; i < 2; i++) {
+		if (!ctxt->snapshots[i])
+			continue;
+
+		ctxt->snapshots[i] = til_fb_fragment_reclaim(ctxt->snapshots[i]);
+	}
 }
 
 
@@ -157,6 +249,7 @@ static void mixer_setup_free(til_setup_t *setup)
 static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	const char		*style_values[] = {
+					"fade",
 					"flicker",
 					NULL
 				};
@@ -185,6 +278,7 @@ static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setti
 		const char *input_names[2] = { "First module to mix", "Second module to mix" };
 		const char *input_keys[2] = { "a_module", "b_module" };
 		const char *input_module_name_names[2] = { "First module's name", "Second module's name" };
+		const char *input_preferred[2] = { "blank", "compose" };
 
 		for (int i = 0; i < 2; i++) {
 			const til_module_t	*mod;
@@ -193,7 +287,7 @@ static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setti
 								&(til_setting_spec_t){
 									.name = input_names[i],
 									.key = input_keys[i],
-									.preferred = "compose",
+									.preferred = input_preferred[i],
 									.annotations = NULL,
 									.as_nested_settings = 1,
 								},
@@ -282,3 +376,16 @@ static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setti
 
 	return 0;
 }
+
+
+til_module_t	mixer_module = {
+	.create_context = mixer_create_context,
+	.destroy_context = mixer_destroy_context,
+	.prepare_frame = mixer_prepare_frame,
+	.render_fragment = mixer_render_fragment,
+	.finish_frame = mixer_finish_frame,
+	.name = "mixer",
+	.description = "Module blender",
+	.setup = mixer_setup,
+	.flags = TIL_MODULE_EXPERIMENTAL,
+};
