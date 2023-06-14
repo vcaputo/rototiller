@@ -762,7 +762,7 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 			setup->fill_module = til_lookup_module(fill_module);
 			if (!setup->fill_module) {
 				til_setup_free(&setup->til_setup);
-				return -ENOMEM;
+				return -EINVAL;
 			}
 
 			r = til_module_setup_finalize(setup->fill_module, fill_module_settings, &setup->fill_module_setup);
