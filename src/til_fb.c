@@ -611,7 +611,7 @@ int til_fb_fragment_slice_single(const til_fb_fragment_t *fragment, unsigned n_f
 				.texture = fragment->texture ? res_fragment->texture : NULL,
 				.buf = fragment->buf + yoff * fragment->pitch,
 				.x = fragment->x,
-				.y = yoff,
+				.y = fragment->y + yoff,
 				.width = fragment->width,
 				.height = MIN(fragment->height - yoff, slice),
 				.frame_width = fragment->frame_width,
