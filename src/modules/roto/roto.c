@@ -213,7 +213,7 @@ static void roto_render_fragment(til_module_context_t *context, til_stream_t *st
 	roto_context_t		*ctxt = (roto_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;
 
-	int		x, y, frame_width = fragment->frame_width, frame_height = fragment->frame_height;
+	int		frame_width = fragment->frame_width, frame_height = fragment->frame_height;
 	int		y_cos_r, y_sin_r, x_cos_r, x_sin_r, x_cos_r_init, x_sin_r_init, cos_r, sin_r;
 	uint32_t	*buf = fragment->buf;
 
@@ -230,12 +230,12 @@ static void roto_render_fragment(til_module_context_t *context, til_stream_t *st
 	y_cos_r = FIXED_MULT(-FIXED_NEW(frame_height / 2) + FIXED_NEW(fragment->y), cos_r);
 	y_sin_r = FIXED_MULT(-FIXED_NEW(frame_height / 2) + FIXED_NEW(fragment->y), sin_r);
 
-	for (y = fragment->y; y < fragment->y + fragment->height; y++) {
+	for (int y = 0; y < fragment->height; y++) {
 
 		x_cos_r = x_cos_r_init;
 		x_sin_r = x_sin_r_init;
 
-		for (x = fragment->x; x < fragment->x + fragment->width; x++, buf++) {
+		for (int x = 0; x < fragment->width; x++, buf++) {
 			*buf = bilerp_color(texture, ctxt->palette, x_sin_r - y_cos_r, y_sin_r + x_cos_r);
 
 			x_cos_r += cos_r;
