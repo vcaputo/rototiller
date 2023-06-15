@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -110,10 +111,12 @@ static void mixer_prepare_frame(til_module_context_t *context, til_stream_t *str
 
 	if (!til_stream_tap_context(stream, context, NULL, &ctxt->taps.T))
 		*ctxt->T = cosf(ticks * .001f) * .5f + .5f;
+	else /* we're not driving the tap, so let's update our local copy just once */
+		ctxt->vars.T = *ctxt->T; /* FIXME: taps need synchronization/thread-safe details fleshed out / atomics */
 
 	switch (((mixer_setup_t *)context->setup)->style) {
 	case MIXER_STYLE_FLICKER:
-		if (randf(&context->seed) < *ctxt->T)
+		if (randf(&context->seed) < ctxt->vars.T)
 			i = 1;
 		else
 			i = 0;
@@ -121,20 +124,23 @@ static void mixer_prepare_frame(til_module_context_t *context, til_stream_t *str
 		til_module_render(ctxt->inputs[i].module_ctxt, stream, ticks, &fragment);
 		break;
 
-	case MIXER_STYLE_FADE:
-		if (*ctxt->T < 1.f) {
+	case MIXER_STYLE_FADE: {
+		float	T = ctxt->vars.T;
+
+		if (T < 1.f) {
 			til_module_render(ctxt->inputs[0].module_ctxt, stream, ticks, &fragment);
 
-			if (*ctxt->T > 0.f)
+			if (T > 0.f)
 				ctxt->snapshots[0] = til_fb_fragment_snapshot(&fragment, 0);
 		}
 
-		if (*ctxt->T > 0.f) {
+		if (T > 0.f) {
 			til_module_render(ctxt->inputs[1].module_ctxt, stream, ticks, &fragment);
-			if (*ctxt->T < 1.f)
+			if (T < 1.f)
 				ctxt->snapshots[1] = til_fb_fragment_snapshot(&fragment, 0);
 		}
 		break;
+	}
 
 	default:
 		assert(0);
@@ -189,10 +195,13 @@ static void mixer_render_fragment(til_module_context_t *context, til_stream_t *s
 		break;
 
 	case MIXER_STYLE_FADE: {
-		float	T = *ctxt->T;
+		float	T = ctxt->vars.T;
 
 		if (T <= 0.f || T  >= 1.f)
 			break;
+
+		assert(ctxt->snapshots[0]);
+		assert(ctxt->snapshots[1]);
 
 		/* for the tweens, we already have snapshots sitting in ctxt->snapshots[],
 		 * which we now interpolate the pixels out of in parallel
