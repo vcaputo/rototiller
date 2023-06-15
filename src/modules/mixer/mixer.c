@@ -151,32 +151,32 @@ static void mixer_prepare_frame(til_module_context_t *context, til_stream_t *str
 
 
 /* derived from modules/drizzle pixel_mult_scalar(), there's definitely room for optimizations */
-static inline uint32_t pixels_lerp(uint32_t a_pixel, uint32_t b_pixel, float t)
+static inline uint32_t pixels_lerp(uint32_t a_pixel, uint32_t b_pixel, float one_sub_T, float T)
 {
 	uint32_t	pixel;
 	float		a, b;
 
 	/* r */
-	a = (a_pixel >> 16) & 0xff;
-	a *= 1.f - t;
-	b = (b_pixel >> 16) & 0xff;
-	b *= t;
+	a = ((uint8_t)(a_pixel >> 16));
+	a *= one_sub_T;
+	b = ((uint8_t)(b_pixel >> 16));
+	b *= T;
 
 	pixel = (((uint32_t)(a+b)) << 16);
 
 	/* g */
-	a = (a_pixel >> 8) & 0xff;
-	a *= 1.f - t;
-	b = (b_pixel >> 8) & 0xff;
-	b *= t;
+	a = ((uint8_t)(a_pixel >> 8));
+	a *= one_sub_T;
+	b = ((uint8_t)(b_pixel >> 8));
+	b *= T;
 
 	pixel |= (((uint32_t)(a+b)) << 8);
 
 	/* b */
-	a = a_pixel & 0xff;
-	a *= 1.f - t;
-	b = b_pixel & 0xff;
-	b *= t;
+	a = ((uint8_t)a_pixel);
+	a *= one_sub_T;
+	b = ((uint8_t)b_pixel);
+	b *= T;
 
 	pixel |= ((uint32_t)(a+b));
 
@@ -195,7 +195,11 @@ static void mixer_render_fragment(til_module_context_t *context, til_stream_t *s
 		break;
 
 	case MIXER_STYLE_FADE: {
-		float	T = ctxt->vars.T;
+		uint32_t		*dest = fragment->buf;
+		til_fb_fragment_t	*snapshot_a, *snapshot_b;
+		uint32_t		*a, *b;
+		float			T = ctxt->vars.T;
+		float			one_sub_T = 1.f - T;
 
 		if (T <= 0.f || T  >= 1.f)
 			break;
@@ -203,18 +207,50 @@ static void mixer_render_fragment(til_module_context_t *context, til_stream_t *s
 		assert(ctxt->snapshots[0]);
 		assert(ctxt->snapshots[1]);
 
+		snapshot_a = ctxt->snapshots[0];
+		snapshot_b = ctxt->snapshots[1];
+		a = snapshot_a->buf + (fragment->y - snapshot_a->y) * snapshot_a->pitch + (fragment->x - snapshot_a->x);
+		b = snapshot_b->buf + (fragment->y - snapshot_b->y) * snapshot_b->pitch + (fragment->x - snapshot_b->x);
+
 		/* for the tweens, we already have snapshots sitting in ctxt->snapshots[],
 		 * which we now interpolate the pixels out of in parallel
 		 */
-		for (int y = fragment->y; y < fragment->y + fragment->height; y++) {
-			for (int x = fragment->x; x < fragment->x + fragment->width; x++) {
-				uint32_t	a_pixel = til_fb_fragment_get_pixel_unchecked(ctxt->snapshots[0], x, y);
-				uint32_t	b_pixel = til_fb_fragment_get_pixel_unchecked(ctxt->snapshots[1], x, y);
-				uint32_t	pixel;
+		for (unsigned y = 0, h = fragment->height, w = fragment->width; y < h; y++) {
+			unsigned x = 0;
 
-				pixel = pixels_lerp(a_pixel, b_pixel, T);
-				til_fb_fragment_put_pixel_unchecked(fragment, 0, x, y, pixel);
+			/* go four-wide if there's enough, note even without SSE this is a bit quicker a la unrolled loop */
+			if ((w & ~3U)) {
+				for (; x < (w & ~3U); x += 4) {
+					/* TODO: explore adding a SIMD/SSE implementation, this is an ideal application for it */
+					*dest = pixels_lerp(*a, *b, one_sub_T, T);
+					dest++;
+					a++;
+					b++;
+
+					*dest = pixels_lerp(*a, *b, one_sub_T, T);
+					dest++;
+					a++;
+					b++;
+
+					*dest = pixels_lerp(*a, *b, one_sub_T, T);
+					dest++;
+					a++;
+					b++;
+
+					*dest = pixels_lerp(*a, *b, one_sub_T, T);
+					dest++;
+					a++;
+					b++;
+				}
 			}
+
+			/* pick up any tail pixels */
+			for (; x < w; a++, b++, dest++, x++)
+				*dest = pixels_lerp(*a, *b, one_sub_T, T);
+
+			a += snapshot_a->pitch - w; /* things are a little awkward because we're fragmenting a threaded render within what was snapshotted */
+			b += snapshot_b->pitch - w;
+			dest += fragment->stride;
 		}
 
 		break;
