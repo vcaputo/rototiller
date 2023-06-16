@@ -58,6 +58,15 @@ typedef struct mixer_setup_t {
 #define MIXER_DEFAULT_STYLE	MIXER_STYLE_FADE
 
 
+static void mixer_update_taps(mixer_context_t *ctxt, til_stream_t *stream, unsigned ticks)
+{
+	if (!til_stream_tap_context(stream, &ctxt->til_module_context, NULL, &ctxt->taps.T))
+		*ctxt->T = cosf(ticks * .001f) * .5f + .5f;
+	else /* we're not driving the tap, so let's update our local copy just once */
+		ctxt->vars.T = *ctxt->T; /* FIXME: taps need synchronization/thread-safe details fleshed out / atomics */
+}
+
+
 static til_module_context_t * mixer_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	mixer_setup_t	*s = (mixer_setup_t *)setup;
@@ -80,6 +89,7 @@ static til_module_context_t * mixer_create_context(const til_module_t *module, t
 	}
 
 	ctxt->taps.T = til_tap_init_float(ctxt, &ctxt->T, 1, &ctxt->vars.T, "T");
+	mixer_update_taps(ctxt, stream, ticks);
 
 	return &ctxt->til_module_context;
 }
@@ -95,6 +105,7 @@ static void mixer_destroy_context(til_module_context_t *context)
 	free(context);
 }
 
+
 static inline float randf(unsigned *seed)
 {
 	return 1.f / ((float)RAND_MAX) * rand_r(seed);
@@ -109,10 +120,7 @@ static void mixer_prepare_frame(til_module_context_t *context, til_stream_t *str
 
 	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu };
 
-	if (!til_stream_tap_context(stream, context, NULL, &ctxt->taps.T))
-		*ctxt->T = cosf(ticks * .001f) * .5f + .5f;
-	else /* we're not driving the tap, so let's update our local copy just once */
-		ctxt->vars.T = *ctxt->T; /* FIXME: taps need synchronization/thread-safe details fleshed out / atomics */
+	mixer_update_taps(ctxt, stream, ticks);
 
 	switch (((mixer_setup_t *)context->setup)->style) {
 	case MIXER_STYLE_FLICKER:
@@ -317,7 +325,6 @@ static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setti
 						res_desc);
 	if (r)
 		return r;
-
 
 	{
 		const char *input_names[2] = { "First module to mix", "Second module to mix" };
