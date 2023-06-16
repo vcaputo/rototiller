@@ -134,6 +134,7 @@ static void stars_render_fragment(til_module_context_t *context, til_stream_t *s
 	struct points* last_ptr=NULL;
 	float		x, y, pos_x, pos_y, rot_x, rot_y, opacity, x_mult, y_mult, max_radius;
 	int		width = fragment->frame_width, height = fragment->frame_height;
+	float		dt = ((float)(ticks - context->last_ticks)) * .025f;
 
 	if(width>height) {
 		x_mult=1.f;
@@ -199,48 +200,51 @@ static void stars_render_fragment(til_module_context_t *context, til_stream_t *s
 
 		}
 
-		iterator->z += 0.01;
+		iterator->z += 0.01 * dt;
 		last_ptr=iterator;
 		iterator=iterator->next;
 	}
 
-	// add stars at horizon
-	for(int i=0; i<rand_r(&ctxt->seed)%16; i++){
-		tmp_ptr = malloc(sizeof(struct points));
-		if (!tmp_ptr)
-			break;
-		tmp_ptr->x = get_random_unit_coord(&ctxt->seed);
-		tmp_ptr->y = get_random_unit_coord(&ctxt->seed);
-		tmp_ptr->z = 0.01;
-		tmp_ptr->next = ctxt->points;
-		ctxt->points = tmp_ptr;
-	}
+	if (dt > 0.f) {
+		// add stars at horizon
+		for(int i=0; i<rand_r(&ctxt->seed)%16; i++){
+			tmp_ptr = malloc(sizeof(struct points));
+			if (!tmp_ptr)
+				break;
+			tmp_ptr->x = get_random_unit_coord(&ctxt->seed);
+			tmp_ptr->y = get_random_unit_coord(&ctxt->seed);
+			tmp_ptr->z = 0.01;
+			tmp_ptr->next = ctxt->points;
+			ctxt->points = tmp_ptr;
+		}
 
-	if (!til_stream_tap_context(stream, context, NULL, &ctxt->taps.rot_angle))
-		*ctxt->rot_angle+=*ctxt->rot_rate;
+		if (!til_stream_tap_context(stream, context, NULL, &ctxt->taps.rot_angle))
+			*ctxt->rot_angle += (*ctxt->rot_rate * dt);
 
-	if (!til_stream_tap_context(stream, context, NULL, &ctxt->taps.rot_rate)) {
-		// handle rotation parameters
-		if(*ctxt->rot_angle>M_PI_4)
-			*ctxt->rot_rate=*ctxt->rot_rate-ctxt->rot_adj;
-		else
-			*ctxt->rot_rate=*ctxt->rot_rate+ctxt->rot_adj;
-	}
+		if (!til_stream_tap_context(stream, context, NULL, &ctxt->taps.rot_rate)) {
+			// handle rotation parameters
+			if(*ctxt->rot_angle>M_PI_4)
+				*ctxt->rot_rate = *ctxt->rot_rate - (ctxt->rot_adj * dt);
+			else
+				*ctxt->rot_rate = *ctxt->rot_rate + (ctxt->rot_adj * dt);
+		}
 
-	/* there's no automation of offset_angle */
-	(void) til_stream_tap_context(stream, context, NULL, &ctxt->taps.offset_angle);
+		/* there's no automation of offset_angle */
+		(void) til_stream_tap_context(stream, context, NULL, &ctxt->taps.offset_angle);
 
-	// handle offset parameters
-	if (!til_stream_tap_context(stream, context, NULL, &ctxt->taps.offset_x)) {
-		float tmp_x = (*ctxt->offset_x*cosf(*ctxt->offset_angle))-
-				(*ctxt->offset_y*sinf(*ctxt->offset_angle));
-		*ctxt->offset_x = tmp_x;
-	}
+		// handle offset parameters
+		if (!til_stream_tap_context(stream, context, NULL, &ctxt->taps.offset_x)) {
+			float tmp_x = (*ctxt->offset_x*cosf(*ctxt->offset_angle * dt))-
+					(*ctxt->offset_y*sinf(*ctxt->offset_angle * dt));
+			*ctxt->offset_x = tmp_x;
+		}
 
-	if (!til_stream_tap_context(stream, context, NULL, &ctxt->taps.offset_y)) {
-		float tmp_y = (*ctxt->offset_x*sinf(*ctxt->offset_angle))+
-				(*ctxt->offset_y*cosf(*ctxt->offset_angle));
-		*ctxt->offset_y = tmp_y;
+		if (!til_stream_tap_context(stream, context, NULL, &ctxt->taps.offset_y)) {
+			float tmp_y = (*ctxt->offset_x*sinf(*ctxt->offset_angle * dt))+
+					(*ctxt->offset_y*cosf(*ctxt->offset_angle * dt));
+			*ctxt->offset_y = tmp_y;
+		}
+
 	}
 }
 
