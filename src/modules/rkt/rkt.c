@@ -297,10 +297,16 @@ static void rkt_render_fragment(til_module_context_t *context, til_stream_t *str
 		unsigned	scene;
 
 		scene = (unsigned)sync_get_val(ctxt->scene_track, ctxt->rocket_row);
-		if (scene < ((rkt_setup_t *)context->setup)->n_scenes)
+		if (scene < ((rkt_setup_t *)context->setup)->n_scenes) {
 			til_module_render(ctxt->scenes[scene].module_ctxt, stream, ticks, fragment_ptr);
-		else {
-			txt_t	*msg = txt_newf("%s: NO SCENE @ %u", context->setup->path, scene);
+		} else if (scene == 99999 && !((rkt_setup_t *)context->setup)->connect) {
+			/* 99999 is treated as an "end of sequence" scene, but only honored when connect=off (player mode) */
+			til_stream_end(stream);
+		} else {
+			txt_t	*msg = txt_newf("%s: %s @ %u",
+						context->setup->path,
+						scene == 99999 ? "EXIT SCENE" : "NO SCENE",
+						scene);
 
 			/* TODO: creating/destroying this every frame is dumb, but
 			 * as this is a diagnostic it's not so important.
