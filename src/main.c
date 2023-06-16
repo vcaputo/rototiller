@@ -411,7 +411,7 @@ int main(int argc, const char *argv[])
 	pexit_if(pthread_create(&rototiller.thread, NULL, rototiller_thread, &rototiller) != 0,
 		"unable to create dispatch thread");
 
-	for (;;) {
+	while (til_stream_active(rototiller.stream)) {
 		if (til_fb_flip(rototiller.fb) < 0)
 			break;
 
