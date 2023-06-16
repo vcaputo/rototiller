@@ -251,7 +251,6 @@ static til_module_context_t * rkt_create_context(const til_module_t *module, til
 	for (size_t i = 0; i < s->n_scenes; i++) {
 		int		r;
 
-		/* FIXME TODO: this needs to be handle-aware so scenes can directly reference existing contexts */
 		ctxt->scenes[i].module = til_lookup_module(s->scenes[i].module_name);
 		if (!ctxt->scenes[i].module) /* this isn't really expected since setup already does this */
 			return til_module_context_free(&ctxt->til_module_context);
