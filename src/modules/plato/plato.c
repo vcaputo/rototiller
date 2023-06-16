@@ -658,9 +658,8 @@ static void plato_render_fragment(til_module_context_t *context, til_stream_t *s
 	(void) til_stream_tap_context(stream, context, NULL, &ctxt->taps.orbit_rate);
 	(void) til_stream_tap_context(stream, context, NULL, &ctxt->taps.spin_rate);
 
-	ctxt->r += (float)(ticks - context->ticks) * (*ctxt->orbit_rate * .001f);
-	ctxt->rr += (float)(ticks - context->ticks) * (*ctxt->spin_rate * .001f);
-	context->ticks = ticks;
+	ctxt->r += (float)(ticks - context->last_ticks) * (*ctxt->orbit_rate * .001f);
+	ctxt->rr += (float)(ticks - context->last_ticks) * (*ctxt->spin_rate * .001f);
 	til_fb_fragment_clear(fragment);
 
 	for (int i = 0; i < sizeof(polyhedra) / sizeof(*polyhedra); i++) {

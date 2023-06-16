@@ -395,6 +395,7 @@ static void module_render_fragment(til_module_context_t *context, til_stream_t *
 void til_module_render(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr)
 {
 	module_render_fragment(context, stream, til_threads, ticks, fragment_ptr);
+	context->last_ticks = ticks;
 }
 
 

@@ -47,7 +47,7 @@ void * til_module_context_new(const til_module_t *module, size_t size, til_strea
 	module_context->module = module;
 	module_context->stream = stream;
 	module_context->seed = seed;
-	module_context->ticks = ticks;
+	module_context->last_ticks = ticks;
 	module_context->n_cpus = n_cpus;
 	module_context->setup = til_setup_ref(setup);
 	module_context->refcount = 1;

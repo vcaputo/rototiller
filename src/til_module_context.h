@@ -10,7 +10,7 @@ struct til_module_context_t {
 	const til_module_t	*module;
 	til_stream_t		*stream; /* optional stream this context is part of (module_contexts are discoverable @setup->path when part of a stream) */
 	unsigned		seed;
-	unsigned		ticks;
+	unsigned		last_ticks; /* this gets updated after every render finishes, starts as the ticks supplied @ context create */
 	unsigned		n_cpus;
 	til_setup_t		*setup; /* Baked setup this context was made from, reffed by context.
 					 * Always present as it provides the path, which is generally derived from a settings instance.

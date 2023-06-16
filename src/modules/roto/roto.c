@@ -189,9 +189,9 @@ static void roto_prepare_frame(til_module_context_t *context, til_stream_t *stre
 	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu };
 
 	// This governs the rotation and color cycle.
-	if (ticks != context->ticks) {
+	if (ticks != context->last_ticks) {
 		ctxt->r += FIXED_TO_INT(FIXED_MULT(FIXED_SIN(ctxt->rr), FIXED_NEW(16)));
-		ctxt->rr += (ticks - context->ticks) >> 2;
+		ctxt->rr += (ticks - context->last_ticks) >> 2;
 
 		/* Vary the colors, this is just a mashup of sinusoidal rgb values. */
 		ctxt->palette[0].r = (FIXED_MULT(FIXED_COS(ctxt->rr), FIXED_NEW(127)) + FIXED_NEW(128));
@@ -201,8 +201,6 @@ static void roto_prepare_frame(til_module_context_t *context, til_stream_t *stre
 		ctxt->palette[1].r = (FIXED_MULT(FIXED_SIN(ctxt->rr / 2), FIXED_NEW(127)) + FIXED_NEW(128));
 		ctxt->palette[1].g = (FIXED_MULT(FIXED_COS(ctxt->rr / 2), FIXED_NEW(127)) + FIXED_NEW(128));
 		ctxt->palette[1].b = (FIXED_MULT(FIXED_SIN(ctxt->rr), FIXED_NEW(127)) + FIXED_NEW(128));
-
-		context->ticks = ticks;
 	}
 }
 
