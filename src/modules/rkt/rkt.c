@@ -79,63 +79,6 @@ static const struct sync_track * sync_get_trackf(struct sync_device *device, con
 }
 
 
-static til_module_context_t * rkt_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
-{
-	rkt_setup_t	*s = (rkt_setup_t *)setup;
-	rkt_context_t	*ctxt;
-
-	ctxt = til_module_context_new(module, sizeof(rkt_context_t) + s->n_scenes * sizeof(*ctxt->scenes), stream, seed, ticks, n_cpus, setup);
-	if (!ctxt)
-		return NULL;
-
-	ctxt->sync_device = sync_create_device(s->base);
-	if (!ctxt->sync_device)
-		return til_module_context_free(&ctxt->til_module_context);
-
-	if (s->connect) {
-		/* XXX: it'd be better if we just reconnected periodically instead of hard failing */
-		if (sync_tcp_connect(ctxt->sync_device, s->host, s->port))
-			return til_module_context_free(&ctxt->til_module_context);
-	}
-
-	ctxt->scene_track = sync_get_trackf(ctxt->sync_device, "%s:scene", setup->path);
-	if (!ctxt->scene_track)
-		return til_module_context_free(&ctxt->til_module_context);
-
-	for (size_t i = 0; i < s->n_scenes; i++) {
-		int		r;
-
-		/* FIXME TODO: this needs to be handle-aware so scenes can directly reference existing contexts */
-		ctxt->scenes[i].module = til_lookup_module(s->scenes[i].module_name);
-		if (!ctxt->scenes[i].module) /* this isn't really expected since setup already does this */
-			return til_module_context_free(&ctxt->til_module_context);
-
-		r = til_module_create_context(ctxt->scenes[i].module, stream, rand_r(&seed), ticks, 0, s->scenes[i].setup, &ctxt->scenes[i].module_ctxt);
-		if (r < 0)
-			return til_module_context_free(&ctxt->til_module_context);
-	}
-
-	ctxt->rows_per_ms = s->rows_per_ms;
-	ctxt->last_ticks = ticks;
-
-	return &ctxt->til_module_context;
-}
-
-
-static void rkt_destroy_context(til_module_context_t *context)
-{
-	rkt_context_t	*ctxt = (rkt_context_t *)context;
-
-	if (ctxt->sync_device)
-		sync_destroy_device(ctxt->sync_device);
-
-	for (size_t i = 0; i < ((rkt_setup_t *)context->setup)->n_scenes; i++)
-		til_module_context_free(ctxt->scenes[i].module_ctxt);
-
-	free(context);
-}
-
-
 static void rkt_sync_pause(void *context, int flag)
 {
 	rkt_context_t	*ctxt = context;
@@ -267,20 +210,85 @@ static int rkt_pipe_update(void *context, til_stream_pipe_t *pipe, const void *o
 }
 
 
-static void rkt_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
+static void rkt_update_rocket(rkt_context_t *ctxt, unsigned ticks)
 {
-	rkt_context_t	*ctxt = (rkt_context_t *)context;
-
 	if (!ctxt->paused)
 		ctxt->rocket_row += ((double)(ticks - ctxt->last_ticks)) * ctxt->rows_per_ms;
 
 	ctxt->last_ticks = ticks;
 
-	/* hooks-setting is idempotent and cheap so we just always do it, and technicallly the stream can get changed out on us frame-to-frame */
-	til_stream_set_hooks(stream, &rkt_stream_hooks, ctxt);
-
 	/* ctxt->rocket_row needs to be updated */
 	sync_update(ctxt->sync_device, ctxt->rocket_row, &rkt_sync_cb, ctxt);
+}
+
+
+static til_module_context_t * rkt_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+{
+	rkt_setup_t	*s = (rkt_setup_t *)setup;
+	rkt_context_t	*ctxt;
+
+	ctxt = til_module_context_new(module, sizeof(rkt_context_t) + s->n_scenes * sizeof(*ctxt->scenes), stream, seed, ticks, n_cpus, setup);
+	if (!ctxt)
+		return NULL;
+
+	ctxt->sync_device = sync_create_device(s->base);
+	if (!ctxt->sync_device)
+		return til_module_context_free(&ctxt->til_module_context);
+
+	if (s->connect) {
+		/* XXX: it'd be better if we just reconnected periodically instead of hard failing */
+		if (sync_tcp_connect(ctxt->sync_device, s->host, s->port))
+			return til_module_context_free(&ctxt->til_module_context);
+	}
+
+	ctxt->scene_track = sync_get_trackf(ctxt->sync_device, "%s:scene", setup->path);
+	if (!ctxt->scene_track)
+		return til_module_context_free(&ctxt->til_module_context);
+
+	/* set the stream hooks early so context creates can establish taps early */
+	til_stream_set_hooks(stream, &rkt_stream_hooks, ctxt);
+
+	for (size_t i = 0; i < s->n_scenes; i++) {
+		int		r;
+
+		/* FIXME TODO: this needs to be handle-aware so scenes can directly reference existing contexts */
+		ctxt->scenes[i].module = til_lookup_module(s->scenes[i].module_name);
+		if (!ctxt->scenes[i].module) /* this isn't really expected since setup already does this */
+			return til_module_context_free(&ctxt->til_module_context);
+
+		r = til_module_create_context(ctxt->scenes[i].module, stream, rand_r(&seed), ticks, 0, s->scenes[i].setup, &ctxt->scenes[i].module_ctxt);
+		if (r < 0)
+			return til_module_context_free(&ctxt->til_module_context);
+	}
+
+	ctxt->rows_per_ms = s->rows_per_ms;
+	ctxt->last_ticks = ticks;
+
+	rkt_update_rocket(ctxt, ticks);
+
+	return &ctxt->til_module_context;
+}
+
+
+static void rkt_destroy_context(til_module_context_t *context)
+{
+	rkt_context_t	*ctxt = (rkt_context_t *)context;
+
+	if (ctxt->sync_device)
+		sync_destroy_device(ctxt->sync_device);
+
+	for (size_t i = 0; i < ((rkt_setup_t *)context->setup)->n_scenes; i++)
+		til_module_context_free(ctxt->scenes[i].module_ctxt);
+
+	free(context);
+}
+
+
+static void rkt_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
+{
+	rkt_context_t	*ctxt = (rkt_context_t *)context;
+
+	rkt_update_rocket(ctxt, ticks);
 
 	/* this drives our per-rocket-track updates, with the tracks registered as owner_foo on the pipes, respectively */
 	til_stream_for_each_pipe(stream, rkt_pipe_update, ctxt);
