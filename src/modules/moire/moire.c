@@ -81,32 +81,34 @@ static void moire_render_fragment(til_module_context_t *context, til_stream_t *s
 	moire_context_t		*ctxt = (moire_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;
 
-	float	xf = 2.f / (float)fragment->frame_width;
-	float	yf = 2.f / (float)fragment->frame_height;
-	float	cx, cy;
+	float		xf = 2.f / (float)fragment->frame_width;
+	float		yf = 2.f / (float)fragment->frame_height;
+	unsigned	n_centers = ctxt->setup->n_centers;
+	moire_center_t	*centers = ctxt->centers;
+	float		cx, cy;
 
 	/* TODO: optimize */
 	cy = yf * (float)fragment->y - 1.f;
-	for (int y = fragment->y; y < fragment->y + fragment->height; y++, cy += yf) {
+	for (int y = 0; y < fragment->height; y++, cy += yf) {
 
 		cx = xf * (float)fragment->x - 1.f;
-		for (int x = fragment->x; x < fragment->x + fragment->width; x++, cx += xf) {
-			int	filled = 0;
+		for (int x = 0; x < fragment->width; x++, cx += xf) {
+			unsigned char	filled = 0;
 
-			for (unsigned i = 0; i < ctxt->setup->n_centers; i++) {
+			for (unsigned i = 0; i < n_centers; i++) {
 				float	dx, dy;
 
-				dx = cx - ctxt->centers[i].x;
-				dy = cy - ctxt->centers[i].y;
+				dx = cx - centers[i].x;
+				dy = cy - centers[i].y;
 
-				if (cosf(sqrtf(dx * dx + dy * dy) * 50.f) < 0.f)
+				if ((int)((sqrtf(dx * dx + dy * dy)) * 20.f) % 2)
 					filled ^= 1;
 			}
 
 			if (filled)
-				til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x, y, 0xffffffff);
+				til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, fragment->x + x, fragment->y + y, 0xffffffff);
 			else if (!fragment->cleared)
-				til_fb_fragment_put_pixel_unchecked(fragment, 0, x, y, 0x00000000);
+				til_fb_fragment_put_pixel_unchecked(fragment, 0, fragment->x + x, fragment->y + y, 0x00000000);
 		}
 	}
 }
