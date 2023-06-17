@@ -101,8 +101,7 @@ static void moire_render_fragment(til_module_context_t *context, til_stream_t *s
 				dx = cx - centers[i].x;
 				dy = cy - centers[i].y;
 
-				if ((int)((sqrtf(dx * dx + dy * dy)) * 20.f) % 2)
-					filled ^= 1;
+				filled ^= ((int)((sqrtf(dx * dx + dy * dy)) * 20.f) & 0x1);
 			}
 
 			if (filled)
