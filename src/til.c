@@ -662,10 +662,22 @@ int til_module_setup_finalize(const til_module_t *module, const til_settings_t *
 }
 
 
-/* generic fragmenter using a horizontal slice per cpu according to context->n_cpus */
+/* generic fragmenter using a horizontal slice per cpu according to context->n_cpus (multiplied by a constant factor) */
 int til_fragmenter_slice_per_cpu(til_module_context_t *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
 {
-	return til_fb_fragment_slice_single(fragment, context->n_cpus, number, res_fragment);
+	/* The *16 is to combat leaving CPUs idle waiting for others to finish their work.
+	 *
+	 * Even though there's some overhead in scheduling smaller work units,
+	 * this still tends to result in better aggregate CPU utilization, up
+	 * to a point.  The cost of rendering slices is often inconsistent,
+	 * and there's always a delay from one thread to another getting
+	 * started on their work, as well as scheduling variance.
+	 *
+	 * So it's beneficial to enable early finishers to pick
+	 * up slack of the laggards via slightly more granular
+	 * work units.
+	 */
+	return til_fb_fragment_slice_single(fragment, context->n_cpus * 16, number, res_fragment);
 }
 
 
