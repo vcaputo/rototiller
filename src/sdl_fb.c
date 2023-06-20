@@ -16,6 +16,13 @@ typedef struct sdl_fb_setup_t {
 	unsigned	width, height;
 } sdl_fb_setup_t;
 
+typedef struct sdl_fb_page_t sdl_fb_page_t;
+
+struct sdl_fb_page_t {
+	sdl_fb_page_t	*next_spare;
+	SDL_Surface	*surface;
+};
+
 typedef struct sdl_fb_t {
 	unsigned	width, height;
 	Uint32		flags;
@@ -23,13 +30,9 @@ typedef struct sdl_fb_t {
 	SDL_Window	*window;
 	SDL_Renderer	*renderer;
 	SDL_Texture	*texture;
+
+	sdl_fb_page_t	*spare_pages;
 } sdl_fb_t;
-
-typedef struct sdl_fb_page_t sdl_fb_page_t;
-
-struct sdl_fb_page_t {
-	SDL_Surface	*surface;
-};
 
 
 static int sdl_fb_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
@@ -187,6 +190,14 @@ static int sdl_fb_init(const til_setup_t *setup, void **res_context)
 static void sdl_fb_shutdown(til_fb_t *fb, void *context)
 {
 	sdl_fb_t	*c = context;
+	sdl_fb_page_t	*p;
+
+	while ((p = c->spare_pages)) {
+		c->spare_pages = p->next_spare;
+
+		SDL_FreeSurface(p->surface);
+		free(p);
+	}
 
 	SDL_Quit();
 	free(c);
@@ -226,16 +237,23 @@ static void sdl_fb_release(til_fb_t *fb, void *context)
 static void * sdl_fb_page_alloc(til_fb_t *fb, void *context, til_fb_fragment_t *res_fragment)
 {
 	sdl_fb_t	*c = context;
-	sdl_fb_page_t	*p;
+	sdl_fb_page_t	*p = NULL;
 
-	p = calloc(1, sizeof(sdl_fb_page_t));
-	if (!p)
-		return NULL;
+	if (c->spare_pages) {
+		p = c->spare_pages;
+		c->spare_pages = p->next_spare;
+	}
 
-	p->surface = SDL_CreateRGBSurface(0, c->width, c->height, 32, 0, 0, 0, 0);
+	if (!p) {
+		p = calloc(1, sizeof(sdl_fb_page_t));
+		if (!p)
+			return NULL;
 
-	/* rototiller wants to assume all pixels to be 32-bit aligned, so prevent unaligning pitches */
-	assert(!(p->surface->pitch & 0x3));
+		p->surface = SDL_CreateRGBSurface(0, c->width, c->height, 32, 0, 0, 0, 0); /* TODO: errors! */
+
+		/* rototiller wants to assume all pixels to be 32-bit aligned, so prevent unaligning pitches */
+		assert(!(p->surface->pitch & 0x3));
+	}
 
 	*res_fragment =	(til_fb_fragment_t){
 				.buf = p->surface->pixels,
@@ -253,10 +271,17 @@ static void * sdl_fb_page_alloc(til_fb_t *fb, void *context, til_fb_fragment_t *
 
 static int sdl_fb_page_free(til_fb_t *fb, void *context, void *page)
 {
+	sdl_fb_t	*c = context;
 	sdl_fb_page_t	*p = page;
 
-	SDL_FreeSurface(p->surface);
-	free(p);
+	if (p->surface->w != c->width || p->surface->h != c->height) {
+		/* TODO FIXME: there seems to be a lack of resizing consideration altogether in this fb backend */
+		SDL_FreeSurface(p->surface);
+		free(p);
+	} else {
+		p->next_spare = c->spare_pages;
+		c->spare_pages = p;
+	}
 
 	return 0;
 }
