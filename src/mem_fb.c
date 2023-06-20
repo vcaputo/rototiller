@@ -11,7 +11,7 @@
 typedef struct mem_fb_page_t mem_fb_page_t;
 
 struct mem_fb_page_t {
-	void			*unused;
+	mem_fb_page_t		*next_spare;
 	uint32_t		buf[];
 };
 
@@ -22,6 +22,7 @@ typedef struct mem_fb_setup_t {
 
 typedef struct mem_fb_t {
 	mem_fb_setup_t		setup;
+	mem_fb_page_t		*spare_pages;
 } mem_fb_t;
 
 
@@ -90,8 +91,14 @@ _err:
 static void mem_fb_shutdown(til_fb_t *fb, void *context)
 {
 	mem_fb_t	*c = context;
+	mem_fb_page_t	*p;
 
 	assert(c);
+
+	while ((p = c->spare_pages)) {
+		c->spare_pages = p->next_spare;
+		free(p);
+	}
 
 	free(c);
 }
@@ -111,11 +118,18 @@ static void mem_fb_release(til_fb_t *fb, void *context)
 static void * mem_fb_page_alloc(til_fb_t *fb, void *context, til_fb_fragment_t *res_fragment)
 {
 	mem_fb_t	*c = context;
-	mem_fb_page_t	*p;
+	mem_fb_page_t	*p = NULL;
 
-	p = calloc(1, sizeof(mem_fb_page_t) + c->setup.width * c->setup.height * sizeof(uint32_t));
-	if (!p)
-		return NULL;
+	if (c->spare_pages) {
+		p = c->spare_pages;
+		c->spare_pages = p->next_spare;
+	}
+
+	if (!p) {
+		p = calloc(1, sizeof(mem_fb_page_t) + c->setup.width * c->setup.height * sizeof(uint32_t));
+		if (!p)
+			return NULL;
+	}
 
 	*res_fragment =	(til_fb_fragment_t){
 				.buf = p->buf,
@@ -132,9 +146,11 @@ static void * mem_fb_page_alloc(til_fb_t *fb, void *context, til_fb_fragment_t *
 
 static int mem_fb_page_free(til_fb_t *fb, void *context, void *page)
 {
+	mem_fb_t	*c = context;
 	mem_fb_page_t	*p = page;
 
-	free(p);
+	p->next_spare = c->spare_pages;
+	c->spare_pages = p;
 
 	return 0;
 }
