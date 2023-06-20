@@ -16,22 +16,23 @@
 #include "til_util.h"
 
 /* drm fb backend, everything drm-specific in rototiller resides here. */
+typedef struct drm_fb_page_t drm_fb_page_t;
+
+struct drm_fb_page_t {
+	drm_fb_page_t		*next_spare;
+	uint32_t		*mmap;
+	size_t			mmap_size, pitch;
+	uint32_t		drm_dumb_handle;
+	uint32_t		drm_fb_id;
+};
 
 typedef struct drm_fb_t {
 	int			drm_fd;
 	drmModeCrtc		*crtc;
 	drmModeConnector	*connector;
 	drmModeModeInfo		*mode;
+	drm_fb_page_t		*spare_pages;
 } drm_fb_t;
-
-typedef struct drm_fb_page_t drm_fb_page_t;
-
-struct drm_fb_page_t {
-	uint32_t		*mmap;
-	size_t			mmap_size;
-	uint32_t		drm_dumb_handle;
-	uint32_t		drm_fb_id;
-};
 
 typedef struct drm_fb_setup_t {
 	til_setup_t		til_setup;
@@ -425,11 +426,32 @@ _err:
 }
 
 
+static void _drm_fb_page_free(drm_fb_t *fb, drm_fb_page_t *page)
+{
+	struct drm_mode_destroy_dumb	destroy_dumb = {};
+
+	drmModeRmFB(fb->drm_fd, page->drm_fb_id);
+	munmap(page->mmap, page->mmap_size);
+
+	destroy_dumb.handle = page->drm_dumb_handle;
+	ioctl(fb->drm_fd, DRM_IOCTL_MODE_DESTROY_DUMB, &destroy_dumb); // XXX: errors?
+
+	free(page);
+}
+
+
 static void drm_fb_shutdown(til_fb_t *fb, void *context)
 {
 	drm_fb_t	*c = context;
+	drm_fb_page_t	*p;
 
 	assert(c);
+
+	while ((p = c->spare_pages)) {
+		c->spare_pages = p->next_spare;
+
+		_drm_fb_page_free(c, p);
+	}
 
 	close(c->drm_fd);
 	drmModeFreeConnector(c->connector);
@@ -459,45 +481,53 @@ static void * drm_fb_page_alloc(til_fb_t *fb, void *context, til_fb_fragment_t *
 	struct drm_mode_map_dumb	map_dumb = {};
 	uint32_t			*map, fb_id;
 	drm_fb_t			*c = context;
-	drm_fb_page_t			*p;
+	drm_fb_page_t			*p = NULL;
 
-	p = calloc(1, sizeof(drm_fb_page_t));
-	if (!p)
-		return NULL;
+	if (c->spare_pages) {
+		p = c->spare_pages;
+		c->spare_pages = p->next_spare;
+	}
 
-	create_dumb.width = c->mode->hdisplay;
-	create_dumb.height = c->mode->vdisplay;
+	if (!p) {
+		p = calloc(1, sizeof(drm_fb_page_t));
+		if (!p)
+			return NULL;
 
-	pexit_if(ioctl(c->drm_fd, DRM_IOCTL_MODE_CREATE_DUMB, &create_dumb) < 0,
-		"unable to create dumb buffer");
+		create_dumb.width = c->mode->hdisplay;
+		create_dumb.height = c->mode->vdisplay;
 
-	map_dumb.handle = create_dumb.handle;
-	pexit_if(ioctl(c->drm_fd, DRM_IOCTL_MODE_MAP_DUMB, &map_dumb) < 0,
-		"unable to prepare dumb buffer for mmap");
-	pexit_if(!(map = mmap(NULL, create_dumb.size, PROT_READ|PROT_WRITE, MAP_SHARED, c->drm_fd, map_dumb.offset)),
-		"unable to mmap dumb buffer");
-	pexit_if(drmModeAddFB(c->drm_fd, c->mode->hdisplay, c->mode->vdisplay, 24, 32, create_dumb.pitch, create_dumb.handle, &fb_id) < 0,
-		"unable to add dumb buffer");
+		pexit_if(ioctl(c->drm_fd, DRM_IOCTL_MODE_CREATE_DUMB, &create_dumb) < 0,
+			"unable to create dumb buffer");
 
-	/* prevent unaligned pitches, we're just simplifying everything in rototiller that wants
-	 * to do word-at-a-time operations without concern for arches that get angry when that happens
-	 * on unaligned addresses.
-	 */
-	assert(!(create_dumb.pitch & 0x3));
+		map_dumb.handle = create_dumb.handle;
+		pexit_if(ioctl(c->drm_fd, DRM_IOCTL_MODE_MAP_DUMB, &map_dumb) < 0,
+			"unable to prepare dumb buffer for mmap");
+		pexit_if(!(map = mmap(NULL, create_dumb.size, PROT_READ|PROT_WRITE, MAP_SHARED, c->drm_fd, map_dumb.offset)),
+			"unable to mmap dumb buffer");
+		pexit_if(drmModeAddFB(c->drm_fd, c->mode->hdisplay, c->mode->vdisplay, 24, 32, create_dumb.pitch, create_dumb.handle, &fb_id) < 0,
+			"unable to add dumb buffer");
 
-	p->mmap = map;
-	p->mmap_size = create_dumb.size;
-	p->drm_dumb_handle = map_dumb.handle;
-	p->drm_fb_id = fb_id;
+		/* prevent unaligned pitches, we're just simplifying everything in rototiller that wants
+		 * to do word-at-a-time operations without concern for arches that get angry when that happens
+		 * on unaligned addresses.
+		 */
+		assert(!(create_dumb.pitch & 0x3));
+
+		p->mmap = map;
+		p->mmap_size = create_dumb.size;
+		p->pitch = create_dumb.pitch >> 2;
+		p->drm_dumb_handle = map_dumb.handle;
+		p->drm_fb_id = fb_id;
+	}
 
 	*res_fragment =	(til_fb_fragment_t){
-				.buf = map,
+				.buf = p->mmap,
 				.width = c->mode->hdisplay,
 				.frame_width = c->mode->hdisplay,
 				.height = c->mode->vdisplay,
 				.frame_height = c->mode->vdisplay,
-				.pitch = create_dumb.pitch >> 2,
-				.stride = (create_dumb.pitch >> 2) - c->mode->hdisplay,
+				.pitch = p->pitch,
+				.stride = p->pitch - c->mode->hdisplay,
 			};
 
 	return p;
@@ -506,17 +536,11 @@ static void * drm_fb_page_alloc(til_fb_t *fb, void *context, til_fb_fragment_t *
 
 static int drm_fb_page_free(til_fb_t *fb, void *context, void *page)
 {
-	struct drm_mode_destroy_dumb	destroy_dumb = {};
-	drm_fb_t			*c = context;
-	drm_fb_page_t			*p = page;
+	drm_fb_t	*c = context;
+	drm_fb_page_t	*p = page;
 
-	drmModeRmFB(c->drm_fd, p->drm_fb_id);
-	munmap(p->mmap, p->mmap_size);
-
-	destroy_dumb.handle = p->drm_dumb_handle;
-	ioctl(c->drm_fd, DRM_IOCTL_MODE_DESTROY_DUMB, &destroy_dumb); // XXX: errors?
-
-	free(p);
+	p->next_spare = c->spare_pages;
+	c->spare_pages = p;
 
 	return 0;
 }
