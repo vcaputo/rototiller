@@ -272,6 +272,10 @@ static int sdl_ready()
 	while (SDL_PollEvent(&ev)) {
 		if (ev.type == SDL_QUIT)
 			return -EPIPE;
+
+		if (ev.type == SDL_KEYDOWN &&
+		    ev.key.keysym.sym == SDL_GetKeyFromScancode(SDL_SCANCODE_ESCAPE))
+			return -EPIPE;
 	}
 
 	return 0;
