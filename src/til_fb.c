@@ -574,7 +574,7 @@ void * til_fb_context(til_fb_t *fb)
 /* helpers for fragmenting incrementally */
 int til_fb_fragment_slice_single(const til_fb_fragment_t *fragment, unsigned n_fragments, unsigned number, til_fb_fragment_t *res_fragment)
 {
-	unsigned	slice = fragment->height / n_fragments;
+	unsigned	slice = MAX(fragment->height / n_fragments, 1);
 	unsigned	yoff = slice * number;
 
 	assert(fragment);
