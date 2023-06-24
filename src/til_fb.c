@@ -120,25 +120,25 @@ struct _til_fb_page_t {
 
 typedef struct til_fb_t {
 	const til_fb_ops_t	*ops;
-	void		*ops_context;
-	int		n_pages;
+	void			*ops_context;
+	int			n_pages;
 
-	pthread_mutex_t	rebuild_mutex;
-	int		rebuild_pages;		/* counter of pages needing a rebuild */
+	pthread_mutex_t		rebuild_mutex;
+	int			rebuild_pages;		/* counter of pages needing a rebuild */
 
-	_til_fb_page_t	*active_page;		/* page currently displayed */
+	_til_fb_page_t		*active_page;		/* page currently displayed */
 
-	pthread_mutex_t	ready_mutex;
-	pthread_cond_t	ready_cond;
-	_til_fb_page_t	*ready_pages_head;	/* next pages to flip to */
-	_til_fb_page_t	*ready_pages_tail;
+	pthread_mutex_t		ready_mutex;
+	pthread_cond_t		ready_cond;
+	_til_fb_page_t		*ready_pages_head;	/* next pages to flip to */
+	_til_fb_page_t		*ready_pages_tail;
 
-	pthread_mutex_t	inactive_mutex;
-	pthread_cond_t	inactive_cond;
-	_til_fb_page_t	*inactive_pages_head;	/* finished pages available for (re)use */
-	_til_fb_page_t	*inactive_pages_tail;
+	pthread_mutex_t		inactive_mutex;
+	pthread_cond_t		inactive_cond;
+	_til_fb_page_t		*inactive_pages_head;	/* finished pages available for (re)use */
+	_til_fb_page_t		*inactive_pages_tail;
 
-	unsigned	put_pages_count;
+	unsigned		put_pages_count;
 } til_fb_t;
 
 #ifndef container_of
