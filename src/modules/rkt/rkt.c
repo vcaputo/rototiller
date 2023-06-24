@@ -17,46 +17,14 @@
 
 #include "txt/txt.h"
 
+#include "rkt.h"
+
 /* Copyright (C) 2023 - Vito Caputo <vcaputo@pengaru.com> */
 
 /* This implements a rudimentary sequencing module varying
  * "tapped" variables of other modules on a timeline via
  * GNU Rocket (https://github.com/rocket/rocket)
  */
-
-typedef struct rkt_scene_t {
-	const til_module_t	*module;
-	til_module_context_t	*module_ctxt;
-} rkt_scene_t;
-
-typedef struct rkt_context_t {
-	til_module_context_t	til_module_context;
-
-	struct sync_device	*sync_device;
-	const struct sync_track	*scene_track;
-	double			rows_per_ms;
-	double			rocket_row;
-	unsigned		last_ticks;
-	unsigned		paused:1;
-	rkt_scene_t		scenes[];
-} rkt_context_t;
-
-typedef struct rkt_setup_scene_t {
-	char			*module_name;
-	til_setup_t		*setup;
-} rkt_setup_scene_t;
-
-typedef struct rkt_setup_t {
-	til_setup_t		til_setup;
-	const char		*base;
-	double			rows_per_ms;
-	unsigned		connect:1;
-	const char		*host;
-	unsigned short		port;
-	size_t			n_scenes;
-	rkt_setup_scene_t	scenes[];
-} rkt_setup_t;
-
 
 /* variadic helper wrapping librocket's sync_get_track() */
 static const struct sync_track * sync_get_trackf(struct sync_device *device, const char *format, ...)
