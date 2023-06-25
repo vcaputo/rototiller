@@ -18,7 +18,8 @@ typedef struct rkt_context_t {
 	double			rocket_row;
 	unsigned		last_ticks;
 	unsigned		paused:1;
-	rkt_scene_t		scenes[];
+	size_t			n_scenes;
+	rkt_scene_t		*scenes;
 } rkt_context_t;
 
 typedef struct rkt_setup_scene_t {

@@ -199,6 +199,14 @@ static til_module_context_t * rkt_create_context(const til_module_t *module, til
 	if (!ctxt)
 		return NULL;
 
+	if (s->n_scenes) {
+		ctxt->scenes = calloc(s->n_scenes, sizeof(rkt_scene_t));
+		if (!ctxt->scenes)
+			return til_module_context_free(&ctxt->til_module_context);
+
+		ctxt->n_scenes = s->n_scenes;
+	}
+
 	ctxt->sync_device = sync_create_device(s->base);
 	if (!ctxt->sync_device)
 		return til_module_context_free(&ctxt->til_module_context);
@@ -216,7 +224,7 @@ static til_module_context_t * rkt_create_context(const til_module_t *module, til
 	/* set the stream hooks early so context creates can establish taps early */
 	til_stream_set_hooks(stream, &rkt_stream_hooks, ctxt);
 
-	for (size_t i = 0; i < s->n_scenes; i++) {
+	for (size_t i = 0; i < ctxt->n_scenes; i++) {
 		int		r;
 
 		ctxt->scenes[i].module = til_lookup_module(s->scenes[i].module_name);
@@ -244,7 +252,7 @@ static void rkt_destroy_context(til_module_context_t *context)
 	if (ctxt->sync_device)
 		sync_destroy_device(ctxt->sync_device);
 
-	for (size_t i = 0; i < ((rkt_setup_t *)context->setup)->n_scenes; i++)
+	for (size_t i = 0; i < ctxt->n_scenes; i++)
 		til_module_context_free(ctxt->scenes[i].module_ctxt);
 
 	free(context);
@@ -264,7 +272,7 @@ static void rkt_render_fragment(til_module_context_t *context, til_stream_t *str
 		unsigned	scene;
 
 		scene = (unsigned)sync_get_val(ctxt->scene_track, ctxt->rocket_row);
-		if (scene < ((rkt_setup_t *)context->setup)->n_scenes) {
+		if (scene < ctxt->n_scenes) {
 			til_module_render(ctxt->scenes[scene].module_ctxt, stream, ticks, fragment_ptr);
 		} else if (scene == 99999 && !((rkt_setup_t *)context->setup)->connect) {
 			/* 99999 is treated as an "end of sequence" scene, but only honored when connect=off (player mode) */
