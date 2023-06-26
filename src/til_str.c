@@ -88,14 +88,15 @@ til_str_t * til_str_newf(const char *format, ...)
 
 	assert(format);
 
-	va_start(ap, format);
 
+	va_start(ap, format);
 	str = til_str_nulstr(vsnprintf(NULL, 0, format, ap) + 1);
+	va_end(ap);
 	if (!str)
 		return NULL;
 
+	va_start(ap, format);
 	str->size.used += vsnprintf(str->buf, str->size.allocated, format, ap);
-
 	va_end(ap);
 
 	assert(str->size.used <= str->size.allocated);
