@@ -179,3 +179,21 @@ char * til_str_to_buf(til_str_t *str, size_t *res_len)
 
 	return buf;
 }
+
+
+/* truncate off trailing \n or \r\n if present
+ * str is passed through for convenience (til_str_to_buf(til_str_chomp(str), &len)) etc...
+ */
+til_str_t * til_str_chomp(til_str_t *str)
+{
+	assert(str);
+
+	if (str->size.used > 1 && str->buf[str->size.used - 2] == '\n') {
+		if (str->size.used > 2 && str->buf[str->size.used - 3] == '\r')
+			str->size.used--;
+		str->size.used--;
+		str->buf[str->size.used - 1] = '\0';
+	}
+
+	return str;
+}
