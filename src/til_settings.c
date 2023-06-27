@@ -679,7 +679,11 @@ int til_settings_strprint_path(const til_settings_t *settings, til_str_t *str)
 }
 
 
-int til_settings_path_as_buf(const til_settings_t *settings, char **res_buf, size_t *res_bufsz)
+/*
+ * returns a raw path to settings in *res_buf
+ * if res_len is provided, the returned string length excluding nul is stored there (til_str_to_buf())
+ */
+static int til_settings_path_as_buf(const til_settings_t *settings, char **res_buf, size_t *res_len)
 {
 	til_str_t	*str;
 	int		r;
@@ -695,7 +699,7 @@ int til_settings_path_as_buf(const til_settings_t *settings, char **res_buf, siz
 	if (r < 0)
 		return r;
 
-	*res_buf = til_str_to_buf(str, res_bufsz);
+	*res_buf = til_str_to_buf(str, res_len);
 
 	return 0;
 }

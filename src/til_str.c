@@ -152,13 +152,14 @@ char * til_str_strdup(const til_str_t *str)
 
 /* a valid \0-terminated string is _always_ maintained @ str->buf so callers can just use it as a string..
  * but must not hang onto that pointer across more til_str() calls on the same str.
+ * The length (excluding the \0) is returned in res_len if non-NULL
  */
 const char * til_str_buf(const til_str_t *str, size_t *res_len)
 {
 	assert(str);
 
 	if (res_len)
-		*res_len = str->size.used;
+		*res_len = str->size.used - 1;
 
 	return str->buf;
 }
@@ -172,7 +173,7 @@ char * til_str_to_buf(til_str_t *str, size_t *res_len)
 	assert(str);
 
 	if (res_len)
-		*res_len = str->size.used;
+		*res_len = str->size.used - 1;
 
 	buf = str->buf;
 	free(str);

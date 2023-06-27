@@ -25,7 +25,7 @@
 void * til_setup_new(const til_settings_t *settings, size_t size, void (*free_func)(til_setup_t *setup))
 {
 	char		*path_buf = NULL;
-	size_t		path_sz;
+	size_t		path_len;
 	til_str_t	*path_str;
 	til_setup_t	*setup;
 	int		r;
@@ -41,7 +41,7 @@ void * til_setup_new(const til_settings_t *settings, size_t size, void (*free_fu
 	if (r < 0)
 		return til_str_free(path_str);
 
-	path_buf = til_str_to_buf(path_str, &path_sz);
+	path_buf = til_str_to_buf(path_str, &path_len);
 
 	setup = calloc(1, size);
 	if (!setup) {
@@ -50,7 +50,7 @@ void * til_setup_new(const til_settings_t *settings, size_t size, void (*free_fu
 	}
 
 	setup->path = path_buf;
-	setup->path_hash = til_jenkins((uint8_t *)path_buf, path_sz);
+	setup->path_hash = til_jenkins((uint8_t *)path_buf, path_len + 1 /* include the \0 */);
 	setup->refcount = 1;
 	setup->free = free_func;
 
