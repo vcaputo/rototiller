@@ -227,6 +227,24 @@ const til_settings_t * til_settings_get_parent(const til_settings_t *settings)
 }
 
 
+int til_settings_set_label(til_settings_t *settings, const char *label)
+{
+	char	*t;
+
+	assert(settings);
+	assert(label);
+
+	t = strdup(label);
+	if (!t)
+		return -ENOMEM;
+
+	free((void *)settings->label);
+	settings->label = t;
+
+	return 0;
+}
+
+
 /* find key= in settings, return value NULL if missing, optionally store setting @res_setting if found */
 const char * til_settings_get_value_by_key(const til_settings_t *settings, const char *key, til_setting_t **res_setting)
 {
