@@ -49,20 +49,20 @@ static til_str_t * til_str_nulstr(size_t minsize)
 }
 
 
-/* allocate a new til_str, starting with a dup of seed, just use "" for an empty str, there is no NULL str */
-til_str_t * til_str_new(const char *seed)
+/* allocate a new til_str, starting with a dup of string, just use "" for an empty str, there is no NULL str */
+til_str_t * til_str_new(const char *string)
 {
 	til_str_t	*str;
 	size_t		len;
 
-	assert(seed);
+	assert(string);
 
-	len = strlen(seed);
+	len = strlen(string);
 	str = til_str_nulstr(len + 1);
 	if (!str)
 		return NULL;
 
-	memcpy(str->buf, seed, len);
+	memcpy(str->buf, string, len);
 	str->size.used += len;
 
 	return str;

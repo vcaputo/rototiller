@@ -3,7 +3,7 @@
 
 typedef struct til_str_t til_str_t;
 
-til_str_t * til_str_new(const char *seed);
+til_str_t * til_str_new(const char *string);
 void * til_str_free(til_str_t *str);
 til_str_t * til_str_newf(const char *format, ...);
 int til_str_appendf(til_str_t *str, const char *format, ...);
