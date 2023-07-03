@@ -512,7 +512,10 @@ int til_module_setup(const til_settings_t *settings, til_setting_t **res_setting
 	if (module->setup)
 		return module->setup(settings, res_setting, res_desc, res_setup);
 
-	return til_module_setup_finalize(module, settings, res_setup);
+	if (res_setup)
+		return til_module_setup_finalize(module, settings, res_setup);
+
+	return 0;
 }
 
 
