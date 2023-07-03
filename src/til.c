@@ -22,7 +22,8 @@
 
 /* Copyright (C) 2016 Vito Caputo <vcaputo@pengaru.com> */
 
-#define DEFAULT_MODULE	"rtv"
+#define TIL_DEFAULT_ROOT_MODULE		"rtv"
+#define TIL_DEFAULT_NESTED_MODULE	"compose"
 
 static til_threads_t	*til_threads;
 
@@ -468,19 +469,31 @@ int til_module_setup(const til_settings_t *settings, til_setting_t **res_setting
 
 	name = til_settings_get_value_by_idx(settings, 0, &setting);
 	if (!name || !setting->desc) {
-		const char	*values[nelems(modules) + 1] = {};
-		const char	*annotations[nelems(modules) + 1] = {};
-		int		r;
+		const char		*values[nelems(modules) + 1] = {};
+		const char		*annotations[nelems(modules) + 1] = {};
+		const til_settings_t	*parent;
+		int			r;
+
+		parent = til_settings_get_parent(settings);
 
 		for (unsigned i = 0, j = 0; i < nelems(modules); i++) {
 			/* XXX: This only skips experimental modules when no module setting was pre-specified,
 			 * which allows accessing the experimental modules via the CLI without showing them
 			 * in the interactive setup where the desc provides the displayed list of values before
-			 * the module setting gets added.  It seems a big kludge-y and fragile, but works well
+			 * the module setting gets added.  It seems a bit kludge-y and fragile, but works well
 			 * enough for now to get at the experimental modules during testing/development.
+			 *
+			 * XXX: To enable using this in nested setup scenarios, where HERMETIC modules really
+			 * shouldn't be listed, it now skips hermetic if settings->parent is set.  That's
+			 * used to imply this isn't the "root" module setup, hence hermetic is inappropriate.
 			 */
-			if (!name && (modules[i]->flags & TIL_MODULE_EXPERIMENTAL))
-				continue;
+			if (!name) {
+				if (modules[i]->flags & TIL_MODULE_EXPERIMENTAL)
+					continue;
+
+				if (modules[i]->flags & (parent ? TIL_MODULE_HERMETIC : 0))
+					continue;
+			}
 
 			values[j] = modules[i]->name;
 			annotations[j] = modules[i]->description;
@@ -492,7 +505,7 @@ int til_module_setup(const til_settings_t *settings, til_setting_t **res_setting
 							.name = "Renderer module",
 							.key = NULL,
 							.regex = "[a-zA-Z0-9]+",
-							.preferred = DEFAULT_MODULE,
+							.preferred = parent ? TIL_DEFAULT_NESTED_MODULE : TIL_DEFAULT_ROOT_MODULE,
 							.values = values,
 							.annotations = annotations,
 							.as_label = 1
