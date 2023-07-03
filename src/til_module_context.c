@@ -72,19 +72,23 @@ static inline void * module_context_free(til_module_context_t *module_context)
 	stream = module_context->stream;
 	setup = module_context->setup;
 
+	/* cleanup any pipes this context might have had in the stream.  If the
+	 * module's destroy_context() also does this it's harmlessly idempotent
+	 * besides wasting some cycles.  But by always doing it here, we're sure
+	 * to not leave dangling references.
+	 *
+	 * XXX: note untapping _must_ happen before destroying the context, since
+	 * the context may contain the driving tap and untap accesses it for
+	 * checking ownership.
+	 */
+	til_stream_untap_owner(stream, module_context);
+
 	if (module_context->module->destroy_context)
 		module_context->module->destroy_context(module_context);
 	else
 		free(module_context);
 
 	(void) til_setup_free(setup); /* free last just in case the module destructor makes use of it */
-
-	/* cleanup any pipes this context might have had in the stream, if the
-	 * module's destroy_context() also does this it's harmlessly idempotent
-	 * besides wasting some cycles.  But by always doing it here, we're sure
-	 * to not leave dangling references.
-	 */
-	til_stream_untap_owner(stream, module_context);
 
 	return NULL;
 }
