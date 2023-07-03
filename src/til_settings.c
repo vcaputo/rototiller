@@ -475,23 +475,17 @@ til_setting_desc_t * til_setting_desc_free(const til_setting_desc_t *desc)
 }
 
 
-int til_setting_desc_fprint_path(const til_setting_desc_t *desc, FILE *out)
+
+int til_setting_desc_strprint_path(const til_setting_desc_t *desc, til_str_t *str)
 {
-	til_str_t	*str;
-	int		r;
+	int	r;
 
 	assert(desc);
-	assert(out);
-
-	str = til_str_new("");
-	if (!str)
-		return -ENOMEM;
+	assert(str);
 
 	r = til_settings_strprint_path(desc->container, str);
-	if (r < 0) {
-		til_str_free(str);
+	if (r < 0)
 		return r;
-	}
 
 	/* XXX: spec.as_label handling is done in til_settings_print_path() since it
 	 * must apply anywhere within a path, potentially in a recurring fashion.
@@ -504,10 +498,30 @@ int til_setting_desc_fprint_path(const til_setting_desc_t *desc, FILE *out)
 	 */
 	if (desc->spec.key) {
 		r = til_str_appendf(str, "/%s", desc->spec.key);
-		if (r < 0) {
-			til_str_free(str);
+		if (r < 0)
 			return r;
-		}
+	}
+
+	return 0;
+}
+
+
+int til_setting_desc_fprint_path(const til_setting_desc_t *desc, FILE *out)
+{
+	til_str_t	*str;
+	int		r;
+
+	assert(desc);
+	assert(out);
+
+	str = til_str_new("");
+	if (!str)
+		return -ENOMEM;
+
+	r = til_setting_desc_strprint_path(desc, str);
+	if (r < 0) {
+		til_str_free(str);
+		return r;
 	}
 
 	if (fputs(til_str_buf(str, NULL), out) == EOF)
