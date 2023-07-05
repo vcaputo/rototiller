@@ -4,11 +4,34 @@
 #include "setup.h"
 #include "til_settings.h"
 #include "til_setup.h"
+#include "til_str.h"
 #include "til_util.h"
 
 
+/* Helper for turning the failed desc into a char * and storing it in the provided place before propagating
+ * the error return value
+ */
+static int setup_ret_failed_desc_path(const til_setting_desc_t *failed_desc, int r, const char **res_failed_desc_path)
+{
+	til_str_t	*str;
+
+	assert(res_failed_desc_path);
+
+	str = til_str_new("");
+	if (!str)
+		return r;
+
+	if (til_setting_desc_strprint_path(failed_desc, str) < 0)
+		return r;
+
+	*res_failed_desc_path = til_str_to_buf(str, NULL);
+
+	return r;
+}
+
+
 /* returns negative on error, otherwise number of additions made to settings */
-int setup_interactively(til_settings_t *settings, int (*setup_func)(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup), int defaults, til_setup_t **res_setup, const til_setting_desc_t **res_failed_desc)
+int setup_interactively(til_settings_t *settings, int (*setup_func)(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup), int defaults, til_setup_t **res_setup, const char **res_failed_desc_path)
 {
 	unsigned			additions = 0;
 	char				buf[256] = "\n";
@@ -52,11 +75,8 @@ int setup_interactively(til_settings_t *settings, int (*setup_func)(const til_se
 			}
 
 			r = til_setting_spec_check(&desc->spec, setting->value);
-			if (r < 0) {
-				*res_failed_desc = desc;
-
-				return r;
-			}
+			if (r < 0)
+				return setup_ret_failed_desc_path(desc, r, res_failed_desc_path);
 
 			if (desc->spec.as_nested_settings && !setting->value_as_nested_settings) {
 				char	*label = NULL;
@@ -71,12 +91,9 @@ int setup_interactively(til_settings_t *settings, int (*setup_func)(const til_se
 				setting->value_as_nested_settings = til_settings_new(NULL, desc->container, desc->spec.key ? : label, setting->value);
 				free(label);
 
-				if (!setting->value_as_nested_settings) {
-					*res_failed_desc = desc;
-
-					/* FIXME: til_settings_new() seems like it should return an errno, since it can encounter parse errors too? */
-					return -ENOMEM;
-				};
+				/* FIXME: til_settings_new() seems like it should return an errno, since it can encounter parse errors too? */
+				if (!setting->value_as_nested_settings)
+					return setup_ret_failed_desc_path(desc, -ENOMEM, res_failed_desc_path);
 			}
 
 			setting->desc = desc;
@@ -177,7 +194,7 @@ _next:
 
 	if (r < 0) {
 		if (r == -EINVAL)
-			*res_failed_desc = setting->desc;
+			return setup_ret_failed_desc_path(setting->desc, r, res_failed_desc_path);
 
 		return r;
 	}

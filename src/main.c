@@ -199,7 +199,7 @@ static int parse_seed(const char *in, unsigned *res_seed)
 /* turn args into settings, automatically applying defaults if appropriate, or interactively if appropriate. */
 /* returns negative value on error, 0 when settings unchanged from args, 1 when changed */
 /* on error, *res_failed_desc _may_ be assigned with something useful. */
-static int setup_from_args(til_args_t *args, setup_t *res_setup, const til_setting_desc_t **res_failed_desc)
+static int setup_from_args(til_args_t *args, setup_t *res_setup, const char **res_failed_desc_path)
 {
 	int	r = -ENOMEM, changes = 0;
 	setup_t	setup = { .seed = time(NULL) + getpid() };
@@ -228,13 +228,13 @@ static int setup_from_args(til_args_t *args, setup_t *res_setup, const til_setti
 	if (!setup.video_settings)
 		goto _err;
 
-	r = setup_interactively(setup.module_settings, til_module_setup, args->use_defaults, &setup.module_setup, res_failed_desc);
+	r = setup_interactively(setup.module_settings, til_module_setup, args->use_defaults, &setup.module_setup, res_failed_desc_path);
 	if (r < 0)
 		goto _err;
 	if (r)
 		changes = 1;
 
-	r = setup_interactively(setup.video_settings, setup_video, args->use_defaults, &setup.video_setup, res_failed_desc);
+	r = setup_interactively(setup.video_settings, setup_video, args->use_defaults, &setup.video_setup, res_failed_desc_path);
 	if (r < 0)
 		goto _err;
 	if (r)
@@ -361,9 +361,9 @@ static void * rototiller_thread(void *_rt)
  */
 int main(int argc, const char *argv[])
 {
-	const til_setting_desc_t	*failed_desc = NULL;
-	setup_t				setup = {};
-	int				r;
+	const char	*failed_desc_path = NULL;
+	setup_t		setup = {};
+	int		r;
 
 	exit_if((r = til_init()) < 0,
 		"unable to initialize libtil: %s", strerror(-r));
@@ -374,11 +374,11 @@ int main(int argc, const char *argv[])
 	if (rototiller.args.help)
 		return print_help() < 0 ? EXIT_FAILURE : EXIT_SUCCESS;
 
-	exit_if((r = setup_from_args(&rototiller.args, &setup, &failed_desc)) < 0,
+	exit_if((r = setup_from_args(&rototiller.args, &setup, &failed_desc_path)) < 0,
 		"unable to use args%s%s%s: %s",
-		failed_desc ? " for setting \"" : "",
-		failed_desc ? failed_desc->spec.key : "",
-		failed_desc ? "\"" : "",
+		failed_desc_path ? " for setting \"" : "",
+		failed_desc_path ? : "",
+		failed_desc_path ? "\"" : "", /* XXX: technically leaking the path when set, oh well */
 		strerror(-r));
 
 	exit_if(r && print_setup_as_args(&setup, !rototiller.args.gogogo) < 0,
