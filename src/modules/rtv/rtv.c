@@ -463,10 +463,8 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 	assert(res_setting && *res_setting && (*res_setting)->value_as_nested_settings);
 	snow_module_settings = (*res_setting)->value_as_nested_settings;
 	snow_module_name = til_settings_get_value_by_idx(snow_module_settings, 0, &snow_module_name_setting);
-	if (!snow_module_name)
-		return -EINVAL;
 
-	if (!snow_module_name_setting->desc) {
+	if (!snow_module_name || !snow_module_name_setting->desc) {
 		r = til_setting_desc_new(snow_module_settings,
 					&(til_setting_spec_t){
 						/* this is basically just to get the .as_label */
@@ -478,7 +476,7 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 		if (r < 0)
 			return r;
 
-		*res_setting = snow_module_name_setting;
+		*res_setting = snow_module_name ? snow_module_name_setting : NULL;
 
 		return 1;
 	}
@@ -486,8 +484,11 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 	if (strcasecmp(snow_module_name, "none")) {
 		const til_module_t	*snow_module = til_lookup_module(snow_module_name);
 
-		if (!snow_module)
+		if (!snow_module) {
+			*res_setting = snow_module_name_setting;
+
 			return -EINVAL;
+		}
 
 		if (snow_module->setup) {
 			r = snow_module->setup(snow_module_settings, res_setting, res_desc, NULL);

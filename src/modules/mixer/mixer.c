@@ -340,7 +340,6 @@ static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setti
 									.name = input_names[i],
 									.key = input_keys[i],
 									.preferred = input_preferred[i],
-									.annotations = NULL,
 									.as_nested_settings = 1,
 								},
 								&inputs[i],
@@ -354,28 +353,28 @@ static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setti
 
 			inputs_settings[i] = (*res_setting)->value_as_nested_settings;
 			inputs[i] = til_settings_get_value_by_idx(inputs_settings[i], 0, &inputs_module_setting[i]);
-			if (!inputs[i])
-				return -EINVAL;
-
-			if (!inputs_module_setting[i]->desc) {
+			if (!inputs[i] || !inputs_module_setting[i]->desc) {
 				r = til_setting_desc_new(inputs_settings[i],
 							&(til_setting_spec_t){
 								.name = input_module_name_names[i],
-								.preferred = "ref",
+								.preferred = input_preferred[i],
 								.as_label = 1,
 							},
 							res_desc);
 				if (r < 0)
 					return r;
 
-				*res_setting = inputs_module_setting[i];
+				*res_setting = inputs[i] ? inputs_module_setting[i] : NULL;
 
 				return 1;
 			}
 
 			mod = til_lookup_module(inputs[i]);
-			if (!mod)
+			if (!mod) {
+				*res_setting = inputs_module_setting[i];
+
 				return -EINVAL;
+			}
 
 			if (mod->setup) {
 				r = mod->setup(inputs_settings[i], res_setting, res_desc, NULL);

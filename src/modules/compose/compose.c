@@ -314,13 +314,10 @@ static int compose_setup(const til_settings_t *settings, til_setting_t **res_set
 		 */
 		for (size_t i = 0; til_settings_get_value_by_idx(layers_settings, i, &layer_setting); i++) {
 			til_setting_t		*layer_module_setting;
-			const char		*layer = til_settings_get_value_by_idx(layer_setting->value_as_nested_settings, 0, &layer_module_setting);
-			const til_module_t	*layer_module = til_lookup_module(layer);
+			const char		*layer_module_name = til_settings_get_value_by_idx(layer_setting->value_as_nested_settings, 0, &layer_module_setting);
+			const til_module_t	*layer_module;
 
-			if (!layer_module || !layer_module_setting)
-				return -EINVAL;
-
-			if (!layer_module_setting->desc) {
+			if (!layer_module_name || !layer_module_setting->desc) {
 				r = til_setting_desc_new(	layer_setting->value_as_nested_settings,
 								&(til_setting_spec_t){
 									.name = "Layer module name",
@@ -330,9 +327,16 @@ static int compose_setup(const til_settings_t *settings, til_setting_t **res_set
 				if (r < 0)
 					return r;
 
-				*res_setting = layer_module_setting;
+				*res_setting = layer_module_name ? layer_module_setting : NULL;
 
 				return 1;
+			}
+
+			layer_module = til_lookup_module(layer_module_name);
+			if (!layer_module) {
+				*res_setting = layer_module_setting;
+
+				return -EINVAL;
 			}
 
 			if (layer_module->setup) {
@@ -364,10 +368,8 @@ static int compose_setup(const til_settings_t *settings, til_setting_t **res_set
 	assert(res_setting && *res_setting && (*res_setting)->value_as_nested_settings);
 	texture_settings = (*res_setting)->value_as_nested_settings;
 	texture = til_settings_get_value_by_idx(texture_settings, 0, &texture_module_setting);
-	if (!texture)
-		return -EINVAL;
 
-	if (!texture_module_setting->desc) {
+	if (!texture || !texture_module_setting->desc) {
 		r = til_setting_desc_new(texture_settings,
 					&(til_setting_spec_t){
 						/* this is basically just to get the .as_label */
@@ -379,7 +381,7 @@ static int compose_setup(const til_settings_t *settings, til_setting_t **res_set
 		if (r < 0)
 			return r;
 
-		*res_setting = texture_module_setting;
+		*res_setting = texture ? texture_module_setting : NULL;
 
 		return 1;
 	}
@@ -387,8 +389,11 @@ static int compose_setup(const til_settings_t *settings, til_setting_t **res_set
 	if (strcasecmp(texture, "none")) {
 		const til_module_t	*texture_module = til_lookup_module(texture);
 
-		if (!texture_module)
+		if (!texture_module) {
+			*res_setting = texture_module_setting;
+
 			return -EINVAL;
+		}
 
 		if (texture_module->setup) {
 			r = texture_module->setup(texture_settings, res_setting, res_desc, NULL);

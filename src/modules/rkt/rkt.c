@@ -376,12 +376,9 @@ static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting
 		for (size_t i = 0; til_settings_get_value_by_idx(scenes_settings, i, &scene_setting); i++) {
 			til_setting_t		*scene_module_setting;
 			const char		*scene_module_name = til_settings_get_value_by_idx(scene_setting->value_as_nested_settings, 0, &scene_module_setting);
-			const til_module_t	*scene_module = til_lookup_module(scene_module_name);
+			const til_module_t	*scene_module;
 
-			if (!scene_module || !scene_module_setting)
-				return -EINVAL;
-
-			if (!scene_module_setting->desc) {
+			if (!scene_module_name || !scene_module_setting->desc) {
 				r = til_setting_desc_new(	scene_setting->value_as_nested_settings,
 								&(til_setting_spec_t){
 									.name = "Scene module name",
@@ -391,9 +388,16 @@ static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting
 				if (r < 0)
 					return r;
 
-				*res_setting = scene_module_setting;
+				*res_setting = scene_module_name ? scene_module_setting : NULL;
 
 				return 1;
+			}
+
+			scene_module = til_lookup_module(scene_module_name);
+			if (!scene_module) {
+				*res_setting = scene_module_setting;
+
+				return -EINVAL;
 			}
 
 			if (scene_module->setup) {

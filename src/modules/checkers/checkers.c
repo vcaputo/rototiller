@@ -448,7 +448,7 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 {
 	const char		*size;
 	const char		*pattern;
-	const char		*fill_module;
+	const char		*fill_module, *fill_module_name;
 	const til_settings_t	*fill_module_settings;
 	til_setting_t		*fill_module_setting;
 	const char		*dynamics;
@@ -572,11 +572,9 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 	assert((*res_setting)->value_as_nested_settings);
 
 	fill_module_settings = (*res_setting)->value_as_nested_settings;
-	fill_module = til_settings_get_value_by_idx(fill_module_settings, 0, &fill_module_setting);
-	if (!fill_module)
-		return -EINVAL;
+	fill_module_name = til_settings_get_value_by_idx(fill_module_settings, 0, &fill_module_setting);
 
-	if (!fill_module_setting->desc) {
+	if (!fill_module_name || !fill_module_setting->desc) {
 		r = til_setting_desc_new(fill_module_settings,
 					&(til_setting_spec_t){
 						.name = "Filled cell module name",
@@ -587,60 +585,26 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 		if (r < 0)
 			return r;
 
-		*res_setting = fill_module_setting;
+		*res_setting = fill_module_name ? fill_module_setting : NULL;
 
 		return 1;
 	}
 
-	if (strcasecmp(fill_module, "none")) {
-		const til_module_t	*mod = til_lookup_module(fill_module);
+	if (strcasecmp(fill_module_name, "none")) {
+		const til_module_t	*mod = til_lookup_module(fill_module_name);
 
-		if (!mod)
+		if (!mod) {
+			*res_setting = fill_module_setting;
+
 			return -EINVAL;
+		}
 
 		if (mod->setup) {
 			r = mod->setup(fill_module_settings, res_setting, res_desc, NULL);
 			if (r)
 				return r;
-
-			/* XXX: note no res_setup was provided, so while yes the fill_module_settings are
-			 * fully populated according to the setup's return value, we don't yet have the baked
-			 * setup.  That occurs below while baking the checkers res_setup.
-			 */
 		}
 	}
-	/* TODO: here we would do nested setup for fill_module via (*res_setting)->settings until that returned 0.
-	 * It seems like we would just leave res_setup NULL for nested setup at this phase, then in our if (res_setup)
-	 * branch down below the nested setup would have to recur with res_setup supplied but pointing at a nested
-	 * setup pointer hosted within this setup. */
-
-	/* XXX but this is a little more complicated than simply performing exhaustive setup of the fill_module here.
-	 * it's kind of like how in scripting languages you have two forms of interpolation while initializing variables;
-	 * there's the immediate interpolation at the time of intialization, and there's the delayed interpolation at
-	 * time of variable use.  i.e. foo="$a $b" vs. foo:="$a $b", the latter may expand $a and $b once and store the
-	 * result in foo, whereas the former may just store the literal "$a $b" in foo and (re)perform the expansion of
-	 * $a and $b every time $foo is evaluated.
-	 *
-	 * should every module have its own separate setting or snowflake syntax to control exhaustive setup up-front
-	 * vs. just taking what settings have been provided and randomizing what's not provided at context create time?
-	 * in the case of checkers::fill_module it's arguably less relevant (though the current frontends don't have a
-	 * randomize settings feature, so if exhaustive setup of fill_module were forced up-front using the existing frontends
-	 * would mean loss of fill_module randomized setup)  But that might be O.K. for something like checkers::fill_module
-	 *
-	 * where it becomes more relevant is something like rtv::channels, where the single rtv instance will repeatedly
-	 * create+destroy channel contexts using the supplied (or omitted) settings.  We may want to have the settings
-	 * exhaustively applied once when rtv was intantiated, giving the frontend setup opportunity to explicitly configure
-	 * the channels exhaustively.  Or we may want to just partially specify some settings for the channels, and for
-	 * the settings non-specified use the defaults OR for those unsepcified have them be randomized.  Then there's the
-	 * question of should the randomizing recur for every channel switch or just occur once at time of rtv instantiation?
-	 * 
-	 * it feels like the module settings syntax should probably control this behavior in a general way so the modules don't
-	 * start inventing their own approaches.  Perhaps the module name at the start of the settings string could simply have
-	 * an optional leading modifier character from a reserved set module names can't start with.  Someting like %modulename
-	 * for randomizing unspecified settings, : for evaluating settings just once up-front then reusing them, @modulename for
-	 * accepting defaults for anything unspecified, and !modulename to fail if any settings aren't specified.  Maybe also
-	 * something like * for making the current qualifiers apply recursively.
-	 */
 
 	r = til_settings_get_and_describe_value(settings,
 						&(til_setting_spec_t){
@@ -758,8 +722,8 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 			return -EINVAL;
 		}
 
-		if (strcasecmp(fill_module, "none")) {
-			setup->fill_module = til_lookup_module(fill_module);
+		if (strcasecmp(fill_module_name, "none")) {
+			setup->fill_module = til_lookup_module(fill_module_name);
 			if (!setup->fill_module) {
 				til_setup_free(&setup->til_setup);
 				return -EINVAL;

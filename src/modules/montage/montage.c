@@ -270,12 +270,9 @@ static int montage_setup(const til_settings_t *settings, til_setting_t **res_set
 		for (size_t i = 0; til_settings_get_value_by_idx(tiles_settings, i, &tile_setting); i++) {
 			til_setting_t		*tile_module_setting;
 			const char		*tile_module_name = til_settings_get_value_by_idx(tile_setting->value_as_nested_settings, 0, &tile_module_setting);
-			const til_module_t	*tile_module = til_lookup_module(tile_module_name);
+			const til_module_t	*tile_module;
 
-			if (!tile_module || !tile_module_setting)
-				return -EINVAL;
-
-			if (!tile_module_setting->desc) {
+			if (!tile_module_name || !tile_module_setting->desc) {
 				r = til_setting_desc_new(	tile_setting->value_as_nested_settings,
 								&(til_setting_spec_t){
 									.name = "Layer module name",
@@ -285,9 +282,16 @@ static int montage_setup(const til_settings_t *settings, til_setting_t **res_set
 				if (r < 0)
 					return r;
 
-				*res_setting = tile_module_setting;
+				*res_setting = tile_module_name ? tile_module_setting : NULL;
 
 				return 1;
+			}
+
+			tile_module = til_lookup_module(tile_module_name);
+			if (!tile_module) {
+				*res_setting = tile_module_setting;
+
+				return -EINVAL;
 			}
 
 			if (tile_module->setup) {
