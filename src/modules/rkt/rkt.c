@@ -18,6 +18,7 @@
 #include "txt/txt.h"
 
 #include "rkt.h"
+#include "rkt_scener.h"
 
 /* Copyright (C) 2023 - Vito Caputo <vcaputo@pengaru.com> */
 
@@ -237,6 +238,10 @@ static til_module_context_t * rkt_create_context(const til_module_t *module, til
 
 	rkt_update_rocket(ctxt, ticks);
 
+	/* are we running the scener too? */
+	if (s->scener_listen)
+		rkt_scener_startup(ctxt);
+
 	return &ctxt->til_module_context;
 }
 
@@ -244,6 +249,8 @@ static til_module_context_t * rkt_create_context(const til_module_t *module, til
 static void rkt_destroy_context(til_module_context_t *context)
 {
 	rkt_context_t	*ctxt = (rkt_context_t *)context;
+
+	rkt_scener_shutdown(ctxt);
 
 	if (ctxt->sync_device)
 		sync_destroy_device(ctxt->sync_device);
@@ -260,17 +267,19 @@ static void rkt_render_fragment(til_module_context_t *context, til_stream_t *str
 	rkt_context_t	*ctxt = (rkt_context_t *)context;
 
 	rkt_update_rocket(ctxt, ticks);
+	/* this is deliberately done before scener, so scener may override the scene shown */
+	ctxt->scene = (unsigned)sync_get_val(ctxt->scene_track, ctxt->rocket_row);
+	rkt_scener_update(ctxt);
 
 	/* this drives our per-rocket-track updates, with the tracks registered as owner_foo on the pipes, respectively */
 	til_stream_for_each_pipe(stream, rkt_pipe_update, ctxt);
 
 	{
-		unsigned	scene;
+		unsigned	scene = ctxt->scene;
 
-		scene = (unsigned)sync_get_val(ctxt->scene_track, ctxt->rocket_row);
 		if (scene < ctxt->n_scenes) {
 			til_module_render(ctxt->scenes[scene].module_ctxt, stream, ticks, fragment_ptr);
-		} else if (scene == 99999 && !((rkt_setup_t *)context->setup)->connect) {
+		} else if (scene == 99999 && !((rkt_setup_t *)context->setup)->connect && !ctxt->scener) {
 			/* 99999 is treated as an "end of sequence" scene, but only honored when connect=off (player mode) */
 			til_stream_end(stream);
 		} else {
@@ -317,7 +326,7 @@ static void rkt_setup_free(til_setup_t *setup)
 static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	const til_settings_t	*scenes_settings;
-	const char		*connect_values[] = {
+	const char		*bool_values[] = {
 					"off",
 					"on",
 					NULL
@@ -329,6 +338,9 @@ static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting
 	const char		*connect;
 	const char		*host;
 	const char		*port;
+	const char		*listen;
+	const char		*listen_address;
+	const char		*listen_port;
 	int			r;
 
 	/* This is largely taken from compose::layers, but might just go away when I add tables to rocket,
@@ -444,11 +456,11 @@ static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting
 
 	r = til_settings_get_and_describe_value(settings,
 						&(til_setting_spec_t){
-							.name = "Editor connection toggle",
+							.name = "RocketEditor connection toggle",
 							.key = "connect",
 							/* TODO: regex */
-							.preferred = connect_values[1],
-							.values = connect_values,
+							.preferred = bool_values[1],
+							.values = bool_values,
 							.annotations = NULL,
 						},
 						&connect,
@@ -487,6 +499,51 @@ static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting
 			return r;
 	}
 
+	r = til_settings_get_and_describe_value(settings,
+						&(til_setting_spec_t){
+							.name = "Scene editor listen toggle",
+							.key = "listen",
+							/* TODO: regex */
+							.preferred = bool_values[1],
+							.values = bool_values,
+							.annotations = NULL,
+						},
+						&listen,
+						res_setting,
+						res_desc);
+	if (r)
+		return r;
+
+	if (!strcasecmp(listen, "on")) {
+		r = til_settings_get_and_describe_value(settings,
+							&(til_setting_spec_t){
+								.name = "Listen address",
+								.key = "listen_address",
+								.preferred = RKT_SCENER_DEFAULT_ADDRESS,
+								/* TODO: regex */
+								.annotations = NULL,
+							},
+							&listen_address,
+							res_setting,
+							res_desc);
+		if (r)
+			return r;
+
+		r = til_settings_get_and_describe_value(settings,
+							&(til_setting_spec_t){
+								.name = "Listen port",
+								.key = "listen_port",
+								.preferred = TIL_SETTINGS_STR(RKT_SCENER_DEFAULT_PORT),
+								/* TODO: regex */
+								.annotations = NULL,
+							},
+							&listen_port,
+							res_setting,
+							res_desc);
+		if (r)
+			return r;
+	}
+
 	if (res_setup) {
 		size_t			n_scenes = til_settings_get_count(scenes_settings);
 		til_setting_t		*scene_setting;
@@ -496,6 +553,38 @@ static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting
 		setup = til_setup_new(settings, sizeof(*setup) + n_scenes * sizeof(*setup->scenes), rkt_setup_free);
 		if (!setup)
 			return -ENOMEM;
+
+		if (!strcasecmp(listen, "on")) {
+			setup->scener_listen = 1;
+
+			setup->scener_address = strdup(listen_address);
+			if (!setup->scener_address) {
+				til_setup_free(&setup->til_setup);
+
+				return -ENOMEM;
+			}
+
+			sscanf(listen_port, "%hu", &setup->scener_port); /* FIXME parse errors */
+
+			/* XXX FIXME TODO: HACK ALERT: til_settings_t probably needs to be refcounted,
+			 * and this should be taking a proper reference!  The only reason this can
+			 * _remotely_ work today is rototiller doesn't free its settings until exiting,
+			 * and rkt is HERMETIC - so all these should persist unless _rkt_ replaces them
+			 * (like when editing).  But that seems like a rather fragile way to be, and
+			 * the act of distinguishing the baked til_setup_t from til_settings_t has been
+			 * specifically in part to allow releasing the latter's resources once the setup
+			 * is baked.  But in rkt's case, at least in creative mode, it needs to allow
+			 * live editing of the setup - which isn't possible on the baked til_setup_t, only
+			 * the string-oriented til_settings_t.
+			 *
+			 * So what's happening here is a bit of an impedance mismatch, and for now I'm just
+			 * going to cast these to non-const and get things more fleshed out before trying
+			 * to change the til_settings API to better accomodate these new uses.
+			 * XXX FIXME TODO
+			 */
+			setup->settings = (til_settings_t *)settings;
+			setup->scenes_settings = (til_settings_t *)scenes_settings;
+		}
 
 		setup->n_scenes = n_scenes;
 
