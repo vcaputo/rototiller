@@ -225,13 +225,9 @@ static til_module_context_t * rkt_create_context(const til_module_t *module, til
 	til_stream_set_hooks(stream, &rkt_stream_hooks, ctxt);
 
 	for (size_t i = 0; i < ctxt->n_scenes; i++) {
-		int		r;
+		int	r;
 
-		ctxt->scenes[i].module = til_lookup_module(s->scenes[i].module_name);
-		if (!ctxt->scenes[i].module) /* this isn't really expected since setup already does this */
-			return til_module_context_free(&ctxt->til_module_context);
-
-		r = til_module_create_context(ctxt->scenes[i].module, stream, rand_r(&seed), ticks, 0, s->scenes[i].setup, &ctxt->scenes[i].module_ctxt);
+		r = til_module_create_context(s->scenes[i].module, stream, rand_r(&seed), ticks, 0, s->scenes[i].setup, &ctxt->scenes[i].module_ctxt);
 		if (r < 0)
 			return til_module_context_free(&ctxt->til_module_context);
 	}
@@ -308,10 +304,9 @@ static void rkt_setup_free(til_setup_t *setup)
 	rkt_setup_t	*s = (rkt_setup_t *)setup;
 
 	if (s) {
-		for (size_t i = 0; i < s->n_scenes; i++) {
-			free(s->scenes[i].module_name);
+		for (size_t i = 0; i < s->n_scenes; i++)
 			til_setup_free(s->scenes[i].setup);
-		}
+
 		free((void *)s->base);
 		free((void *)s->host);
 		free(setup);
@@ -514,24 +509,14 @@ static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting
 				return -EINVAL;
 			}
 
-			/* XXX If it's appropriate stow the resolved til_module_t* or the name is still unclear, since
-			 * the module names will soon be able to address existing contexts in the stream at their path.
-			 * So for now I'm just going to continue stowing the name, even though the lookup above prevents
-			 * any sort of context address being used...
-			 */
-			setup->scenes[i].module_name = strdup(scene_module_name);
-			if (!setup->scenes[i].module_name) {
-				til_setup_free(&setup->til_setup);
-
-				return -ENOMEM;
-			}
-
 			r = til_module_setup_finalize(scene_module, scene_setting->value_as_nested_settings, &setup->scenes[i].setup);
 			if (r < 0) {
 				til_setup_free(&setup->til_setup);
 
 				return r;
 			}
+
+			setup->scenes[i].module = scene_module;
 		}
 
 		setup->base = strdup(base);

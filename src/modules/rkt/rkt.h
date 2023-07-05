@@ -5,7 +5,6 @@
 #include "til_module_context.h"
 
 typedef struct rkt_scene_t {
-	const til_module_t	*module;
 	til_module_context_t	*module_ctxt;
 } rkt_scene_t;
 
@@ -23,8 +22,8 @@ typedef struct rkt_context_t {
 } rkt_context_t;
 
 typedef struct rkt_setup_scene_t {
-	char			*module_name;
-	til_setup_t		*setup;
+	const til_module_t	*module;
+	til_setup_t		*setup;			/* Baked setup as-configured via setup. */
 } rkt_setup_scene_t;
 
 typedef struct rkt_setup_t {
