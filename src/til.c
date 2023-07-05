@@ -538,11 +538,35 @@ int til_module_setup(const til_settings_t *settings, til_setting_t **res_setting
 int til_module_setup_randomize(const til_module_t *module, til_settings_t *settings, unsigned seed, til_setup_t **res_setup, char **res_arg)
 {
 	til_setting_t			*setting;
+	const char			*name;
 	const til_setting_desc_t	*desc;
 	int				r = 0;
 
 	assert(module);
 	assert(settings);
+
+	/* This is kind of a silly formality for randomize, since the callers already
+	 * specify the module.  But we really need to ensure the first entry is described,
+	 * so the .as_label can be found in situations like rkt_scener's "add randomized scene".
+	 *
+	 * FIXME TODO: what should probably be happening using til_module_setup() as the
+	 * top-level setup_func, to get the module setting described.  This is just a quick
+	 * hack to make things usable.
+	 */
+	name = til_settings_get_value_by_idx(settings, 0, &setting);
+	if (!name)
+		return -EINVAL; /* TODO: add a first setting from module->name? current callers always pass the module name as the setting string */
+
+	if (!setting->desc) {
+		r = til_setting_desc_new(	settings,
+						&(til_setting_spec_t){
+							.name = "Renderer module",
+							.preferred = module->name,
+							.as_label = 1
+						}, &setting->desc);
+		if (r < 0)
+			return r;
+	}
 
 	if (!module->setup) {
 		til_setup_t	*setup;
