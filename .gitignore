@@ -19,3 +19,4 @@ configure
 depcomp
 install-sh
 missing
+build
