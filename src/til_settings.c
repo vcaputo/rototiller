@@ -345,7 +345,7 @@ void til_settings_reset_descs(til_settings_t *settings)
 	assert(settings);
 
 	for (unsigned i = 0; i < settings->num; i++)
-		settings->entries[i]->desc = NULL;
+		settings->entries[i]->desc = til_setting_desc_free(settings->entries[i]->desc);
 }
 
 
