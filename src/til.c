@@ -472,7 +472,13 @@ int til_module_setup(const til_settings_t *settings, til_setting_t **res_setting
 		const char		*values[nelems(modules) + 1] = {};
 		const char		*annotations[nelems(modules) + 1] = {};
 		const til_settings_t	*parent;
-		int			r;
+		int			r, filtered = 1;
+
+		/* Only disable filtering if a *valid* name is providead.
+		 * This is so fat-fingered names don't suddenly include a bunch of broken options.
+		 */
+		if (name && til_lookup_module(name))
+			filtered = 0;
 
 		parent = til_settings_get_parent(settings);
 
@@ -487,7 +493,7 @@ int til_module_setup(const til_settings_t *settings, til_setting_t **res_setting
 			 * shouldn't be listed, it now skips hermetic if settings->parent is set.  That's
 			 * used to imply this isn't the "root" module setup, hence hermetic is inappropriate.
 			 */
-			if (!name) {
+			if (filtered) {
 				if (modules[i]->flags & TIL_MODULE_EXPERIMENTAL)
 					continue;
 
