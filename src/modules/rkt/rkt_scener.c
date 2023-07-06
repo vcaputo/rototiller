@@ -879,8 +879,7 @@ int rkt_scener_update(rkt_context_t *ctxt)
 		return rkt_scener_handle_input_newscene(ctxt);
 
 	case RKT_SCENER_FSM_SEND_NEWSCENE_SETUP: {
-		til_str_t	*output;
-		int		r;
+		int	r;
 
 		r = til_module_setup(scener->new_scene.settings,
 				     &scener->new_scene.cur_setting,
