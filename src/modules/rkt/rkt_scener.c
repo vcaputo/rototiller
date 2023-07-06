@@ -782,9 +782,11 @@ int rkt_scener_update(rkt_context_t *ctxt)
 					 */
 					scener->input = til_str_chomp(scener->input);
 					scener->state = scener->next_state;
+
+					return 0;
 				}
 
-				return 0;
+				continue;
 
 			default:
 				assert(0);
