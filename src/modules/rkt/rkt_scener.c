@@ -735,7 +735,7 @@ int rkt_scener_update(rkt_context_t *ctxt)
 
 		ret = send(scener->client, &buf[scener->output_pos], len - scener->output_pos, MSG_NOSIGNAL);
 		if (ret == -1) {
-			if (errno == EAGAIN || EWOULDBLOCK)
+			if (errno == EAGAIN || errno == EWOULDBLOCK)
 				return 0;
 
 			return rkt_scener_err_close(scener, errno);
