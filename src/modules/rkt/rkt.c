@@ -181,13 +181,18 @@ static int rkt_pipe_update(void *context, til_stream_pipe_t *pipe, const void *o
 
 static void rkt_update_rocket(rkt_context_t *ctxt, unsigned ticks)
 {
+	rkt_setup_t	*s = (rkt_setup_t *)ctxt->til_module_context.setup;
+
 	if (!ctxt->paused)
 		ctxt->rocket_row += ((double)(ticks - ctxt->last_ticks)) * ctxt->rows_per_ms;
 
 	ctxt->last_ticks = ticks;
 
-	/* ctxt->rocket_row needs to be updated */
-	sync_update(ctxt->sync_device, ctxt->rocket_row, &rkt_sync_cb, ctxt);
+	if (!s->connect)
+		return;
+
+	if (!ctxt->connected || sync_update(ctxt->sync_device, ctxt->rocket_row, &rkt_sync_cb, ctxt) < 0)
+		ctxt->connected = !sync_tcp_connect(ctxt->sync_device, s->host, s->port);
 }
 
 
@@ -212,11 +217,8 @@ static til_module_context_t * rkt_create_context(const til_module_t *module, til
 	if (!ctxt->sync_device)
 		return til_module_context_free(&ctxt->til_module_context);
 
-	if (s->connect) {
-		/* XXX: it'd be better if we just reconnected periodically instead of hard failing */
-		if (sync_tcp_connect(ctxt->sync_device, s->host, s->port))
-			return til_module_context_free(&ctxt->til_module_context);
-	}
+	if (s->connect && !sync_tcp_connect(ctxt->sync_device, s->host, s->port))
+		ctxt->connected = 1;
 
 	ctxt->scene_track = sync_get_trackf(ctxt->sync_device, "%s:scene", setup->path);
 	if (!ctxt->scene_track)
@@ -283,10 +285,12 @@ static void rkt_render_fragment(til_module_context_t *context, til_stream_t *str
 			/* 99999 is treated as an "end of sequence" scene, but only honored when connect=off (player mode) */
 			til_stream_end(stream);
 		} else {
-			txt_t	*msg = txt_newf("%s: %s @ %u",
+			txt_t	*msg = txt_newf("%s: %s @ %u [%s] [%s]",
 						context->setup->path,
 						scene == 99999 ? "EXIT SCENE" : "NO SCENE",
-						scene);
+						scene,
+						((rkt_setup_t *)context->setup)->connect ? (ctxt->connected ? "ONLINE" : "OFFLINE") : "PLAYER",
+						ctxt->scener ? "SCENER" : "NOSCENER");
 
 			/* TODO: creating/destroying this every frame is dumb, but
 			 * as this is a diagnostic it's not so important.
@@ -302,6 +306,25 @@ static void rkt_render_fragment(til_module_context_t *context, til_stream_t *str
 						.horiz = TXT_HALIGN_LEFT,
 						.vert = TXT_VALIGN_TOP,
 					   });
+			txt_free(msg);
+		}
+
+		if (scene < ctxt->n_scenes &&
+		    scene != 999999 &&
+		    ((rkt_setup_t *)context->setup)->connect && !ctxt->connected) {
+			txt_t	*msg = txt_newf("OFFLINE");
+
+			/* TODO: as mentioned above, creating/destroying this every frame is dumb,
+			 * will revisit the status text in the future.  Not a huge priority since
+			 * none of this should be active in "production" playback mode.
+			 */
+			txt_render_fragment(msg, *fragment_ptr, 0xffffffff,
+					    0, 0,
+					    (txt_align_t){
+						.horiz = TXT_HALIGN_LEFT,
+						.vert = TXT_VALIGN_TOP,
+					   });
+
 			txt_free(msg);
 		}
 	}

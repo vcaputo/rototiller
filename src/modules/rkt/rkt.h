@@ -21,6 +21,7 @@ typedef struct rkt_context_t {
 	double			rocket_row;
 	unsigned		last_ticks;
 	unsigned		paused:1;
+	unsigned		connected:1;	/* currently connected to the RocketEditor */
 	size_t			n_scenes;
 	rkt_scene_t		*scenes;
 	unsigned		scene;		/* current scene (usually driven by the scene track data,
