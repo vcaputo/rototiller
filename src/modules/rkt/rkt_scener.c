@@ -591,7 +591,7 @@ static int rkt_scener_handle_input_editscene(rkt_context_t *ctxt)
 						"think of these as more like Samples/Instruments in a tracker.\n"
 						"So you can relatively harmlessly have unused scenes in here.\n"
 						"\n"
-						"A temporary way to edit is  copy and paste the settings shown above into a text editor,\n"
+						"A temporary way to edit is copy and paste the settings shown above into a text editor,\n"
 						"make your tweaks (you can also just delete parts you want to revisit interactive setup for),\n"
 						"then paste it into the initial New scene raw input prompt (*discard* the quotes!).\n"
 						"\n"
