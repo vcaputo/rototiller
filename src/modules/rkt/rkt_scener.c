@@ -214,9 +214,9 @@ static int rkt_scener_send_message(rkt_scener_t *scener, const char *msg, rkt_sc
 static int rkt_scener_send_welcome(rkt_scener_t *scener, rkt_scener_fsm_t next_state)
 {
 	return rkt_scener_send_message(scener,
-					"\n\nWelcome to scener.\n"
-					"\n\n    Long live the scene!\n\n",
-					next_state);
+				       "\n\nWelcome to scener.\n"
+				       "\n\n    Long live the scene!\n\n",
+				       next_state);
 }
 
 
@@ -224,8 +224,8 @@ static int rkt_scener_send_welcome(rkt_scener_t *scener, rkt_scener_fsm_t next_s
 static int rkt_scener_send_goodbye(rkt_scener_t *scener, rkt_scener_fsm_t next_state)
 {
 	return rkt_scener_send_message(scener,
-					"\n\n    The scene is dead.\n\n",
-					next_state);
+				       "\n\n    The scene is dead.\n\n",
+				       next_state);
 }
 
 
@@ -1075,11 +1075,9 @@ int rkt_scener_update(rkt_context_t *ctxt)
 
 		scener->new_scene.settings = NULL;
 
-		output = til_str_new("\n\nNew scene added successfully...\n");
-		if (!output)
-			return rkt_scener_err_close(scener, ENOMEM);
-
-		return rkt_scener_send(scener, output, RKT_SCENER_FSM_SEND_SCENES);
+		return rkt_scener_send_message(scener,
+					       "\n\nNew scene added successfully...\n",
+					       RKT_SCENER_FSM_SEND_SCENES);
 	}
 
 	case RKT_SCENER_FSM_SEND_NEWSCENE_SETUP_PROMPT: {
