@@ -228,10 +228,7 @@ static til_module_context_t * rkt_create_context(const til_module_t *module, til
 	til_stream_set_hooks(stream, &rkt_stream_hooks, ctxt);
 
 	for (size_t i = 0; i < ctxt->n_scenes; i++) {
-		int	r;
-
-		r = til_module_create_context(s->scenes[i].module, stream, rand_r(&seed), ticks, 0, s->scenes[i].setup, &ctxt->scenes[i].module_ctxt);
-		if (r < 0)
+		if (til_module_create_context(s->scenes[i].module, stream, rand_r(&seed), ticks, 0, s->scenes[i].setup, &ctxt->scenes[i].module_ctxt) < 0)
 			return til_module_context_free(&ctxt->til_module_context);
 	}
 
