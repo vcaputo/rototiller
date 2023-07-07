@@ -237,7 +237,6 @@ static til_module_context_t * rkt_create_context(const til_module_t *module, til
 
 	rkt_update_rocket(ctxt, ticks);
 
-	/* are we running the scener too? */
 	if (s->scener_listen)
 		rkt_scener_startup(ctxt);
 
@@ -291,10 +290,6 @@ static void rkt_render_fragment(til_module_context_t *context, til_stream_t *str
 
 			/* TODO: creating/destroying this every frame is dumb, but
 			 * as this is a diagnostic it's not so important.
-			 *
-			 * Once this module deals with disconnects and transparently reconnects, it'll need
-			 * to show some connection status information as well... when that gets added this will
-			 * likely get reworked to become part of that status text.
 			 */
 			til_fb_fragment_clear(*fragment_ptr);
 			txt_render_fragment(msg, *fragment_ptr, 0xffffffff,
