@@ -40,6 +40,7 @@ struct til_module_t {
 int til_init(void);
 void til_quiesce(void);
 void til_shutdown(void);
+unsigned til_ticks_now(void);
 const til_module_t * til_lookup_module(const char *name);
 void til_get_modules(const til_module_t ***res_modules, size_t *res_n_modules);
 char * til_get_module_names(unsigned flags_excluded, const char **exclusions);

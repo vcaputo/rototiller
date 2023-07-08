@@ -26,6 +26,7 @@
 #define TIL_DEFAULT_NESTED_MODULE	"compose"
 
 static til_threads_t	*til_threads;
+static struct timeval	til_start_tv;
 
 extern til_module_t	blinds_module;
 extern til_module_t	checkers_module;
@@ -92,6 +93,8 @@ int til_init(void)
 	if (!(til_threads = til_threads_create()))
 		return -errno;
 
+	gettimeofday(&til_start_tv, NULL);
+
 	return 0;
 }
 
@@ -106,6 +109,22 @@ void til_quiesce(void)
 void til_shutdown(void)
 {
 	til_threads_destroy(til_threads);
+}
+
+
+/* returns number of "ticks" since til_init(), which are currently milliseconds */
+unsigned til_ticks_now(void)
+{
+	struct timeval	now, diff;
+
+	/* for profiling purposes in particular, it'd be nice to bump up to microseconds...
+	 * but then it'll prolly need uint64_t
+	 */
+
+	gettimeofday(&now, NULL);
+	timersub(&now, &til_start_tv, &diff);
+
+	return diff.tv_sec * 1000 + diff.tv_usec / 1000;
 }
 
 
