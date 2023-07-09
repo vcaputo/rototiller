@@ -1,11 +1,21 @@
-#include <arpa/inet.h>
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
+
+#ifdef __WIN32__
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#ifndef MSG_NOSIGNAL
+#define MSG_NOSIGNAL	0
+#endif
+#else
+#include <arpa/inet.h>
+#include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
-#include <sys/socket.h>
 #include <unistd.h>
+#endif
+
 
 #include "til_str.h"
 #include "til_stream.h"
@@ -61,6 +71,19 @@ typedef struct rkt_scener_t {
 } rkt_scener_t;
 
 
+static int rkt_nonblocking(int socket)
+{
+#ifndef __WIN32__
+	if (fcntl(socket, F_SETFL, (int)O_NONBLOCK) == -1)
+		return -1;
+#else
+	if (ioctlsocket(socket, FIONBIO, &(u_long){1}) != 0)
+		return -1;
+#endif
+	return 0;
+}
+
+
 int rkt_scener_startup(rkt_context_t *ctxt)
 {
 	rkt_scener_t		*scener;
@@ -93,7 +116,7 @@ int rkt_scener_startup(rkt_context_t *ctxt)
 	if (listen(scener->listener, 1) == -1)
 		goto _err_close;
 
-	if (fcntl(scener->listener, F_SETFL, (int)O_NONBLOCK) == -1)
+	if (rkt_nonblocking(scener->listener) == -1)
 		goto _err_close;
 
 	scener->client = -1;
@@ -697,7 +720,11 @@ int rkt_scener_update(rkt_context_t *ctxt)
 
 		/* any state can just resume listening anytime, which will close and free things */
 		if (scener->client != -1) {
+#ifndef __WIN32__
 			close(scener->client);
+#else
+			closesocket(scener->client);
+#endif
 			scener->client = -1;
 		}
 
@@ -707,13 +734,21 @@ int rkt_scener_update(rkt_context_t *ctxt)
 
 		fd = accept(scener->listener, NULL, NULL);
 		if (fd == -1) {
+#ifndef __WIN32__
 			if (errno == EAGAIN || errno == EWOULDBLOCK)
 				return 0;
 
 			return -errno;
+#else
+			if (WSAGetLastError() == WSAEWOULDBLOCK)
+				return 0;
+
+			return -(WSAGetLastError() - WSABASEERR);
+#endif
+
 		}
 
-		if (fcntl(fd, F_SETFL, (int)O_NONBLOCK) == -1) {
+		if (rkt_nonblocking(fd) == -1) {
 			close(fd);
 			return -errno;
 		}
@@ -735,8 +770,13 @@ int rkt_scener_update(rkt_context_t *ctxt)
 
 		ret = send(scener->client, &buf[scener->output_pos], len - scener->output_pos, MSG_NOSIGNAL);
 		if (ret == -1) {
+#ifndef __WIN32__
 			if (errno == EAGAIN || errno == EWOULDBLOCK)
 				return 0;
+#else
+			if (WSAGetLastError() == WSAEWOULDBLOCK)
+				return 0;
+#endif
 
 			return rkt_scener_err_close(scener, errno);
 		}
@@ -756,10 +796,15 @@ int rkt_scener_update(rkt_context_t *ctxt)
 		
 		for (;;) {
 			/* keep accumulating input until a newline, then transition to next_state */
-			switch (recv(scener->client, &b, 1, 0)) {
+			switch (recv(scener->client, &b[0], 1, 0)) {
 			case -1:
+#ifndef __WIN32__
 				if (errno == EWOULDBLOCK || errno == EAGAIN)
 					return 0;
+#else
+				if (WSAGetLastError() == WSAEWOULDBLOCK)
+					return 0;
+#endif
 
 				return rkt_scener_err_close(scener, errno);
 
