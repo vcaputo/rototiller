@@ -224,17 +224,19 @@ static int checkers_fragmenter(til_module_context_t *context, const til_fb_fragm
 
 static void checkers_prepare_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
 {
-	checkers_context_t	*ctxt = (checkers_context_t *)context;
-
-	/* XXX: note cpu_affinity is required when fill_module is used, to ensure module_contexts
-	 * have a stable relationship to fragnum.  Otherwise the output would be unstable because the
-	 * module contexts would be randomly distributed across the filled checkers frame-to-frame.
-	 * This is unfortunate since cpu_affinity is likely to be slower than just letting the render
-	 * threads render fragments in whatever order (the preferred default).  fill_module here
-	 * is actually *the* reason til_frame_plan_t.cpu_affinity got implemented, before this there
-	 * wasn't even a til_frame_plan_t container; a bare til_fragmenter_t was returned.
+	/* XXX: once upon a time this used .cpu_affinity = 1, to
+	 * get a stable mapping of per-cpu-context to filled cell
+	 * via/fill_module.  But that slows things down
+	 * substantially as-implemented in til_threads since it
+	 * makes threads wait for their next fragnum to come up.
+	 * Since seed-ifying everything, and the seed is the same
+	 * across the contexts, they _should_ have identical
+	 * outputs.  So I got rid of it for the perf gain, and
+	 * modules which aren't behaving well WRT
+	 * same-seeds-same-settings-but-different-output, fix
+	 * them.
 	 */
-	*res_frame_plan = (til_frame_plan_t){ .fragmenter = checkers_fragmenter, .cpu_affinity = !!ctxt->setup->fill_module };
+	*res_frame_plan = (til_frame_plan_t){ .fragmenter = checkers_fragmenter };
 }
 
 
