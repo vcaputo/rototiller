@@ -112,6 +112,19 @@ void til_shutdown(void)
 }
 
 
+#ifdef __WIN32__
+/* taken from glibc <sys/time.h> just to make windows happy*/
+# define timersub(a, b, result)                                               \
+  do {                                                                        \
+    (result)->tv_sec = (a)->tv_sec - (b)->tv_sec;                             \
+    (result)->tv_usec = (a)->tv_usec - (b)->tv_usec;                          \
+    if ((result)->tv_usec < 0) {                                              \
+      --(result)->tv_sec;                                                     \
+      (result)->tv_usec += 1000000;                                           \
+    }                                                                         \
+  } while (0)
+#endif
+
 /* returns number of "ticks" since til_init(), which are currently milliseconds */
 unsigned til_ticks_now(void)
 {
