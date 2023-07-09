@@ -17,6 +17,10 @@ struct til_module_context_t {
 					 */
 
 	unsigned                refcount;
+
+	/* for profiling */
+	unsigned		last_render_duration, max_render_duration;
+	unsigned		renders_count;
 };
 
 void * til_module_context_new(const til_module_t *module, size_t size, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup);

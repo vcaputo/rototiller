@@ -414,7 +414,14 @@ static void module_render_fragment(til_module_context_t *context, til_stream_t *
  */
 void til_module_render(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr)
 {
+	unsigned	start = til_ticks_now();
+
 	module_render_fragment(context, stream, til_threads, ticks, fragment_ptr);
+
+	context->last_render_duration = til_ticks_now() - start;
+	if (context->last_render_duration > context->max_render_duration)
+		context->max_render_duration = context->last_render_duration;
+	context->renders_count++;
 	context->last_ticks = ticks;
 }
 

@@ -696,8 +696,16 @@ static int til_stream_fprint_module_context_cb(void *arg, til_stream_module_cont
 	FILE	*out = arg;
 
 	fprintf(out, " %s: %s[%zu]", contexts[0]->setup->path, contexts[0]->module->name, n_module_contexts);
-	for (size_t i = 0; i < n_module_contexts; i++)
-		fprintf(out, "%s{rc=%u, n_cpus=%u}", i ? ", " : " ", contexts[i]->refcount, contexts[i]->n_cpus);
+	for (size_t i = 0; i < n_module_contexts; i++) {
+		fprintf(out,
+			"%s{rc=%u, n_cpus=%u r=%u rd=%u maxrd=%u}",
+			i ? ", " : " ",
+			contexts[i]->refcount,
+			contexts[i]->n_cpus,
+			contexts[i]->renders_count,
+			contexts[i]->last_render_duration,
+			contexts[i]->max_render_duration);
+	}
 	fprintf(out, "\n");
 
 	return 0;
