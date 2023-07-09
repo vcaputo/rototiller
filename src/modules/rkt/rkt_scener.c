@@ -85,7 +85,7 @@ int rkt_scener_startup(rkt_context_t *ctxt)
 
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(setup->scener_port);
-	inet_aton(setup->scener_address, (struct in_addr *)&addr.sin_addr.s_addr);
+	addr.sin_addr.s_addr = inet_addr(setup->scener_address);
 
 	if (bind(scener->listener, (struct sockaddr *)&addr, sizeof(addr)) == -1)
 		goto _err_close;
