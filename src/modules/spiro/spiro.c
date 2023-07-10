@@ -85,10 +85,11 @@ static void spiro_render_fragment(til_module_context_t *context, til_stream_t *s
 		int pos_x=display_origin_x+(my_x*display_R);
 		int pos_y=display_origin_y+(my_y*display_R);
 		til_fb_fragment_put_pixel_checked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, pos_x, pos_y,
-			makergb(sinf(M_1_PI*t)*127+128,
-				sinf(M_1_PI*t+(2*M_PI*.333333333333f))*127+128,
-				sinf(M_1_PI*t+(4*M_PI*.333333333333f))*127+128,
-				0.76));
+			fragment->texture ? 0xffffffff :
+				makergb(sinf(M_1_PI*t)*127+128,
+					sinf(M_1_PI*t+(2*M_PI*.333333333333f))*127+128,
+					sinf(M_1_PI*t+(4*M_PI*.333333333333f))*127+128,
+					0.76));
 	}
 
 #ifdef DEBUG
