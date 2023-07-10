@@ -163,6 +163,14 @@ static til_module_t	_blank_module = {
 };
 
 
+/* "noop" built-in module */
+static til_module_t	_noop_module = {
+	.name = "noop",
+	.description = "built-in nothing-doer",
+	.author = "built-in",
+};
+
+
 /* "ref" built-in module */
 #include "libs/txt/txt.h" /* for rendering some diagnostics */
 
@@ -294,6 +302,7 @@ const til_module_t * til_lookup_module(const char *name)
 {
 	static const til_module_t       *builtins[] = {
 					       &_blank_module,
+					       &_noop_module,
 					       &_ref_module,
 				       };
 	static struct {
@@ -380,6 +389,7 @@ char * til_get_module_names(unsigned flags_excluded, const char **exclusions)
 static void module_render_fragment(til_module_context_t *context, til_stream_t *stream, til_threads_t *threads, unsigned ticks, til_fb_fragment_t **fragment_ptr)
 {
 	const til_module_t	*module;
+	int			touched = 0;
 
 	assert(context);
 	assert(context->module);
@@ -412,13 +422,18 @@ static void module_render_fragment(til_module_context_t *context, til_stream_t *
 			while (frame_plan.fragmenter(context, *fragment_ptr, fragnum++, &frag))
 				module->render_fragment(context, stream, ticks, 0, &frag_ptr);
 		}
-	} else if (module->render_fragment)
+		touched++;
+	} else if (module->render_fragment) {
 		module->render_fragment(context, stream, ticks, 0, fragment_ptr);
+		touched++;
+	}
 
-	if (module->finish_frame)
+	if (module->finish_frame) {
 		module->finish_frame(context, stream, ticks, fragment_ptr);
+		touched++;
+	}
 
-	(*fragment_ptr)->cleared = 1;
+	(*fragment_ptr)->cleared = !!touched;
 }
 
 
