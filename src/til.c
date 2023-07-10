@@ -499,45 +499,44 @@ int til_module_create_context(const til_module_t *module, til_stream_t *stream, 
 }
 
 
-/* select module if not yet selected, then setup the module. */
-int til_module_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
+int til_module_setup_full(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup, const char *name, const char *preferred, unsigned flags_excluded, const char **exclusions)
 {
+	const char		*module_name;
 	til_setting_t		*setting;
 	const til_module_t	*module;
-	const char		*name;
 
-	name = til_settings_get_value_by_idx(settings, 0, &setting);
-	if (!name || !setting->desc) {
+	assert(settings);
+	assert(name);
+	assert(preferred);
+
+	module_name = til_settings_get_value_by_idx(settings, 0, &setting);
+	if (!module_name || !setting->desc) {
 		const char		*values[nelems(modules) + 1] = {};
 		const char		*annotations[nelems(modules) + 1] = {};
-		const til_settings_t	*parent;
 		int			r, filtered = 1;
 
-		/* Only disable filtering if a *valid* name is providead.
+		/* Only disable filtering if a *valid* module_name is providead.
 		 * This is so fat-fingered names don't suddenly include a bunch of broken options.
 		 */
-		if (name && til_lookup_module(name))
+		if (module_name && til_lookup_module(module_name))
 			filtered = 0;
 
-		parent = til_settings_get_parent(settings);
-
 		for (unsigned i = 0, j = 0; i < nelems(modules); i++) {
-			/* XXX: This only skips experimental modules when no module setting was pre-specified,
-			 * which allows accessing the experimental modules via the CLI without showing them
-			 * in the interactive setup where the desc provides the displayed list of values before
-			 * the module setting gets added.  It seems a bit kludge-y and fragile, but works well
-			 * enough for now to get at the experimental modules during testing/development.
-			 *
-			 * XXX: To enable using this in nested setup scenarios, where HERMETIC modules really
-			 * shouldn't be listed, it now skips hermetic if settings->parent is set.  That's
-			 * used to imply this isn't the "root" module setup, hence hermetic is inappropriate.
-			 */
 			if (filtered) {
-				if (modules[i]->flags & TIL_MODULE_EXPERIMENTAL)
+				if (modules[i]->flags & flags_excluded)
 					continue;
 
-				if (modules[i]->flags & (parent ? TIL_MODULE_HERMETIC : 0))
-					continue;
+				if (exclusions) {
+					const char	*excl = *exclusions;
+
+					for (; excl; excl++) {
+						if (!strcasecmp(excl, modules[i]->name))
+							break;
+					}
+
+					if (excl)
+						continue;
+				}
 			}
 
 			values[j] = modules[i]->name;
@@ -547,10 +546,10 @@ int til_module_setup(const til_settings_t *settings, til_setting_t **res_setting
 
 		r = til_setting_desc_new(	settings,
 						&(til_setting_spec_t){
-							.name = "Renderer module",
+							.name = name,
 							.key = NULL,
 							.regex = "[a-zA-Z0-9]+",
-							.preferred = parent ? TIL_DEFAULT_NESTED_MODULE : TIL_DEFAULT_ROOT_MODULE,
+							.preferred = preferred,
 							.values = values,
 							.annotations = annotations,
 							.as_label = 1
@@ -558,12 +557,12 @@ int til_module_setup(const til_settings_t *settings, til_setting_t **res_setting
 		if (r < 0)
 			return r;
 
-		*res_setting = name ? setting : NULL;
+		*res_setting = module_name ? setting : NULL;
 
 		return 1;
 	}
 
-	module = til_lookup_module(name);
+	module = til_lookup_module(module_name);
 	if (!module)
 		return -EINVAL;
 
@@ -574,6 +573,24 @@ int til_module_setup(const til_settings_t *settings, til_setting_t **res_setting
 		return til_module_setup_finalize(module, settings, res_setup);
 
 	return 0;
+}
+
+
+/* select module if not yet selected, then setup the module. */
+int til_module_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
+{
+	const til_settings_t	*parent;
+
+	parent = til_settings_get_parent(settings);
+
+	return til_module_setup_full(settings,
+				     res_setting,
+				     res_desc,
+				     res_setup,
+				     "Renderer Module",
+				     parent ? TIL_DEFAULT_NESTED_MODULE : TIL_DEFAULT_ROOT_MODULE,
+				     (TIL_MODULE_EXPERIMENTAL | (parent ? TIL_MODULE_HERMETIC : 0)),
+				     NULL);
 }
 
 

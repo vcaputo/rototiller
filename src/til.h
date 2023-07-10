@@ -48,6 +48,7 @@ void til_module_render(til_module_context_t *context, til_stream_t *stream, unsi
 int til_module_create_contexts(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup, size_t n_contexts, til_module_context_t **res_contexts);
 int til_module_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup, til_module_context_t **res_context);
 til_module_context_t * til_module_destroy_context(til_module_context_t *context, til_stream_t *stream);
+int til_module_setup_full(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup, const char *name, const char *preferred, unsigned flags_excluded, const char **exclusions);
 int til_module_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
 int til_module_setup_randomize(const til_module_t *module, til_settings_t *settings, unsigned seed, til_setup_t **res_setup, char **res_arg);
 int til_module_setup_finalize(const til_module_t *module, const til_settings_t *module_settings, til_setup_t **res_setup);
