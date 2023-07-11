@@ -50,8 +50,10 @@
  */
 
 
+#include <assert.h>
 #include <errno.h>
 #include <math.h>
+#include <pthread.h>
 #include <stdlib.h>
 #include <unistd.h>
 
@@ -68,6 +70,8 @@
 #define SHAPES_DEFAULT_PINCHES		2
 
 #define SHAPES_SPIN_BASE		.0025f
+
+typedef struct shapes_radcache_t shapes_radcache_t;
 
 typedef enum shapes_type_t {
 	SHAPES_TYPE_CIRCLE,
@@ -90,7 +94,88 @@ typedef struct shapes_setup_t {
 typedef struct shapes_context_t {
 	til_module_context_t	til_module_context;
 	shapes_setup_t		*setup;
+	shapes_radcache_t	*radcache;
 } shapes_context_t;
+
+struct shapes_radcache_t {
+	shapes_radcache_t	*next, *prev;
+	unsigned		width, height;
+	unsigned		refcount;
+	unsigned		initialized:1;
+	float			rads[];
+};
+
+static struct {
+	shapes_radcache_t	*head;
+	pthread_mutex_t		lock;
+} shapes_radcache_list = { .lock = PTHREAD_MUTEX_INITIALIZER };
+
+
+static void * shapes_radcache_unref(shapes_radcache_t *radcache)
+{
+	if (!radcache)
+		return NULL;
+
+	if (__sync_fetch_and_sub(&radcache->refcount, 1) == 1) {
+
+		pthread_mutex_lock(&shapes_radcache_list.lock);
+		if (radcache->prev)
+			radcache->prev->next = radcache->next;
+		else
+			shapes_radcache_list.head = radcache->next;
+
+		if (radcache->next)
+			radcache->next->prev = radcache->prev;
+		pthread_mutex_unlock(&shapes_radcache_list.lock);
+
+		free(radcache);
+	}
+
+	return NULL;
+}
+
+
+static shapes_radcache_t * shapes_radcache_find(unsigned width, unsigned height)
+{
+	shapes_radcache_t	*radcache;
+
+	pthread_mutex_lock(&shapes_radcache_list.lock);
+	for (radcache = shapes_radcache_list.head; radcache; radcache = radcache->next) {
+		if (radcache->width == width &&
+		    radcache->height == height) {
+			/* if we race with removal, refcount will be zero and we can't use it */
+			if (!__sync_fetch_and_add(&radcache->refcount, 1))
+				radcache = NULL;
+			break;
+		}
+	}
+	pthread_mutex_unlock(&shapes_radcache_list.lock);
+
+	return radcache;
+}
+
+
+static shapes_radcache_t * shapes_radcache_new(unsigned width, unsigned height)
+{
+	size_t			size = width * height;
+	shapes_radcache_t	*radcache;
+
+	radcache = malloc(sizeof(shapes_radcache_t) + size * sizeof(radcache->rads[0]));
+	assert(radcache);
+	radcache->initialized = 0;
+	radcache->width = width;
+	radcache->height = height;
+	radcache->refcount = 1;
+	radcache->prev = NULL;
+
+	pthread_mutex_lock(&shapes_radcache_list.lock);
+	radcache->next = shapes_radcache_list.head;
+	if (radcache->next)
+		radcache->next->prev = radcache;
+	pthread_mutex_unlock(&shapes_radcache_list.lock);
+
+	return radcache;
+}
 
 
 static til_module_context_t * shapes_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
@@ -107,9 +192,49 @@ static til_module_context_t * shapes_create_context(const til_module_t *module, 
 }
 
 
+static void shapes_destroy_context(til_module_context_t *context)
+{
+	shapes_context_t	*ctxt = (shapes_context_t *)context;
+
+	shapes_radcache_unref(ctxt->radcache);
+}
+
+
 static void shapes_prepare_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
 {
+
 	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu };
+
+	/* TODO:
+	 * I've implemented this ad-hoc here for shapes, but I think there's a case to be made that
+	 * such caching should be generalized and added to til_stream_t in a generalized manner.
+	 *
+	 * So shapes should be able to just register a cache of arbitrary type and dimensions with
+	 * some identifier which can then be discovered by shapes and others via that potentially
+	 * well-known identifier.
+	 *
+	 * In a sense this is just a prototype of what part of that might look like... it's pretty clear
+	 * that something like "atan2() of every pixel coordinate in a centered origin coordinate system"
+	 * could have cached value to many modules
+	 */
+	{ /* radcache maintenance */
+		til_fb_fragment_t	*fragment = *fragment_ptr;
+		shapes_context_t	*ctxt = (shapes_context_t *)context;
+		shapes_radcache_t	*radcache = ctxt->radcache;
+
+		if (radcache &&
+		    (radcache->width != fragment->frame_width ||
+		     radcache->height != fragment->frame_height))
+			radcache = ctxt->radcache = shapes_radcache_unref(radcache);
+
+		if (!radcache)
+			radcache = shapes_radcache_find(fragment->frame_width, fragment->frame_height);
+
+		if (!radcache)
+			radcache = shapes_radcache_new(fragment->frame_width, fragment->frame_height);
+
+		ctxt->radcache = radcache;
+	}
 }
 
 
@@ -164,6 +289,8 @@ static void shapes_render_fragment(til_module_context_t *context, til_stream_t *
 	unsigned		xskip = (fragment->x > xoff ? (fragment->x - xoff) : 0);
 	unsigned		ystart = MAX(fragment->y, yoff), yend = MIN(yoff + size, fragment->y + fragment->height);
 	unsigned		xstart = MAX(fragment->x, xoff), xend = MIN(xoff + size, fragment->x + fragment->width);
+	shapes_radcache_t	*radcache = ctxt->radcache;
+	float			*rads = radcache->rads;
 
 	if (!fragment->cleared) {
 		/* when {letter,pillar}boxed we need to clear the padding */
@@ -208,14 +335,27 @@ static void shapes_render_fragment(til_module_context_t *context, til_stream_t *
 			XX = -1.f + xskip * s;
 			X = -(size >> 1) + xskip;
 			YYY = Y * Y;
-			for (unsigned x = xstart; x < xend; x++, X++, XX += s) {
-				float	a = atan2_approx(YY, XX);
+			if (!radcache->initialized) {
+				for (unsigned x = xstart; x < xend; x++, X++, XX += s) {
+					float	a = rads[y * radcache->width + x] = atan2_approx(YY, XX);
 
-				if (YYY+X*X < r_sq * (1.f - fabsf(cosf(n_pinches * a + pinch)) * pinch_s))
-					til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x, y, 0xffffffff); /* TODO: stop relying on checked for clipping */
-				else if (!fragment->cleared)
-					til_fb_fragment_put_pixel_unchecked(fragment, 0, x, y, 0x0);
+					if (YYY+X*X < r_sq * (1.f - fabsf(cosf(n_pinches * a + pinch)) * pinch_s))
+						til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x, y, 0xffffffff); /* TODO: stop relying on checked for clipping */
+					else if (!fragment->cleared)
+						til_fb_fragment_put_pixel_unchecked(fragment, 0, x, y, 0x0);
 
+				}
+			} else {
+				float	*rads = radcache->rads;
+				for (unsigned x = xstart; x < xend; x++, X++, XX += s) {
+					float	a = rads[y * radcache->width + x];
+
+					if (YYY+X*X < r_sq * (1.f - fabsf(cosf(n_pinches * a + pinch)) * pinch_s))
+						til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x, y, 0xffffffff); /* TODO: stop relying on checked for clipping */
+					else if (!fragment->cleared)
+						til_fb_fragment_put_pixel_unchecked(fragment, 0, x, y, 0x0);
+
+				}
 			}
 		}
 		break;
@@ -236,17 +376,32 @@ static void shapes_render_fragment(til_module_context_t *context, til_stream_t *
 		for (unsigned y = ystart; y < yend; y++, YY += s) {
 			XX = -1.f + xskip * s;
 			YYYY = YY * YY;
-			for (unsigned x = xstart; x < xend; x++, XX += s) {
-				float	a = atan2_approx(YY, XX);
-				float	r = cosf(n_points * (a + spin)) * .5f + .5f;
+			if (!radcache->initialized) {
+				for (unsigned x = xstart; x < xend; x++, XX += s) {
+					float	a = rads[y * radcache->width + x] = atan2_approx(YY, XX);
+					float	r = cosf(n_points * (a + spin)) * .5f + .5f;
 
-				r *= 1.f - fabsf(cosf(n_pinches * (a + pinch))) * pinch_s;
+					r *= 1.f - fabsf(cosf(n_pinches * (a + pinch))) * pinch_s;
 
-				if (XX * XX + YYYY < r * r)
-					til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x, y, 0xffffffff);
-				else if (!fragment->cleared)
-					til_fb_fragment_put_pixel_unchecked(fragment, 0, x, y, 0x0);
+					if (XX * XX + YYYY < r * r)
+						til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x, y, 0xffffffff);
+					else if (!fragment->cleared)
+						til_fb_fragment_put_pixel_unchecked(fragment, 0, x, y, 0x0);
 
+				}
+			} else {
+				for (unsigned x = xstart; x < xend; x++, XX += s) {
+					float	a = rads[y * radcache->width + x];
+					float	r = cosf(n_points * (a + spin)) * .5f + .5f;
+
+					r *= 1.f - fabsf(cosf(n_pinches * (a + pinch))) * pinch_s;
+
+					if (XX * XX + YYYY < r * r)
+						til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x, y, 0xffffffff);
+					else if (!fragment->cleared)
+						til_fb_fragment_put_pixel_unchecked(fragment, 0, x, y, 0x0);
+
+				}
 			}
 		}
 		break;
@@ -266,16 +421,29 @@ static void shapes_render_fragment(til_module_context_t *context, til_stream_t *
 		YY = -1.f + yskip * s;
 		Y = -(size >> 1) + yskip;
 		for (unsigned y = ystart; y < yend; y++, Y++, YY += s) {
+			float	*rads = radcache->rads;
 			XX = -1.f + xskip * s;
 			X = -(size >> 1) + xskip;
-			for (unsigned x = xstart; x < xend; x++, X++, XX += s) {
-				float	rad = atan2_approx(YY, XX);
+			if (!radcache->initialized) {
+				for (unsigned x = xstart; x < xend; x++, X++, XX += s) {
+					float	a = rads[y * radcache->width + x] = atan2_approx(YY, XX);
 
-				if (abs(Y) + abs(X) < r * (1.f - fabsf(cosf(n_pinches * rad + pinch)) * pinch_s))
-					til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x, y, 0xffffffff);
-				else if (!fragment->cleared)
-					til_fb_fragment_put_pixel_unchecked(fragment, 0, x, y, 0x0);
+					if (abs(Y) + abs(X) < r * (1.f - fabsf(cosf(n_pinches * a + pinch)) * pinch_s))
+						til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x, y, 0xffffffff);
+					else if (!fragment->cleared)
+						til_fb_fragment_put_pixel_unchecked(fragment, 0, x, y, 0x0);
 
+				}
+			} else {
+				for (unsigned x = xstart; x < xend; x++, X++, XX += s) {
+					float	a = rads[y * radcache->width + x];
+
+					if (abs(Y) + abs(X) < r * (1.f - fabsf(cosf(n_pinches * a + pinch)) * pinch_s))
+						til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x, y, 0xffffffff);
+					else if (!fragment->cleared)
+						til_fb_fragment_put_pixel_unchecked(fragment, 0, x, y, 0x0);
+
+				}
 			}
 		}
 		break;
@@ -296,22 +464,54 @@ static void shapes_render_fragment(til_module_context_t *context, til_stream_t *
 		for (unsigned y = ystart; y < yend; y++, YY += s) {
 			XX = -1.f + xskip * s;
 			YYYY = YY * YY;
-			for (unsigned x = xstart; x < xend; x++, XX += s) {
-				float	a = atan2_approx(YY, XX);
-				float	r = (M_2_PI * asinf(sinf(n_points * (a + spin)) * .5f + .5f)) * .5f + .5f;
-					/*   ^^^^^^^^^^^^^^^^^^^ approximates a triangle wave */
+			if (!radcache->initialized) {
+				for (unsigned x = xstart; x < xend; x++, XX += s) {
+					float	a = rads[y * radcache->width + x] = atan2_approx(YY, XX);
+					float	r = (M_2_PI * asinf(sinf(n_points * (a + spin)) * .5f + .5f)) * .5f + .5f;
+						/*   ^^^^^^^^^^^^^^^^^^^ approximates a triangle wave */
 
-				r *= 1.f - fabsf(cosf(n_pinches * a + pinch)) * pinch_s;
+					r *= 1.f - fabsf(cosf(n_pinches * a + pinch)) * pinch_s;
 
-				if (XX * XX + YYYY < r * r)
-					til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x, y, 0xffffffff);
-				else if (!fragment->cleared)
-					til_fb_fragment_put_pixel_unchecked(fragment, 0, x, y, 0x0);
+					if (XX * XX + YYYY < r * r)
+						til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x, y, 0xffffffff);
+					else if (!fragment->cleared)
+						til_fb_fragment_put_pixel_unchecked(fragment, 0, x, y, 0x0);
+				}
+			} else {
+				float	*rads = radcache->rads;
+				for (unsigned x = xstart; x < xend; x++, XX += s) {
+					float	a = rads[y * radcache->width + x];
+					float	r = (M_2_PI * asinf(sinf(n_points * (a + spin)) * .5f + .5f)) * .5f + .5f;
+						/*   ^^^^^^^^^^^^^^^^^^^ approximates a triangle wave */
+
+					r *= 1.f - fabsf(cosf(n_pinches * a + pinch)) * pinch_s;
+
+					if (XX * XX + YYYY < r * r)
+						til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x, y, 0xffffffff);
+					else if (!fragment->cleared)
+						til_fb_fragment_put_pixel_unchecked(fragment, 0, x, y, 0x0);
+				}
 			}
 		}
 		break;
 	}
 	}
+}
+
+
+static void shapes_finish_frame(til_module_context_t *context, til_stream_t *stream, unsigned int ticks, til_fb_fragment_t **fragment_ptr)
+{
+	shapes_context_t	*ctxt = (shapes_context_t *)context;
+
+	/* XXX: note that in rendering, initialized is checked racily and it's entirely possible
+	 * for multiple contexts to be rendering and populating the radcache when !initialized
+	 * simultaneously... but since they'd be producing identical data for the cache anyways,
+	 * it seems mostly harmless for now.  What should probably be done is make initialized a
+	 * tri-state that's atomically advanced towards initialized wiht an "intializing" mid-state
+	 * that only one renderer can enter, then the others treat "initializing" as !radcache at all
+	 * TODO FIXME
+	 */
+	ctxt->radcache->initialized = 1;
 }
 
 
@@ -560,8 +760,10 @@ static int shapes_setup(const til_settings_t *settings, til_setting_t **res_sett
 
 til_module_t	shapes_module = {
 	.create_context = shapes_create_context,
+	.destroy_context = shapes_destroy_context,
 	.prepare_frame = shapes_prepare_frame,
 	.render_fragment = shapes_render_fragment,
+	.finish_frame = shapes_finish_frame,
 	.setup = shapes_setup,
 	.name = "shapes",
 	.description = "Procedural 2D shapes (threaded)",
