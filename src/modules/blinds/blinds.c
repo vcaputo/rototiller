@@ -42,6 +42,19 @@ typedef struct blinds_context_t {
 } blinds_context_t;
 
 
+static void blinds_update_taps(blinds_context_t *ctxt, til_stream_t *stream, unsigned ticks)
+{
+	if (!til_stream_tap_context(stream, &ctxt->til_module_context, NULL, &ctxt->taps.t))
+		*ctxt->t = til_ticks_to_rads(ticks);
+
+	if (!til_stream_tap_context(stream, &ctxt->til_module_context, NULL, &ctxt->taps.step))
+		*ctxt->step = .1f;
+
+	if (!til_stream_tap_context(stream, &ctxt->til_module_context, NULL, &ctxt->taps.count))
+		*ctxt->count = ctxt->setup->count;
+}
+
+
 static til_module_context_t * blinds_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	blinds_context_t	*ctxt;
@@ -55,6 +68,8 @@ static til_module_context_t * blinds_create_context(const til_module_t *module, 
 	ctxt->taps.count = til_tap_init_float(ctxt, &ctxt->count, 1, &ctxt->vars.count, "count");
 
 	ctxt->setup = (blinds_setup_t *)setup;
+
+	blinds_update_taps(ctxt, stream, ticks);
 
 	return &ctxt->til_module_context;
 }
@@ -97,14 +112,7 @@ static void blinds_render_fragment(til_module_context_t *context, til_stream_t *
 	unsigned	blind;
 	float		t;
 
-	if (!til_stream_tap_context(stream, context, NULL, &ctxt->taps.t))
-		*ctxt->t = til_ticks_to_rads(ticks);
-
-	if (!til_stream_tap_context(stream, context, NULL, &ctxt->taps.step))
-		*ctxt->step = .1f;
-
-	if (!til_stream_tap_context(stream, context, NULL, &ctxt->taps.count))
-		*ctxt->count = ctxt->setup->count;
+	blinds_update_taps(ctxt, stream, ticks);
 
 	til_fb_fragment_clear(fragment);
 
