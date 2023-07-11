@@ -75,16 +75,39 @@ static til_module_context_t * blinds_create_context(const til_module_t *module, 
 }
 
 
+static void blinds_prepare_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
+{
+	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_tile64 };
+}
+
+
 /* draw a horizontal blind over fragment */
 static inline void draw_blind_horizontal(til_fb_fragment_t *fragment, unsigned row, unsigned count, float t)
 {
-	unsigned	row_height = fragment->frame_height / count;
-	unsigned	height = roundf(t * (float)row_height);
+	float		row_height = fragment->frame_height / (float)count;
+	unsigned	height = roundf(t * row_height);
+	unsigned	row_y = row * row_height;
 
-/* XXX FIXME: use faster block style fill/copy if til_fb gets that */
-	for (unsigned y = 0; y < height; y++) {
-		for (unsigned x = 0; x < fragment->width; x++)
-			til_fb_fragment_put_pixel_checked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, fragment->x + x, fragment->y + y + row * row_height, 0xffffffff); /* FIXME: use _unchecked() variant, but must not assume frame_height == height */
+	if (row_y >= fragment->y + fragment->height)
+		return;
+
+	if (row_y + height <= fragment->y)
+		return;
+
+	{
+		unsigned	ystart = MAX(row_y, fragment->y);
+		unsigned	yend = MIN(row_y + height, fragment->y + fragment->height);
+		unsigned	xstart = fragment->x;
+		unsigned	xend = fragment->x + fragment->width;
+
+		for (unsigned y = ystart; y < yend; y++) {
+			/* XXX FIXME: use faster block style fill/copy if til_fb gets that */
+			for (unsigned x = xstart; x < xend; x++) {
+				til_fb_fragment_put_pixel_unchecked(fragment,
+								    TIL_FB_DRAW_FLAG_TEXTURABLE,
+								    x, y, 0xffffffff);
+			}
+		}
 	}
 }
 
@@ -92,13 +115,30 @@ static inline void draw_blind_horizontal(til_fb_fragment_t *fragment, unsigned r
 /* draw a vertical blind over fragment */
 static inline void draw_blind_vertical(til_fb_fragment_t *fragment, unsigned column, unsigned count, float t)
 {
-	unsigned	column_width = fragment->frame_width / count;
-	unsigned	width = roundf(t * (float)column_width);
+	float		column_width = fragment->frame_width / (float)count;
+	unsigned	width = roundf(t * column_width);
+	unsigned	column_x = column * column_width;
 
-/* XXX FIXME: use faster block style fill/copy if til_fb gets that */
-	for (unsigned y = 0; y < fragment->height; y++) {
-		for (unsigned x = 0; x < width; x++)
-			til_fb_fragment_put_pixel_checked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, fragment->x + x + column * column_width, fragment->y + y, 0xffffffff); /* FIXME: use _unchecked() variant, but must not assume frame_width == width */
+	if (column_x >= fragment->x + fragment->width)
+		return;
+
+	if (column_x + width <= fragment->x)
+		return;
+
+	{
+		unsigned	xstart = MAX(column_x, fragment->x);
+		unsigned	xend = MIN(column_x + width, fragment->x + fragment->width);
+		unsigned	ystart = fragment->y;
+		unsigned	yend = fragment->y + fragment->height;
+
+		for (unsigned y = ystart; y < yend; y++) {
+			/* XXX FIXME: use faster block style fill/copy if/when til_fb gets that */
+			for (unsigned x = xstart; x < xend; x++) {
+				til_fb_fragment_put_pixel_unchecked(fragment,
+								    TIL_FB_DRAW_FLAG_TEXTURABLE,
+								    x, y, 0xffffffff);
+			}
+		}
 	}
 }
 
@@ -208,10 +248,11 @@ static int blinds_setup(const til_settings_t *settings, til_setting_t **res_sett
 
 til_module_t	blinds_module = {
 	.create_context = blinds_create_context,
+	.prepare_frame = blinds_prepare_frame,
 	.render_fragment = blinds_render_fragment,
 	.setup = blinds_setup,
 	.name = "blinds",
-	.description = "Retro 80s-inspired window blinds",
+	.description = "Retro 80s-inspired window blinds (threaded)",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",
 	.flags = TIL_MODULE_OVERLAYABLE,
 };
