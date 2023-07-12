@@ -640,6 +640,8 @@ int til_stream_find_module_contexts(til_stream_t *stream, const char *path, size
 
 void til_stream_gc_module_contexts(til_stream_t *stream)
 {
+	unsigned	freed;
+
 	assert(stream);
 
 	/* This may not remain long-term, but there's no current way to unregister contexts - and by
@@ -656,39 +658,44 @@ void til_stream_gc_module_contexts(til_stream_t *stream)
 	 * very tentative and mostly just to keep "rtv" from meltdown while the dust settles on the rkt
 	 * front.
 	 */
-	for (size_t b = 0; b < TIL_STREAM_CTXT_BUCKETS_COUNT; b++) {
-		til_stream_module_context_t	*c, *c_prev, *c_next;
+	do {
+		freed = 0;
 
-		for (c = stream->module_context_buckets[b], c_prev = NULL; c != NULL; c = c_next) {
-			size_t	i;
+		for (size_t b = 0; b < TIL_STREAM_CTXT_BUCKETS_COUNT; b++) {
+			til_stream_module_context_t	*c, *c_prev, *c_next;
 
-			c_next = c->next;
+			for (c = stream->module_context_buckets[b], c_prev = NULL; c != NULL; c = c_next) {
+				size_t	i;
 
-			for (i = 0; i < c->n_module_contexts; i++) {
-				if (c->module_contexts[i]->refcount != 1)
-					break;
+				c_next = c->next;
+
+				for (i = 0; i < c->n_module_contexts; i++) {
+					if (c->module_contexts[i]->refcount != 1)
+						break;
+				}
+
+				if (i < c->n_module_contexts) {
+					c_prev = c;
+					continue;
+				}
+
+				/* if all the contexts in the set are rc=1, that implies they're only on-stream
+				 * and not actively referenced by any user, so we "gc" them.
+				 */
+				{ /* free(stream_module_context_t) */
+					for (i = 0; i < c->n_module_contexts; i++)
+						c->module_contexts[i] = til_module_context_free(c->module_contexts[i]);
+					free(c);
+					freed = 1;
+				}
+
+				if (c_prev)
+					c_prev->next = c_next;
+				else
+					stream->module_context_buckets[b] = c_next;
 			}
-
-			if (i < c->n_module_contexts) {
-				c_prev = c;
-				continue;
-			}
-
-			/* if all the contexts in the set are rc=1, that implies they're only on-stream
-			 * and not actively referenced by any user, so we "gc" them.
-			 */
-			{ /* free(stream_module_context_t) */
-				for (i = 0; i < c->n_module_contexts; i++)
-					c->module_contexts[i] = til_module_context_free(c->module_contexts[i]);
-				free(c);
-			}
-
-			if (c_prev)
-				c_prev->next = c_next;
-			else
-				stream->module_context_buckets[b] = c_next;
 		}
-	}
+	} while (freed);
 }
 
 
