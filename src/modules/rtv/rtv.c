@@ -192,7 +192,10 @@ static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks)
 			 * should be possible with more work...  there just needs to be a way to put the setup in a mode
 			 * where leaving things unspecified is acceptable.
 			 */
-			til_settings_t *settings = til_settings_new(ctxt->til_module_context.setup->path, NULL, ctxt->channel->module->name, ctxt->channel->module->name /* XXX: we can at least toss the bare-value module name in there, but this should really come from the rtv channels= entries */);
+			til_settings_t *settings = til_settings_new(ctxt->til_module_context.setup->path,
+								    NULL,
+								    "channel",
+								    ctxt->channel->module->name /* XXX: this should come from the channel settings */);
 
 			(void) til_module_setup_randomize(ctxt->channel->module, settings, rand_r(&ctxt->til_module_context.seed), &ctxt->channel->module_setup, &settings_as_arg);
 			caption = txt_newf("Title: %s%s%s\nDescription: %s%s%s",
