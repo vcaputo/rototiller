@@ -575,6 +575,7 @@ int til_stream_register_module_contexts(til_stream_t *stream, size_t n_contexts,
 		c->n_module_contexts = n_contexts;
 	}
 
+	/* XXX: note in the reused case c->n_contexts may exceed n_contexts, but they're NULL */
 	for (size_t i = 0; i < n_contexts; i++)
 		c->module_contexts[i] = til_module_context_ref(contexts[i]);
 
