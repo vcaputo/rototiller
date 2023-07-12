@@ -138,6 +138,8 @@ static void cleanup_channel(rtv_context_t *ctxt)
 	ctxt->channel->settings_as_arg = NULL;
 
 	ctxt->caption = ctxt->channel->caption = txt_free(ctxt->channel->caption);
+
+	til_stream_gc_module_contexts(ctxt->til_module_context.stream);
 }
 
 
@@ -221,8 +223,6 @@ static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks)
 
 	if (!ctxt->channel->module_ctxt)
 		(void) til_module_create_context(ctxt->channel->module, ctxt->til_module_context.stream, rand_r(&ctxt->til_module_context.seed), ticks, ctxt->til_module_context.n_cpus, ctxt->channel->module_setup, &ctxt->channel->module_ctxt);
-
-	til_stream_gc_module_contexts(ctxt->til_module_context.stream);
 
 	ctxt->channel->last_on_time = now;
 }
