@@ -77,7 +77,11 @@ static til_module_context_t * blinds_create_context(const til_module_t *module, 
 
 static void blinds_prepare_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
 {
+	blinds_context_t	*ctxt = (blinds_context_t *)context;
+
 	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_tile64 };
+
+	blinds_update_taps(ctxt, stream, ticks);
 }
 
 
@@ -151,8 +155,6 @@ static void blinds_render_fragment(til_module_context_t *context, til_stream_t *
 
 	unsigned	blind;
 	float		t;
-
-	blinds_update_taps(ctxt, stream, ticks);
 
 	til_fb_fragment_clear(fragment);
 
