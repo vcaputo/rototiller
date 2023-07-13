@@ -318,6 +318,11 @@ static int rkt_scener_handle_input_scenes(rkt_context_t *ctxt)
 		scener->state = RKT_SCENER_FSM_SEND_SCENES;
 		break;
 
+	case '=': /* set scener scene idx to current Rocket scene idx, and go to edit scene view */
+		scener->scene = ctxt->scene;
+		scener->state = RKT_SCENER_FSM_SEND_EDITSCENE;
+		break;
+
 	case '\0': /* if you don't say anything to even quote as "invalid input", just go back to the scenes dialog */
 		scener->state = RKT_SCENER_FSM_SEND_SCENES;
 		break;
@@ -644,6 +649,11 @@ static int rkt_scener_handle_input_editscene(rkt_context_t *ctxt)
 		scener->state = RKT_SCENER_FSM_SEND_EDITSCENE;
 		break;
 
+	case '=': /* set scener scene idx to current Rocket scene idx, and go to edit scene view */
+		scener->scene = ctxt->scene;
+		scener->state = RKT_SCENER_FSM_SEND_EDITSCENE;
+		break;
+
 	case '\0': /* if you don't say anything to even quote as "invalid input", just go back to the scenes dialog */
 		scener->state = RKT_SCENER_FSM_SEND_SCENES;
 		break;
@@ -899,7 +909,7 @@ int rkt_scener_update(rkt_context_t *ctxt)
 			return rkt_scener_err_close(scener, ENOMEM);
 
 		if (i) {
-			if (til_str_appendf(output, " [0-%u]", i - 1) < 0)
+			if (til_str_appendf(output, " [0-%u,=]", i - 1) < 0)
 				return rkt_scener_err_close(scener, ENOMEM);
 		}
 
@@ -1210,6 +1220,11 @@ int rkt_scener_update(rkt_context_t *ctxt)
 		til_setting_t	*scene_setting;
 		char		*as_arg;
 		til_str_t	*output;
+
+		if (scener->scene == RKT_EXIT_SCENE_IDX) {
+			scener->state = RKT_SCENER_FSM_SEND_SCENES;
+			break;
+		}
 
 		if (!til_settings_get_value_by_idx(scenes_settings, scener->scene, &scene_setting))
 			return rkt_scener_err_close(scener, ENOENT);
