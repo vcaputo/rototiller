@@ -887,6 +887,14 @@ int rkt_scener_update(rkt_context_t *ctxt)
 				return rkt_scener_err_close(scener, ENOMEM);
 		}
 
+		if (til_str_appendf(output,
+				    "    ...\n %c%c%cEXITED [%u]\n",
+				    ctxt_scene == RKT_EXIT_SCENE_IDX ? '*' : ' ',
+				    scener->scene == RKT_EXIT_SCENE_IDX ? '*' : ' ',
+				    (scener->scene == RKT_EXIT_SCENE_IDX && scener->pin_scene) ? '!' : ' ',
+				    RKT_EXIT_SCENE_IDX) < 0)
+			return rkt_scener_err_close(scener, ENOMEM);
+
 		if (til_str_appendf(output, "\n") < 0)
 			return rkt_scener_err_close(scener, ENOMEM);
 
