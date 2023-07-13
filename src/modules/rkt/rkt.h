@@ -5,6 +5,8 @@
 #include "til_module_context.h"
 #include "til_settings.h"
 
+#define RKT_EXIT_SCENE_IDX	99999
+
 typedef struct rkt_scener_t rkt_scener_t;
 
 typedef struct rkt_scene_t {

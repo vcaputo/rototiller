@@ -277,13 +277,16 @@ static void rkt_render_fragment(til_module_context_t *context, til_stream_t *str
 
 		if (scene < ctxt->n_scenes) {
 			til_module_render(ctxt->scenes[scene].module_ctxt, stream, ticks, fragment_ptr);
-		} else if (scene == 99999 && !((rkt_setup_t *)context->setup)->connect && !ctxt->scener) {
+		} else if (scene == RKT_EXIT_SCENE_IDX &&
+			   !((rkt_setup_t *)context->setup)->connect &&
+			   !ctxt->scener) {
+
 			/* 99999 is treated as an "end of sequence" scene, but only honored when connect=off (player mode) */
 			til_stream_end(stream);
 		} else {
 			txt_t	*msg = txt_newf("%s: %s @ %u [%s] [%s]",
 						context->setup->path,
-						scene == 99999 ? "EXIT SCENE" : "NO SCENE",
+						scene == RKT_EXIT_SCENE_IDX ? "EXIT SCENE" : "NO SCENE",
 						scene,
 						((rkt_setup_t *)context->setup)->connect ? (ctxt->connected ? "ONLINE" : "OFFLINE") : "PLAYER",
 						ctxt->scener ? "SCENER" : "NOSCENER");
@@ -302,7 +305,7 @@ static void rkt_render_fragment(til_module_context_t *context, til_stream_t *str
 		}
 
 		if (scene < ctxt->n_scenes &&
-		    scene != 999999 &&
+		    scene != RKT_EXIT_SCENE_IDX &&
 		    ((rkt_setup_t *)context->setup)->connect && !ctxt->connected) {
 			txt_t	*msg = txt_newf("OFFLINE");
 
