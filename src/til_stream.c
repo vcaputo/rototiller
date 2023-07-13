@@ -281,6 +281,8 @@ int til_stream_tap(til_stream_t *stream, const void *owner, const void *owner_fo
 	pipe->next = stream->pipe_buckets[bucket];
 	stream->pipe_buckets[bucket] = pipe;
 
+	*(tap->ptr) = pipe->driving_tap->elems;
+
 	pthread_mutex_unlock(&stream->mutex);
 	return 0;
 }
