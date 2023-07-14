@@ -220,6 +220,9 @@ static int sdl_fb_acquire(til_fb_t *fb, void *context, void *page)
 	if (!c->texture)
 		return -1;
 
+	if (c->flags & SDL_WINDOW_FULLSCREEN || c->flags & SDL_WINDOW_FULLSCREEN_DESKTOP)
+		SDL_ShowCursor(SDL_DISABLE);
+
 	return 0;
 }
 
