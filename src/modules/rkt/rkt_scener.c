@@ -878,7 +878,7 @@ int rkt_scener_update(rkt_context_t *ctxt)
 		if (til_settings_strprint_path(scenes_settings, output) < 0)
 			return rkt_scener_err_close(scener, ENOMEM);
 
-		if (til_str_appendf(output, "/scenes:\n\n") < 0)
+		if (til_str_appendf(output, ":\n\n") < 0)
 			return rkt_scener_err_close(scener, ENOMEM);
 
 		if (til_str_appendf(output,	" +- Rocket\n"
