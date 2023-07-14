@@ -70,6 +70,7 @@ typedef struct setup_t {
 	til_settings_t	*video_settings;
 	til_setup_t	*video_setup;
 	unsigned	seed;
+	const char	*title;
 } setup_t;
 
 /* FIXME: this is unnecessarily copy-pasta, i think modules should just be made
@@ -207,6 +208,10 @@ static int setup_from_args(til_args_t *args, setup_t *res_setup, const char **re
 	assert(args);
 	assert(res_setup);
 
+	setup.title = strdup(args->title ? : "rototiller");
+	if (!setup.title)
+		goto _err;
+
 	if (args->seed) {
 		r = parse_seed(args->seed, &setup.seed);
 		if (r < 0)
@@ -245,6 +250,7 @@ static int setup_from_args(til_args_t *args, setup_t *res_setup, const char **re
 	return changes;
 
 _err:
+	free((void *)setup.title);
 	til_settings_free(setup.module_settings);
 	til_settings_free(setup.video_settings);
 
@@ -308,7 +314,7 @@ _out:
 
 static int print_help(void)
 {
-	printf("Run without any flags or partial settings for interactive mode.\n"
+	printf("\nRun without any flags or partial settings for interactive mode.\n"
 		"\n"
 		"Supported flags:\n");
 
@@ -387,7 +393,7 @@ int main(int argc, const char *argv[])
 	exit_if(!(rototiller.module = til_lookup_module(til_settings_get_value_by_idx(setup.module_settings, 0, NULL))),
 		"unable to lookup module from settings \"%s\"", til_settings_get_value_by_idx(setup.module_settings, 0, NULL));
 
-	exit_if((r = til_fb_new(fb_ops, setup.video_setup, NUM_FB_PAGES, &rototiller.fb)) < 0,
+	exit_if((r = til_fb_new(fb_ops, setup.title, setup.video_setup, NUM_FB_PAGES, &rototiller.fb)) < 0,
 		"unable to create fb: %s", strerror(-r));
 
 	exit_if(!(rototiller.stream = til_stream_new()),

@@ -354,7 +354,7 @@ static drmModeModeInfo * lookup_mode(drmModeConnector *connector, const char *mo
 
 
 /* prepare the drm context for use with the supplied settings */
-static int drm_fb_init(const til_setup_t *setup, void **res_context)
+static int drm_fb_init(const char *title, const til_setup_t *setup, void **res_context)
 {
 	drm_fb_setup_t	*s = (drm_fb_setup_t *)setup;
 	drm_fb_t	*c;

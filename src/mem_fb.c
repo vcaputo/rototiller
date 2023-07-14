@@ -63,7 +63,7 @@ static int mem_fb_setup(const til_settings_t *settings, til_setting_t **res_sett
 }
 
 
-static int mem_fb_init(const til_setup_t *setup, void **res_context)
+static int mem_fb_init(const char *title, const til_setup_t *setup, void **res_context)
 {
 	mem_fb_t	*c;
 	int		r;

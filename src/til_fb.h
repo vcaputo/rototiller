@@ -38,7 +38,7 @@ typedef struct til_fb_t til_fb_t;
 /* Supply this struct to fb_new() with the appropriate context */
 typedef struct til_fb_ops_t {
 	int	(*setup)(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
-	int	(*init)(const til_setup_t *setup, void **res_context);
+	int	(*init)(const char *title, const til_setup_t *setup, void **res_context);
 	void	(*shutdown)(til_fb_t *fb, void *context);
 	int	(*acquire)(til_fb_t *fb, void *context, void *page);
 	void	(*release)(til_fb_t *fb, void *context);
@@ -53,7 +53,7 @@ til_fb_fragment_t * til_fb_fragment_snapshot(til_fb_fragment_t **fragment_ptr, i
 til_fb_fragment_t * til_fb_fragment_reclaim(til_fb_fragment_t *fragment);
 til_fb_t * til_fb_free(til_fb_t *fb);
 void til_fb_get_put_pages_count(til_fb_t *fb, unsigned *count);
-int til_fb_new(const til_fb_ops_t *ops, const til_setup_t *setup, int n_pages, til_fb_t **res_fb);
+int til_fb_new(const til_fb_ops_t *ops, const char *title, const til_setup_t *setup, int n_pages, til_fb_t **res_fb);
 void til_fb_rebuild(til_fb_t *fb);
 void * til_fb_context(til_fb_t *fb);
 int til_fb_flip(til_fb_t *fb);

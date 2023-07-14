@@ -24,6 +24,7 @@ struct sdl_fb_page_t {
 };
 
 typedef struct sdl_fb_t {
+	const char	*title;
 	unsigned	width, height;
 	Uint32		flags;
 
@@ -137,12 +138,13 @@ static int sdl_err_to_errno(int err)
 	}
 }
 
-static int sdl_fb_init(const til_setup_t *setup, void **res_context)
+static int sdl_fb_init(const char *title, const til_setup_t *setup, void **res_context)
 {
 	sdl_fb_setup_t	*s = (sdl_fb_setup_t *)setup;
 	sdl_fb_t	*c;
 	int		r;
 
+	assert(title);
 	assert(setup);
 	assert(res_context);
 
@@ -155,6 +157,12 @@ static int sdl_fb_init(const til_setup_t *setup, void **res_context)
 			c->flags = SDL_WINDOW_FULLSCREEN;
 		else
 			c->flags = SDL_WINDOW_FULLSCREEN_DESKTOP;
+	}
+
+	c->title = strdup(title);
+	if (!c->title) {
+		free(c);
+		return -ENOMEM;
 	}
 
 	c->width = s->width;
@@ -208,7 +216,7 @@ static int sdl_fb_acquire(til_fb_t *fb, void *context, void *page)
 {
 	sdl_fb_t	*c = context;
 
-	c->window = SDL_CreateWindow("rototiller", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, c->width, c->height, c->flags);
+	c->window = SDL_CreateWindow(c->title, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, c->width, c->height, c->flags);
 	if (!c->window)
 		return -1;
 

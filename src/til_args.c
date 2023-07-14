@@ -60,6 +60,8 @@ static int args_parse(int argc, const char *argv[], til_args_t *res_args, int *r
 			res_args->print_module_contexts = 1;
 		} else if (!strcasecmp("--print-pipes", argv[i])) {
 			res_args->print_pipes = 1;
+		} else if (!strncasecmp("--title=", argv[i], 8)) {
+			res_args->title = &argv[i][8];
 		} else {
 			if (!res_argv)
 				return -EINVAL;
@@ -97,6 +99,7 @@ int til_args_help(FILE *out)
 		"  --print-module-contexts print active contexts on-stream to stdout\n"
 		"  --print-pipes           print active pipes on-stream to stdout\n"
 		"  --seed=                 seed to use for all PRNG in hexadecimal (e.g. 0xdeadbeef)\n"
+		"  --title=                title to use where applicable (e.g. window title)\n"
 		"  --video=                video settings\n"
 		);
 }
