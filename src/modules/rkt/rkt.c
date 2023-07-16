@@ -30,8 +30,8 @@
 /* variadic helper wrapping librocket's sync_get_track() */
 static const struct sync_track * rkt_sync_get_trackf(rkt_context_t *ctxt, const char *format, ...)
 {
-	char	buf[4096];
-	size_t	len;
+	char	buf[4096], *start = buf;
+	size_t	len, i;
 	va_list	ap;
 
 	assert(ctxt);
@@ -44,7 +44,38 @@ static const struct sync_track * rkt_sync_get_trackf(rkt_context_t *ctxt, const 
 	if (len >= sizeof(buf))
 		return NULL;
 
-	return sync_get_track(ctxt->sync_device, buf);
+	/* skip the rkt module path prefix, let's not turn RocketEditor tracks into Paris street signs. */
+	i = strlen(ctxt->til_module_context.setup->path);
+	assert(i <= len);
+	start += i;
+	len -= i;
+
+	if (!strncmp(start, "/scenes/[", 9)) {
+		int	i = 9;
+
+		/* Replace the slash after /scenes[N]/$modname with :, grouping by scene in RocketEditor */
+		for (; i < len; i++) {
+			if (start[i] < '0' || start[i] > '9')
+				break;
+		}
+
+		if (i < len && start[i] == ']') {
+			i++;
+
+			if (i < len && start[i] == '/') {
+				i++;
+
+				for (; i < len; i++) {
+					if (start[i] == '/') {
+						start[i] = ':';
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	return sync_get_track(ctxt->sync_device, start);
 }
 
 
@@ -123,7 +154,7 @@ int rkt_stream_pipe_ctor(void *context, til_stream_t *stream, const void *owner,
 		return -ENOMEM;
 
 	rkt_pipe->tap = til_tap_init(ctxt, tap->type, &rkt_pipe->ptr, 1, &rkt_pipe->var, tap->name);
-	rkt_pipe->track = rkt_sync_get_trackf(ctxt, "%s:%s", parent_path, tap->name);
+	rkt_pipe->track = rkt_sync_get_trackf(ctxt, "%s/%s", parent_path, tap->name);
 
 	*res_owner = ctxt;
 	*res_owner_foo = rkt_pipe;
@@ -220,7 +251,7 @@ static til_module_context_t * rkt_create_context(const til_module_t *module, til
 	if (s->connect && !sync_tcp_connect(ctxt->sync_device, s->host, s->port))
 		ctxt->connected = 1;
 
-	ctxt->scene_track = rkt_sync_get_trackf(ctxt, "%s:scene", setup->path);
+	ctxt->scene_track = rkt_sync_get_trackf(ctxt, "%s/scene", setup->path);
 	if (!ctxt->scene_track)
 		return til_module_context_free(&ctxt->til_module_context);
 
