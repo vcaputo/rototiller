@@ -28,13 +28,13 @@
  */
 
 /* variadic helper wrapping librocket's sync_get_track() */
-static const struct sync_track * sync_get_trackf(struct sync_device *device, const char *format, ...)
+static const struct sync_track * rkt_sync_get_trackf(rkt_context_t *ctxt, const char *format, ...)
 {
 	char	buf[4096];
 	size_t	len;
 	va_list	ap;
 
-	assert(device);
+	assert(ctxt);
 	assert(format);
 
 	va_start(ap, format);
@@ -44,7 +44,7 @@ static const struct sync_track * sync_get_trackf(struct sync_device *device, con
 	if (len >= sizeof(buf))
 		return NULL;
 
-	return sync_get_track(device, buf);
+	return sync_get_track(ctxt->sync_device, buf);
 }
 
 
@@ -123,7 +123,7 @@ int rkt_stream_pipe_ctor(void *context, til_stream_t *stream, const void *owner,
 		return -ENOMEM;
 
 	rkt_pipe->tap = til_tap_init(ctxt, tap->type, &rkt_pipe->ptr, 1, &rkt_pipe->var, tap->name);
-	rkt_pipe->track = sync_get_trackf(ctxt->sync_device, "%s:%s", parent_path, tap->name);
+	rkt_pipe->track = rkt_sync_get_trackf(ctxt, "%s:%s", parent_path, tap->name);
 
 	*res_owner = ctxt;
 	*res_owner_foo = rkt_pipe;
@@ -220,7 +220,7 @@ static til_module_context_t * rkt_create_context(const til_module_t *module, til
 	if (s->connect && !sync_tcp_connect(ctxt->sync_device, s->host, s->port))
 		ctxt->connected = 1;
 
-	ctxt->scene_track = sync_get_trackf(ctxt->sync_device, "%s:scene", setup->path);
+	ctxt->scene_track = rkt_sync_get_trackf(ctxt, "%s:scene", setup->path);
 	if (!ctxt->scene_track)
 		return til_module_context_free(&ctxt->til_module_context);
 
