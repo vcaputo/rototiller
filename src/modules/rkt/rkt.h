@@ -29,6 +29,9 @@ typedef struct rkt_context_t {
 	unsigned		scene;		/* current scene (usually driven by the scene track data,
 						 * but scener may override it to force showing a specific scene)
 						 */
+	unsigned		last_scene;	/* for triggering things on edge of a scene switch
+						 * ((like pausing on entering 99999 in creative mode)
+						 */
 } rkt_context_t;
 
 typedef struct rkt_setup_scene_t {

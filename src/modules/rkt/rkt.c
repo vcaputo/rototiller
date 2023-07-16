@@ -353,6 +353,8 @@ static void rkt_render_fragment(til_module_context_t *context, til_stream_t *str
 
 			txt_free(msg);
 		}
+
+		ctxt->last_scene = scene;
 	}
 }
 
