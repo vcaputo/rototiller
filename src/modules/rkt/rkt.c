@@ -222,8 +222,13 @@ static void rkt_update_rocket(rkt_context_t *ctxt, unsigned ticks)
 	if (!s->connect)
 		return;
 
-	if (!ctxt->connected || sync_update(ctxt->sync_device, ctxt->rocket_row, &rkt_sync_cb, ctxt) < 0)
-		ctxt->connected = !sync_tcp_connect(ctxt->sync_device, s->host, s->port);
+	if (!ctxt->connected || sync_update(ctxt->sync_device, ctxt->rocket_row, &rkt_sync_cb, ctxt) < 0) {
+		/* limit connect attempts to 2HZ */
+		if (ticks - ctxt->last_connect >= 500) {
+			ctxt->connected = !sync_tcp_connect(ctxt->sync_device, s->host, s->port);
+			ctxt->last_connect = ticks;
+		}
+	}
 }
 
 

@@ -22,6 +22,7 @@ typedef struct rkt_context_t {
 	double			rows_per_ms;
 	double			rocket_row;
 	unsigned		last_ticks;
+	unsigned		last_connect;	/* ticks at last connect attempt */
 	unsigned		paused:1;
 	unsigned		connected:1;	/* currently connected to the RocketEditor */
 	size_t			n_scenes;
