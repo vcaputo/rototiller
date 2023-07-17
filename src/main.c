@@ -55,6 +55,7 @@ typedef struct rototiller_t {
 	const til_module_t	*module;
 	til_module_context_t	*module_context;
 	til_stream_t		*stream;
+	til_fb_fragment_t	*fragment;
 	pthread_t		thread;
 	til_fb_t		*fb;
 	struct timeval		start_tv;
@@ -334,14 +335,13 @@ static void * rototiller_thread(void *_rt)
 	struct timeval	now;
 
 	for (;;) {
-		til_fb_fragment_t	*fragment;
 		unsigned		ticks;
 
-		fragment = til_fb_page_get(rt->fb);
+		rt->fragment = til_fb_page_get(rt->fb);
 		gettimeofday(&now, NULL);
 		ticks = get_ticks(&rt->start_tv, &now, rt->ticks_offset);
-		til_module_render(rt->module_context, rt->stream, ticks, &fragment);
-		til_fb_fragment_submit(fragment);
+		til_module_render(rt->module_context, rt->stream, ticks, &rt->fragment);
+		til_fb_fragment_submit(rt->fragment);
 
 		if (rt->args.print_module_contexts || rt->args.print_pipes) {
 			/* render threads are idle at this point */
