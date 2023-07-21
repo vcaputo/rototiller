@@ -238,45 +238,6 @@ static void shapes_prepare_frame(til_module_context_t *context, til_stream_t *st
 }
 
 
-/* simple approximation taken from https://mazzo.li/posts/vectorized-atan2.html */
-static inline float atan_scalar_approximation(float x) {
-	/* TODO: this is probably more terms/precision than needed, but when I try just dropping some,
-	 * the circle+slight pinches gets artifacts.  So leaving for now, probably needs slightly different
-	 * values for fewer terms.
-	 */
-	float	a1  =  0.99997726f;
-	float	a3  = -0.33262347f;
-	float	a5  =  0.19354346f;
-	float	a7  = -0.11643287f;
-	float	a9  =  0.05265332f;
-	float	a11 = -0.01172120f;
-	float	x_sq = x*x;
-
-	return x * (a1 + x_sq * (a3 + x_sq * (a5 + x_sq * (a7 + x_sq * (a9 + x_sq * a11)))));
-}
-
-
-static float atan2_approx(float y, float x) {
-	// Ensure input is in [-1, +1]
-	int swap = fabs(x) < fabs(y);
-	float atan_input = (swap ? x : y) / (swap ? y : x);
-
-	// Approximate atan
-	float res = atan_scalar_approximation(atan_input);
-
-	// If swapped, adjust atan output
-	res = swap ? (atan_input >= 0.0f ? M_PI_2 : -M_PI_2) - res : res;
-
-	// Adjust quadrants
-	if (x <  0.0f && y >= 0.0f)
-		res =  M_PI + res; // 2nd quadrant
-	else if (x <  0.0f && y <  0.0f)
-		 res = -M_PI + res; // 3rd quadrant
-
-	return res;
-}
-
-
 static void shapes_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
 	shapes_context_t	*ctxt = (shapes_context_t *)context;
@@ -337,7 +298,7 @@ static void shapes_render_fragment(til_module_context_t *context, til_stream_t *
 			YYY = Y * Y;
 			if (!radcache->initialized) {
 				for (unsigned x = xstart; x < xend; x++, X++, XX += s) {
-					float	a = rads[y * radcache->width + x] = atan2_approx(YY, XX);
+					float	a = rads[y * radcache->width + x] = atan2f(YY, XX);
 
 					if (YYY+X*X < r_sq * (1.f - fabsf(cosf(n_pinches * a + pinch)) * pinch_s))
 						til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x, y, 0xffffffff); /* TODO: stop relying on checked for clipping */
@@ -378,7 +339,7 @@ static void shapes_render_fragment(til_module_context_t *context, til_stream_t *
 			YYYY = YY * YY;
 			if (!radcache->initialized) {
 				for (unsigned x = xstart; x < xend; x++, XX += s) {
-					float	a = rads[y * radcache->width + x] = atan2_approx(YY, XX);
+					float	a = rads[y * radcache->width + x] = atan2f(YY, XX);
 					float	r = cosf(n_points * (a + spin)) * .5f + .5f;
 
 					r *= 1.f - fabsf(cosf(n_pinches * (a + pinch))) * pinch_s;
@@ -426,7 +387,7 @@ static void shapes_render_fragment(til_module_context_t *context, til_stream_t *
 			X = -(size >> 1) + xskip;
 			if (!radcache->initialized) {
 				for (unsigned x = xstart; x < xend; x++, X++, XX += s) {
-					float	a = rads[y * radcache->width + x] = atan2_approx(YY, XX);
+					float	a = rads[y * radcache->width + x] = atan2f(YY, XX);
 
 					if (abs(Y) + abs(X) < r * (1.f - fabsf(cosf(n_pinches * a + pinch)) * pinch_s))
 						til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x, y, 0xffffffff);
@@ -466,7 +427,7 @@ static void shapes_render_fragment(til_module_context_t *context, til_stream_t *
 			YYYY = YY * YY;
 			if (!radcache->initialized) {
 				for (unsigned x = xstart; x < xend; x++, XX += s) {
-					float	a = rads[y * radcache->width + x] = atan2_approx(YY, XX);
+					float	a = rads[y * radcache->width + x] = atan2f(YY, XX);
 					float	r = (M_2_PI * asinf(sinf(n_points * (a + spin)) * .5f + .5f)) * .5f + .5f;
 						/*   ^^^^^^^^^^^^^^^^^^^ approximates a triangle wave */
 
