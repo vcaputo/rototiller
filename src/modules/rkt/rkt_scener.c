@@ -42,13 +42,13 @@ typedef enum rkt_scener_fsm_t {
 	RKT_SCENER_FSM_SEND_SETTINGS,		/* send rkt's settings hierarchy, including current scenes state, as args */
 	RKT_SCENER_FSM_SEND_SCENES,		/* send main scenes list -> prompt */
 	RKT_SCENER_FSM_RECV_SCENES,		/* waiting/reading at main scenes prompt */
+	RKT_SCENER_FSM_SEND_SCENE,		/* send per-scene dialog for scene @ scener->scene -> prompt */
+	RKT_SCENER_FSM_RECV_SCENE,		/* waiting/reading at the per-scene prompt */
 	RKT_SCENER_FSM_SEND_NEWSCENE,		/* send create new scene dialog -> prompt */
 	RKT_SCENER_FSM_RECV_NEWSCENE,		/* waiting/reading at the new scene prompt, creating/setting up new scene on input */
 	RKT_SCENER_FSM_SEND_NEWSCENE_SETUP,	/* send whatever's necessary for next step of new_scene.settings setup */
 	RKT_SCENER_FSM_SEND_NEWSCENE_SETUP_PROMPT,
 	RKT_SCENER_FSM_RECV_NEWSCENE_SETUP,	/* waiting/reading at new scene setup setting prompt, finalizing and adding when complete */
-	RKT_SCENER_FSM_SEND_EDITSCENE,		/* send edit scene dialog for scene @ scener->scene -> prompt */
-	RKT_SCENER_FSM_RECV_EDITSCENE,		/* waiting/reading at the edit scene prompt, editing scene on input */
 } rkt_scener_fsm_t;
 
 typedef struct rkt_scener_t {
@@ -292,7 +292,7 @@ static int rkt_scener_handle_input_scenes(rkt_context_t *ctxt)
 			return rkt_scener_send_invalid_input(scener, RKT_SCENER_FSM_SEND_SCENES);
 
 		scener->scene = s;
-		scener->state = RKT_SCENER_FSM_SEND_EDITSCENE;
+		scener->state = RKT_SCENER_FSM_SEND_SCENE;
 		break;
 	}
 
@@ -320,7 +320,7 @@ static int rkt_scener_handle_input_scenes(rkt_context_t *ctxt)
 
 	case '=': /* set scener scene idx to current Rocket scene idx, and go to edit scene view */
 		scener->scene = ctxt->scene;
-		scener->state = RKT_SCENER_FSM_SEND_EDITSCENE;
+		scener->state = RKT_SCENER_FSM_SEND_SCENE;
 		break;
 
 	case '\0': /* if you don't say anything to even quote as "invalid input", just go back to the scenes dialog */
@@ -554,7 +554,7 @@ static int rkt_scener_randomize_scene_settings(rkt_context_t *ctxt, unsigned sce
 }
 
 
-static int rkt_scener_handle_input_editscene(rkt_context_t *ctxt)
+static int rkt_scener_handle_input_scene(rkt_context_t *ctxt)
 {
 	rkt_scener_t	*scener;
 	size_t		len, i;
@@ -588,13 +588,13 @@ static int rkt_scener_handle_input_editscene(rkt_context_t *ctxt)
 
 		/* XXX: maybe skip trailing whitespace too? */
 		if (i < len)
-			return rkt_scener_send_invalid_input(scener, RKT_SCENER_FSM_SEND_EDITSCENE);
+			return rkt_scener_send_invalid_input(scener, RKT_SCENER_FSM_SEND_SCENE);
 
 		if (s >= ctxt->n_scenes)
-			return rkt_scener_send_invalid_input(scener, RKT_SCENER_FSM_SEND_EDITSCENE);
+			return rkt_scener_send_invalid_input(scener, RKT_SCENER_FSM_SEND_SCENE);
 
 		scener->scene = s;
-		scener->state = RKT_SCENER_FSM_SEND_EDITSCENE;
+		scener->state = RKT_SCENER_FSM_SEND_SCENE;
 		break;
 	}
 
@@ -625,7 +625,7 @@ static int rkt_scener_handle_input_editscene(rkt_context_t *ctxt)
 						"\n"
 						"One advantage to this approach is you'll always have the old scene's settings for a retry.\n"
 						"\n",
-						RKT_SCENER_FSM_SEND_EDITSCENE);
+						RKT_SCENER_FSM_SEND_SCENE);
 
 	case 'R': /* randomize only the settings (keep existing module) */
 	case 'r': {
@@ -633,9 +633,9 @@ static int rkt_scener_handle_input_editscene(rkt_context_t *ctxt)
 
 		r = rkt_scener_randomize_scene_settings(ctxt, scener->scene);
 		if (r < 0)
-			return rkt_scener_send_error(scener, r, RKT_SCENER_FSM_SEND_EDITSCENE);
+			return rkt_scener_send_error(scener, r, RKT_SCENER_FSM_SEND_SCENE);
 
-		scener->state = RKT_SCENER_FSM_SEND_EDITSCENE;
+		scener->state = RKT_SCENER_FSM_SEND_SCENE;
 		break;
 	}
 
@@ -646,12 +646,12 @@ static int rkt_scener_handle_input_editscene(rkt_context_t *ctxt)
 
 	case '!': /* toggle pin_scene */
 		scener->pin_scene = !scener->pin_scene;
-		scener->state = RKT_SCENER_FSM_SEND_EDITSCENE;
+		scener->state = RKT_SCENER_FSM_SEND_SCENE;
 		break;
 
 	case '=': /* set scener scene idx to current Rocket scene idx, and go to edit scene view */
 		scener->scene = ctxt->scene;
-		scener->state = RKT_SCENER_FSM_SEND_EDITSCENE;
+		scener->state = RKT_SCENER_FSM_SEND_SCENE;
 		break;
 
 	case '\0': /* if you don't say anything to even quote as "invalid input", just go back to the scenes dialog */
@@ -659,7 +659,7 @@ static int rkt_scener_handle_input_editscene(rkt_context_t *ctxt)
 		break;
 
 	default:
-		return rkt_scener_send_invalid_input(scener, RKT_SCENER_FSM_SEND_EDITSCENE);
+		return rkt_scener_send_invalid_input(scener, RKT_SCENER_FSM_SEND_SCENE);
 	}
 
 	/* XXX: note it's important the above non-invalid-input cases break and not return,
@@ -1215,7 +1215,7 @@ int rkt_scener_update(rkt_context_t *ctxt)
 
 		return rkt_scener_handle_input_newscene_setup(ctxt);
 
-	case RKT_SCENER_FSM_SEND_EDITSCENE: {
+	case RKT_SCENER_FSM_SEND_SCENE: {
 		til_settings_t	*scenes_settings = ((rkt_setup_t *)ctxt->til_module_context.setup)->scenes_settings;
 		til_setting_t	*scene_setting;
 		char		*as_arg;
@@ -1249,14 +1249,14 @@ int rkt_scener_update(rkt_context_t *ctxt)
 		if (!output)
 			return rkt_scener_err_close(scener, ENOMEM);
 
-		return rkt_scener_send(scener, output, RKT_SCENER_FSM_RECV_EDITSCENE);
+		return rkt_scener_send(scener, output, RKT_SCENER_FSM_RECV_SCENE);
 	}
 
-	case RKT_SCENER_FSM_RECV_EDITSCENE:
+	case RKT_SCENER_FSM_RECV_SCENE:
 		if (!scener->input)
 			return rkt_scener_recv(scener, scener->state);
 
-		return rkt_scener_handle_input_editscene(ctxt);
+		return rkt_scener_handle_input_scene(ctxt);
 
 	default:
 		assert(0);
