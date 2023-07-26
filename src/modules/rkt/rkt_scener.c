@@ -1160,7 +1160,7 @@ int rkt_scener_update(rkt_context_t *ctxt)
 		 * this was derived from setup_interactively(), but til_str_t-centric and
 		 * decomposed further for the scener fsm integration.
 		 */
-		output = til_str_newf("\n", desc->spec.key);
+		output = til_str_new("\n");
 		if (!output)
 			return rkt_scener_err_close(scener, ENOMEM);
 
