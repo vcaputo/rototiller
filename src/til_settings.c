@@ -600,11 +600,14 @@ static inline void fputs_escaped(til_str_t *out, const char *value, unsigned dep
 }
 
 
-static int settings_as_arg(const til_settings_t *settings, unsigned depth, til_str_t *out)
+static int settings_as_arg(const til_settings_t *settings, int unfiltered, unsigned depth, til_str_t *out)
 {
-	for (size_t i = 0; i < settings->num; i++) {
+	for (size_t i = 0, j = 0; i < settings->num; i++) {
+		if (!unfiltered && !settings->entries[i]->desc)
+			continue;
+
 		/* FIXME TODO: detect errors */
-		if (i > 0)
+		if (j > 0)
 			fputc_escaped(out, ',', depth);
 
 		if (settings->entries[i]->key) {
@@ -614,17 +617,18 @@ static int settings_as_arg(const til_settings_t *settings, unsigned depth, til_s
 		}
 
 		if (settings->entries[i]->value_as_nested_settings) {
-			settings_as_arg(settings->entries[i]->value_as_nested_settings, depth + 1, out);
+			settings_as_arg(settings->entries[i]->value_as_nested_settings, unfiltered, depth + 1, out);
 		} else if (settings->entries[i]->value) {
 			fputs_escaped(out, settings->entries[i]->value, depth);
 		}
+		j++;
 	}
 
 	return 0;
 }
 
 
-char * til_settings_as_arg(const til_settings_t *settings)
+static char * _settings_as_arg(const til_settings_t *settings, int unfiltered)
 {
 	til_str_t	*str;
 
@@ -632,10 +636,24 @@ char * til_settings_as_arg(const til_settings_t *settings)
 	if (!str)
 		return NULL;
 
-	if (settings_as_arg(settings, 0, str) < 0)
+	if (settings_as_arg(settings, unfiltered, 0, str) < 0)
 		return til_str_free(str);
 
 	return til_str_to_buf(str, NULL);
+}
+
+
+/* returns the serialized form of settings usable as a cli argument, omitting any undescribed settings */
+char * til_settings_as_arg(const til_settings_t *settings)
+{
+	return _settings_as_arg(settings, 0);
+}
+
+
+/* same as til_settings_as_arg() but including undescribed settings */
+char * til_settings_as_arg_unfiltered(const til_settings_t *settings)
+{
+	return _settings_as_arg(settings, 1);
 }
 
 
