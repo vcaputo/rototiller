@@ -50,6 +50,7 @@ til_settings_t * til_settings_free(til_settings_t *settings);
 unsigned til_settings_get_count(const til_settings_t *settings);
 const til_settings_t * til_settings_get_parent(const til_settings_t *settings);
 int til_settings_set_label(til_settings_t *settings, const char *label);
+const char * til_settings_get_label(const til_settings_t *settings);
 const char * til_settings_get_value_by_key(const til_settings_t *settings, const char *key, til_setting_t **res_setting);
 const char * til_settings_get_value_by_idx(const til_settings_t *settings, unsigned idx, til_setting_t **res_setting);
 til_setting_t * til_settings_add_value(til_settings_t *settings, const char *key, const char *value);
