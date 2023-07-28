@@ -45,6 +45,7 @@ const til_module_t * til_lookup_module(const char *name);
 void til_get_modules(const til_module_t ***res_modules, size_t *res_n_modules);
 char * til_get_module_names(unsigned flags_excluded, const char **exclusions);
 void til_module_render(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr);
+void til_module_render_limited(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned max_cpus, til_fb_fragment_t **fragment_ptr);
 int til_module_create_contexts(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup, size_t n_contexts, til_module_context_t **res_contexts);
 int til_module_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup, til_module_context_t **res_context);
 til_module_context_t * til_module_destroy_context(til_module_context_t *context, til_stream_t *stream);

@@ -386,7 +386,7 @@ char * til_get_module_names(unsigned flags_excluded, const char **exclusions)
 }
 
 
-static void module_render_fragment(til_module_context_t *context, til_stream_t *stream, til_threads_t *threads, unsigned ticks, til_fb_fragment_t **fragment_ptr)
+static void module_render_fragment(til_module_context_t *context, til_stream_t *stream, til_threads_t *threads, unsigned n_cpus, unsigned ticks, til_fb_fragment_t **fragment_ptr)
 {
 	const til_module_t	*module;
 	int			touched = 0;
@@ -395,6 +395,7 @@ static void module_render_fragment(til_module_context_t *context, til_stream_t *
 	assert(context->module);
 	assert(threads);
 	assert(fragment_ptr && *fragment_ptr);
+	assert(n_cpus);
 
 	module = context->module;
 
@@ -409,7 +410,7 @@ static void module_render_fragment(til_module_context_t *context, til_stream_t *
 		assert(frame_plan.fragmenter);
 		assert(module->render_fragment);
 
-		if (context->n_cpus > 1) {
+		if (n_cpus > 1) {
 			til_threads_frame_submit(threads, fragment_ptr, &frame_plan, module->render_fragment, context, stream, ticks);
 			til_threads_wait_idle(threads);
 		} else {
@@ -437,20 +438,35 @@ static void module_render_fragment(til_module_context_t *context, til_stream_t *
 }
 
 
-/* This is a public interface to the threaded module rendering intended for use by
- * modules that wish to get the output of other modules for their own use.
- */
-void til_module_render(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr)
+static void _til_module_render(til_module_context_t *context, til_stream_t *stream, unsigned n_cpus, unsigned ticks, til_fb_fragment_t **fragment_ptr)
 {
 	unsigned	start = til_ticks_now();
 
-	module_render_fragment(context, stream, til_threads, ticks, fragment_ptr);
+	module_render_fragment(context, stream, til_threads, n_cpus, ticks, fragment_ptr);
 
 	context->last_render_duration = til_ticks_now() - start;
 	if (context->last_render_duration > context->max_render_duration)
 		context->max_render_duration = context->last_render_duration;
 	context->renders_count++;
 	context->last_ticks = ticks;
+}
+
+
+/* This is a public interface to the threaded module rendering intended for use by
+ * modules that wish to get the output of other modules for their own use.
+ */
+void til_module_render(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr)
+{
+	return _til_module_render(context, stream, context->n_cpus, ticks, fragment_ptr);
+}
+
+
+/* Identical to til_module_render() except with a parameterized upper bound for context->c_cpus,
+ * this is primarily intended for modules performing nested rendering
+ */
+void til_module_render_limited(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned max_cpus, til_fb_fragment_t **fragment_ptr)
+{
+	return _til_module_render(context, stream, MIN(context->n_cpus, max_cpus), ticks, fragment_ptr);
 }
 
 
