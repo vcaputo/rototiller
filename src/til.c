@@ -235,7 +235,7 @@ static void _ref_render_fragment(til_module_context_t *context, til_stream_t *st
 		}
 	}
 
-	til_module_render(ctxt->ref, stream, ticks, fragment_ptr);
+	til_module_render_limited(ctxt->ref, stream, ticks, context->n_cpus, fragment_ptr);
 }
 
 
