@@ -191,7 +191,7 @@ static int rkt_scener_send_error(rkt_scener_t *scener, int error, rkt_scener_fsm
 	assert(scener);
 
 	/* TODO: this should really use a static allocated output buffer to try work under ENOMEM */
-	output = til_str_newf("Error: %s\n", strerror(error));
+	output = til_str_newf("\nError: %s\n", strerror(error));
 	if (!output)
 		return -ENOMEM;
 
