@@ -118,7 +118,7 @@ static void mixer_prepare_frame(til_module_context_t *context, til_stream_t *str
 	til_fb_fragment_t	*fragment = *fragment_ptr;
 	size_t			i = 0;
 
-	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu };
+	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu_x16 };
 
 	mixer_update_taps(ctxt, stream, ticks);
 

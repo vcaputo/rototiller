@@ -121,7 +121,7 @@ static void meta2d_prepare_frame(til_module_context_t *context, til_stream_t *st
 {
 	meta2d_context_t	*ctxt = (meta2d_context_t *)context;
 
-	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu };
+	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu_x16 };
 
 	if (!til_stream_tap_context(stream, context, NULL, &ctxt->taps.min_t))
 		*ctxt->min_t = .7f;

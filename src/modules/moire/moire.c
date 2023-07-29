@@ -67,7 +67,7 @@ static void moire_prepare_frame(til_module_context_t *context, til_stream_t *str
 {
 	moire_context_t	*ctxt = (moire_context_t *)context;
 
-	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu };
+	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu_x16 };
 
 	for (unsigned i = 0; i < ctxt->setup->n_centers; i++) {
 		ctxt->centers[i].x = cosf(ctxt->centers[i].seed + (float)ticks * .001f * ctxt->centers[i].dir);

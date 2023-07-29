@@ -203,7 +203,7 @@ static void shapes_destroy_context(til_module_context_t *context)
 static void shapes_prepare_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
 {
 
-	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu };
+	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu_x16 };
 
 	/* TODO:
 	 * I've implemented this ad-hoc here for shapes, but I think there's a case to be made that

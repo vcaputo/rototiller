@@ -133,7 +133,7 @@ static void drizzle_prepare_frame(til_module_context_t *context, til_stream_t *s
 	if (!til_stream_tap_context(stream, context, NULL, &ctxt->taps.rainfall))
 		*ctxt->rainfall = RAINFALL_CNT;
 
-	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu };
+	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu_x16 };
 
 	for (unsigned i = 0; i < (unsigned)*ctxt->rainfall; i++) {
 		int	x = rand_r(&ctxt->til_module_context.seed) % (PUDDLE_SIZE - 1);

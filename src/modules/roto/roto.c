@@ -327,7 +327,7 @@ static void roto_prepare_frame(til_module_context_t *context, til_stream_t *stre
 {
 	roto_context_t	*ctxt = (roto_context_t *)context;
 
-	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu };
+	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu_x16 };
 
 	// This governs the rotation and color cycle.
 	if (ticks != context->last_ticks) {

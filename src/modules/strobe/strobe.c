@@ -54,7 +54,7 @@ static void strobe_prepare_frame(til_module_context_t *context, til_stream_t *st
 {
 	strobe_context_t	*ctxt = (strobe_context_t *)context;
 
-	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu };
+	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu_x16 };
 
 	if (ctxt->flash_ready && (ticks - ctxt->ticks >= (unsigned)(ctxt->setup->period * 1000.f))){
 		ctxt->flash = 1;
