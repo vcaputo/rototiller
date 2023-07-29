@@ -795,8 +795,15 @@ int til_module_setup_finalize(const til_module_t *module, const til_settings_t *
 }
 
 
-/* generic fragmenter using a horizontal slice per cpu according to context->n_cpus (multiplied by a constant factor) */
+/* generic fragmenter using a horizontal slice per cpu according to context->n_cpus */
 int til_fragmenter_slice_per_cpu(til_module_context_t *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
+{
+	return til_fb_fragment_slice_single(fragment, context->n_cpus, number, res_fragment);
+}
+
+
+/* generic fragmenter using a horizontal slice per cpu according to context->n_cpus * 16 */
+int til_fragmenter_slice_per_cpu_x16(til_module_context_t *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
 {
 	/* The *16 is to combat leaving CPUs idle waiting for others to finish their work.
 	 *
