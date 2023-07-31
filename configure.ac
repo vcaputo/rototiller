@@ -60,6 +60,7 @@ AC_CONFIG_FILES([
  src/modules/roto/Makefile
  src/modules/rtv/Makefile
  src/modules/shapes/Makefile
+ src/modules/signals/Makefile
  src/modules/snow/Makefile
  src/modules/sparkler/Makefile
  src/modules/spiro/Makefile
