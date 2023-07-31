@@ -106,6 +106,46 @@ static til_module_context_t * checkers_create_context(const til_module_t *module
 		/* since checkers is already threaded, create an n_cpus=1 context per-cpu */
 		if (til_module_create_contexts(module, stream, seed, ticks, 1, ctxt->setup->fill_module_setup, n_cpus, ctxt->fill_module_contexts) < 0)
 			return til_module_context_free(&ctxt->til_module_context);
+
+		/* XXX: you might be wondering: why not just use a single context, render into a tile-sized frame buffer in prepare_frame(),
+		 * and just copy from that into the filled cells in threaded render_fragment()?  it would avoid all this context clones
+		 * sharing the same path complexity... and if the copy applied alpha/transparency, you'd still get overlay effects.
+		 * What gives?
+		 *
+		 * The answer is: overlay effects go beyond simple transparencies.  With fragment snapshotting, arbitrary sampling of
+		 * anywhere within the incoming fragment's contents while writing the fragment is facilitated, so you get use cases like
+		 * drizzle,style=map which treat the "puddle" as a sort of normal map and read in pixel colors from wherever the normal
+		 * aims.  And there's sampler overlays like voronoi and checkers, which fill arbitrary regions using the incoming color
+		 * from an arbitrary pixel.   For any of these, rendering once into an intermediate single tile-sized frame buffer would
+		 * sample the blank tile-sized frame buffer, so they'd just be blank.  It's more like what they'd need is to store the
+		 * relative coordinates to read from per-pixel, instead of the final pixel data, in the tile-sized frame buffer, combined
+		 * with encoding what operation to do on what was read.  Instead of that complexity, I'm just cloning the contexts with
+		 * identical seed+settings, and running them per-cpu.  It may be interesting to experiment with storing source coordinates
+		 * with color+operation information in a different "sampler" type of frame...  but all these modules would need to then
+		 * learn to store that instead of just always producing pixels.  It'd be a substantial invasive change, and would constrain
+		 * modules to work within what that sampler frame could express, whereas this context cloning lets the module authors just
+		 * implement whatever they want for producing pixels.
+		 *
+		 * It might seem like a lot of trouble just for a silly checkers module, but ensuring this works properly for checkers
+		 * removes the friction of doing the same kind of fill_module= instancing for concurrency in any future modules.
+		 *
+		 * TODO: a remaining problem to address surrounding context clones is the "ref" builtin, and til_stream_find_module_contexts()
+		 * which it relies on.  Imagine checkers uses fill_module=ref,path=/path/to/context/without/clones with things as-is.
+		 * There would be n_cpus ref contexts in checkers, and each of those rendering concurrently will find the same single context
+		 * at /path/to/context/without/clones on the stream.  So they'd racily render while sharing a single context, which might
+		 * crash - depending on what module that context belongs to.  What needs to happen here is when the "ref" clones lookup
+		 * the context @ path to use, they need a clone number to propagate down to til_stream_find_module_contexts(), which
+		 * would have been assigned when the n_cpus ref clones were created for checkers.  Then til_stream_find_module_contexts()
+		 * can ensure the context returned has the same clone number within the found path.  But there's still a need to actually
+		 * create the clones when they don't exist.  Keep in mind, the /path/to/context/without/clones will have just a
+		 * single context, and we're going to want n_cpus of them from the same path via "ref".  So the one that exists needs to be
+		 * cloned on demand, in a race-free manner likely requiring some locking, and it will require the cloned context's module
+		 * to perform the actual cloning in all but the simples of cases.  So it looks like til_module_t.clone_context() is needed,
+		 * and should be asserted as present when til_module_t.destroy_context() is present (and vice versa), as the presence of
+		 * either strongly implies the context refers to external resources.  And in the absence of a clone_context() method, we
+		 * can have a default "dumb" clone that just duplicates the context with a malloc() and memcpy().  This would also require
+		 * adding a size member to til_module_context_t, which is straightforward to add.
+		 */
 	}
 
 	return &ctxt->til_module_context;
