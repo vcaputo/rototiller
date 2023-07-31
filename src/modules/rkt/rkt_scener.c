@@ -67,6 +67,9 @@ typedef struct rkt_scener_t {
 		til_setting_t			*cur_setting;
 		const til_setting_desc_t	*cur_desc;
 		til_setting_t			*cur_invalid;
+		til_setting_t			*cur_edited;
+		unsigned			replacement:1;	/* set when editing / replacing scener->scene */
+		unsigned			editing:1;	/* set when editing */
 	} new_scene;
 } rkt_scener_t;
 
@@ -340,6 +343,53 @@ static int rkt_scener_handle_input_scenes(rkt_context_t *ctxt)
 }
 
 
+/* edit the scene @ scener->scene */
+static int rkt_scener_edit_scene(rkt_context_t *ctxt)
+{
+	rkt_scener_t	*scener;
+	til_settings_t	*scenes_settings;
+	til_setting_t	*scene_setting;
+	til_settings_t	*new_settings;
+	const char	*buf, *label;
+
+	assert(ctxt);
+	scener = ctxt->scener;
+	assert(scener);
+	assert(scener->input);
+	assert(!scener->new_scene.settings);
+
+	/* XXX TODO: should we expect to be called with scene=RKT_EXIT_SCENE_IDX? */
+	assert(scener->scene < ctxt->n_scenes);
+
+	scenes_settings = ((rkt_setup_t *)ctxt->til_module_context.setup)->scenes_settings;
+
+	if (!til_settings_get_value_by_idx(scenes_settings, scener->scene, &scene_setting))
+		return rkt_scener_err_close(scener, ENOENT);
+
+	buf = til_settings_as_arg(scene_setting->value_as_nested_settings);
+	if (!buf)
+		return rkt_scener_err_close(scener, ENOMEM);
+
+	label = til_settings_get_label(scene_setting->value_as_nested_settings);
+
+	new_settings = til_settings_new(NULL, scenes_settings, label, buf);
+	if (!new_settings)
+		return rkt_scener_err_close(scener, ENOMEM);
+
+	scener->input = til_str_free(scener->input);
+	scener->new_scene.settings = new_settings;
+	scener->new_scene.cur_setting = NULL;
+	scener->new_scene.cur_desc = NULL;
+	scener->new_scene.cur_invalid = NULL;
+	scener->new_scene.cur_edited = NULL;
+	scener->new_scene.replacement = 1;
+	scener->new_scene.editing = 1;
+	scener->state = RKT_SCENER_FSM_SEND_NEWSCENE_SETUP;
+
+	return 0;
+}
+
+
 static int rkt_scener_handle_input_newscene(rkt_context_t *ctxt)
 {
 	rkt_scener_t	*scener;
@@ -375,6 +425,9 @@ static int rkt_scener_handle_input_newscene(rkt_context_t *ctxt)
 	scener->new_scene.cur_setting = NULL;
 	scener->new_scene.cur_desc = NULL;
 	scener->new_scene.cur_invalid = NULL;
+	scener->new_scene.cur_edited = NULL;
+	scener->new_scene.replacement = 0;
+	scener->new_scene.editing = 0;
 	scener->state = RKT_SCENER_FSM_SEND_NEWSCENE_SETUP;
 
 	return 0;
@@ -387,9 +440,11 @@ static int rkt_scener_handle_input_newscene_setup(rkt_context_t *ctxt)
 	til_setting_t			*setting;
 	const til_setting_desc_t	*desc;
 	const til_setting_t		*invalid;
+	int				editing;
 	size_t				len;
 	const char			*buf;
 	const char			*value;
+	const char			*preferred;
 
 	assert(ctxt);
 	scener = ctxt->scener;
@@ -400,12 +455,19 @@ static int rkt_scener_handle_input_newscene_setup(rkt_context_t *ctxt)
 	setting = scener->new_scene.cur_setting;
 	desc = scener->new_scene.cur_desc;
 	invalid = scener->new_scene.cur_invalid;
+	editing = scener->new_scene.editing;
 
 	if (invalid && setting == invalid && !desc)
 		desc = invalid->desc;
 
 	assert(desc);
-	
+
+	preferred = desc->spec.preferred;
+	if (scener->new_scene.editing && setting)
+		preferred = setting->value;
+
+	assert(preferred);
+
 	/* we're adding a setting, the input may be a raw string, or
 	 * it might be a subscript of an array of values, it all depends on
 	 * scener->new_scene.cur_desc
@@ -425,7 +487,7 @@ static int rkt_scener_handle_input_newscene_setup(rkt_context_t *ctxt)
 	 */
 	buf = til_str_buf(scener->input, &len);
 	if (!len) {
-		value = desc->spec.preferred;
+		value = preferred;
 	} else {
 		til_str_t	*output;
 
@@ -467,10 +529,18 @@ static int rkt_scener_handle_input_newscene_setup(rkt_context_t *ctxt)
 	if (invalid && setting == invalid) {
 		/* TODO: add til_setting_set_value() ? */
 		free((void *)setting->value);
-		setting->value = strdup(value);
+		setting->value = strdup(value); /* TODO: ENOMEM */
 		scener->new_scene.cur_invalid = NULL; /* try again */
-	} else if (!til_settings_add_value(desc->container, desc->spec.key, value))
+	} else if (editing && setting) {
+		if (setting->value != value) {
+			free((void *)setting->value);
+			setting->value = strdup(value); /* TODO: ENOMEM */
+		}
+	} else if (!(setting = til_settings_add_value(desc->container, desc->spec.key, value)))
 		return -ENOMEM;
+
+	if (editing)
+		scener->new_scene.cur_edited = setting;
 
 	scener->input = til_str_free(scener->input);
 	scener->state = RKT_SCENER_FSM_SEND_NEWSCENE_SETUP;
@@ -600,32 +670,7 @@ static int rkt_scener_handle_input_scene(rkt_context_t *ctxt)
 
 	case 'E': /* edit scene settings */
 	case 'e':
-		/* TODO run through a setup cycle seeded with current settings */
-		/* so editing is very similar to creating a new scene...
-		 * but the current scene's as_args are used to seed the create,
-		 * instead of leaving it blank as in NEWSCENE.
-		 *
-		 * The main reason I haven't already done this is I want to have the
-		 * input as_args settings show up as raw input at the initial New scene
-		 * prompt, in a way that the user can then arrow-key/backspace over and
-		 * change things in the same manner as if they has copy and pasted it into
-		 * a text editor.  But I'm not sure I can achieve that without going full ANSI
-		 * BBS control codes up in here... still investigating. TODO
-		 */
-		return rkt_scener_send_message(scener,
-						"\n\nScene editing not _yet_ implemented, create a new one?\n"
-						"\n"
-						"Keep in mind, it's the Rocket 'scene' track that governs scene ordering/visibility,\n"
-						"think of these as more like Samples/Instruments in a tracker.\n"
-						"So you can relatively harmlessly have unused scenes in here.\n"
-						"\n"
-						"A temporary way to edit is copy and paste the settings shown above into a text editor,\n"
-						"make your tweaks (you can also just delete parts you want to revisit interactive setup for),\n"
-						"then paste it into the initial New scene raw input prompt (*discard* the quotes!).\n"
-						"\n"
-						"One advantage to this approach is you'll always have the old scene's settings for a retry.\n"
-						"\n",
-						RKT_SCENER_FSM_SEND_SCENE);
+		return rkt_scener_edit_scene(ctxt);
 
 	case 'R': /* randomize only the settings (keep existing module) */
 	case 'r': {
@@ -982,8 +1027,20 @@ int rkt_scener_update(rkt_context_t *ctxt)
 			til_setting_t			*setting = scener->new_scene.cur_setting;
 			const til_setting_desc_t	*desc = scener->new_scene.cur_desc;
 			til_setting_t			*invalid = scener->new_scene.cur_invalid;
+			til_setting_t			*edited = scener->new_scene.cur_edited;
+			int				editing = scener->new_scene.editing;
 
 			assert(desc);
+
+			if (editing && setting && setting != invalid &&
+			    !setting->desc && setting != edited) {
+				/* we have an existing setting and haven't made it available for editing yet,
+				 * so go back to the setup prompt for it, which will set cur_edited when edited.
+				 */
+				scener->state = RKT_SCENER_FSM_SEND_NEWSCENE_SETUP_PROMPT;
+
+				return 0;
+			}
 
 			if (setting && setting != invalid && !setting->desc) {
 				/* Apply override before, or after the spec_check()? unclear.
@@ -1047,7 +1104,7 @@ int rkt_scener_update(rkt_context_t *ctxt)
 		 */
 
 		/* these *may* move into helpers, so scoping them as ad-hoc unnamed functions for now */
-		{ /* expand scenes settings */
+		if (!scener->new_scene.replacement) { /* expand scenes settings */
 			til_settings_t	*scenes_settings;
 			til_setting_t	*scene_setting;
 			char		*label, *as_arg;
@@ -1081,9 +1138,24 @@ int rkt_scener_update(rkt_context_t *ctxt)
 				return rkt_scener_err_close(scener, r);
 
 			scene_setting->value_as_nested_settings = scener->new_scene.settings;
+
+		} else { /* simply replace current nested settings */
+			til_settings_t	*scenes_settings;
+			til_setting_t	*scene_setting;
+
+			scenes_settings = ((rkt_setup_t *)ctxt->til_module_context.setup)->scenes_settings;
+			if (!til_settings_get_value_by_idx(scenes_settings, scener->scene, &scene_setting))
+				return rkt_scener_err_close(scener, ENOENT);
+
+			/* FIXME TODO: keep this around until finishing the context replacement,
+			 * and put it back in all the failure cases before that point.
+			 */
+			til_settings_free(scene_setting->value_as_nested_settings);
+
+			scene_setting->value_as_nested_settings = scener->new_scene.settings;
 		}
 
-		{ /* expand context scenes, finalize setup, create context */
+		{ /* finalize setup, create context, expand context scenes or replace existing */
 			const char		*module_name;
 			const til_module_t	*module;
 			til_module_context_t	*module_ctxt;
@@ -1120,27 +1192,35 @@ int rkt_scener_update(rkt_context_t *ctxt)
 			if (r < 0)
 				return rkt_scener_err_close(scener, r);
 
-			/* have context, almost there, enlarge scener->scenes, bump scener->n_scenes */
-			new_scenes = realloc(ctxt->scenes, (ctxt->n_scenes + 1) * sizeof(*new_scenes));
-			if (!new_scenes) {
-				til_module_context_free(module_ctxt);
+			if (!scener->new_scene.replacement) {
+				/* have context, almost there, enlarge scener->scenes, bump scener->n_scenes */
+				new_scenes = realloc(ctxt->scenes, (ctxt->n_scenes + 1) * sizeof(*new_scenes));
+				if (!new_scenes) {
+					til_module_context_free(module_ctxt);
 
-				return rkt_scener_err_close(scener, r);
+					return rkt_scener_err_close(scener, r);
+				}
+
+				new_scenes[ctxt->n_scenes].module_ctxt = module_ctxt;
+				ctxt->scenes = new_scenes;
+				ctxt->n_scenes++;
+
+				/* added! */
+				scener->scene = ctxt->n_scenes - 1;
+			} else {
+				/* have context, replace what's there */
+				assert(scener->scene < ctxt->n_scenes);
+				ctxt->scenes[scener->scene].module_ctxt = til_module_context_free(ctxt->scenes[scener->scene].module_ctxt);
+				ctxt->scenes[scener->scene].module_ctxt = module_ctxt;
 			}
-
-			new_scenes[ctxt->n_scenes].module_ctxt = module_ctxt;
-			ctxt->scenes = new_scenes;
-			ctxt->n_scenes++;
-
-			/* added! */
-
-			scener->scene = ctxt->n_scenes - 1;
 		}
 
 		scener->new_scene.settings = NULL;
 
 		return rkt_scener_send_message(scener,
-					       "\n\nNew scene added successfully...\n",
+					       scener->new_scene.replacement ?
+						"\n\nScene replaced successfully...\n" :
+						"\n\nNew scene added successfully...\n",
 					       RKT_SCENER_FSM_SEND_SCENES);
 	}
 
@@ -1149,11 +1229,27 @@ int rkt_scener_update(rkt_context_t *ctxt)
 		const til_setting_desc_t	*desc = scener->new_scene.cur_desc;
 		til_setting_t			*invalid = scener->new_scene.cur_invalid;
 		til_str_t			*output;
+		const char			*def;
+		char				*label = NULL;
 
-		if (invalid && setting == invalid && !desc)
+		if (invalid && setting == invalid && !desc) /* XXX: should we really be checking !desc? */
 			desc = invalid->desc;
 
 		assert(desc);
+
+		def = desc->spec.preferred;
+		if (scener->new_scene.editing && setting)
+			def = setting->value;
+
+		if (!desc->spec.key && setting) { /* get the positional label */
+			/* TODO: this is so when the desc has no key/name context, as editing bare-value settings,
+			 * we can show _something_.  But this feels very ad-hoc/hacky and seems like it should
+			 * be handled by some magic in til, or some helper to get these desc paths in a more
+			 * setting-aware way optionally when there is an associated setting onhand.
+			 */
+			if (til_settings_label_setting(desc->container, setting, &label) < 0)
+				return rkt_scener_err_close(scener, ENOMEM);
+		}
 
 		/* construct a prompt based on cur_desc
 		 *
@@ -1165,8 +1261,8 @@ int rkt_scener_update(rkt_context_t *ctxt)
 			return rkt_scener_err_close(scener, ENOMEM);
 
 		if (desc->spec.values) {
-			unsigned	i, preferred = 0;
 			int		width = 0;
+			unsigned	i;
 
 			for (i = 0; desc->spec.values[i]; i++) {
 				int	len;
@@ -1180,7 +1276,12 @@ int rkt_scener_update(rkt_context_t *ctxt)
 			if (til_setting_desc_strprint_path(desc, output) < 0)
 				return rkt_scener_err_close(scener, ENOMEM);
 
-			if (til_str_appendf(output, ":\n %s:\n", desc->spec.name) < 0)
+			if (til_str_appendf(output, "%s%s:\n%s%s%s",
+					    label ? "/" : "",
+					    label ? : "",
+					    label ? "" : " ",
+					    label ? "" : desc->spec.name,
+					    label ? "" : ":\n") < 0)
 				return rkt_scener_err_close(scener, ENOMEM);
 
 			for (i = 0; desc->spec.values[i]; i++) {
@@ -1188,13 +1289,9 @@ int rkt_scener_update(rkt_context_t *ctxt)
 						    desc->spec.annotations ? ": " : "",
 						    desc->spec.annotations ? desc->spec.annotations[i] : "") < 0)
 					return rkt_scener_err_close(scener, ENOMEM);
-
-				if (!strcasecmp(desc->spec.preferred, desc->spec.values[i]))
-					preferred = i;
 			}
 
-			if (til_str_appendf(output, " Enter a value 0-%u [%u (%s)]: ",
-					    i - 1, preferred, desc->spec.preferred) < 0)
+			if (til_str_appendf(output, " Enter a value 0-%u [%s]: ", i - 1, def) < 0)
 				return rkt_scener_err_close(scener, ENOMEM);
 
 		} else {
@@ -1202,9 +1299,17 @@ int rkt_scener_update(rkt_context_t *ctxt)
 			if (til_setting_desc_strprint_path(desc, output) < 0)
 				return rkt_scener_err_close(scener, ENOMEM);
 
-			if (til_str_appendf(output, ":\n %s [%s]: ", desc->spec.name, desc->spec.preferred) < 0)
+			if (til_str_appendf(output, "%s%s:\n %s%s[%s]: ",
+					    label ? "/" : "",
+					    label ? : "",
+					    label ? "" : desc->spec.name,
+					    label ? "" : " ",
+					    def) < 0)
 				return rkt_scener_err_close(scener, ENOMEM);
 		}
+
+		/* FIXME TODO: label and output are leaked in all the ENOMEM returns above! */
+		free(label);
 
 		return rkt_scener_send(scener, output, RKT_SCENER_FSM_RECV_NEWSCENE_SETUP);
 	}
