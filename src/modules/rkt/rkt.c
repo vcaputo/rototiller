@@ -705,5 +705,5 @@ til_module_t	rkt_module = {
 	.name = "rkt",
 	.description = "GNU Rocket module sequencer",
 	.setup = rkt_setup,
-	.flags = TIL_MODULE_HERMETIC | TIL_MODULE_EXPERIMENTAL,	/* this needs refinement esp. if rkt gets split into a player and editor */
+	.flags = TIL_MODULE_HERMETIC,	/* this needs refinement esp. if rkt gets split into a player and editor */
 };
