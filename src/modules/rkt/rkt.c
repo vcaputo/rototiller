@@ -409,7 +409,7 @@ static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting
 						&(til_setting_spec_t){
 							.name = "Comma-separated list of modules for scenes to sequence",
 							.key = "scenes",
-							.preferred = "compose,compose,compose,compose",
+							.preferred = "blank",
 							.annotations = NULL,
 							.as_nested_settings = 1,
 						},
