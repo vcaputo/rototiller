@@ -478,7 +478,7 @@ static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting
 						&(til_setting_spec_t){
 							.name = "Rocket \"base\" label",
 							.key = "base",
-							.preferred = "tiller",
+							.preferred = "rkt",
 							.annotations = NULL,
 						},
 						&base,
