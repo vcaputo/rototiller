@@ -321,7 +321,7 @@ static int rkt_scener_handle_input_scenes(rkt_context_t *ctxt)
 		scener->state = RKT_SCENER_FSM_SEND_SCENES;
 		break;
 
-	case '=': /* set scener scene idx to current Rocket scene idx, and go to edit scene view */
+	case '=': /* set scener scene idx to current Rocket scene idx, and go to scene view */
 		scener->scene = ctxt->scene;
 		scener->state = RKT_SCENER_FSM_SEND_SCENE;
 		break;
@@ -464,7 +464,7 @@ static int rkt_scener_handle_input_newscene_setup(rkt_context_t *ctxt)
 
 	preferred = desc->spec.preferred;
 	if (scener->new_scene.editing && setting)
-		preferred = setting->value;
+		preferred = til_setting_get_raw_value(setting);
 
 	assert(preferred);
 
@@ -491,51 +491,47 @@ static int rkt_scener_handle_input_newscene_setup(rkt_context_t *ctxt)
 	} else {
 		til_str_t	*output;
 
-		if (desc->spec.values) {
-			unsigned	i, j, found;
+		if (desc->spec.values) { /* multiple choice */
+			if (buf[0] != ':') { /* map numeric input to values entry */
+				unsigned	i, j, found;
 
-			/* multiple choice, map numeric input to values entry */
-			if (sscanf(buf, "%u", &j) < 1) {
-				output = til_str_newf("Invalid input: \"%s\"\n", buf);
-				if (!output)
-					return -ENOMEM;
+				if (sscanf(buf, "%u", &j) < 1) {
+					output = til_str_newf("Invalid input: \"%s\"\n", buf);
+					if (!output)
+						return -ENOMEM;
 
-				return rkt_scener_send(scener, output, RKT_SCENER_FSM_SEND_NEWSCENE_SETUP);
-			}
-
-			for (found = i = 0; desc->spec.values[i]; i++) {
-				if (i == j) {
-					value = desc->spec.values[i];
-					found = 1;
-					break;
+					return rkt_scener_send(scener, output, RKT_SCENER_FSM_SEND_NEWSCENE_SETUP);
 				}
+
+				for (found = i = 0; desc->spec.values[i]; i++) {
+					if (i == j) {
+						value = desc->spec.values[i];
+						found = 1;
+						break;
+					}
+				}
+
+				if (!found) {
+					output = til_str_newf("Invalid option: %u outside of range [0-%u]\n", j, i - 1);
+					if (!output)
+						return -ENOMEM;
+
+					return rkt_scener_send(scener, output, RKT_SCENER_FSM_SEND_NEWSCENE_SETUP);
+				}
+			} else { /* = prefix overrides the multiple choice options with whatever follows the = */
+				value = buf;
 			}
-
-			if (!found) {
-				output = til_str_newf("Invalid option: %u outside of range [0-%u]\n", j, i - 1);
-				if (!output)
-					return -ENOMEM;
-
-				return rkt_scener_send(scener, output, RKT_SCENER_FSM_SEND_NEWSCENE_SETUP);
-			}
-
-		} else {
-			/* use typed input as setting, TODO: apply regex */
+		} else { /* use typed input as setting, TODO: apply regex */
 			value = buf;
 		}
 	}
 
 	/* we might be fixing an invalid setting instead of adding, determine that here */
 	if (invalid && setting == invalid) {
-		/* TODO: add til_setting_set_value() ? */
-		free((void *)setting->value);
-		setting->value = strdup(value); /* TODO: ENOMEM */
+		til_setting_set_raw_value(setting, value); /* TODO: ENOMEM */
 		scener->new_scene.cur_invalid = NULL; /* try again */
 	} else if (editing && setting) {
-		if (setting->value != value) {
-			free((void *)setting->value);
-			setting->value = strdup(value); /* TODO: ENOMEM */
-		}
+		til_setting_set_raw_value(setting, value); /* TODO: ENOMEM */
 	} else if (!(setting = til_settings_add_value(desc->container, desc->spec.key, value)))
 		return -ENOMEM;
 
@@ -1059,7 +1055,7 @@ int rkt_scener_update(rkt_context_t *ctxt)
 					}
 				}
 
-				if (til_setting_spec_check(&desc->spec, setting->value) < 0) {
+				if (!setting->nocheck && til_setting_spec_check(&desc->spec, setting->value) < 0) {
 					/* setting invalid! go back to prompting for input */
 					scener->new_scene.cur_invalid = setting;
 
@@ -1239,7 +1235,7 @@ int rkt_scener_update(rkt_context_t *ctxt)
 
 		def = desc->spec.preferred;
 		if (scener->new_scene.editing && setting)
-			def = setting->value;
+			def = til_setting_get_raw_value(setting);
 
 		if (!desc->spec.key && setting) { /* get the positional label */
 			/* TODO: this is so when the desc has no key/name context, as editing bare-value settings,
