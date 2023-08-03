@@ -409,7 +409,7 @@ static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting
 						&(til_setting_spec_t){
 							.name = "Comma-separated list of modules for scenes to sequence",
 							.key = "scenes",
-							.preferred = "blank",
+							.preferred = ":blank", /* FIXME TODO: this should really be NULL or "" for no scenes at all, but that doesn't work yet */
 							.annotations = NULL,
 							.as_nested_settings = 1,
 						},
