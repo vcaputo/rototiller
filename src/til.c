@@ -544,32 +544,24 @@ int til_module_setup_full(const til_settings_t *settings, til_setting_t **res_se
 
 	module_name = til_settings_get_value_by_idx(settings, 0, &setting);
 	if (!module_name || !setting->desc) {
-		const char		*values[nelems(modules) + 1] = {};
-		const char		*annotations[nelems(modules) + 1] = {};
-		int			r, filtered = 1;
-
-		/* Only disable filtering if a *valid* module_name is providead.
-		 * This is so fat-fingered names don't suddenly include a bunch of broken options.
-		 */
-		if (module_name && til_lookup_module(module_name))
-			filtered = 0;
+		const char	*values[nelems(modules) + 1] = {};
+		const char	*annotations[nelems(modules) + 1] = {};
+		int		r;
 
 		for (unsigned i = 0, j = 0; i < nelems(modules); i++) {
-			if (filtered) {
-				if (modules[i]->flags & flags_excluded)
-					continue;
+			if (modules[i]->flags & flags_excluded)
+				continue;
 
-				if (exclusions) {
-					const char	*excl = *exclusions;
+			if (exclusions) {
+				const char	*excl = *exclusions;
 
-					for (; excl; excl++) {
-						if (!strcasecmp(excl, modules[i]->name))
-							break;
-					}
-
-					if (excl)
-						continue;
+				for (; excl; excl++) {
+					if (!strcasecmp(excl, modules[i]->name))
+						break;
 				}
+
+				if (excl)
+					continue;
 			}
 
 			values[j] = modules[i]->name;
