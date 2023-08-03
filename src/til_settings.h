@@ -43,6 +43,7 @@ struct til_setting_t {
 	const char			*value;
 	const til_setting_desc_t	*desc;
 	void				*user_data;
+	unsigned			nocheck:1;			/* set when user explicitly set the value outside the guards */
 };
 
 til_settings_t * til_settings_new(const char *prefix, const til_settings_t *parent, const char *label, const char *settings);
@@ -65,6 +66,8 @@ til_setting_desc_t * til_setting_desc_free(const til_setting_desc_t *desc);
 int til_setting_desc_strprint_path(const til_setting_desc_t *desc, til_str_t *str);
 int til_setting_desc_fprint_path(const til_setting_desc_t *desc, FILE *out);
 int til_setting_spec_check(const til_setting_spec_t *spec, const char *value);
+int til_setting_set_raw_value(til_setting_t *setting, const char *value);
+const char * til_setting_get_raw_value(til_setting_t *setting);
 int til_settings_label_setting(const til_settings_t *settings, const til_setting_t *setting, char **res_label);
 int til_settings_strprint_path(const til_settings_t *settings, til_str_t *str);
 int til_settings_fprint_path(const til_settings_t *settings, FILE *out);

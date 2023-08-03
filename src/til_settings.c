@@ -49,7 +49,7 @@ typedef enum til_settings_fsm_state_t {
 } til_settings_fsm_state_t;
 
 
-static til_setting_t * add_setting(til_settings_t *settings, const char *key, const char *value)
+static til_setting_t * add_setting(til_settings_t *settings, const char *key, const char *value, int nocheck)
 {
 	til_setting_t	**new_entries;
 	til_setting_t	*s;
@@ -63,6 +63,7 @@ static til_setting_t * add_setting(til_settings_t *settings, const char *key, co
 	s->parent = settings;
 	s->key = key;
 	s->value = value;
+	s->nocheck = nocheck;
 
 	new_entries = realloc(settings->entries, (settings->num + 1) * sizeof(til_setting_t *));
 	if (!new_entries) {
@@ -123,10 +124,16 @@ til_settings_t * til_settings_new(const char *prefix, const til_settings_t *pare
 			else if (*p == '=' || *p == ',' || *p == '\0') {
 
 				if (*p == '=') { /* key= */
-					(void) add_setting(settings, til_str_to_buf(value_str, NULL), NULL);
+					(void) add_setting(settings, til_str_to_buf(value_str, NULL), NULL, 0);
 					state = TIL_SETTINGS_FSM_STATE_EQUAL;
 				} else { /* bare value */
-					(void) add_setting(settings, NULL, til_str_to_buf(value_str, NULL));
+					char	*v = til_str_to_buf(value_str, NULL);
+					int	nocheck = v[0] == ':' ? 1 : 0;
+
+					if (nocheck)
+						v++;
+
+					(void) add_setting(settings, NULL, v, nocheck);
 					state = TIL_SETTINGS_FSM_STATE_COMMA;
 				}
 			} else
@@ -150,7 +157,14 @@ til_settings_t * til_settings_new(const char *prefix, const til_settings_t *pare
 			if (*p == '\\')
 				state = TIL_SETTINGS_FSM_STATE_VALUE_ESCAPED;
 			else if (*p == ',' || *p == '\0') {
-				settings->entries[settings->num - 1]->value = til_str_to_buf(value_str, NULL);
+				char	*v = til_str_to_buf(value_str, NULL);
+				int	r;
+
+				r = til_setting_set_raw_value(settings->entries[settings->num - 1], v);
+				free(v);
+				if (r < 0)
+					goto _err;
+
 				state = TIL_SETTINGS_FSM_STATE_COMMA;
 			} else
 				til_str_appendf(value_str, "%c", *p); /* FIXME: errors */
@@ -196,7 +210,11 @@ til_settings_t * til_settings_free(til_settings_t *settings)
 				til_settings_free(settings->entries[i]->value_as_nested_settings);
 
 			free((void *)settings->entries[i]->key);
-			free((void *)settings->entries[i]->value);
+			if (settings->entries[i]->value) {
+				if (settings->entries[i]->nocheck)
+					settings->entries[i]->value--;
+				free((void *)settings->entries[i]->value);
+			}
 			til_setting_desc_free((void *)settings->entries[i]->desc);
 			free((void *)settings->entries[i]);
 		}
@@ -340,11 +358,23 @@ int til_settings_get_and_describe_value(const til_settings_t *settings, const ti
 /* returns the added setting, or NULL on error (ENOMEM) */
 til_setting_t * til_settings_add_value(til_settings_t *settings, const char *key, const char *value)
 {
+	int	nocheck = 0;
+	char	*v;
+
 	assert(settings);
 	assert(value);
 	/* XXX: ^^ non-NULL values makes til_settings_get_value_by_idx() NULL-return-for-end-of-settings OK */
 
-	return add_setting(settings, key ? strdup(key) : NULL, strdup(value));
+	v = strdup(value);
+	if (!v)
+		return NULL;
+
+	if (v[0] == ':') {
+		nocheck = 1;
+		v++;
+	}
+
+	return add_setting(settings, key ? strdup(key) : NULL, v, nocheck);
 }
 
 
@@ -572,6 +602,53 @@ int til_setting_spec_check(const til_setting_spec_t *spec, const char *value)
 }
 
 
+/* helper for changing the "raw" value of a setting, maintains til_setting_t.nocheck */
+int til_setting_set_raw_value(til_setting_t *setting, const char *value)
+{
+	int		nocheck = 0;
+	const char	*v;
+
+	assert(setting);
+	assert(value);
+
+	v = strdup(value);
+	if (!v)
+		return -ENOMEM;
+
+	if (v[0] == ':') {
+		nocheck = 1;
+		v++;
+	}
+
+	if (setting->value) {
+		if (setting->nocheck)
+			setting->value--;
+		free((void *)setting->value);
+	}
+
+	setting->value = v;
+	setting->nocheck = nocheck;
+
+	return 0;
+}
+
+
+/* helper for accessing the "raw" value for a setting, which presently just means
+ * if a value was added as a "nocheck" value with a ':' prefix, this will return the
+ * prefixed form.  Otherwise you just get the same thing as setting->value.
+ */
+const char * til_setting_get_raw_value(til_setting_t *setting)
+{
+	assert(setting);
+
+	if (setting->nocheck)
+		return setting->value - 1;
+
+	return setting->value;
+}
+
+
+
 static inline void fputc_escaped(til_str_t *out, int c, unsigned depth)
 {
 	unsigned	escapes = 0;
@@ -627,7 +704,9 @@ static int settings_as_arg(const til_settings_t *settings, int unfiltered, unsig
 		if (settings->entries[i]->value_as_nested_settings) {
 			settings_as_arg(settings->entries[i]->value_as_nested_settings, unfiltered, depth + 1, out);
 		} else if (settings->entries[i]->value) {
-			fputs_escaped(out, settings->entries[i]->value, depth);
+			const char	*v = til_setting_get_raw_value(settings->entries[i]);
+
+			fputs_escaped(out, v, depth);
 		}
 		j++;
 	}
