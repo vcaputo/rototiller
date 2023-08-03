@@ -554,6 +554,7 @@ static int rkt_scener_randomize_scene_settings(rkt_context_t *ctxt, unsigned sce
 	rkt_scene_t		*scene;
 	til_settings_t		*scenes_settings;
 	til_setting_t		*scene_setting;
+	til_setting_t		*module_name_setting;
 	til_settings_t		*new_settings;
 	til_setup_t		*setup;
 	char			*label;
@@ -576,7 +577,12 @@ static int rkt_scener_randomize_scene_settings(rkt_context_t *ctxt, unsigned sce
 	if (r < 0)
 		return r;
 
-	new_settings = til_settings_new(NULL, scenes_settings, label, module->name);
+	if (!til_settings_get_value_by_idx(scene_setting->value_as_nested_settings, 0, &module_name_setting)) {
+		free(label);
+		return -EINVAL;
+	}
+
+	new_settings = til_settings_new(NULL, scenes_settings, label, til_setting_get_raw_value(module_name_setting));
 	free(label);
 	if (!new_settings)
 		return -ENOMEM;
