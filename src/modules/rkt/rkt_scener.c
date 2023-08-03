@@ -1179,8 +1179,19 @@ int rkt_scener_update(rkt_context_t *ctxt)
 				return rkt_scener_err_close(scener, EINVAL); /* this really shouldn't happen */
 
 			r = til_module_setup_finalize(module, scener->new_scene.settings, &setup);
-			if (r < 0) /* FIXME TODO we should probably un-add the scene from scenes_settings??? */
-				return rkt_scener_err_close(scener, r);
+			if (r < 0) { /* FIXME TODO we should probably un-add the scene from scenes_settings??? */
+				if (r != -EINVAL)
+					return rkt_scener_err_close(scener, r);
+
+				/* FIXME TODO: error recovery needs a bunch of work, but let's not just
+				 * hard disconnect when finalize finds invalid settings... especially
+				 * with the addition of til_setting_t.nocheck / ':" prefixing, this is
+				 * much more likely.
+				 */
+				scener->new_scene.settings = NULL;
+
+				return rkt_scener_send_error(scener, EINVAL, RKT_SCENER_FSM_SEND_SCENES);
+			}
 
 			/* have baked setup @ setup, create context using it */
 			r = til_module_create_context(module,
