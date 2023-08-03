@@ -642,13 +642,13 @@ int til_module_setup_randomize(const til_module_t *module, til_settings_t *setti
 	 */
 	name = til_settings_get_value_by_idx(settings, 0, &setting);
 	if (!name)
-		return -EINVAL; /* TODO: add a first setting from module->name? current callers always pass the module name as the setting string */
+		return -EINVAL;
 
 	if (!setting->desc) {
 		r = til_setting_desc_new(	settings,
 						&(til_setting_spec_t){
 							.name = "Renderer module",
-							.preferred = module->name,
+							.preferred = til_setting_get_raw_value(setting),
 							.as_label = 1
 						}, &setting->desc);
 		if (r < 0)
