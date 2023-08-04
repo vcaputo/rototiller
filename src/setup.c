@@ -90,7 +90,7 @@ int setup_interactively(til_settings_t *settings, int (*setup_func)(const til_se
 						return r;
 				}
 
-				setting->value_as_nested_settings = til_settings_new(NULL, desc->container, desc->spec.key ? : label, setting->value);
+				setting->value_as_nested_settings = til_settings_new(NULL, desc->container, desc->spec.key ? : label, til_setting_get_raw_value(setting));
 				free(label);
 
 				/* FIXME: til_settings_new() seems like it should return an errno, since it can encounter parse errors too? */

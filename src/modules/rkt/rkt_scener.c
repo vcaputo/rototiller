@@ -1080,7 +1080,7 @@ int rkt_scener_update(rkt_context_t *ctxt)
 							return rkt_scener_err_close(scener, r);
 					}
 
-					setting->value_as_nested_settings = til_settings_new(NULL, desc->container, desc->spec.key ? : label, setting->value);
+					setting->value_as_nested_settings = til_settings_new(NULL, desc->container, desc->spec.key ? : label, til_setting_get_raw_value(setting));
 					free(label);
 
 					if (!setting->value_as_nested_settings) {
