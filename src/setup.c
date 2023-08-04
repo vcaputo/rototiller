@@ -74,7 +74,7 @@ int setup_interactively(til_settings_t *settings, int (*setup_func)(const til_se
 				}
 			}
 
-			r = til_setting_spec_check(&desc->spec, setting->value);
+			r = til_setting_check_spec(setting, &desc->spec);
 			if (r < 0)
 				return setup_ret_failed_desc_path(desc, r, res_failed_desc_path);
 

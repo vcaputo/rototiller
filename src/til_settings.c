@@ -574,16 +574,24 @@ int til_setting_desc_fprint_path(const til_setting_desc_t *desc, FILE *out)
 /* TODO: spec checking in general needs refinement and to be less intolerant of
  * creative experimentation.
  */
-int til_setting_spec_check(const til_setting_spec_t *spec, const char *value)
+/* Check's setting's value against the provided spec.
+ * If setting->nocheck is set the check is skipped.
+ * If spec->as_nested_settings is set, no check is performed, as it's not really applicable until leaf settings
+ */
+int til_setting_check_spec(const til_setting_t *setting, const til_setting_spec_t *spec)
 {
 	assert(spec);
-	assert(value);
+	assert(setting);
+	assert(setting->value);
+
+	if (setting->nocheck)
+		return 0;
 
 	/* XXX: this check can't really be performed on anything but "leaf" settings. */
 	if (spec->values && !spec->as_nested_settings) {
 
 		for (int i = 0; spec->values[i]; i++) {
-			if (!strcasecmp(spec->values[i], value))
+			if (!strcasecmp(spec->values[i], setting->value))
 				return 0;
 		}
 

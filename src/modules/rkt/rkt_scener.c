@@ -1061,8 +1061,8 @@ int rkt_scener_update(rkt_context_t *ctxt)
 					}
 				}
 
-				if (!setting->nocheck && til_setting_spec_check(&desc->spec, setting->value) < 0) {
-					/* setting invalid! go back to prompting for input */
+				r = til_setting_check_spec(setting, &desc->spec);
+				if (r < 0) { /* setting invalid! go back to prompting for input */
 					scener->new_scene.cur_invalid = setting;
 
 					return rkt_scener_send_error(scener, EINVAL, RKT_SCENER_FSM_SEND_NEWSCENE_SETUP_PROMPT);
