@@ -1056,8 +1056,10 @@ int rkt_scener_update(rkt_context_t *ctxt)
 						return rkt_scener_err_close(scener, ENOMEM);
 
 					if (o != setting->value) {
-						free((void *)setting->value);
-						setting->value = o;
+						r = til_setting_set_raw_value(setting, o);
+						free((void *)o);
+						if (r < 0)
+							return -ENOMEM;
 					}
 				}
 

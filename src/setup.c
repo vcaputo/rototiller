@@ -69,8 +69,10 @@ int setup_interactively(til_settings_t *settings, int (*setup_func)(const til_se
 					return -ENOMEM;
 
 				if (o != setting->value) {
-					free((void *)setting->value);
-					setting->value = o;
+					r = til_setting_set_raw_value(setting, o);
+					free((void *)o);
+					if (r < 0)
+						return -ENOMEM;
 				}
 			}
 
