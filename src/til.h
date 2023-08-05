@@ -23,6 +23,7 @@ typedef struct til_stream_t til_stream_t;
 #define TIL_MODULE_OVERLAYABLE	1u	/* module is appropriate for overlay use */
 #define TIL_MODULE_HERMETIC	2u	/* module doesn't work readily with other modules / requires manual settings */
 #define TIL_MODULE_EXPERIMENTAL	4u	/* module is buggy / unfinished */
+#define TIL_MODULE_BUILTIN	8u	/* module is implements "built-in" libtil functionality not intended to be interesting by itself */
 
 struct til_module_t {
 	til_module_context_t *	(*create_context)(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup);
