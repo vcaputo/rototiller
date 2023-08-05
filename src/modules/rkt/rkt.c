@@ -27,7 +27,7 @@
  * GNU Rocket (https://github.com/rocket/rocket)
  */
 
-#define RKT_DEFAULT_SCENE_MODULE	":blank"
+#define RKT_DEFAULT_SCENE_MODULE	"compose"
 
 /* variadic helper wrapping librocket's sync_get_track() */
 static const struct sync_track * rkt_sync_get_trackf(rkt_context_t *ctxt, const char *format, ...)
