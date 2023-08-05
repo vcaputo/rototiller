@@ -36,7 +36,6 @@ typedef struct rkt_context_t {
 } rkt_context_t;
 
 typedef struct rkt_setup_scene_t {
-	const til_module_t	*module;
 	til_setup_t		*setup;		/* Baked setup as-configured via setup. */
 } rkt_setup_scene_t;
 

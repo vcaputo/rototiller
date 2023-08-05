@@ -1160,8 +1160,6 @@ int rkt_scener_update(rkt_context_t *ctxt)
 		}
 
 		{ /* finalize setup, create context, expand context scenes or replace existing */
-			const char		*module_name;
-			const til_module_t	*module;
 			til_module_context_t	*module_ctxt;
 			til_setup_t		*setup;
 			rkt_scene_t		*new_scenes;
@@ -1172,15 +1170,11 @@ int rkt_scener_update(rkt_context_t *ctxt)
 			 * and it's time to bake the setup and create the context,
 			 * adding the rkt_scene_t instance corresponding to the settings.
 			 */
-			module_name = til_settings_get_value_by_idx(scener->new_scene.settings, 0, NULL);
-			if (!module_name) /* FIXME TODO we should probably un-add the scene from scenes_settings??? */
-				return rkt_scener_err_close(scener, EINVAL); /* this really shouldn't happen */
 
-			module = til_lookup_module(module_name);
-			if (!module) /* FIXME TODO we should probably un-add the scene from scenes_settings??? */
-				return rkt_scener_err_close(scener, EINVAL); /* this really shouldn't happen */
-
-			r = til_module_setup_finalize(module, scener->new_scene.settings, &setup);
+			r = rkt_scene_module_setup(scener->new_scene.settings,
+					     &scener->new_scene.cur_setting,
+					     &scener->new_scene.cur_desc,
+					     &setup);
 			if (r < 0) { /* FIXME TODO we should probably un-add the scene from scenes_settings??? */
 				if (r != -EINVAL)
 					return rkt_scener_err_close(scener, r);
@@ -1196,7 +1190,7 @@ int rkt_scener_update(rkt_context_t *ctxt)
 			}
 
 			/* have baked setup @ setup, create context using it */
-			r = til_module_create_context(module,
+			r = til_module_create_context(setup->creator,
 							 ctxt->til_module_context.stream,
 							 rand_r(&ctxt->til_module_context.seed), /* FIXME TODO seeds need work (make reproducible) */
 							 ctxt->til_module_context.last_ticks,

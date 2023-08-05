@@ -266,7 +266,7 @@ static til_module_context_t * rkt_create_context(const til_module_t *module, til
 	til_stream_set_hooks(stream, &rkt_stream_hooks, ctxt);
 
 	for (size_t i = 0; i < ctxt->n_scenes; i++) {
-		if (til_module_create_context(s->scenes[i].module, stream, rand_r(&seed), ticks, 0, s->scenes[i].setup, &ctxt->scenes[i].module_ctxt) < 0)
+		if (til_module_create_context(s->scenes[i].setup->creator, stream, rand_r(&seed), ticks, 0, s->scenes[i].setup, &ctxt->scenes[i].module_ctxt) < 0)
 			return til_module_context_free(&ctxt->til_module_context);
 	}
 
@@ -649,23 +649,17 @@ static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting
 		setup->n_scenes = n_scenes;
 
 		for (size_t i = 0; til_settings_get_value_by_idx(scenes_settings, i, &scene_setting); i++) {
-			const char		*scene_module_name = til_settings_get_value_by_idx(scene_setting->value_as_nested_settings, 0, NULL);
-			const til_module_t	*scene_module = til_lookup_module(scene_module_name);
-
-			if (!scene_module || !strcmp(scene_module_name, "rkt")) {
-				til_setup_free(&setup->til_setup);
-
-				return -EINVAL;
-			}
-
-			r = til_module_setup_finalize(scene_module, scene_setting->value_as_nested_settings, &setup->scenes[i].setup);
+			r = rkt_scene_module_setup(scene_setting->value_as_nested_settings,
+						   res_setting,
+						   res_desc,
+						   &setup->scenes[i].setup); /* XXX: note no res_setup, must defer finalize */
 			if (r < 0) {
 				til_setup_free(&setup->til_setup);
 
 				return r;
 			}
 
-			setup->scenes[i].module = scene_module;
+			assert(r == 0); /* the settings should be complete by now, so this is unexpected */
 		}
 
 		setup->base = strdup(base);
