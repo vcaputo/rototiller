@@ -392,7 +392,7 @@ int rkt_scene_module_setup(const til_settings_t *settings, til_setting_t **res_s
 				     res_setup,
 				     "Scene Module",
 				     RKT_DEFAULT_SCENE_MODULE,
-				     (TIL_MODULE_EXPERIMENTAL | TIL_MODULE_HERMETIC),
+				     (TIL_MODULE_EXPERIMENTAL | TIL_MODULE_HERMETIC), /* TODO: TIL_MODULE_BUILTIN?? rkt is kind of advanced maybe just don't hide things? */
 				     NULL); /* << "rkt" would be wise, but it already gets caught by HERMETIC */
 }
 

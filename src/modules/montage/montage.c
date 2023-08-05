@@ -208,7 +208,7 @@ static const char * montage_tiles_setting_override(const char *value)
 	if (strcasecmp(value, "all"))
 		return value;
 
-	return til_get_module_names((TIL_MODULE_HERMETIC|TIL_MODULE_EXPERIMENTAL), exclusions);
+	return til_get_module_names((TIL_MODULE_HERMETIC|TIL_MODULE_EXPERIMENTAL|TIL_MODULE_BUILTIN), exclusions);
 }
 
 

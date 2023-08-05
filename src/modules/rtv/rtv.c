@@ -239,7 +239,7 @@ static int rtv_should_skip_module(const rtv_setup_t *setup, const til_module_t *
 	 */
 	if (!setup->channels[0]) {
 		/* for "all" skip these, but you can still explicitly name them. */
-		if ((module->flags & (TIL_MODULE_HERMETIC | TIL_MODULE_EXPERIMENTAL)))
+		if ((module->flags & (TIL_MODULE_HERMETIC | TIL_MODULE_EXPERIMENTAL | TIL_MODULE_BUILTIN)))
 			return 1;
 
 		return 0;

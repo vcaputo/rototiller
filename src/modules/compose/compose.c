@@ -149,11 +149,12 @@ static char * compose_random_layers_setting(unsigned seed)
 	size_t			n_modules, n_rand_overlays, n_overlayable = 0, n_unusable = 0, base_idx;
 	char			*layers = NULL;
 	const til_module_t	**modules;
+	unsigned		unusable_flags = (TIL_MODULE_HERMETIC | TIL_MODULE_EXPERIMENTAL | TIL_MODULE_BUILTIN);
 
 	til_get_modules(&modules, &n_modules);
 
 	for (size_t i = 0; i < n_modules; i++) {
-		if ((modules[i]->flags & (TIL_MODULE_HERMETIC | TIL_MODULE_EXPERIMENTAL)) ||
+		if ((modules[i]->flags & unusable_flags) ||
 		    modules[i] == &compose_module) {
 			n_unusable++;
 
@@ -166,7 +167,7 @@ static char * compose_random_layers_setting(unsigned seed)
 
 	base_idx = rand_r(&seed) % (n_modules - (n_overlayable + n_unusable));
 	for (size_t i = 0, j = 0; !layers && i < n_modules; i++) {
-		if ((modules[i]->flags & (TIL_MODULE_HERMETIC | TIL_MODULE_EXPERIMENTAL)) ||
+		if ((modules[i]->flags & unusable_flags) ||
 		    modules[i] == &compose_module)
 			continue;
 
@@ -187,7 +188,7 @@ static char * compose_random_layers_setting(unsigned seed)
 		size_t	rand_idx = rand_r(&seed) % n_overlayable;
 
 		for (size_t i = 0, j = 0; i < n_modules; i++) {
-			if ((modules[i]->flags & (TIL_MODULE_HERMETIC | TIL_MODULE_EXPERIMENTAL)) ||
+			if ((modules[i]->flags & unusable_flags) ||
 			    modules[i] == &compose_module)
 				continue;
 
