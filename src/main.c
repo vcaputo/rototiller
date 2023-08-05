@@ -390,46 +390,51 @@ int main(int argc, const char *argv[])
 	exit_if(r && print_setup_as_args(&setup, !rototiller.args.gogogo) < 0,
 		"unable to print setup");
 
-	exit_if(!(rototiller.module = til_lookup_module(til_settings_get_value_by_idx(setup.module_settings, 0, NULL))),
-		"unable to lookup module from settings \"%s\"", til_settings_get_value_by_idx(setup.module_settings, 0, NULL));
+	if (setup.module_setup) { /* the "none" builtin produces a NULL setup successfully */
+		exit_if(!(rototiller.module = til_lookup_module(til_settings_get_value_by_idx(setup.module_settings, 0, NULL))),
+			"unable to lookup module from settings \"%s\"", til_settings_get_value_by_idx(setup.module_settings, 0, NULL));
 
-	exit_if((r = til_fb_new(fb_ops, setup.title, setup.video_setup, NUM_FB_PAGES, &rototiller.fb)) < 0,
-		"unable to create fb: %s", strerror(-r));
+		exit_if((r = til_fb_new(fb_ops, setup.title, setup.video_setup, NUM_FB_PAGES, &rototiller.fb)) < 0,
+			"unable to create fb: %s", strerror(-r));
 
-	exit_if(!(rototiller.stream = til_stream_new()),
-		"unable to create root stream");
+		exit_if(!(rototiller.stream = til_stream_new()),
+			"unable to create root stream");
 
-	exit_if(!fps_setup(),
-		"unable to setup fps counter");
+		exit_if(!fps_setup(),
+			"unable to setup fps counter");
 
-	gettimeofday(&rototiller.start_tv, NULL);
-	exit_if((r = til_module_create_context(	rototiller.module,
-						rototiller.stream,
-						setup.seed,
-						get_ticks(&rototiller.start_tv,
-							&rototiller.start_tv,
-							rototiller.ticks_offset),
-						0,
-						setup.module_setup,
-						&rototiller.module_context)) < 0,
-		"unable to create module context: %s", strerror(-r));
+		gettimeofday(&rototiller.start_tv, NULL);
+		exit_if((r = til_module_create_context(	rototiller.module,
+							rototiller.stream,
+							setup.seed,
+							get_ticks(&rototiller.start_tv,
+								&rototiller.start_tv,
+								rototiller.ticks_offset),
+							0,
+							setup.module_setup,
+							&rototiller.module_context)) < 0,
+			"unable to create module context: %s", strerror(-r));
 
-	pexit_if(pthread_create(&rototiller.thread, NULL, rototiller_thread, &rototiller) != 0,
-		"unable to create dispatch thread");
+		pexit_if(pthread_create(&rototiller.thread, NULL, rototiller_thread, &rototiller) != 0,
+			"unable to create dispatch thread");
 
-	while (til_stream_active(rototiller.stream)) {
-		if (til_fb_flip(rototiller.fb) < 0)
-			break;
+		while (til_stream_active(rototiller.stream)) {
+			if (til_fb_flip(rototiller.fb) < 0)
+				break;
 
-		fps_fprint(rototiller.fb, stderr);
+			fps_fprint(rototiller.fb, stderr);
+		}
+
+		pthread_cancel(rototiller.thread);
+		pthread_join(rototiller.thread, NULL);
+		til_quiesce();
+
+		til_module_context_free(rototiller.module_context);
+		til_stream_free(rototiller.stream);
+		til_fb_free(rototiller.fb);
 	}
 
-	pthread_cancel(rototiller.thread);
-	pthread_join(rototiller.thread, NULL);
 	til_shutdown();
-	til_module_context_free(rototiller.module_context);
-	til_stream_free(rototiller.stream);
-	til_fb_free(rototiller.fb);
 
 	return EXIT_SUCCESS;
 }
