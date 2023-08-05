@@ -165,3 +165,25 @@ static int _ref_setup(const til_settings_t *settings, til_setting_t **res_settin
 
 	return 0;
 }
+
+
+/* "none" built-in module */
+static int _none_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
+
+
+til_module_t	_none_module = {
+	.setup = _none_setup,
+	.name = "none",
+	.description = "Disabled (built-in)",
+	.author = "built-in",
+	.flags = TIL_MODULE_BUILTIN,
+};
+
+
+static int _none_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
+{
+	if (res_setup)
+		*res_setup = NULL;
+
+	return 0;
+}
