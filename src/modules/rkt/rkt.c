@@ -27,6 +27,8 @@
  * GNU Rocket (https://github.com/rocket/rocket)
  */
 
+#define RKT_DEFAULT_SCENE_MODULE	":blank"
+
 /* variadic helper wrapping librocket's sync_get_track() */
 static const struct sync_track * rkt_sync_get_trackf(rkt_context_t *ctxt, const char *format, ...)
 {
@@ -382,6 +384,19 @@ static void rkt_setup_free(til_setup_t *setup)
 }
 
 
+int rkt_scene_module_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
+{
+	return til_module_setup_full(settings,
+				     res_setting,
+				     res_desc,
+				     res_setup,
+				     "Scene Module",
+				     RKT_DEFAULT_SCENE_MODULE,
+				     (TIL_MODULE_EXPERIMENTAL | TIL_MODULE_HERMETIC),
+				     NULL); /* << "rkt" would be wise, but it already gets caught by HERMETIC */
+}
+
+
 static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	const til_settings_t	*scenes_settings;
@@ -402,14 +417,11 @@ static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting
 	const char		*listen_port;
 	int			r;
 
-	/* This is largely taken from compose::layers, but might just go away when I add tables to rocket,
-	 * or maybe they can coexist.
-	 */
 	r = til_settings_get_and_describe_value(settings,
 						&(til_setting_spec_t){
 							.name = "Comma-separated list of modules for scenes to sequence",
 							.key = "scenes",
-							.preferred = ":blank", /* FIXME TODO: this should really be NULL or "" for no scenes at all, but that doesn't work yet */
+							.preferred = RKT_DEFAULT_SCENE_MODULE, /* FIXME TODO: this should really be NULL or "" for no scenes at all, but that doesn't work yet */
 							.annotations = NULL,
 							.as_nested_settings = 1,
 						},
@@ -440,37 +452,12 @@ static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting
 		}
 
 		for (size_t i = 0; til_settings_get_value_by_idx(scenes_settings, i, &scene_setting); i++) {
-			til_setting_t		*scene_module_setting;
-			const char		*scene_module_name = til_settings_get_value_by_idx(scene_setting->value_as_nested_settings, 0, &scene_module_setting);
-			const til_module_t	*scene_module;
-
-			if (!scene_module_name || !scene_module_setting->desc) {
-				r = til_setting_desc_new(	scene_setting->value_as_nested_settings,
-								&(til_setting_spec_t){
-									.name = "Scene module name",
-									.preferred = "none",
-									.as_label = 1,
-								}, res_desc);
-				if (r < 0)
-					return r;
-
-				*res_setting = scene_module_name ? scene_module_setting : NULL;
-
-				return 1;
-			}
-
-			scene_module = til_lookup_module(scene_module_name);
-			if (!scene_module) {
-				*res_setting = scene_module_setting;
-
-				return -EINVAL;
-			}
-
-			if (scene_module->setup) {
-				r = scene_module->setup(scene_setting->value_as_nested_settings, res_setting, res_desc, NULL);
-				if (r)
-					return r;
-			}
+			r = rkt_scene_module_setup(scene_setting->value_as_nested_settings,
+						   res_setting,
+						   res_desc,
+						   NULL); /* XXX: note no res_setup, must defer finalize */
+			if (r)
+				return r;
 		}
 	}
 

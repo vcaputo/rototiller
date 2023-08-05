@@ -993,7 +993,7 @@ int rkt_scener_update(rkt_context_t *ctxt)
 	case RKT_SCENER_FSM_SEND_NEWSCENE_SETUP: {
 		int	r;
 
-		r = til_module_setup(scener->new_scene.settings,
+		r = rkt_scene_module_setup(scener->new_scene.settings,
 				     &scener->new_scene.cur_setting,
 				     &scener->new_scene.cur_desc,
 				     NULL);	/* res_setup deliberately left NULL for two reasons:

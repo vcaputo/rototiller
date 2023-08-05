@@ -61,4 +61,7 @@ typedef struct rkt_setup_t {
 	rkt_setup_scene_t	scenes[];
 } rkt_setup_t;
 
+
+int rkt_scene_module_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
+
 #endif
