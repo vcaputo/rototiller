@@ -72,7 +72,6 @@ typedef struct checkers_setup_t {
 
 	checkers_fill_t		fill;
 	uint32_t		fill_color;
-	const til_module_t	*fill_module;
 	til_setup_t		*fill_module_setup;
 
 	checkers_clear_t	clear;
@@ -91,7 +90,7 @@ static til_module_context_t * checkers_create_context(const til_module_t *module
 	size_t			size = sizeof(checkers_context_t);
 	checkers_context_t	*ctxt;
 
-	if (((checkers_setup_t *)setup)->fill_module)
+	if (((checkers_setup_t *)setup)->fill_module_setup)
 		size += sizeof(til_module_context_t *) * n_cpus;
 
 	ctxt = til_module_context_new(module, size, stream, seed, ticks, n_cpus, setup);
@@ -100,8 +99,8 @@ static til_module_context_t * checkers_create_context(const til_module_t *module
 
 	ctxt->setup = (checkers_setup_t *)setup;
 
-	if (ctxt->setup->fill_module) {
-		const til_module_t	*module = ctxt->setup->fill_module;
+	if (ctxt->setup->fill_module_setup) {
+		const til_module_t	*module = ctxt->setup->fill_module_setup->creator;
 
 		/* since checkers is already threaded, create an n_cpus=1 context per-cpu */
 		if (til_module_create_contexts(module, stream, seed, ticks, 1, ctxt->setup->fill_module_setup, n_cpus, ctxt->fill_module_contexts) < 0)
@@ -156,7 +155,7 @@ static void checkers_destroy_context(til_module_context_t *context)
 {
 	checkers_context_t	*ctxt = (checkers_context_t *)context;
 
-	if (ctxt->setup->fill_module) {
+	if (ctxt->setup->fill_module_setup) {
 		for (unsigned i = 0; i < context->n_cpus; i++)
 			til_module_context_free(ctxt->fill_module_contexts[i]);
 	}
@@ -385,7 +384,7 @@ static void checkers_render_fragment(til_module_context_t *context, til_stream_t
 			til_fb_fragment_fill(fragment, clear_flags, clear_color);
 		/* TODO: clear_module might be interesting too, but sort out the context sets @ path first  */
 	else {
-		if (!ctxt->setup->fill_module)
+		if (!ctxt->setup->fill_module_setup)
 			til_fb_fragment_fill(fragment, fill_flags, fill_color);
 		else /* TODO: we need a way to send down color and flags, and use the module render as a brush of sorts */
 			til_module_render(ctxt->fill_module_contexts[cpu], stream, ticks, fragment_ptr);
@@ -486,6 +485,25 @@ static int checkers_value_to_pos(const char **options, const char *value, unsign
 }
 
 
+static int checkers_fill_module_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
+{
+	/* XXX: Note that this is for processing the underlying fill_module_settings, starting with the module name.
+	 * The fill_module_values[] under checkers_setup() still dictate what the presets are for the outer fill_module= setting.
+	 * So randomizers for instance will encounter the fill_module_values[] and choose from those, and what modules are available
+	 * in this inner setup won't be part of the randomizer's set to draw from.  Meaning experimental and/or builtins could be
+	 * allowed here without affecting randomizing, though it's kind of a hack.
+	 */
+	return til_module_setup_full(settings,
+				     res_setting,
+				     res_desc,
+				     res_setup,
+				     "Filled cell module name",
+				     CHECKERS_DEFAULT_FILL_MODULE,
+				     (TIL_MODULE_EXPERIMENTAL | TIL_MODULE_HERMETIC),
+				     NULL);
+}
+
+
 static int checkers_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
 
 
@@ -506,9 +524,8 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 {
 	const char		*size;
 	const char		*pattern;
-	const char		*fill_module, *fill_module_name;
+	const char		*fill_module;
 	const til_settings_t	*fill_module_settings;
-	til_setting_t		*fill_module_setting;
 	const char		*dynamics;
 	const char		*dynamics_rate;
 	const char		*fill, *clear;
@@ -629,40 +646,14 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 	assert(res_setting && *res_setting);
 	assert((*res_setting)->value_as_nested_settings);
 
-	fill_module_settings = (*res_setting)->value_as_nested_settings;
-	fill_module_name = til_settings_get_value_by_idx(fill_module_settings, 0, &fill_module_setting);
+	fill_module_settings = (*res_setting)->value_as_nested_settings,
 
-	if (!fill_module_name || !fill_module_setting->desc) {
-		r = til_setting_desc_new(fill_module_settings,
-					&(til_setting_spec_t){
-						.name = "Filled cell module name",
-						.preferred = "none",
-						.as_label = 1,
-					},
-					res_desc);
-		if (r < 0)
-			return r;
-
-		*res_setting = fill_module_name ? fill_module_setting : NULL;
-
-		return 1;
-	}
-
-	if (strcasecmp(fill_module_name, "none")) {
-		const til_module_t	*mod = til_lookup_module(fill_module_name);
-
-		if (!mod) {
-			*res_setting = fill_module_setting;
-
-			return -EINVAL;
-		}
-
-		if (mod->setup) {
-			r = mod->setup(fill_module_settings, res_setting, res_desc, NULL);
-			if (r)
-				return r;
-		}
-	}
+	r = checkers_fill_module_setup(fill_module_settings,
+				       res_setting,
+				       res_desc,
+				       NULL); /* XXX: note no res_setup, must defer finalize */
+	if (r)
+		return r;
 
 	r = til_settings_get_and_describe_value(settings,
 						&(til_setting_spec_t){
@@ -780,19 +771,16 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 			return -EINVAL;
 		}
 
-		if (strcasecmp(fill_module_name, "none")) {
-			setup->fill_module = til_lookup_module(fill_module_name);
-			if (!setup->fill_module) {
-				til_setup_free(&setup->til_setup);
-				return -EINVAL;
-			}
-
-			r = til_module_setup_finalize(setup->fill_module, fill_module_settings, &setup->fill_module_setup);
-			if (r < 0) {
-				til_setup_free(&setup->til_setup);
-				return r;
-			}
+		r = checkers_fill_module_setup(fill_module_settings,
+					       res_setting,
+					       res_desc,
+					       &setup->fill_module_setup); /* finalize! */
+		if (r < 0) {
+			til_setup_free(&setup->til_setup);
+			return r;
 		}
+
+		assert(r == 0);
 
 		if (!strcasecmp(dynamics, "odd"))
 			setup->dynamics = CHECKERS_DYNAMICS_ODD;
