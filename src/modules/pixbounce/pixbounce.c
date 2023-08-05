@@ -315,6 +315,18 @@ static void pixbounce_render_fragment(til_module_context_t *context, til_stream_
 	ctxt->y = ctxt->y+ctxt->y_dir;
 }
 
+int pixbounce_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
+
+til_module_t	pixbounce_module = {
+	.create_context  = pixbounce_create_context,
+	.render_fragment = pixbounce_render_fragment,
+	.setup = pixbounce_setup,
+	.name = "pixbounce",
+	.description = "Pixmap bounce",
+	.author = "Philip J Freeman <elektron@halo.nu>",
+	.flags = TIL_MODULE_OVERLAYABLE,
+};
+
 int pixbounce_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	const char	*pixmap_size;
@@ -374,7 +386,7 @@ int pixbounce_setup(const til_settings_t *settings, til_setting_t **res_setting,
 	if (res_setup) {
 		pixbounce_setup_t	*setup;
 
-		setup = til_setup_new(settings, sizeof(*setup), NULL);
+		setup = til_setup_new(settings, sizeof(*setup), NULL, &pixbounce_module);
 		if (!setup)
 			return -ENOMEM;
 
@@ -405,13 +417,3 @@ int pixbounce_setup(const til_settings_t *settings, til_setting_t **res_setting,
 
 	return 0;
 }
-
-til_module_t	pixbounce_module = {
-	.create_context  = pixbounce_create_context,
-	.render_fragment = pixbounce_render_fragment,
-	.setup = pixbounce_setup,
-	.name = "pixbounce",
-	.description = "Pixmap bounce",
-	.author = "Philip J Freeman <elektron@halo.nu>",
-	.flags = TIL_MODULE_OVERLAYABLE,
-};

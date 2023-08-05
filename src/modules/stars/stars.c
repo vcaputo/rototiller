@@ -248,6 +248,19 @@ static void stars_render_fragment(til_module_context_t *context, til_stream_t *s
 	}
 }
 
+int stars_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
+
+til_module_t	stars_module = {
+	.create_context  = stars_create_context,
+	.destroy_context = stars_destroy_context,
+	.render_fragment = stars_render_fragment,
+	.setup = stars_setup,
+	.name = "stars",
+	.description = "Basic starfield",
+	.author = "Philip J Freeman <elektron@halo.nu>",
+	.flags = TIL_MODULE_OVERLAYABLE,
+};
+
 int stars_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	const char	*rot_adj;
@@ -280,7 +293,7 @@ int stars_setup(const til_settings_t *settings, til_setting_t **res_setting, con
 	if (res_setup) {
 		stars_setup_t	*setup;
 
-		setup = til_setup_new(settings, sizeof(*setup), NULL);
+		setup = til_setup_new(settings, sizeof(*setup), NULL, &stars_module);
 		if (!setup)
 			return -ENOMEM;
 
@@ -291,14 +304,3 @@ int stars_setup(const til_settings_t *settings, til_setting_t **res_setting, con
 
 	return 0;
 }
-
-til_module_t	stars_module = {
-	.create_context  = stars_create_context,
-	.destroy_context = stars_destroy_context,
-	.render_fragment = stars_render_fragment,
-	.setup = stars_setup,
-	.name = "stars",
-	.description = "Basic starfield",
-	.author = "Philip J Freeman <elektron@halo.nu>",
-	.flags = TIL_MODULE_OVERLAYABLE,
-};

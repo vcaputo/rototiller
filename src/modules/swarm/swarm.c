@@ -414,6 +414,20 @@ static void swarm_render_fragment(til_module_context_t *context, til_stream_t *s
 }
 
 
+static int swarm_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
+
+
+til_module_t	swarm_module = {
+	.create_context = swarm_create_context,
+	.render_fragment = swarm_render_fragment,
+	.setup = swarm_setup,
+	.name = "swarm",
+	.description = "\"Boids\"-inspired particle swarm in 3D",
+	.author = "Vito Caputo <vcaputo@pengaru.com>",
+	.flags = TIL_MODULE_OVERLAYABLE,
+};
+
+
 static int swarm_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	const char	*styles[] = {
@@ -441,7 +455,7 @@ static int swarm_setup(const til_settings_t *settings, til_setting_t **res_setti
 	if (res_setup) {
 		swarm_setup_t	*setup;
 
-		setup = til_setup_new(settings, sizeof(*setup), NULL);
+		setup = til_setup_new(settings, sizeof(*setup), NULL, &swarm_module);
 		if (!setup)
 			return -ENOMEM;
 
@@ -455,14 +469,3 @@ static int swarm_setup(const til_settings_t *settings, til_setting_t **res_setti
 
 	return 0;
 }
-
-
-til_module_t	swarm_module = {
-	.create_context = swarm_create_context,
-	.render_fragment = swarm_render_fragment,
-	.setup = swarm_setup,
-	.name = "swarm",
-	.description = "\"Boids\"-inspired particle swarm in 3D",
-	.author = "Vito Caputo <vcaputo@pengaru.com>",
-	.flags = TIL_MODULE_OVERLAYABLE,
-};

@@ -22,7 +22,7 @@
  * as the callers are generally using it in place of calloc(), and assign it to a
  * container struct of some other type but having an embedded til_setup_t.
  */
-void * til_setup_new(const til_settings_t *settings, size_t size, void (*free_func)(til_setup_t *setup))
+void * til_setup_new(const til_settings_t *settings, size_t size, void (*free_func)(til_setup_t *setup), const void *creator)
 {
 	char		*path_buf = NULL;
 	size_t		path_len;
@@ -53,6 +53,7 @@ void * til_setup_new(const til_settings_t *settings, size_t size, void (*free_fu
 	setup->path_hash = til_jenkins((uint8_t *)path_buf, path_len + 1 /* include the \0 */);
 	setup->refcount = 1;
 	setup->free = free_func;
+	setup->creator = creator;
 
 	return setup;
 }

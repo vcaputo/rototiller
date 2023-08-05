@@ -113,6 +113,21 @@ static void moire_render_fragment(til_module_context_t *context, til_stream_t *s
 }
 
 
+static int moire_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
+
+
+til_module_t	moire_module = {
+	.create_context = moire_create_context,
+	.prepare_frame = moire_prepare_frame,
+	.render_fragment = moire_render_fragment,
+	.setup = moire_setup,
+	.name = "moire",
+	.description = "2D Moire interference patterns (threaded)",
+	.author = "Vito Caputo <vcaputo@pengaru.com>",
+	.flags = TIL_MODULE_OVERLAYABLE,
+};
+
+
 static int moire_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	const char	*centers;
@@ -143,7 +158,7 @@ static int moire_setup(const til_settings_t *settings, til_setting_t **res_setti
 	if (res_setup) {
 		moire_setup_t	*setup;
 
-		setup = til_setup_new(settings, sizeof(*setup), NULL);
+		setup = til_setup_new(settings, sizeof(*setup), NULL, &moire_module);
 		if (!setup)
 			return -ENOMEM;
 
@@ -154,15 +169,3 @@ static int moire_setup(const til_settings_t *settings, til_setting_t **res_setti
 
 	return 0;
 }
-
-
-til_module_t	moire_module = {
-	.create_context = moire_create_context,
-	.prepare_frame = moire_prepare_frame,
-	.render_fragment = moire_render_fragment,
-	.setup = moire_setup,
-	.name = "moire",
-	.description = "2D Moire interference patterns (threaded)",
-	.author = "Vito Caputo <vcaputo@pengaru.com>",
-	.flags = TIL_MODULE_OVERLAYABLE,
-};

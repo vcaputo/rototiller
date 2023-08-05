@@ -250,6 +250,20 @@ static void _ref_setup_free(til_setup_t *setup)
 }
 
 
+static int _ref_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
+
+
+static til_module_t	_ref_module = {
+	.create_context = _ref_create_context,
+	.destroy_context = _ref_destroy_context,
+	.render_fragment = _ref_render_fragment,
+	.setup = _ref_setup,
+	.name = "ref",
+	.description = "built-in context referencer",
+	.author = "built-in",
+};
+
+
 static int _ref_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	const char	*path;
@@ -271,7 +285,7 @@ static int _ref_setup(const til_settings_t *settings, til_setting_t **res_settin
 	if (res_setup) {
 		_ref_setup_t    *setup;
 
-		setup = til_setup_new(settings, sizeof(*setup), _ref_setup_free);
+		setup = til_setup_new(settings, sizeof(*setup), _ref_setup_free, &_ref_module);
 		if (!setup)
 			return -ENOMEM;
 
@@ -287,17 +301,6 @@ static int _ref_setup(const til_settings_t *settings, til_setting_t **res_settin
 
 	return 0;
 }
-
-
-static til_module_t	_ref_module = {
-	.create_context = _ref_create_context,
-	.destroy_context = _ref_destroy_context,
-	.render_fragment = _ref_render_fragment,
-	.setup = _ref_setup,
-	.name = "ref",
-	.description = "built-in context referencer",
-	.author = "built-in",
-};
 
 
 const til_module_t * til_lookup_module(const char *name)
@@ -658,7 +661,7 @@ int til_module_setup_randomize(const til_module_t *module, til_settings_t *setti
 	if (!module->setup) {
 		til_setup_t	*setup;
 
-		setup = til_setup_new(settings, sizeof(*setup), NULL);
+		setup = til_setup_new(settings, sizeof(*setup), NULL, module);
 		if (!setup)
 			r = -ENOMEM;
 		else
@@ -762,7 +765,7 @@ int til_module_setup_finalize(const til_module_t *module, const til_settings_t *
 	if (!module->setup) {
 		til_setup_t	*setup;
 
-		setup = til_setup_new(module_settings, sizeof(*setup), NULL);
+		setup = til_setup_new(module_settings, sizeof(*setup), NULL, module);
 		if (!setup)
 			return -ENOMEM;
 

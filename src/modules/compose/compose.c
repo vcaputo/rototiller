@@ -409,7 +409,7 @@ static int compose_setup(const til_settings_t *settings, til_setting_t **res_set
 		til_setting_t		*layer_setting;
 		compose_setup_t		*setup;
 
-		setup = til_setup_new(settings, sizeof(*setup) + n_layers * sizeof(*setup->layers), compose_setup_free);
+		setup = til_setup_new(settings, sizeof(*setup) + n_layers * sizeof(*setup->layers), compose_setup_free, &compose_module);
 		if (!setup)
 			return -ENOMEM;
 

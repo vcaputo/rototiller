@@ -476,6 +476,23 @@ static void shapes_finish_frame(til_module_context_t *context, til_stream_t *str
 }
 
 
+static int shapes_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
+
+
+til_module_t	shapes_module = {
+	.create_context = shapes_create_context,
+	.destroy_context = shapes_destroy_context,
+	.prepare_frame = shapes_prepare_frame,
+	.render_fragment = shapes_render_fragment,
+	.finish_frame = shapes_finish_frame,
+	.setup = shapes_setup,
+	.name = "shapes",
+	.description = "Procedural 2D shapes (threaded)",
+	.author = "Vito Caputo <vcaputo@pengaru.com>",
+	.flags = TIL_MODULE_OVERLAYABLE,
+};
+
+
 static int shapes_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	const char	*type;
@@ -684,7 +701,7 @@ static int shapes_setup(const til_settings_t *settings, til_setting_t **res_sett
 
 		shapes_setup_t	*setup;
 
-		setup = til_setup_new(settings, sizeof(*setup), NULL);
+		setup = til_setup_new(settings, sizeof(*setup), NULL, &shapes_module);
 		if (!setup)
 			return -ENOMEM;
 
@@ -717,17 +734,3 @@ static int shapes_setup(const til_settings_t *settings, til_setting_t **res_sett
 
 	return 0;
 }
-
-
-til_module_t	shapes_module = {
-	.create_context = shapes_create_context,
-	.destroy_context = shapes_destroy_context,
-	.prepare_frame = shapes_prepare_frame,
-	.render_fragment = shapes_render_fragment,
-	.finish_frame = shapes_finish_frame,
-	.setup = shapes_setup,
-	.name = "shapes",
-	.description = "Procedural 2D shapes (threaded)",
-	.author = "Vito Caputo <vcaputo@pengaru.com>",
-	.flags = TIL_MODULE_OVERLAYABLE,
-};

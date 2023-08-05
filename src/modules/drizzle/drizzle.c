@@ -350,6 +350,23 @@ static void drizzle_finish_frame(til_module_context_t *context, til_stream_t *st
 }
 
 
+static int drizzle_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
+
+
+til_module_t	drizzle_module = {
+	.create_context = drizzle_create_context,
+	.destroy_context = drizzle_destroy_context,
+	.prepare_frame = drizzle_prepare_frame,
+	.render_fragment = drizzle_render_fragment,
+	.finish_frame = drizzle_finish_frame,
+	.name = "drizzle",
+	.description = "Classic 2D rain effect (threaded (poorly))",
+	.author = "Vito Caputo <vcaputo@pengaru.com>",
+	.setup = drizzle_setup,
+	.flags = TIL_MODULE_OVERLAYABLE,
+};
+
+
 static int drizzle_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	const char	*viscosity;
@@ -402,7 +419,7 @@ static int drizzle_setup(const til_settings_t *settings, til_setting_t **res_set
 		drizzle_setup_t	*setup;
 		int		i;
 
-		setup = til_setup_new(settings, sizeof(*setup), NULL);
+		setup = til_setup_new(settings, sizeof(*setup), NULL, &drizzle_module);
 		if (!setup)
 			return -ENOMEM;
 
@@ -424,17 +441,3 @@ static int drizzle_setup(const til_settings_t *settings, til_setting_t **res_set
 
 	return 0;
 }
-
-
-til_module_t	drizzle_module = {
-	.create_context = drizzle_create_context,
-	.destroy_context = drizzle_destroy_context,
-	.prepare_frame = drizzle_prepare_frame,
-	.render_fragment = drizzle_render_fragment,
-	.finish_frame = drizzle_finish_frame,
-	.name = "drizzle",
-	.description = "Classic 2D rain effect (threaded (poorly))",
-	.author = "Vito Caputo <vcaputo@pengaru.com>",
-	.setup = drizzle_setup,
-	.flags = TIL_MODULE_OVERLAYABLE,
-};

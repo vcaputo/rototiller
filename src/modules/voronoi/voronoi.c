@@ -349,6 +349,23 @@ static void voronoi_finish_frame(til_module_context_t *context, til_stream_t *st
 }
 
 
+static int voronoi_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
+
+
+til_module_t	voronoi_module = {
+	.create_context = voronoi_create_context,
+	.destroy_context = voronoi_destroy_context,
+	.prepare_frame = voronoi_prepare_frame,
+	.render_fragment = voronoi_render_fragment,
+	.finish_frame = voronoi_finish_frame,
+	.setup = voronoi_setup,
+	.name = "voronoi",
+	.description = "Voronoi diagram (threaded)",
+	.author = "Vito Caputo <vcaputo@pengaru.com>",
+	.flags = TIL_MODULE_OVERLAYABLE,
+};
+
+
 static int voronoi_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	const char	*n_cells;
@@ -403,7 +420,7 @@ static int voronoi_setup(const til_settings_t *settings, til_setting_t **res_set
 	if (res_setup) {
 		voronoi_setup_t	*setup;
 
-		setup = til_setup_new(settings, sizeof(*setup), NULL);
+		setup = til_setup_new(settings, sizeof(*setup), NULL, &voronoi_module);
 		if (!setup)
 			return -ENOMEM;
 
@@ -416,17 +433,3 @@ static int voronoi_setup(const til_settings_t *settings, til_setting_t **res_set
 	}
 	return 0;
 }
-
-
-til_module_t	voronoi_module = {
-	.create_context = voronoi_create_context,
-	.destroy_context = voronoi_destroy_context,
-	.prepare_frame = voronoi_prepare_frame,
-	.render_fragment = voronoi_render_fragment,
-	.finish_frame = voronoi_finish_frame,
-	.setup = voronoi_setup,
-	.name = "voronoi",
-	.description = "Voronoi diagram (threaded)",
-	.author = "Vito Caputo <vcaputo@pengaru.com>",
-	.flags = TIL_MODULE_OVERLAYABLE,
-};

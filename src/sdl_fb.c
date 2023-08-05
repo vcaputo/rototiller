@@ -36,92 +36,6 @@ typedef struct sdl_fb_t {
 } sdl_fb_t;
 
 
-static int sdl_fb_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
-{
-	const char	*fullscreen_values[] = {
-				"off",
-				"on",
-				NULL
-			};
-	const char	*fullscreen;
-	const char	*size;
-	int		r;
-
-	r = til_settings_get_and_describe_value(settings,
-						&(til_setting_spec_t){
-							.name = "SDL fullscreen mode",
-							.key = "fullscreen",
-							.regex = NULL,
-							.preferred = fullscreen_values[0],
-							.values = fullscreen_values,
-							.annotations = NULL
-						},
-						&fullscreen,
-						res_setting,
-						res_desc);
-	if (r)
-		return r;
-
-	if (!strcasecmp(fullscreen, "off")) {
-		r = til_settings_get_and_describe_value(settings,
-							&(til_setting_spec_t){
-								.name = "SDL window size",
-								.key = "size",
-								.regex = "[1-9][0-9]*[xX][1-9][0-9]*",
-								.preferred = "640x480",
-								.values = NULL,
-								.annotations = NULL
-							},
-							&size,
-							res_setting,
-							res_desc);
-		if (r)
-			return r;
-	} else if ((size = til_settings_get_value_by_key(settings, "size", res_setting)) && !(*res_setting)->desc) {
-		/* if fullscreen=on AND size=WxH is specified, we'll do a more legacy style SDL fullscreen
-		 * where it tries to change the video mode.  But if size is unspecified, it'll be a desktop
-		 * style fullscreen where it just uses a fullscreen window in the existing video mode, and
-		 * we won't forcibly require a size= be specified.
-		 */
-		 /* FIXME TODO: this is all copy-n-pasta grossness that wouldn't need to exist if
-		  * til_settings_get_and_describe_value() just supported optional settings we only
-		  * describe when they're already present.  It just needs something like an optional flag,
-		  * to be added in a future commit which will remove this hack.
-		  */
-		 r = til_setting_desc_new(	settings,
-						&(til_setting_spec_t){
-							.name = "SDL window size",
-							.key = "size",
-							.regex = "[1-9][0-9]*[xX][1-9][0-9]*",
-							.preferred = "640x480",
-							.values = NULL,
-							.annotations = NULL
-						}, res_desc);
-		if (r < 0)
-			return r;
-
-		return 1;
-	}
-
-	if (res_setup) {
-		sdl_fb_setup_t	*setup;
-
-		setup = til_setup_new(settings, sizeof(*setup), NULL);
-		if (!setup)
-			return -ENOMEM;
-
-		if (!strcasecmp(fullscreen, "on"))
-			setup->fullscreen = 1;
-
-		if (size)
-			sscanf(size, "%u%*[xX]%u", &setup->width, &setup->height);
-
-		*res_setup = &setup->til_setup;
-	}
-
-	return 0;
-}
-
 static int sdl_err_to_errno(int err)
 {
 	switch (err) {
@@ -343,6 +257,9 @@ static int sdl_fb_page_flip(til_fb_t *fb, void *context, void *page)
 }
 
 
+static int sdl_fb_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
+
+
 til_fb_ops_t sdl_fb_ops = {
 	.setup = sdl_fb_setup,
 	.init = sdl_fb_init,
@@ -353,3 +270,90 @@ til_fb_ops_t sdl_fb_ops = {
 	.page_free = sdl_fb_page_free,
 	.page_flip = sdl_fb_page_flip
 };
+
+
+static int sdl_fb_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
+{
+	const char	*fullscreen_values[] = {
+				"off",
+				"on",
+				NULL
+			};
+	const char	*fullscreen;
+	const char	*size;
+	int		r;
+
+	r = til_settings_get_and_describe_value(settings,
+						&(til_setting_spec_t){
+							.name = "SDL fullscreen mode",
+							.key = "fullscreen",
+							.regex = NULL,
+							.preferred = fullscreen_values[0],
+							.values = fullscreen_values,
+							.annotations = NULL
+						},
+						&fullscreen,
+						res_setting,
+						res_desc);
+	if (r)
+		return r;
+
+	if (!strcasecmp(fullscreen, "off")) {
+		r = til_settings_get_and_describe_value(settings,
+							&(til_setting_spec_t){
+								.name = "SDL window size",
+								.key = "size",
+								.regex = "[1-9][0-9]*[xX][1-9][0-9]*",
+								.preferred = "640x480",
+								.values = NULL,
+								.annotations = NULL
+							},
+							&size,
+							res_setting,
+							res_desc);
+		if (r)
+			return r;
+	} else if ((size = til_settings_get_value_by_key(settings, "size", res_setting)) && !(*res_setting)->desc) {
+		/* if fullscreen=on AND size=WxH is specified, we'll do a more legacy style SDL fullscreen
+		 * where it tries to change the video mode.  But if size is unspecified, it'll be a desktop
+		 * style fullscreen where it just uses a fullscreen window in the existing video mode, and
+		 * we won't forcibly require a size= be specified.
+		 */
+		 /* FIXME TODO: this is all copy-n-pasta grossness that wouldn't need to exist if
+		  * til_settings_get_and_describe_value() just supported optional settings we only
+		  * describe when they're already present.  It just needs something like an optional flag,
+		  * to be added in a future commit which will remove this hack.
+		  */
+		 r = til_setting_desc_new(	settings,
+						&(til_setting_spec_t){
+							.name = "SDL window size",
+							.key = "size",
+							.regex = "[1-9][0-9]*[xX][1-9][0-9]*",
+							.preferred = "640x480",
+							.values = NULL,
+							.annotations = NULL
+						}, res_desc);
+		if (r < 0)
+			return r;
+
+		return 1;
+	}
+
+	if (res_setup) {
+		sdl_fb_setup_t	*setup;
+
+		setup = til_setup_new(settings, sizeof(*setup), NULL, &sdl_fb_ops);
+		if (!setup)
+			return -ENOMEM;
+
+		if (!strcasecmp(fullscreen, "on"))
+			setup->fullscreen = 1;
+
+		if (size)
+			sscanf(size, "%u%*[xX]%u", &setup->width, &setup->height);
+
+		*res_setup = &setup->til_setup;
+	}
+
+	return 0;
+}

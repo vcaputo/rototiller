@@ -419,6 +419,21 @@ static void roto_setup_free(til_setup_t *setup)
 }
 
 
+static int roto_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
+
+
+til_module_t	roto_module = {
+	.create_context = roto_create_context,
+	.destroy_context = roto_destroy_context,
+	.prepare_frame = roto_prepare_frame,
+	.render_fragment = roto_render_fragment,
+	.setup = roto_setup,
+	.name = "roto",
+	.description = "Anti-aliased tiled texture rotation (threaded)",
+	.author = "Vito Caputo <vcaputo@pengaru.com>",
+};
+
+
 static int roto_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	const char		*fill_module, *fill_module_name;
@@ -497,7 +512,7 @@ static int roto_setup(const til_settings_t *settings, til_setting_t **res_settin
 	if (res_setup) {
 		roto_setup_t	*setup;
 
-		setup = til_setup_new(settings, sizeof(*setup), roto_setup_free);
+		setup = til_setup_new(settings, sizeof(*setup), roto_setup_free, &roto_module);
 		if (!setup)
 			return -ENOMEM;
 
@@ -520,15 +535,3 @@ static int roto_setup(const til_settings_t *settings, til_setting_t **res_settin
 
 	return 0;
 }
-
-
-til_module_t	roto_module = {
-	.create_context = roto_create_context,
-	.destroy_context = roto_destroy_context,
-	.prepare_frame = roto_prepare_frame,
-	.render_fragment = roto_render_fragment,
-	.setup = roto_setup,
-	.name = "roto",
-	.description = "Anti-aliased tiled texture rotation (threaded)",
-	.author = "Vito Caputo <vcaputo@pengaru.com>",
-};

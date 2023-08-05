@@ -99,6 +99,21 @@ static void sparkler_render_fragment(til_module_context_t *context, til_stream_t
 }
 
 
+static int sparkler_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
+
+
+til_module_t	sparkler_module = {
+	.create_context = sparkler_create_context,
+	.destroy_context = sparkler_destroy_context,
+	.prepare_frame = sparkler_prepare_frame,
+	.render_fragment = sparkler_render_fragment,
+	.setup = sparkler_setup,
+	.name = "sparkler",
+	.description = "Particle system with spatial interactions (threaded (poorly))",
+	.author = "Vito Caputo <vcaputo@pengaru.com>",
+};
+
+
 /* Settings hooks for configurable variables */
 static int sparkler_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
@@ -184,7 +199,7 @@ static int sparkler_setup(const til_settings_t *settings, til_setting_t **res_se
 	if (res_setup) {
 		sparkler_setup_t	*setup;
 
-		setup = til_setup_new(settings, sizeof(*setup), NULL);
+		setup = til_setup_new(settings, sizeof(*setup), NULL, &sparkler_module);
 		if (!setup)
 			return -ENOMEM;
 
@@ -206,15 +221,3 @@ static int sparkler_setup(const til_settings_t *settings, til_setting_t **res_se
 
 	return 0;
 }
-
-
-til_module_t	sparkler_module = {
-	.create_context = sparkler_create_context,
-	.destroy_context = sparkler_destroy_context,
-	.prepare_frame = sparkler_prepare_frame,
-	.render_fragment = sparkler_render_fragment,
-	.setup = sparkler_setup,
-	.name = "sparkler",
-	.description = "Particle system with spatial interactions (threaded (poorly))",
-	.author = "Vito Caputo <vcaputo@pengaru.com>",
-};

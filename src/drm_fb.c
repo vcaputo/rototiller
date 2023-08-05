@@ -296,38 +296,6 @@ static void drm_fb_setup_free(til_setup_t *setup)
 }
 
 
-/* setup is called repeatedly as settings is constructed, until 0 is returned. */
-/* a negative value is returned on error */
-/* positive value indicates another setting is needed, described in next_setting */
-static int drm_fb_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
-{
-	drm_fb_setup_t			*setup = til_setup_new(settings, sizeof(*setup), drm_fb_setup_free);
-	til_setting_desc_generator_t	generators[] = {
-						{
-							.key = "dev",
-							.value_ptr = &setup->dev,
-							.func = dev_desc_generator
-						}, {
-							.key = "connector",
-							.value_ptr = &setup->connector,
-							.func = connector_desc_generator
-						}, {
-							.key = "mode",
-							.value_ptr = &setup->mode,
-							.func = mode_desc_generator
-						},
-					};
-
-	if (!drmAvailable())
-		return -ENOSYS;
-
-	if (!setup)
-		return -ENOMEM;
-
-	return til_settings_apply_desc_generators(settings, generators, nelems(generators), &setup->til_setup, res_setting, res_desc, res_setup);
-}
-
-
 /* lookup a mode string in the given connector returning its respective modeinfo */
 static drmModeModeInfo * lookup_mode(drmModeConnector *connector, const char *mode)
 {
@@ -563,6 +531,9 @@ static int drm_fb_page_flip(til_fb_t *fb, void *context, void *page)
 }
 
 
+static int drm_fb_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
+
+
 til_fb_ops_t drm_fb_ops = {
 	.setup = drm_fb_setup,
 	.init = drm_fb_init,
@@ -573,3 +544,37 @@ til_fb_ops_t drm_fb_ops = {
 	.page_free = drm_fb_page_free,
 	.page_flip = drm_fb_page_flip
 };
+
+
+/* setup is called repeatedly as settings is constructed, until 0 is returned. */
+/* a negative value is returned on error */
+/* positive value indicates another setting is needed, described in next_setting */
+static int drm_fb_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
+{
+	drm_fb_setup_t			*setup = til_setup_new(settings, sizeof(*setup), drm_fb_setup_free, &drm_fb_ops);
+	til_setting_desc_generator_t	generators[] = {
+						{
+							.key = "dev",
+							.value_ptr = &setup->dev,
+							.func = dev_desc_generator
+						}, {
+							.key = "connector",
+							.value_ptr = &setup->connector,
+							.func = connector_desc_generator
+						}, {
+							.key = "mode",
+							.value_ptr = &setup->mode,
+							.func = mode_desc_generator
+						},
+					};
+
+	if (!drmAvailable())
+		return -ENOSYS;
+
+	if (!setup)
+		return -ENOMEM;
+
+	return til_settings_apply_desc_generators(settings, generators, nelems(generators), &setup->til_setup, res_setting, res_desc, res_setup);
+}
+
+

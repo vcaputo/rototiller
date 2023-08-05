@@ -299,6 +299,22 @@ static void mixer_setup_free(til_setup_t *setup)
 }
 
 
+static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
+
+
+til_module_t	mixer_module = {
+	.create_context = mixer_create_context,
+	.destroy_context = mixer_destroy_context,
+	.prepare_frame = mixer_prepare_frame,
+	.render_fragment = mixer_render_fragment,
+	.finish_frame = mixer_finish_frame,
+	.name = "mixer",
+	.description = "Module blender",
+	.setup = mixer_setup,
+	.flags = TIL_MODULE_EXPERIMENTAL,
+};
+
+
 static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	const char		*style_values[] = {
@@ -387,7 +403,7 @@ static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setti
 	if (res_setup) {
 		mixer_setup_t	*setup;
 
-		setup = til_setup_new(settings, sizeof(*setup), mixer_setup_free);
+		setup = til_setup_new(settings, sizeof(*setup), mixer_setup_free, &mixer_module);
 		if (!setup)
 			return -ENOMEM;
 
@@ -427,16 +443,3 @@ static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setti
 
 	return 0;
 }
-
-
-til_module_t	mixer_module = {
-	.create_context = mixer_create_context,
-	.destroy_context = mixer_destroy_context,
-	.prepare_frame = mixer_prepare_frame,
-	.render_fragment = mixer_render_fragment,
-	.finish_frame = mixer_finish_frame,
-	.name = "mixer",
-	.description = "Module blender",
-	.setup = mixer_setup,
-	.flags = TIL_MODULE_EXPERIMENTAL,
-};

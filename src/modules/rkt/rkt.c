@@ -397,6 +397,20 @@ int rkt_scene_module_setup(const til_settings_t *settings, til_setting_t **res_s
 }
 
 
+static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
+
+
+til_module_t	rkt_module = {
+	.create_context = rkt_create_context,
+	.destroy_context = rkt_destroy_context,
+	.render_fragment = rkt_render_fragment,
+	.name = "rkt",
+	.description = "GNU Rocket module sequencer",
+	.setup = rkt_setup,
+	.flags = TIL_MODULE_HERMETIC,	/* this needs refinement esp. if rkt gets split into a player and editor */
+};
+
+
 static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	const til_settings_t	*scenes_settings;
@@ -596,7 +610,7 @@ static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting
 		rkt_setup_t		*setup;
 		unsigned		ibpm, irpb;
 
-		setup = til_setup_new(settings, sizeof(*setup) + n_scenes * sizeof(*setup->scenes), rkt_setup_free);
+		setup = til_setup_new(settings, sizeof(*setup) + n_scenes * sizeof(*setup->scenes), rkt_setup_free, &rkt_module);
 		if (!setup)
 			return -ENOMEM;
 
@@ -683,14 +697,3 @@ static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting
 
 	return 0;
 }
-
-
-til_module_t	rkt_module = {
-	.create_context = rkt_create_context,
-	.destroy_context = rkt_destroy_context,
-	.render_fragment = rkt_render_fragment,
-	.name = "rkt",
-	.description = "GNU Rocket module sequencer",
-	.setup = rkt_setup,
-	.flags = TIL_MODULE_HERMETIC,	/* this needs refinement esp. if rkt gets split into a player and editor */
-};

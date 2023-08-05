@@ -398,6 +398,20 @@ static void flui2d_render_fragment(til_module_context_t *context, til_stream_t *
 }
 
 
+static int flui2d_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
+
+
+til_module_t	flui2d_module = {
+	.create_context = flui2d_create_context,
+	.prepare_frame = flui2d_prepare_frame,
+	.render_fragment = flui2d_render_fragment,
+	.setup = flui2d_setup,
+	.name = "flui2d",
+	.description = "Fluid dynamics simulation in 2D (threaded (poorly))",
+	.author = "Vito Caputo <vcaputo@pengaru.com>",
+};
+
+
 /* Settings hooks for configurable variables */
 static int flui2d_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
@@ -523,7 +537,7 @@ static int flui2d_setup(const til_settings_t *settings, til_setting_t **res_sett
 	if (res_setup) {
 		flui2d_setup_t	*setup;
 
-		setup = til_setup_new(settings, sizeof(*setup), NULL);
+		setup = til_setup_new(settings, sizeof(*setup), NULL, &flui2d_module);
 		if (!setup)
 			return -ENOMEM;
 
@@ -554,14 +568,3 @@ static int flui2d_setup(const til_settings_t *settings, til_setting_t **res_sett
 
 	return 0;
 }
-
-
-til_module_t	flui2d_module = {
-	.create_context = flui2d_create_context,
-	.prepare_frame = flui2d_prepare_frame,
-	.render_fragment = flui2d_render_fragment,
-	.setup = flui2d_setup,
-	.name = "flui2d",
-	.description = "Fluid dynamics simulation in 2D (threaded (poorly))",
-	.author = "Vito Caputo <vcaputo@pengaru.com>",
-};

@@ -171,6 +171,21 @@ static void blinds_render_fragment(til_module_context_t *context, til_stream_t *
 }
 
 
+static int blinds_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
+
+
+til_module_t	blinds_module = {
+	.create_context = blinds_create_context,
+	.prepare_frame = blinds_prepare_frame,
+	.render_fragment = blinds_render_fragment,
+	.setup = blinds_setup,
+	.name = "blinds",
+	.description = "Retro 80s-inspired window blinds (threaded)",
+	.author = "Vito Caputo <vcaputo@pengaru.com>",
+	.flags = TIL_MODULE_OVERLAYABLE,
+};
+
+
 static int blinds_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	const char	*orientation;
@@ -225,7 +240,7 @@ static int blinds_setup(const til_settings_t *settings, til_setting_t **res_sett
 	if (res_setup) {
 		blinds_setup_t	*setup;
 
-		setup = til_setup_new(settings, sizeof(*setup), NULL);
+		setup = til_setup_new(settings, sizeof(*setup), NULL, &blinds_module);
 		if (!setup)
 			return -ENOMEM;
 
@@ -246,15 +261,3 @@ static int blinds_setup(const til_settings_t *settings, til_setting_t **res_sett
 
 	return 0;
 }
-
-
-til_module_t	blinds_module = {
-	.create_context = blinds_create_context,
-	.prepare_frame = blinds_prepare_frame,
-	.render_fragment = blinds_render_fragment,
-	.setup = blinds_setup,
-	.name = "blinds",
-	.description = "Retro 80s-inspired window blinds (threaded)",
-	.author = "Vito Caputo <vcaputo@pengaru.com>",
-	.flags = TIL_MODULE_OVERLAYABLE,
-};

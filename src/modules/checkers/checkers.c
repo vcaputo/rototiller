@@ -486,6 +486,22 @@ static int checkers_value_to_pos(const char **options, const char *value, unsign
 }
 
 
+static int checkers_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
+
+
+til_module_t	checkers_module = {
+	.create_context = checkers_create_context,
+	.destroy_context = checkers_destroy_context,
+	.prepare_frame = checkers_prepare_frame,
+	.render_fragment = checkers_render_fragment,
+	.setup = checkers_setup,
+	.name = "checkers",
+	.description = "Checker-patterned overlay (threaded)",
+	.author = "Vito Caputo <vcaputo@pengaru.com>",
+	.flags = TIL_MODULE_OVERLAYABLE,
+};
+
+
 static int checkers_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	const char		*size;
@@ -749,7 +765,7 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 	if (res_setup) {
 		checkers_setup_t	*setup;
 
-		setup = til_setup_new(settings, sizeof(*setup), checkers_setup_free);
+		setup = til_setup_new(settings, sizeof(*setup), checkers_setup_free, &checkers_module);
 		if (!setup)
 			return -ENOMEM;
 
@@ -825,16 +841,3 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 
 	return 0;
 }
-
-
-til_module_t	checkers_module = {
-	.create_context = checkers_create_context,
-	.destroy_context = checkers_destroy_context,
-	.prepare_frame = checkers_prepare_frame,
-	.render_fragment = checkers_render_fragment,
-	.setup = checkers_setup,
-	.name = "checkers",
-	.description = "Checker-patterned overlay (threaded)",
-	.author = "Vito Caputo <vcaputo@pengaru.com>",
-	.flags = TIL_MODULE_OVERLAYABLE,
-};

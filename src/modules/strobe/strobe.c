@@ -89,6 +89,22 @@ static void strobe_finish_frame(til_module_context_t *context, til_stream_t *str
 }
 
 
+static int strobe_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
+
+
+til_module_t	strobe_module = {
+	.create_context = strobe_create_context,
+	.prepare_frame = strobe_prepare_frame,
+	.render_fragment = strobe_render_fragment,
+	.finish_frame = strobe_finish_frame,
+	.setup = strobe_setup,
+	.name = "strobe",
+	.description = "Strobe light (threaded)",
+	.author = "Vito Caputo <vcaputo@pengaru.com>",
+	.flags = TIL_MODULE_OVERLAYABLE,
+};
+
+
 static int strobe_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	const char	*period;
@@ -123,7 +139,7 @@ static int strobe_setup(const til_settings_t *settings, til_setting_t **res_sett
 	if (res_setup) {
 		strobe_setup_t	*setup;
 
-		setup = til_setup_new(settings, sizeof(*setup), NULL);
+		setup = til_setup_new(settings, sizeof(*setup), NULL, &strobe_module);
 		if (!setup)
 			return -ENOMEM;
 
@@ -134,16 +150,3 @@ static int strobe_setup(const til_settings_t *settings, til_setting_t **res_sett
 
 	return 0;
 }
-
-
-til_module_t	strobe_module = {
-	.create_context = strobe_create_context,
-	.prepare_frame = strobe_prepare_frame,
-	.render_fragment = strobe_render_fragment,
-	.finish_frame = strobe_finish_frame,
-	.setup = strobe_setup,
-	.name = "strobe",
-	.description = "Strobe light (threaded)",
-	.author = "Vito Caputo <vcaputo@pengaru.com>",
-	.flags = TIL_MODULE_OVERLAYABLE,
-};

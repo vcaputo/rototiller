@@ -324,6 +324,21 @@ static void submit_render_fragment(til_module_context_t *context, til_stream_t *
 }
 
 
+static int submit_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
+
+
+til_module_t	submit_module = {
+	.create_context = submit_create_context,
+	.destroy_context = submit_destroy_context,
+	.prepare_frame = submit_prepare_frame,
+	.render_fragment = submit_render_fragment,
+	.name = "submit",
+	.description = "Cellular automata conquest game sim (threaded (poorly))",
+	.author = "Vito Caputo <vcaputo@pengaru.com>",
+	.setup = submit_setup,
+};
+
+
 static int submit_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	const char	*values[] = {
@@ -352,7 +367,7 @@ static int submit_setup(const til_settings_t *settings, til_setting_t **res_sett
 	if (res_setup) {
 		submit_setup_t	*setup;
 
-		setup = til_setup_new(settings, sizeof(*setup), NULL);
+		setup = til_setup_new(settings, sizeof(*setup), NULL, &submit_module);
 		if (!setup)
 			return -ENOMEM;
 
@@ -364,15 +379,3 @@ static int submit_setup(const til_settings_t *settings, til_setting_t **res_sett
 
 	return 0;
 }
-
-
-til_module_t	submit_module = {
-	.create_context = submit_create_context,
-	.destroy_context = submit_destroy_context,
-	.prepare_frame = submit_prepare_frame,
-	.render_fragment = submit_render_fragment,
-	.name = "submit",
-	.description = "Cellular automata conquest game sim (threaded (poorly))",
-	.author = "Vito Caputo <vcaputo@pengaru.com>",
-	.setup = submit_setup,
-};
