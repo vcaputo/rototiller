@@ -539,8 +539,10 @@ int til_module_setup_randomize(const til_module_t *module, til_settings_t *setti
 					return -ENOMEM;
 
 				if (o != setting->value) {
-					free((void *)setting->value);
-					setting->value = o;
+					r = til_setting_set_raw_value(setting, o);
+					free((void *)o);
+					if (r < 0)
+						return -ENOMEM;
 				}
 			}
 
