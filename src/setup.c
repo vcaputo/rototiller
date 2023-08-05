@@ -160,7 +160,7 @@ int setup_interactively(til_settings_t *settings, int (*setup_func)(const til_se
 		} else {
 			buf[strlen(buf) - 1] = '\0';
 
-			if (desc->spec.values) {
+			if (desc->spec.values && buf[0] != ':') {
 				unsigned	i, j, found;
 
 				/* multiple choice, map numeric input to values entry */
