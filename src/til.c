@@ -388,14 +388,14 @@ int til_module_setup_full(const til_settings_t *settings, til_setting_t **res_se
 				continue;
 
 			if (exclusions) {
-				const char	*excl = *exclusions;
+				const char	**excl = exclusions;
 
-				for (; excl; excl++) {
-					if (!strcasecmp(excl, modules[i]->name))
+				for (; *excl; excl++) {
+					if (!strcasecmp(*excl, modules[i]->name))
 						break;
 				}
 
-				if (excl)
+				if (*excl)
 					continue;
 			}
 
