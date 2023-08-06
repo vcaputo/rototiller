@@ -26,6 +26,7 @@ til_module_t	_blank_module = {
 	.name = "blank",
 	.description = "Blanker (built-in)",
 	.author = "built-in",
+	.flags = TIL_MODULE_BUILTIN,
 };
 
 
