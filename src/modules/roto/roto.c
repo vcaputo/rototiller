@@ -20,7 +20,8 @@
 #define FIXED_NEW(_i)		((_i) << FIXED_BITS)
 #define FIXED_TO_INT(_f)	((_f) >> FIXED_BITS)
 
-#define ROTO_TEXTURE_SIZE	256
+#define ROTO_TEXTURE_SIZE		256
+#define ROTO_DEFAULT_FILL_MODULE	"none"
 
 typedef struct color_t {
 	int	r, g, b;
@@ -37,7 +38,6 @@ typedef struct roto_context_t {
 typedef struct roto_setup_t {
 	til_setup_t		til_setup;
 
-	const til_module_t	*fill_module;
 	til_setup_t		*fill_module_setup;
 } roto_setup_t;
 
@@ -88,8 +88,8 @@ static til_module_context_t * roto_create_context(const til_module_t *module, ti
 	if (!ctxt)
 		return NULL;
 
-	if (((roto_setup_t *)setup)->fill_module) {
-		const til_module_t	*module = ((roto_setup_t *)setup)->fill_module;
+	if (((roto_setup_t *)setup)->fill_module_setup) {
+		const til_module_t	*module = ((roto_setup_t *)setup)->fill_module_setup->creator;
 
 		if (til_module_create_contexts(module,
 					       stream,
@@ -419,6 +419,19 @@ static void roto_setup_free(til_setup_t *setup)
 }
 
 
+static int roto_fill_module_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
+{
+	return til_module_setup_full(settings,
+				     res_setting,
+				     res_desc,
+				     res_setup,
+				     "Fill module name",
+				     ROTO_DEFAULT_FILL_MODULE,
+				     (TIL_MODULE_EXPERIMENTAL | TIL_MODULE_HERMETIC),
+				     NULL);
+}
+
+
 static int roto_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
 
 
@@ -436,9 +449,8 @@ til_module_t	roto_module = {
 
 static int roto_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
-	const char		*fill_module, *fill_module_name;
+	const char		*fill_module;
 	const til_settings_t	*fill_module_settings;
-	til_setting_t		*fill_module_setting;
 	const char		*fill_module_values[] = {
 					"none",
 					"blinds",
@@ -473,41 +485,13 @@ static int roto_setup(const til_settings_t *settings, til_setting_t **res_settin
 	assert((*res_setting)->value_as_nested_settings);
 
 	fill_module_settings = (*res_setting)->value_as_nested_settings;
-	fill_module_name = til_settings_get_value_by_idx(fill_module_settings, 0, &fill_module_setting);
 
-	if (!fill_module_name || !fill_module_setting->desc) {
-		r = til_setting_desc_new(fill_module_settings,
-					&(til_setting_spec_t){
-						.name = "Fill module name",
-						.preferred = "none",
-						.as_label = 1,
-					},
-					res_desc);
-		if (r < 0)
-			return r;
-
-		*res_setting = fill_module_name ? fill_module_setting : NULL;
-
-		return 1;
-	}
-
-	if (strcasecmp(fill_module_name, "none")) {
-		const til_module_t	*mod = til_lookup_module(fill_module_name);
-
-		if (!mod) {
-			*res_setting = fill_module_setting;
-
-			return -EINVAL;
-		}
-
-		if (mod->setup) {
-			r = mod->setup(fill_module_settings, res_setting, res_desc, NULL);
-			if (r)
-				return r;
-		}
-	}
-
-
+	r = roto_fill_module_setup(fill_module_settings,
+				       res_setting,
+				       res_desc,
+				       NULL); /* XXX: note no res_setup, must defer finalize */
+	if (r)
+		return r;
 
 	if (res_setup) {
 		roto_setup_t	*setup;
@@ -516,19 +500,16 @@ static int roto_setup(const til_settings_t *settings, til_setting_t **res_settin
 		if (!setup)
 			return -ENOMEM;
 
-		if (strcasecmp(fill_module_name, "none")) {
-			setup->fill_module = til_lookup_module(fill_module_name);
-			if (!setup->fill_module) {
-				til_setup_free(&setup->til_setup);
-				return -EINVAL;
-			}
-
-			r = til_module_setup_finalize(setup->fill_module, fill_module_settings, &setup->fill_module_setup);
-			if (r < 0) {
-				til_setup_free(&setup->til_setup);
-				return r;
-			}
+		r = roto_fill_module_setup(fill_module_settings,
+					       res_setting,
+					       res_desc,
+					       &setup->fill_module_setup); /* finalize! */
+		if (r < 0) {
+			til_setup_free(&setup->til_setup);
+			return r;
 		}
+
+		assert(r == 0);
 
 		*res_setup = &setup->til_setup;
 	}
