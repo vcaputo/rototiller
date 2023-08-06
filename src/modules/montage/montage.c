@@ -10,6 +10,9 @@
 
 /* Copyright (C) 2019 - Vito Caputo <vcaputo@pengaru.com> */
 
+#define MONTAGE_DEFAULT_TILE_MODULES	"all"
+#define MONTAGE_DEFAULT_TILE_MODULE	"blank"	/* not really sure what's best here, montage is sort of silly beyond diagnostic use */
+
 typedef struct montage_context_t {
 	til_module_context_t	til_module_context;
 
@@ -17,7 +20,6 @@ typedef struct montage_context_t {
 } montage_context_t;
 
 typedef struct montage_setup_tile_t {
-	char			*module_name;
 	til_setup_t		*setup;
 } montage_setup_tile_t;
 
@@ -57,9 +59,7 @@ static til_module_context_t * montage_create_context(const til_module_t *module,
 		return NULL;
 
 	for (size_t i = 0; i < s->n_tiles; i++) {
-		const til_module_t	*module;
-
-		module = til_lookup_module(s->tiles[i].module_name);
+		const til_module_t	*module = s->tiles[i].setup->creator;
 
 		(void) til_module_create_context(module, stream, rand_r(&seed), ticks, 1, s->tiles[i].setup, &ctxt->tile_contexts[i]);
 	}
@@ -217,12 +217,23 @@ static void montage_setup_free(til_setup_t *setup)
 	montage_setup_t	*s = (montage_setup_t *)setup;
 
 	if (s) {
-		for (size_t i = 0; i < s->n_tiles; i++) {
-			free(s->tiles[i].module_name);
+		for (size_t i = 0; i < s->n_tiles; i++)
 			til_setup_free(s->tiles[i].setup);
-		}
 		free(setup);
 	}
+}
+
+
+static int montage_tile_module_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
+{
+	return til_module_setup_full(settings,
+				     res_setting,
+				     res_desc,
+				     res_setup,
+				     "Tile module name",
+				     MONTAGE_DEFAULT_TILE_MODULE,
+				     (TIL_MODULE_EXPERIMENTAL | TIL_MODULE_HERMETIC),
+				     NULL);
 }
 
 
@@ -236,7 +247,7 @@ static int montage_setup(const til_settings_t *settings, til_setting_t **res_set
 						&(til_setting_spec_t){
 							.name = "Comma-separated list of modules, in left-to-right order, wraps top-down. (\"all\" for all)",
 							.key = "tiles",
-							.preferred = "all",
+							.preferred = MONTAGE_DEFAULT_TILE_MODULES,
 						// TODO	.random = montage_random_tiles_setting,
 							.override = montage_tiles_setting_override,
 							.as_nested_settings = 1,
@@ -268,37 +279,12 @@ static int montage_setup(const til_settings_t *settings, til_setting_t **res_set
 		}
 
 		for (size_t i = 0; til_settings_get_value_by_idx(tiles_settings, i, &tile_setting); i++) {
-			til_setting_t		*tile_module_setting;
-			const char		*tile_module_name = til_settings_get_value_by_idx(tile_setting->value_as_nested_settings, 0, &tile_module_setting);
-			const til_module_t	*tile_module;
-
-			if (!tile_module_name || !tile_module_setting->desc) {
-				r = til_setting_desc_new(	tile_setting->value_as_nested_settings,
-								&(til_setting_spec_t){
-									.name = "Layer module name",
-									.preferred = "none",
-									.as_label = 1,
-								}, res_desc);
-				if (r < 0)
-					return r;
-
-				*res_setting = tile_module_name ? tile_module_setting : NULL;
-
-				return 1;
-			}
-
-			tile_module = til_lookup_module(tile_module_name);
-			if (!tile_module) {
-				*res_setting = tile_module_setting;
-
-				return -EINVAL;
-			}
-
-			if (tile_module->setup) {
-				r = tile_module->setup(tile_setting->value_as_nested_settings, res_setting, res_desc, NULL);
-				if (r)
-					return r;
-			}
+			r = montage_tile_module_setup(tile_setting->value_as_nested_settings,
+						      res_setting,
+						      res_desc,
+						      NULL); /* XXX: note no res_setup, must defer finalize */
+			if (r)
+				return r;
 		}
 	}
 
@@ -314,28 +300,16 @@ static int montage_setup(const til_settings_t *settings, til_setting_t **res_set
 		setup->n_tiles = n_tiles;
 
 		for (size_t i = 0; til_settings_get_value_by_idx(tiles_settings, i, &tile_setting); i++) {
-			const char		*tile_module_name = til_settings_get_value_by_idx(tile_setting->value_as_nested_settings, 0, NULL);
-			const til_module_t	*tile_module = til_lookup_module(tile_module_name);
-
-			if (!tile_module) {
-				til_setup_free(&setup->til_setup);
-
-				return -EINVAL;
-			}
-
-			setup->tiles[i].module_name = strdup(tile_module_name);
-			if (!setup->tiles[i].module_name) {
-				til_setup_free(&setup->til_setup);
-
-				return -ENOMEM;
-			}
-
-			r = til_module_setup_finalize(tile_module, tile_setting->value_as_nested_settings, &setup->tiles[i].setup);
+			r = montage_tile_module_setup(tile_setting->value_as_nested_settings,
+						      res_setting,
+						      res_desc,
+						      &setup->tiles[i].setup); /* finalize! */
 			if (r < 0) {
 				til_setup_free(&setup->til_setup);
-
 				return r;
 			}
+
+			assert(r == 0);
 		}
 
 		*res_setup = &setup->til_setup;
