@@ -44,7 +44,6 @@ typedef struct mixer_context_t {
 } mixer_context_t;
 
 typedef struct mixer_setup_input_t {
-	char			*module;
 	til_setup_t		*setup;
 } mixer_setup_input_t;
 
@@ -82,7 +81,7 @@ static til_module_context_t * mixer_create_context(const til_module_t *module, t
 	for (size_t i = 0; i < nelems(s->inputs); i++) {
 		const til_module_t	*input_module;
 
-		input_module = til_lookup_module(((mixer_setup_t *)setup)->inputs[i].module);
+		input_module = ((mixer_setup_t *)setup)->inputs[i].setup->creator;
 		r =  til_module_create_context(input_module, stream, rand_r(&seed), ticks, n_cpus, s->inputs[i].setup, &ctxt->inputs[i].module_ctxt);
 		if (r < 0)
 			return til_module_context_free(&ctxt->til_module_context);
@@ -290,10 +289,9 @@ static void mixer_setup_free(til_setup_t *setup)
 	mixer_setup_t	*s = (mixer_setup_t *)setup;
 
 	if (s) {
-		for (size_t i = 0; i < nelems(s->inputs); i++) {
-			free(s->inputs[i].module);
+		for (size_t i = 0; i < nelems(s->inputs); i++)
 			til_setup_free(s->inputs[i].setup);
-		}
+
 		free(setup);
 	}
 }
@@ -317,6 +315,12 @@ til_module_t	mixer_module = {
 
 static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
+	const char		*input_names[2] = { "First module to mix", "Second module to mix" };
+	const char		*input_keys[2] = { "a_module", "b_module" };
+	const char		*input_module_name_names[2] = { "First module's name", "Second module's name" };
+	const char		*input_preferred[2] = { "blank", "compose" };
+	const char		*exclusions[] = { "none", "mixer", NULL };
+
 	const char		*style_values[] = {
 					"fade",
 					"flicker",
@@ -324,7 +328,6 @@ static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setti
 				};
 	const char		*style;
 	const til_settings_t	*inputs_settings[2];
-	til_setting_t		*inputs_module_setting[2];
 	const char		*inputs[2];
 	int			r;
 
@@ -342,62 +345,35 @@ static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setti
 	if (r)
 		return r;
 
-	{
-		const char *input_names[2] = { "First module to mix", "Second module to mix" };
-		const char *input_keys[2] = { "a_module", "b_module" };
-		const char *input_module_name_names[2] = { "First module's name", "Second module's name" };
-		const char *input_preferred[2] = { "blank", "compose" };
-
-		for (int i = 0; i < 2; i++) {
-			const til_module_t	*mod;
-
-			r = til_settings_get_and_describe_value(settings,
-								&(til_setting_spec_t){
-									.name = input_names[i],
-									.key = input_keys[i],
-									.preferred = input_preferred[i],
-									.as_nested_settings = 1,
-								},
-								&inputs[i],
-								res_setting,
-								res_desc);
-			if (r)
-				return r;
-
-			assert(res_setting && *res_setting);
-			assert((*res_setting)->value_as_nested_settings);
-
-			inputs_settings[i] = (*res_setting)->value_as_nested_settings;
-			inputs[i] = til_settings_get_value_by_idx(inputs_settings[i], 0, &inputs_module_setting[i]);
-			if (!inputs[i] || !inputs_module_setting[i]->desc) {
-				r = til_setting_desc_new(inputs_settings[i],
+	for (int i = 0; i < 2; i++) {
+		r = til_settings_get_and_describe_value(settings,
 							&(til_setting_spec_t){
-								.name = input_module_name_names[i],
+								.name = input_names[i],
+								.key = input_keys[i],
 								.preferred = input_preferred[i],
-								.as_label = 1,
+								.as_nested_settings = 1,
 							},
+							&inputs[i],
+							res_setting,
 							res_desc);
-				if (r < 0)
-					return r;
+		if (r)
+			return r;
 
-				*res_setting = inputs[i] ? inputs_module_setting[i] : NULL;
+		assert(res_setting && *res_setting);
+		assert((*res_setting)->value_as_nested_settings);
 
-				return 1;
-			}
+		inputs_settings[i] = (*res_setting)->value_as_nested_settings;
 
-			mod = til_lookup_module(inputs[i]);
-			if (!mod) {
-				*res_setting = inputs_module_setting[i];
-
-				return -EINVAL;
-			}
-
-			if (mod->setup) {
-				r = mod->setup(inputs_settings[i], res_setting, res_desc, NULL);
-				if (r)
-					return r;
-			}
-		}
+		r = til_module_setup_full(inputs_settings[i],
+					  res_setting,
+					  res_desc,
+					  NULL, /* XXX: no res_setup, defer finalizing */
+					  input_module_name_names[i],
+					  input_preferred[i],
+					  (TIL_MODULE_EXPERIMENTAL | TIL_MODULE_HERMETIC),
+					  exclusions);
+		if (r)
+			return r;
 	}
 
 	if (res_setup) {
@@ -414,28 +390,20 @@ static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setti
 		}
 
 		for (int i = 0; i < 2; i++) {
-			const til_module_t	*input_module;
-
-			setup->inputs[i].module = strdup(inputs[i]);
-			if (!setup->inputs[i].module) { /* FIXME: why don't we just stow the til_module_t* */
-				til_setup_free(&setup->til_setup);
-
-				return -ENOMEM;
-			}
-
-			input_module = til_lookup_module(inputs[i]);
-			if (!input_module) {
-				til_setup_free(&setup->til_setup);
-
-				return -EINVAL;
-			}
-
-			r = til_module_setup_finalize(input_module, inputs_settings[i], &setup->inputs[i].setup);
+			r = til_module_setup_full(inputs_settings[i],
+						  res_setting,
+						  res_desc,
+						  &setup->inputs[i].setup, /* finalize! */
+						  input_module_name_names[i],
+						  input_preferred[i],
+						  (TIL_MODULE_EXPERIMENTAL | TIL_MODULE_HERMETIC),
+						  exclusions);
 			if (r < 0) {
 				til_setup_free(&setup->til_setup);
-
 				return r;
 			}
+
+			assert(r == 0);
 		}
 
 		*res_setup = &setup->til_setup;
