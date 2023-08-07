@@ -329,8 +329,8 @@ static void roto_prepare_frame(til_module_context_t *context, til_stream_t *stre
 
 	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu_x16 };
 
-	// This governs the rotation and color cycle.
 	if (ticks != context->last_ticks) {
+		/* This governs the rotation and color cycle. */
 		ctxt->r += FIXED_TO_INT(FIXED_MULT(FIXED_SIN(ctxt->rr), FIXED_NEW(16)));
 		ctxt->rr += (ticks - context->last_ticks) >> 2;
 
@@ -342,13 +342,13 @@ static void roto_prepare_frame(til_module_context_t *context, til_stream_t *stre
 		ctxt->palette[1].r = (FIXED_MULT(FIXED_SIN(ctxt->rr / 2), FIXED_NEW(127)) + FIXED_NEW(128));
 		ctxt->palette[1].g = (FIXED_MULT(FIXED_COS(ctxt->rr / 2), FIXED_NEW(127)) + FIXED_NEW(128));
 		ctxt->palette[1].b = (FIXED_MULT(FIXED_SIN(ctxt->rr), FIXED_NEW(127)) + FIXED_NEW(128));
-	}
 
-	if (ctxt->fill_module_context) {
-		til_fb_fragment_t	*fb_ptr = &ctxt->fill_fb;
+		if (ctxt->fill_module_context) {
+			til_fb_fragment_t	*fb_ptr = &ctxt->fill_fb;
 
-		ctxt->fill_fb.cleared = 0;
-		til_module_render(ctxt->fill_module_context, stream, ticks, &fb_ptr);
+			ctxt->fill_fb.cleared = 0;
+			til_module_render(ctxt->fill_module_context, stream, ticks, &fb_ptr);
+		}
 	}
 }
 
