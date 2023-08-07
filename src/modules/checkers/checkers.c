@@ -81,6 +81,7 @@ typedef struct checkers_setup_t {
 typedef struct checkers_context_t {
 	til_module_context_t	til_module_context;
 	checkers_setup_t	*setup;
+	til_fb_fragment_t	waste_fb;
 	til_module_context_t	*fill_module_contexts[];
 } checkers_context_t;
 
@@ -101,6 +102,7 @@ static til_module_context_t * checkers_create_context(const til_module_t *module
 
 	if (ctxt->setup->fill_module_setup) {
 		const til_module_t	*module = ctxt->setup->fill_module_setup->creator;
+		unsigned		waste_fb_size = ctxt->setup->size;
 
 		/* since checkers is already threaded, create an n_cpus=1 context per-cpu */
 		if (til_module_create_contexts(module, stream, seed, ticks, 1, ctxt->setup->fill_module_setup, n_cpus, ctxt->fill_module_contexts) < 0)
@@ -145,6 +147,17 @@ static til_module_context_t * checkers_create_context(const til_module_t *module
 		 * can have a default "dumb" clone that just duplicates the context with a malloc() and memcpy().  This would also require
 		 * adding a size member to til_module_context_t, which is straightforward to add.
 		 */
+
+		 ctxt->waste_fb = (til_fb_fragment_t){
+					.buf = malloc(waste_fb_size * waste_fb_size * sizeof(uint32_t)),
+					.frame_width = waste_fb_size,
+					.frame_height = waste_fb_size,
+					.width = waste_fb_size,
+					.height = waste_fb_size,
+					.pitch = waste_fb_size,
+				  };
+		if (!ctxt->waste_fb.buf)
+			return til_module_context_free(&ctxt->til_module_context);
 	}
 
 	return &ctxt->til_module_context;
@@ -158,6 +171,8 @@ static void checkers_destroy_context(til_module_context_t *context)
 	if (ctxt->setup->fill_module_setup) {
 		for (unsigned i = 0; i < context->n_cpus; i++)
 			til_module_context_free(ctxt->fill_module_contexts[i]);
+
+		free(ctxt->waste_fb.buf);
 	}
 
 	free(ctxt);
@@ -392,6 +407,56 @@ static void checkers_render_fragment(til_module_context_t *context, til_stream_t
 }
 
 
+static void checkers_finish_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr)
+{
+	checkers_context_t	*ctxt = (checkers_context_t *)context;
+
+	if (ctxt->setup->fill_module_setup) {
+		for (unsigned i = 0; i < context->n_cpus; i++) {
+			til_fb_fragment_t	*waste_fb_ptr = &ctxt->waste_fb;
+
+			if (ctxt->fill_module_contexts[i]->last_ticks == ticks)
+				continue;
+
+			/* We need to do a waste render to keep this context in sync with the others,
+			 * sometimes contexts don't get to participate in threaded rendering due to
+			 * scheduling irregularities/bad luck...  but we can't let them diverge.
+			 *
+			 * TODO: if the modules were required to expose their simulation in a distinct
+			 * til_module_t.method() we'd just perform that phase here.  And it probably makes
+			 * sense to do that.  The annoying thing is, it's kind of nice to have the minimum
+			 * module be just til_module_t.render_fragment() for someone wanting to just make a
+			 * little graphics hack.  In some sense, til_module_t.prepare_frame() already serves
+			 * as that method - but it's not required, and there's no hard rule saying even if
+			 * you've got a simple non-threaded module, put your state mutation in prepare_frame().
+			 * there's also no expectation currently that prepare_frame() would occur without
+			 * a subsequent render_fragment/finish_frame for that frame, which could be problematic
+			 * if prepare_frame is e.g. priming some state in the context that gets finished after
+			 * at least one invocation of render_fragment() and/or finish_frame().
+			 *
+			 * So for now let's just do waste renders into an off-screen cell-sized fb with any
+			 * of the contexts that didn't get used.  On the plus side, this is bounded by the
+			 * number of cpus, and it's only the fraction that didn't get utilized.
+			 *
+			 * Checkers is the only module that does this clones stuff, but I'm just using it as
+			 * a development mule for this complicated case at this point.  I can imagine other
+			 * modules wanting to do the same thing with concurrent clones so it's worth sorting
+			 * out all the details.
+			 */
+			til_module_render(ctxt->fill_module_contexts[i], stream, ticks, &waste_fb_ptr);
+#if 0
+			/* This is probably an interesting thing to measure.  On a busy system, it's not surprising
+			 * to have a cpu here and there not participate at all in rendering a frame.  But if the
+			 * system is idle, that's kind of odd, unless there's a huge excess of cores vs. filled cells.
+			 * It could also be a scheduling problem, or a rototiller threading bug/shortcoming.
+			 */
+			fprintf(stderr, "waste render @ ticks=%u cpu=%i\n", ticks, i);
+#endif
+		}
+	}
+}
+
+
 /* TODO: migrate to libtil */
 static char * checkers_random_color(unsigned seed)
 {
@@ -512,6 +577,7 @@ til_module_t	checkers_module = {
 	.destroy_context = checkers_destroy_context,
 	.prepare_frame = checkers_prepare_frame,
 	.render_fragment = checkers_render_fragment,
+	.finish_frame = checkers_finish_frame,
 	.setup = checkers_setup,
 	.name = "checkers",
 	.description = "Checker-patterned overlay (threaded)",
