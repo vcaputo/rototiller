@@ -44,7 +44,6 @@ typedef enum rkt_scener_fsm_t {
 	RKT_SCENER_FSM_RECV_SCENES,		/* waiting/reading at main scenes prompt */
 	RKT_SCENER_FSM_SEND_SCENE,		/* send per-scene dialog for scene @ scener->scene -> prompt */
 	RKT_SCENER_FSM_RECV_SCENE,		/* waiting/reading at the per-scene prompt */
-	RKT_SCENER_FSM_SEND_NEWSCENE,		/* send create new scene dialog -> prompt */
 	RKT_SCENER_FSM_RECV_NEWSCENE,		/* waiting/reading at the new scene prompt, creating/setting up new scene on input */
 	RKT_SCENER_FSM_SEND_NEWSCENE_SETUP,	/* send whatever's necessary for next step of new_scene.settings setup */
 	RKT_SCENER_FSM_SEND_NEWSCENE_SETUP_PROMPT,
@@ -255,6 +254,23 @@ static int rkt_scener_send_goodbye(rkt_scener_t *scener, rkt_scener_fsm_t next_s
 }
 
 
+static int rkt_scener_new_scene(rkt_context_t *ctxt)
+{
+	rkt_scener_t	*scener;
+	til_str_t	*output;
+
+	assert(ctxt);
+	scener = ctxt->scener;
+	assert(scener);
+
+	output = til_str_new("Input new scene \"module[,settings...]\" <just enter goes interactive>:\n");
+	if (!output)
+		return rkt_scener_err_close(scener, ENOMEM);
+
+	return rkt_scener_send(scener, output, RKT_SCENER_FSM_RECV_NEWSCENE);
+}
+
+
 /* handle input from the main scenes prompt */
 static int rkt_scener_handle_input_scenes(rkt_context_t *ctxt)
 {
@@ -301,8 +317,7 @@ static int rkt_scener_handle_input_scenes(rkt_context_t *ctxt)
 
 	case 'N': /* Add new scene */
 	case 'n':
-		scener->state = RKT_SCENER_FSM_SEND_NEWSCENE;
-		break;
+		return rkt_scener_new_scene(ctxt);
 
 	case 'S': /* Serialize current settings for the entire rkt scenes state */
 	case 's':
@@ -688,8 +703,7 @@ static int rkt_scener_handle_input_scene(rkt_context_t *ctxt)
 
 	case 'N':
 	case 'n':
-		scener->state = RKT_SCENER_FSM_SEND_NEWSCENE;
-		break;
+		return rkt_scener_new_scene(ctxt);
 
 	case '!': /* toggle pin_scene */
 		scener->pin_scene = !scener->pin_scene;
@@ -973,16 +987,6 @@ int rkt_scener_update(rkt_context_t *ctxt)
 			return rkt_scener_recv(scener, scener->state);
 
 		return rkt_scener_handle_input_scenes(ctxt);
-
-	case RKT_SCENER_FSM_SEND_NEWSCENE: {
-		til_str_t	*output;
-
-		output = til_str_new("Input new scene \"module[,settings...]\" <just enter goes interactive>:\n");
-		if (!output)
-			return rkt_scener_err_close(scener, ENOMEM);
-
-		return rkt_scener_send(scener, output, RKT_SCENER_FSM_RECV_NEWSCENE);
-	}
 
 	case RKT_SCENER_FSM_RECV_NEWSCENE:
 		if (!scener->input)
