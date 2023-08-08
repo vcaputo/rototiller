@@ -61,7 +61,6 @@ typedef struct rtv_setup_t {
 	unsigned		context_duration;
 	unsigned		snow_duration;
 	unsigned		caption_duration;
-	char			*snow_module_name;
 	til_setup_t		*snow_module_setup;
 	unsigned		log_channels:1;
 	char			*channels[];
@@ -231,7 +230,7 @@ static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks)
 static int rtv_should_skip_module(const rtv_setup_t *setup, const til_module_t *module)
 {
 	if (module == &rtv_module ||
-	    (setup->snow_module_name && !strcasecmp(module->name, setup->snow_module_name)))
+	    (setup->snow_module_setup && module == setup->snow_module_setup->creator))
 		return 1;
 
 	/* An empty channels list is a special case for representing "all", an
@@ -278,12 +277,10 @@ static til_module_context_t * rtv_create_context(const til_module_t *module, til
 	ctxt->caption_duration = ((rtv_setup_t *)setup)->caption_duration;
 
 	ctxt->snow_channel.module = &rtv_none_module;
-	if (((rtv_setup_t *)setup)->snow_module_name) {
-		/* ctxt takes ownership of the snow_module_setup */
+	if (((rtv_setup_t *)setup)->snow_module_setup) {
 		ctxt->snow_channel.module_setup = ((rtv_setup_t *)setup)->snow_module_setup;
-		((rtv_setup_t *)setup)->snow_module_setup = NULL;
 
-		ctxt->snow_channel.module = til_lookup_module(((rtv_setup_t *)setup)->snow_module_name);
+		ctxt->snow_channel.module = ctxt->snow_channel.module_setup->creator;
 		(void) til_module_create_context(ctxt->snow_channel.module, stream, rand_r(&seed), ticks, n_cpus, ctxt->snow_channel.module_setup, &ctxt->snow_channel.module_ctxt);
 	}
 
@@ -349,6 +346,19 @@ static void rtv_finish_frame(til_module_context_t *context, til_stream_t *stream
 }
 
 
+static int rtv_snow_module_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
+{
+	return til_module_setup_full(settings,
+				     res_setting,
+				     res_desc,
+				     res_setup,
+				     "Snow module name",
+				     RTV_DEFAULT_SNOW_MODULE,
+				     (TIL_MODULE_EXPERIMENTAL | TIL_MODULE_HERMETIC),
+				     NULL);
+}
+
+
 static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	const til_settings_t	*snow_module_settings;
@@ -357,8 +367,7 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 	const char		*context_duration;
 	const char		*caption_duration;
 	const char		*snow_duration;
-	const char		*snow_module, *snow_module_name;
-	til_setting_t		*snow_module_name_setting;
+	const char		*snow_module;
 	const char		*log_channels;
 	const char		*log_channels_values[] = {
 					"off",
@@ -463,44 +472,17 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 	if (r)
 		return r;
 
-	assert(res_setting && *res_setting && (*res_setting)->value_as_nested_settings);
+	assert(res_setting && *res_setting);
+	assert((*res_setting)->value_as_nested_settings);
+
 	snow_module_settings = (*res_setting)->value_as_nested_settings;
-	snow_module_name = til_settings_get_value_by_idx(snow_module_settings, 0, &snow_module_name_setting);
 
-	if (!snow_module_name || !snow_module_name_setting->desc) {
-		r = til_setting_desc_new(snow_module_settings,
-					&(til_setting_spec_t){
-						/* this is basically just to get the .as_label */
-						.name = "Snow module name",
-						.preferred = "none",
-						.as_label = 1,
-					},
-					res_desc);
-		if (r < 0)
-			return r;
-
-		*res_setting = snow_module_name ? snow_module_name_setting : NULL;
-
-		return 1;
-	}
-
-	if (strcasecmp(snow_module_name, "none")) {
-		const til_module_t	*snow_module = til_lookup_module(snow_module_name);
-
-		if (!snow_module) {
-			*res_setting = snow_module_name_setting;
-
-			return -EINVAL;
-		}
-
-		if (snow_module->setup) {
-			r = snow_module->setup(snow_module_settings, res_setting, res_desc, NULL);
-			if (r)
-				return r;
-		}
-
-		/* now snow_module settings are complete, but not yet baked (no res_setup) */
-	}
+	r = rtv_snow_module_setup(snow_module_settings,
+				       res_setting,
+				       res_desc,
+				       NULL); /* XXX: note no res_setup, must defer finalize */
+	if (r)
+		return r;
 
 	r = til_settings_get_and_describe_value(settings,
 						&(til_setting_spec_t){
@@ -571,31 +553,17 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 			} while ((channel = strtok(NULL, ":")));
 		}
 
-		if (strcasecmp(snow_module, "none")) {
-			const char		*snow_module_name = til_settings_get_value_by_idx(snow_module_settings, 0, NULL);
-			const til_module_t	*snow_module = til_lookup_module(snow_module_name);
 
-			if (!snow_module) {
-				til_setup_free(&setup->til_setup);
-
-				return -EINVAL;
-			}
-
-			setup->snow_module_name = strdup(snow_module_name);
-			if (!setup->snow_module_name) {
-				til_setup_free(&setup->til_setup);
-
-				return -ENOMEM;
-			}
-
-			/* bake the snow_module settings */
-			r = til_module_setup_finalize(snow_module, snow_module_settings, &setup->snow_module_setup);
-			if (r < 0) {
-				til_setup_free(&setup->til_setup);
-
-				return r;
-			}
+		r = rtv_snow_module_setup(snow_module_settings,
+					  res_setting,
+					  res_desc,
+					  &setup->snow_module_setup); /* finalize! */
+		if (r < 0) {
+			til_setup_free(&setup->til_setup);
+			return r;
 		}
+
+		assert(r == 0);
 
 		/* TODO FIXME: parse errors */
 		sscanf(duration, "%u", &setup->duration);
