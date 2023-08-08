@@ -487,9 +487,9 @@ static int roto_setup(const til_settings_t *settings, til_setting_t **res_settin
 	fill_module_settings = (*res_setting)->value_as_nested_settings;
 
 	r = roto_fill_module_setup(fill_module_settings,
-				       res_setting,
-				       res_desc,
-				       NULL); /* XXX: note no res_setup, must defer finalize */
+				   res_setting,
+				   res_desc,
+				   NULL); /* XXX: note no res_setup, must defer finalize */
 	if (r)
 		return r;
 
@@ -501,9 +501,9 @@ static int roto_setup(const til_settings_t *settings, til_setting_t **res_settin
 			return -ENOMEM;
 
 		r = roto_fill_module_setup(fill_module_settings,
-					       res_setting,
-					       res_desc,
-					       &setup->fill_module_setup); /* finalize! */
+					   res_setting,
+					   res_desc,
+					   &setup->fill_module_setup); /* finalize! */
 		if (r < 0) {
 			til_setup_free(&setup->til_setup);
 			return r;
