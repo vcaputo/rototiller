@@ -463,6 +463,7 @@ static void shapes_render_fragment(til_module_context_t *context, til_stream_t *
 static void shapes_finish_frame(til_module_context_t *context, til_stream_t *stream, unsigned int ticks, til_fb_fragment_t **fragment_ptr)
 {
 	shapes_context_t	*ctxt = (shapes_context_t *)context;
+	til_fb_fragment_t	*fragment = *fragment_ptr;
 
 	/* XXX: note that in rendering, initialized is checked racily and it's entirely possible
 	 * for multiple contexts to be rendering and populating the radcache when !initialized
@@ -471,8 +472,17 @@ static void shapes_finish_frame(til_module_context_t *context, til_stream_t *str
 	 * tri-state that's atomically advanced towards initialized wiht an "intializing" mid-state
 	 * that only one renderer can enter, then the others treat "initializing" as !radcache at all
 	 * TODO FIXME
+	 *
+	 * XXX: also note the radcache must be prevented from getting considered initialized by a partial
+	 * frame - which happens as checkers::fill_module when the edge cells overhang for centering.
+	 * Those perimeter renders won't populate the radcache fully.  This is a band-aid, it would be
+	 * better to let the radcache's initialized area expand so it can accelerate those perimiter
+	 * cases with the partially initialized contents if there's enough there, then once full-frame cells
+	 * happen it just grows with the first one of those. For now this check fixes a bug. FIXME TODO
 	 */
-	ctxt->radcache->initialized = 1;
+	if (fragment->width == fragment->frame_width &&
+	    fragment->height == fragment->frame_height)
+		ctxt->radcache->initialized = 1;
 }
 
 
