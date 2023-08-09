@@ -307,9 +307,8 @@ til_module_t	mixer_module = {
 	.render_fragment = mixer_render_fragment,
 	.finish_frame = mixer_finish_frame,
 	.name = "mixer",
-	.description = "Module blender",
+	.description = "Module blender (threaded)",
 	.setup = mixer_setup,
-	.flags = TIL_MODULE_EXPERIMENTAL,
 };
 
 
