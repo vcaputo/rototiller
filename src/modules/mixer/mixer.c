@@ -17,7 +17,7 @@
 /* This implements a rudimentary mixing module for things like fades */
 
 typedef enum mixer_style_t {
-	MIXER_STYLE_FADE,
+	MIXER_STYLE_BLEND,
 	MIXER_STYLE_FLICKER,
 } mixer_style_t;
 
@@ -54,7 +54,7 @@ typedef struct mixer_setup_t {
 	mixer_setup_input_t	inputs[2];
 } mixer_setup_t;
 
-#define MIXER_DEFAULT_STYLE	MIXER_STYLE_FADE
+#define MIXER_DEFAULT_STYLE	MIXER_STYLE_BLEND
 
 
 static void mixer_update_taps(mixer_context_t *ctxt, til_stream_t *stream, unsigned ticks)
@@ -131,7 +131,7 @@ static void mixer_prepare_frame(til_module_context_t *context, til_stream_t *str
 		til_module_render(ctxt->inputs[i].module_ctxt, stream, ticks, &fragment);
 		break;
 
-	case MIXER_STYLE_FADE: {
+	case MIXER_STYLE_BLEND: {
 		float	T = ctxt->vars.T;
 
 		if (T < 1.f) {
@@ -201,7 +201,7 @@ static void mixer_render_fragment(til_module_context_t *context, til_stream_t *s
 		/* handled in prepare_frame() */
 		break;
 
-	case MIXER_STYLE_FADE: {
+	case MIXER_STYLE_BLEND: {
 		uint32_t		*dest = fragment->buf;
 		til_fb_fragment_t	*snapshot_a, *snapshot_b;
 		uint32_t		*a, *b;
@@ -322,7 +322,7 @@ static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setti
 	const char		*exclusions[] = { "none", "mixer", NULL };
 
 	const char		*style_values[] = {
-					"fade",
+					"blend",
 					"flicker",
 					NULL
 				};
