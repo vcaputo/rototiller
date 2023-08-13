@@ -191,34 +191,41 @@ static void checkers_destroy_context(til_module_context_t *context)
  */
 int checkers_fragment_tile_single(const til_fb_fragment_t *fragment, unsigned tile_size, unsigned number, til_fb_fragment_t *res_fragment)
 {
-	unsigned	w = fragment->width / tile_size, h = fragment->height / tile_size;
-	unsigned	tiled_w = w * tile_size, tiled_h = h * tile_size;
+	unsigned	numw = fragment->width / tile_size, numh = fragment->height / tile_size;
 	unsigned	x, y, xoff, yoff, xshift = 0, yshift = 0;
 
 	assert(fragment);
 	assert(res_fragment);
 
-	/* Detect the need for fractional tiles on both axis and shift the fragments
-	 * to keep the overall checkered output centered.  This complicates res_fragment.{x,y,width,height}
-	 * calculations for the peripheral checker tiles as those must clip when shifted.
-	 */
-	if (tiled_w < fragment->width) {
-		tiled_w += tile_size;
-		xshift = (tiled_w - fragment->width) >> 1;
-		w++;
+	{
+		unsigned	tiled_w = numw * tile_size;
+		unsigned	tiled_h = numh * tile_size;
+
+		/* Detect the need for fractional tiles on both axis and shift the fragments
+		 * to keep the overall checkered output centered.
+		 *
+		 * This complicates res_fragment.{x,y,width,height} calculations for the
+		 * peripheral checker tiles as those must clip when shifted.
+		 */
+
+		if (tiled_w < fragment->width) {
+			tiled_w += tile_size;
+			xshift = (tiled_w - fragment->width) >> 1;
+			numw++;
+		}
+
+		if (tiled_h < fragment->height) {
+			tiled_h += tile_size;
+			yshift = (tiled_h - fragment->height) >> 1;
+			numh++;
+		}
 	}
 
-	if (tiled_h < fragment->height) {
-		tiled_h += tile_size;
-		yshift = (tiled_h - fragment->height) >> 1;
-		h++;
-	}
-
-	y = number / w;
-	if (y >= h)
+	y = number / numw;
+	if (y >= numh)
 		return 0;
 
-	x = number - (y * w);
+	x = number - (y * numw);
 
 	xoff = x * tile_size;
 	yoff = y * tile_size;
