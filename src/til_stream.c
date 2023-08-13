@@ -134,6 +134,8 @@ til_stream_t * til_stream_free(til_stream_t *stream)
 	if (!stream)
 		return NULL;
 
+	til_stream_gc_module_contexts(stream);
+
 	for (int i = 0; i < TIL_STREAM_PIPE_BUCKETS_COUNT; i++) {
 		for (til_stream_pipe_t *p = stream->pipe_buckets[i], *p_next; p != NULL; p = p_next) {
 			p_next = p->next;
