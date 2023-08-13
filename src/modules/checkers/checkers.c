@@ -241,13 +241,13 @@ int checkers_fragment_tile_single(const til_fb_fragment_t *fragment, unsigned ti
 
 		*(res_fragment->texture) = (til_fb_fragment_t){
 					.buf = fragment->texture->buf + (yoff * fragment->texture->pitch) - (y ? (yshift * fragment->texture->pitch) : 0) + (xoff - (x ? xshift : 0)),
-					.width = MIN(fragment->width - (xoff - xshift), x ? tile_size : (tile_size - xshift)),
-					.height = MIN(fragment->height - (yoff - yshift), y ? tile_size : (tile_size - yshift)),
+					.width = MIN(fragment->width - xoff + (x ? xshift : 0), x ? tile_size : (tile_size - xshift)),
+					.height = MIN(fragment->height - yoff + (y ? yshift : 0), y ? tile_size : (tile_size - yshift)),
 					.x = x ? 0 : xshift,
 					.y = y ? 0 : yshift,
 					.frame_width = tile_size,
 					.frame_height = tile_size,
-					.stride = fragment->texture->stride + (fragment->width - MIN(fragment->width - (xoff - xshift), x ? tile_size : (tile_size - xshift))),
+					.stride = fragment->texture->stride + (fragment->width - MIN(fragment->width - xoff + (x ? xshift : 0), x ? tile_size : (tile_size - xshift))),
 					.pitch = fragment->texture->pitch,
 					.cleared = fragment->texture->cleared,
 				};
@@ -257,19 +257,45 @@ int checkers_fragment_tile_single(const til_fb_fragment_t *fragment, unsigned ti
 				.texture = fragment->texture ? res_fragment->texture : NULL,
 				/* TODO: copy pasta! */
 				.buf = fragment->buf + (yoff * fragment->pitch) - (y ? (yshift * fragment->pitch) : 0) + (xoff - (x ? xshift : 0)),
-				.width = MIN(fragment->width - (xoff - xshift), x ? tile_size : (tile_size - xshift)),
-				.height = MIN(fragment->height - (yoff - yshift), y ? tile_size : (tile_size - yshift)),
+				.width = MIN(fragment->width - xoff + (x ? xshift : 0), x ? tile_size : (tile_size - xshift)),
+				.height = MIN(fragment->height - yoff + (y ? yshift : 0), y ? tile_size : (tile_size - yshift)),
 				.x = x ? 0 : xshift,
 				.y = y ? 0 : yshift,
 				// this is a little janky but leave frame_width to be set by render_fragment
 				// so it can use the old frame_width for determining checkered state
 				.frame_width = fragment->width, // becomes tile_size
 				.frame_height = fragment->height, // becomes tile_size
-				.stride = fragment->stride + (fragment->width - MIN(fragment->width - (xoff - xshift), x ? tile_size : (tile_size - xshift))),
+				.stride = fragment->stride + (fragment->width - MIN(fragment->width - xoff + (x ? xshift : 0), x ? tile_size : (tile_size - xshift))),
 				.pitch = fragment->pitch,
 				.number = number,
 				.cleared = fragment->cleared,
 			};
+
+	assert(res_fragment->width <= fragment->width);
+	assert(res_fragment->height <= fragment->height);
+
+#if 0
+	fprintf(stderr, "incoming frame=%ux%u frag=%ux%u @=%ux%u, res frame=%ux%u fragwh=%ux%u fragxy=%ux%u off=%ux%u shift=%ux%u xy=%ux%u tsz=%u\n",
+			fragment->frame_width,
+			fragment->frame_height,
+			fragment->width,
+			fragment->height,
+			fragment->x,
+			fragment->y,
+			res_fragment->frame_width,
+			res_fragment->frame_height,
+			res_fragment->width,
+			res_fragment->height,
+			res_fragment->x,
+			res_fragment->y,
+			xoff,
+			yoff,
+			xshift,
+			yshift,
+			x,
+			y,
+			tile_size);
+#endif
 
 	return 1;
 }
