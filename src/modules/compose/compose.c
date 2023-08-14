@@ -233,7 +233,11 @@ static void compose_setup_free(til_setup_t *setup)
 
 static int compose_layer_module_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
-	const char	*exclusions[] = { "none", NULL };
+	const char	*exclusions[] = { "none", "compose" /* XXX: prevent infinite recursion */, NULL };
+
+	/* nested compose might be interesting, but there needs to be guards to prevent the potential infinite recursion.
+	 * note you can still access it via the ':' override prefix
+	 */
 
 	return til_module_setup_full(settings,
 				     res_setting,
