@@ -437,6 +437,14 @@ int main(int argc, const char *argv[])
 		til_module_context_free(rototiller.module_context);
 		til_stream_free(rototiller.stream);
 		til_fb_free(rototiller.fb);
+
+		{ /* free setup (move to function? and disambiguate from til_setup_t w/rename? TODO) */
+			free((void *)setup.title);
+			til_setup_free(setup.video_setup);
+			til_settings_free(setup.video_settings);
+			til_setup_free(setup.module_setup);
+			til_settings_free(setup.module_settings);
+		}
 	}
 
 	til_shutdown();
