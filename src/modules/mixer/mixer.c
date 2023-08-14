@@ -284,6 +284,34 @@ static void mixer_finish_frame(til_module_context_t *context, til_stream_t *stre
 }
 
 
+static char * mixer_random_module_setting(unsigned seed)
+{
+	const char	*candidates[] = {
+				"blinds",
+				"checkers",
+				"drizzle",
+				"julia",
+				"meta2d",
+				"moire",
+				"pixbounce",
+				"plasma",
+				"plato",
+				"roto",
+				"shapes",
+				"snow",
+				"sparkler",
+				"spiro",
+				"stars",
+				"submit",
+				"swab",
+				"swarm",
+				"voronoi",
+			};
+
+	return strdup(candidates[rand() % nelems(candidates)]);
+}
+
+
 static void mixer_setup_free(til_setup_t *setup)
 {
 	mixer_setup_t	*s = (mixer_setup_t *)setup;
@@ -351,6 +379,7 @@ static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setti
 								.key = input_keys[i],
 								.preferred = input_preferred[i],
 								.as_nested_settings = 1,
+								.random = mixer_random_module_setting,
 							},
 							&inputs[i],
 							res_setting,
