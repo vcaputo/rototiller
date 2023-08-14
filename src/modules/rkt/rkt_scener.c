@@ -1272,6 +1272,7 @@ int rkt_scener_update(rkt_context_t *ctxt)
 				assert(scener->scene < ctxt->n_scenes);
 				ctxt->scenes[scener->scene].module_ctxt = til_module_context_free(ctxt->scenes[scener->scene].module_ctxt);
 				ctxt->scenes[scener->scene].module_ctxt = module_ctxt;
+				til_stream_gc_module_contexts(ctxt->til_module_context.stream);
 			}
 		}
 
