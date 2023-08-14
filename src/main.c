@@ -334,10 +334,15 @@ static void * rototiller_thread(void *_rt)
 	rototiller_t	*rt = _rt;
 	struct timeval	now;
 
-	for (;;) {
-		unsigned		ticks;
+	while (til_stream_active(rt->stream)) {
+		unsigned	ticks;
 
 		rt->fragment = til_fb_page_get(rt->fb);
+		if (!rt->fragment) {
+			til_stream_end(rt->stream);
+			continue;
+		}
+
 		gettimeofday(&now, NULL);
 		ticks = get_ticks(&rt->start_tv, &now, rt->ticks_offset);
 		til_module_render(rt->module_context, rt->stream, ticks, &rt->fragment);
@@ -425,7 +430,7 @@ int main(int argc, const char *argv[])
 			fps_fprint(rototiller.fb, stderr);
 		}
 
-		pthread_cancel(rototiller.thread);
+		til_fb_halt(rototiller.fb);
 		pthread_join(rototiller.thread, NULL);
 		til_quiesce();
 
