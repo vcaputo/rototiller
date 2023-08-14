@@ -306,6 +306,8 @@ void til_stream_untap_owner(til_stream_t *stream, const void *owner)
 				if (stream->hooks && stream->hooks->pipe_dtor)
 					stream->hooks->pipe_dtor(stream->hooks_context, stream, p->owner, p->owner_foo, p->parent_path, p->driving_tap);
 
+				/* FIXME TODO: add a free_pipe() helper to share with til_stream_free() */
+				free(p->parent_path);
 				free(p);
 			} else
 				p_prev = p;
