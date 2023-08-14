@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <stdarg.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -25,6 +26,7 @@ struct til_str_t {
 
 
 #define TIL_STR_MIN_SIZE	64
+#define TIL_STR_MAX_GROWBY	(TIL_STR_MIN_SIZE * 1024)
 
 
 /* alloc always returns a buf w/nul terminator present */
@@ -118,11 +120,18 @@ int til_str_appendf(til_str_t *str, const char *format, ...)
 	len = vsnprintf(NULL, 0, format, ap);
 	va_end(ap);
 
+	if (SIZE_MAX - len < str->size.used)
+		return -EOVERFLOW;
+
 	if (str->size.used + len > str->size.allocated) {
 		char	*new;
 
-		str->size.growby += TIL_STR_MIN_SIZE;
+		if (str->size.growby < TIL_STR_MAX_GROWBY)
+			str->size.growby += TIL_STR_MIN_SIZE;
+
 		len = MAX(str->size.growby, len);
+		if (SIZE_MAX - len < str->size.used)
+			len = SIZE_MAX - str->size.used;
 
 		new = realloc(str->buf, str->size.used + len);
 		if (!new)
