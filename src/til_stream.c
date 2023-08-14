@@ -131,10 +131,13 @@ int til_stream_active(til_stream_t *stream)
 
 til_stream_t * til_stream_free(til_stream_t *stream)
 {
+	unsigned	leaked;
+
 	if (!stream)
 		return NULL;
 
-	til_stream_gc_module_contexts(stream);
+	leaked = til_stream_gc_module_contexts(stream);
+	assert(!leaked);
 
 	for (int i = 0; i < TIL_STREAM_PIPE_BUCKETS_COUNT; i++) {
 		for (til_stream_pipe_t *p = stream->pipe_buckets[i], *p_next; p != NULL; p = p_next) {
