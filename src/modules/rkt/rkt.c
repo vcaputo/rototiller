@@ -393,6 +393,7 @@ static void rkt_setup_free(til_setup_t *setup)
 
 		free((void *)s->base);
 		free((void *)s->host);
+		free((void *)s->scener_address);
 		free(setup);
 	}
 }
