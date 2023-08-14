@@ -18,7 +18,7 @@
 
 struct til_str_t {
 	struct {
-		size_t	allocated, used; /* used is length, including '\0' terminator */
+		size_t	allocated, used, growby; /* used is length, including '\0' terminator */
 	} size;
 	char	*buf;
 };
@@ -38,6 +38,7 @@ static til_str_t * til_str_nulstr(size_t minsize)
 
 	str->size.used = 1;
 	str->size.allocated = MAX(minsize, TIL_STR_MIN_SIZE);
+	str->size.growby = TIL_STR_MIN_SIZE;
 
 	str->buf = calloc(1, str->size.allocated);
 	if (!str->buf) {
@@ -88,7 +89,6 @@ til_str_t * til_str_newf(const char *format, ...)
 
 	assert(format);
 
-
 	va_start(ap, format);
 	str = til_str_nulstr(vsnprintf(NULL, 0, format, ap) + 1);
 	va_end(ap);
@@ -120,6 +120,9 @@ int til_str_appendf(til_str_t *str, const char *format, ...)
 
 	if (str->size.used + len > str->size.allocated) {
 		char	*new;
+
+		str->size.growby += TIL_STR_MIN_SIZE;
+		len = MAX(str->size.growby, len);
 
 		new = realloc(str->buf, str->size.used + len);
 		if (!new)
