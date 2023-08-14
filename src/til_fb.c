@@ -114,6 +114,7 @@ struct _til_fb_page_t {
 	til_fb_t		*fb;
 	void			*fb_ops_page;
 
+	_til_fb_page_t		*all_next, *all_previous;
 	_til_fb_page_t		*next, *previous;
 	_til_fb_fragment_t	fragment;
 };
@@ -137,6 +138,9 @@ typedef struct til_fb_t {
 	pthread_cond_t		inactive_cond;
 	_til_fb_page_t		*inactive_pages_head;	/* finished pages available for (re)use */
 	_til_fb_page_t		*inactive_pages_tail;
+
+	_til_fb_page_t		*all_pages_head;	/* all pages allocated */
+	_til_fb_page_t		*all_pages_tail;
 
 	unsigned		put_pages_count;
 } til_fb_t;
@@ -226,6 +230,9 @@ static int til_fb_acquire(til_fb_t *fb, _til_fb_page_t *page)
 /* release the fb, making the visible page inactive */
 static void til_fb_release(til_fb_t *fb)
 {
+	assert(fb);
+	assert(fb->active_page);
+
 	fb->ops->release(fb, fb->ops_context);
 
 	/* XXX: this is getting silly, either add a doubly linked list header or
@@ -245,6 +252,16 @@ static void til_fb_release(til_fb_t *fb)
 
 static void _til_fb_page_free(til_fb_t *fb, _til_fb_page_t *page)
 {
+	if (page->all_next)
+		page->all_next->all_previous = page->all_previous;
+	else
+		fb->all_pages_tail = page->all_previous;
+
+	if (page->all_previous)
+		page->all_previous->all_next = page->all_next;
+	else
+		fb->all_pages_head = page->all_next;
+
 	fb->ops->page_free(fb, fb->ops_context, page->fb_ops_page);
 
 	free(page);
@@ -291,7 +308,7 @@ static void _til_fb_fragment_memcpy_buf(til_fb_fragment_t *dest, til_fb_fragment
 }
 
 
-/* snapshot the contents of fragment */
+/* snapshot the contents of whole-page fragment */
 static til_fb_fragment_t * _til_fb_page_snapshot(til_fb_fragment_t **fragment_ptr, int preserve_original)
 {
 	_til_fb_page_t	*page;
@@ -299,6 +316,15 @@ static til_fb_fragment_t * _til_fb_page_snapshot(til_fb_fragment_t **fragment_pt
 
 	assert(fragment_ptr && *fragment_ptr);
 
+	/* XXX: note that nothing serializes this _til_fb_page_alloc(), so if anything actually
+	 * tried to do whole-page snapshotting in parallel things would likely explode.
+	 * But as of now, all parallel snapshots of fragments occur on subfragments, not on the
+	 * top-level page, so they don't enter this page allocation code path.
+	 *
+	 * If things started doing threaded page allocations/snapshots, it'd break some assumptions
+	 * all the way down to the $foo_fb backends where they maintain spare pages lists without
+	 * any locking. XXX
+	 */
 	page = container_of(*fragment_ptr, _til_fb_page_t, fragment);
 	new_page = _til_fb_page_alloc(page->fb);
 	*fragment_ptr = &new_page->fragment.public;
@@ -325,6 +351,13 @@ static _til_fb_page_t * _til_fb_page_alloc(til_fb_t *fb)
 	page->fragment.ops.snapshot = _til_fb_page_snapshot;
 	page->fragment.ops.reclaim = _til_fb_page_reclaim;
 	page->fragment.public.ops = &page->fragment.ops;
+
+	page->all_next = fb->all_pages_head;
+	fb->all_pages_head = page;
+	if (page->all_next)
+		page->all_next->all_previous = page;
+	else
+		fb->all_pages_tail = page;
 
 	return page;
 }
@@ -465,10 +498,17 @@ void til_fb_get_put_pages_count(til_fb_t *fb, unsigned *count)
 til_fb_t * til_fb_free(til_fb_t *fb)
 {
 	if (fb) {
+		int	count = 0;
+
 		if (fb->active_page)
 			til_fb_release(fb);
 
-		/* TODO: free all the pages */
+		while (fb->all_pages_head) {
+			_til_fb_page_free(fb, fb->all_pages_head);
+			count++;
+		}
+
+		assert(count == fb->n_pages);
 
 		if (fb->ops->shutdown && fb->ops_context)
 			fb->ops->shutdown(fb, fb->ops_context);
