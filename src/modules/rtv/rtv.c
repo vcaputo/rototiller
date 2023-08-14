@@ -518,7 +518,7 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 
 			til_get_modules(&modules, &n_modules);
 
-			tokchannels = strdup(channels);
+			tokchannels = strdup(channels); /* TODO FIXME: this is getting leaked currently */
 			if (!tokchannels) {
 				til_setup_free(&setup->til_setup);
 
