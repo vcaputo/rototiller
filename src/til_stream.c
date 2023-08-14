@@ -573,15 +573,17 @@ int til_stream_register_module_contexts(til_stream_t *stream, size_t n_contexts,
 	}
 
 	if (!c) {
-		c = calloc(1, sizeof(til_stream_module_context_t) + n_contexts * sizeof(contexts[0]));
+		c = calloc(1, sizeof(til_stream_module_context_t) + n_contexts * sizeof(c->module_contexts[0]));
 		if (!c)
 			return -ENOMEM;
 
 		c->path_hash = path_hash;
-		c->n_module_contexts = n_contexts;
 	}
 
-	/* XXX: note in the reused case c->n_contexts may exceed n_contexts, but they're NULL */
+	/* Note in a reuse of a larger c than needed, its n_module_contexts shrinks.. otherwise we'd have to check
+	 * for NULL slots in c->module_contexts[] everywhere they're iterated.
+	 */
+	c->n_module_contexts = n_contexts;
 	for (size_t i = 0; i < n_contexts; i++)
 		c->module_contexts[i] = til_module_context_ref(contexts[i]);
 
