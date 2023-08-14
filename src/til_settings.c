@@ -657,25 +657,30 @@ const char * til_setting_get_raw_value(til_setting_t *setting)
 
 
 
-static inline void fputc_escaped(til_str_t *out, int c, unsigned depth)
+static inline int fputc_escaped(til_str_t *out, int c, unsigned depth)
 {
 	unsigned	escapes = 0;
+	int		r;
 
 	for (unsigned i = 0; i < depth; i++) {
 		escapes <<= 1;
 		escapes += 1;
 	}
 
-	for (unsigned i = 0; i < escapes; i++)
-		til_str_appendf(out, "\\");
+	for (unsigned i = 0; i < escapes; i++) {
+		r = til_str_appendf(out, "\\");
+		if (r < 0)
+			return r;
+	}
 
-	til_str_appendf(out, "%c", c);
+	return til_str_appendf(out, "%c", c);
 }
 
 
-static inline void fputs_escaped(til_str_t *out, const char *value, unsigned depth)
+static inline int fputs_escaped(til_str_t *out, const char *value, unsigned depth)
 {
 	char	c;
+	int	r;
 
 	while ((c = *value++)) {
 		switch (c) {
@@ -683,38 +688,56 @@ static inline void fputs_escaped(til_str_t *out, const char *value, unsigned dep
 		case '=':
 		case ',':
 		case '\\':
-			fputc_escaped(out, c, depth);
+			r = fputc_escaped(out, c, depth);
+			if (r < 0)
+				return r;
 			break;
 		default:
-			til_str_appendf(out, "%c", c);
+			r = til_str_appendf(out, "%c", c);
+			if (r < 0)
+				return r;
 			break;
 		}
 	}
+
+	return 0;
 }
 
 
 static int settings_as_arg(const til_settings_t *settings, int unfiltered, unsigned depth, til_str_t *out)
 {
 	for (size_t i = 0, j = 0; i < settings->num; i++) {
+		int	r;
+
 		if (!unfiltered && !settings->entries[i]->desc)
 			continue;
 
 		/* FIXME TODO: detect errors */
-		if (j > 0)
-			fputc_escaped(out, ',', depth);
+		if (j > 0) {
+			r = fputc_escaped(out, ',', depth);
+			if (r < 0)
+				return r;
+		}
 
 		if (settings->entries[i]->key) {
 			fputs_escaped(out, settings->entries[i]->key, depth);
-			if (settings->entries[i]->value)
-				fputc_escaped(out, '=', depth);
+			if (settings->entries[i]->value) {
+				r = fputc_escaped(out, '=', depth);
+				if (r < 0)
+					return r;
+			}
 		}
 
 		if (settings->entries[i]->value_as_nested_settings) {
-			settings_as_arg(settings->entries[i]->value_as_nested_settings, unfiltered, depth + 1, out);
+			r = settings_as_arg(settings->entries[i]->value_as_nested_settings, unfiltered, depth + 1, out);
+			if (r < 0)
+				return r;
 		} else if (settings->entries[i]->value) {
 			const char	*v = til_setting_get_raw_value(settings->entries[i]);
 
-			fputs_escaped(out, v, depth);
+			r = fputs_escaped(out, v, depth);
+			if (r < 0)
+				return r;
 		}
 		j++;
 	}
