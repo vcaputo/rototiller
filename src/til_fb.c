@@ -143,6 +143,7 @@ typedef struct til_fb_t {
 	_til_fb_page_t		*all_pages_tail;
 
 	unsigned		put_pages_count;
+	unsigned		halted:1;
 } til_fb_t;
 
 #ifndef container_of
@@ -391,8 +392,14 @@ static inline _til_fb_page_t * _til_fb_page_get(til_fb_t *fb)
 	 * pages faster than vhz.
 	 */
 	pthread_mutex_lock(&fb->inactive_mutex);
-	while (!(page = fb->inactive_pages_tail))
+	while (!(page = fb->inactive_pages_tail) && !fb->halted)
 		pthread_cond_wait(&fb->inactive_cond, &fb->inactive_mutex);
+
+	if (!page) {
+		pthread_mutex_unlock(&fb->inactive_mutex);
+		return NULL;
+	}
+
 	fb->inactive_pages_tail = page->previous;
 	if (fb->inactive_pages_tail)
 		fb->inactive_pages_tail->next = NULL;
@@ -410,7 +417,13 @@ static inline _til_fb_page_t * _til_fb_page_get(til_fb_t *fb)
 /* public interface */
 til_fb_fragment_t * til_fb_page_get(til_fb_t *fb)
 {
-	return &(_til_fb_page_get(fb)->fragment.public);
+	_til_fb_page_t	*page;
+
+	page = _til_fb_page_get(fb);
+	if (!page)
+		return NULL;
+
+	return &page->fragment.public;
 }
 
 
@@ -599,6 +612,15 @@ void til_fb_rebuild(til_fb_t *fb)
 	pthread_mutex_lock(&fb->rebuild_mutex);
 	fb->rebuild_pages = fb->n_pages;
 	pthread_mutex_unlock(&fb->rebuild_mutex);
+}
+
+
+void til_fb_halt(til_fb_t *fb)
+{
+	assert(fb);
+
+	fb->halted = 1;
+	pthread_cond_signal(&fb->inactive_cond);
 }
 
 

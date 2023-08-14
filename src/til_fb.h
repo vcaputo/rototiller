@@ -55,6 +55,7 @@ til_fb_t * til_fb_free(til_fb_t *fb);
 void til_fb_get_put_pages_count(til_fb_t *fb, unsigned *count);
 int til_fb_new(const til_fb_ops_t *ops, const char *title, const til_setup_t *setup, int n_pages, til_fb_t **res_fb);
 void til_fb_rebuild(til_fb_t *fb);
+void til_fb_halt(til_fb_t *fb);
 void * til_fb_context(til_fb_t *fb);
 int til_fb_flip(til_fb_t *fb);
 void til_fb_fragment_divide(til_fb_fragment_t *fragment, unsigned n_fragments, til_fb_fragment_t fragments[]);
