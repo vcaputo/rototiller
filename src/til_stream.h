@@ -74,7 +74,7 @@ int til_stream_for_each_module_context(til_stream_t *stream, til_stream_module_c
 
 int til_stream_register_module_contexts(til_stream_t *stream, size_t n_contexts, til_module_context_t **contexts);
 int til_stream_find_module_contexts(til_stream_t *stream, const char *path, size_t n_contexts, til_module_context_t **res_contexts);
-void til_stream_gc_module_contexts(til_stream_t *stream);
+unsigned til_stream_gc_module_contexts(til_stream_t *stream);
 void til_stream_fprint_module_contexts(til_stream_t *stream, FILE *out);
 
 #endif

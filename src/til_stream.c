@@ -646,9 +646,10 @@ int til_stream_find_module_contexts(til_stream_t *stream, const char *path, size
 }
 
 
-void til_stream_gc_module_contexts(til_stream_t *stream)
+/* returns count of remaining contexts or zero if none remain */
+unsigned til_stream_gc_module_contexts(til_stream_t *stream)
 {
-	unsigned	freed;
+	unsigned	freed, skipped;
 
 	assert(stream);
 
@@ -668,6 +669,7 @@ void til_stream_gc_module_contexts(til_stream_t *stream)
 	 */
 	do {
 		freed = 0;
+		skipped = 0;
 
 		for (size_t b = 0; b < TIL_STREAM_CTXT_BUCKETS_COUNT; b++) {
 			til_stream_module_context_t	*c, *c_prev, *c_next;
@@ -684,6 +686,7 @@ void til_stream_gc_module_contexts(til_stream_t *stream)
 
 				if (i < c->n_module_contexts) {
 					c_prev = c;
+					skipped++;
 					continue;
 				}
 
@@ -697,13 +700,17 @@ void til_stream_gc_module_contexts(til_stream_t *stream)
 					freed = 1;
 				}
 
-				if (c_prev)
+
+				if (c_prev) {
 					c_prev->next = c_next;
-				else
+				} else {
 					stream->module_context_buckets[b] = c_next;
+				}
 			}
 		}
 	} while (freed);
+
+	return skipped;
 }
 
 
