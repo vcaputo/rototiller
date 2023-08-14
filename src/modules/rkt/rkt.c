@@ -307,6 +307,7 @@ static void rkt_destroy_context(til_module_context_t *context)
 	for (size_t i = 0; i < ctxt->n_scenes; i++)
 		til_module_context_free(ctxt->scenes[i].module_ctxt);
 
+	free(ctxt->scenes);
 	free(context);
 }
 
