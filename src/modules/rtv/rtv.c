@@ -137,8 +137,6 @@ static void cleanup_channel(rtv_context_t *ctxt)
 	ctxt->channel->settings_as_arg = NULL;
 
 	ctxt->caption = ctxt->channel->caption = txt_free(ctxt->channel->caption);
-
-	til_stream_gc_module_contexts(ctxt->til_module_context.stream);
 }
 
 
@@ -151,8 +149,13 @@ static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks)
 	 */
 	if (ctxt->channel) {
 		ctxt->channel->cumulative_time += now - ctxt->channel->last_on_time;
-		if (ctxt->channel->cumulative_time >= ctxt->context_duration)
+		if (ctxt->channel->cumulative_time >= ctxt->context_duration) {
 			cleanup_channel(ctxt);
+			/* XXX: gc used to be part of cleanup_channel(), but rtv_destroy_context() uses it
+			 * as well, creating a potential recursive gc and things go boom.
+			 */
+			til_stream_gc_module_contexts(ctxt->til_module_context.stream);
+		}
 	}
 
 	if (!ctxt->n_channels ||
