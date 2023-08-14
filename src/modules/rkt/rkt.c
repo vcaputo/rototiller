@@ -134,7 +134,7 @@ typedef struct rkt_pipe_t {
 } rkt_pipe_t;
 
 
-int rkt_stream_pipe_ctor(void *context, til_stream_t *stream, const void *owner, const void *owner_foo, const char *parent_path, uint32_t parent_hash, const til_tap_t *tap, const void **res_owner, const void **res_owner_foo, const til_tap_t **res_driving_tap)
+static int rkt_stream_pipe_ctor(void *context, til_stream_t *stream, const void *owner, const void *owner_foo, const char *parent_path, uint32_t parent_hash, const til_tap_t *tap, const void **res_owner, const void **res_owner_foo, const til_tap_t **res_driving_tap)
 {
 	rkt_context_t	*ctxt = context;
 	rkt_pipe_t	*rkt_pipe;
@@ -165,10 +165,23 @@ int rkt_stream_pipe_ctor(void *context, til_stream_t *stream, const void *owner,
 	return 1;
 }
 
+static void rkt_stream_pipe_dtor(void *context, til_stream_t *stream, const void *owner, const void *owner_foo, const char *parent_path, const til_tap_t *tap)
+{
+	rkt_context_t		*ctxt = context;
+
+	assert(stream);
+	assert(tap);
+
+	if (owner != ctxt)
+		return;	/* not interesting to us */
+
+	free((void *)owner_foo);
+}
+
 
 static const til_stream_hooks_t	rkt_stream_hooks = {
 	.pipe_ctor = rkt_stream_pipe_ctor,
-	/* .pipe_dtor unneeded */
+	.pipe_dtor = rkt_stream_pipe_dtor,
 };
 
 

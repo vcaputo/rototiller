@@ -41,7 +41,7 @@ typedef int (til_stream_pipe_iter_func_t)(void *context, til_stream_pipe_t *pipe
  */
 typedef struct til_stream_hooks_t {
 	int (*pipe_ctor)(void *context, til_stream_t *stream, const void *owner, const void *owner_foo, const char *parent_path, uint32_t parent_hash, const til_tap_t *tap, const void **res_owner, const void **res_owner_foo, const til_tap_t **res_tap);	/* called immediately *before* pipe would be created by tap using these parameters, return <0 on error, 0 on unhandled by hook, 1 on handled with desired owner/owner_foo/tap stored in res_* */
-	int (*pipe_dtor)(void *context, til_stream_t *stream, const void *owner, const void *owner_foo, const char *parent_path, const til_tap_t *tap);	/* called immediately *after* pipe "destroyed" (withdrawn from stream) */
+	void (*pipe_dtor)(void *context, til_stream_t *stream, const void *owner, const void *owner_foo, const char *parent_path, const til_tap_t *tap);	/* called immediately *after* pipe "destroyed" (withdrawn from stream) */
 } til_stream_hooks_t;
 
 til_stream_t * til_stream_new(void);
