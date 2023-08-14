@@ -197,6 +197,7 @@ static void shapes_destroy_context(til_module_context_t *context)
 	shapes_context_t	*ctxt = (shapes_context_t *)context;
 
 	shapes_radcache_unref(ctxt->radcache);
+	free(ctxt);
 }
 
 
