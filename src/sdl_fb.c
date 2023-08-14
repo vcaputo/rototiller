@@ -120,7 +120,7 @@ static void sdl_fb_shutdown(til_fb_t *fb, void *context)
 		SDL_FreeSurface(p->surface);
 		free(p);
 	}
-
+	free((void *)c->title);
 	SDL_Quit();
 	free(c);
 }
