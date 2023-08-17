@@ -80,6 +80,16 @@ static inline uint32_t color_to_uint32(v3f_t color) {
 }
 
 
+static void meta2d_update_taps(meta2d_context_t *ctxt, til_stream_t *stream, unsigned ticks)
+{
+	if (!til_stream_tap_context(stream, &ctxt->til_module_context, NULL, &ctxt->taps.min_t))
+		*ctxt->min_t = .7f;
+
+	if (!til_stream_tap_context(stream, &ctxt->til_module_context, NULL, &ctxt->taps.max_t))
+		*ctxt->max_t = .8f;
+}
+
+
 static til_module_context_t * meta2d_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	meta2d_context_t	*ctxt;
@@ -103,6 +113,8 @@ static til_module_context_t * meta2d_create_context(const til_module_t *module, 
 	ctxt->taps.min_t = til_tap_init_float(ctxt, &ctxt->min_t, 1, &ctxt->vars.min_t, "min_t");
 	ctxt->taps.max_t = til_tap_init_float(ctxt, &ctxt->max_t, 1, &ctxt->vars.max_t, "max_t");
 
+	meta2d_update_taps(ctxt, stream, ticks);
+
 	return &ctxt->til_module_context;
 }
 
@@ -123,11 +135,7 @@ static void meta2d_prepare_frame(til_module_context_t *context, til_stream_t *st
 
 	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu_x16 };
 
-	if (!til_stream_tap_context(stream, context, NULL, &ctxt->taps.min_t))
-		*ctxt->min_t = .7f;
-
-	if (!til_stream_tap_context(stream, context, NULL, &ctxt->taps.max_t))
-		*ctxt->max_t = .8f;
+	meta2d_update_taps(ctxt, stream, ticks);
 
 	/* move the balls around */
 	for (int i = 0; i < META2D_NUM_BALLS; i++) {

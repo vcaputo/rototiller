@@ -91,6 +91,16 @@ static inline uint32_t color_to_uint32(v3f_t color) {
 }
 
 
+static void drizzle_update_taps(drizzle_context_t *ctxt, til_stream_t *stream, unsigned ticks)
+{
+	if (!til_stream_tap_context(stream, &ctxt->til_module_context, NULL, &ctxt->taps.viscosity))
+		*ctxt->viscosity = ctxt->setup->viscosity;
+
+	if (!til_stream_tap_context(stream, &ctxt->til_module_context, NULL, &ctxt->taps.rainfall))
+		*ctxt->rainfall = RAINFALL_CNT;
+}
+
+
 static til_module_context_t * drizzle_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	drizzle_context_t	*ctxt;
@@ -110,6 +120,8 @@ static til_module_context_t * drizzle_create_context(const til_module_t *module,
 
 	ctxt->setup = (drizzle_setup_t *)setup;
 
+	drizzle_update_taps(ctxt, stream, ticks);
+
 	return &ctxt->til_module_context;
 }
 
@@ -127,11 +139,7 @@ static void drizzle_prepare_frame(til_module_context_t *context, til_stream_t *s
 {
 	drizzle_context_t	*ctxt = (drizzle_context_t *)context;
 
-	if (!til_stream_tap_context(stream, context, NULL, &ctxt->taps.viscosity))
-		*ctxt->viscosity = ctxt->setup->viscosity;
-
-	if (!til_stream_tap_context(stream, context, NULL, &ctxt->taps.rainfall))
-		*ctxt->rainfall = RAINFALL_CNT;
+	drizzle_update_taps(ctxt, stream, ticks);
 
 	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu_x16 };
 

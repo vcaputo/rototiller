@@ -249,6 +249,19 @@ static void gamma_init(float gamma)
 }
 
 
+static void flui2d_update_taps(flui2d_context_t *ctxt, til_stream_t *stream, unsigned ticks)
+{
+	if (!til_stream_tap_context(stream, &ctxt->til_module_context, NULL, &ctxt->taps.viscosity))
+		*ctxt->viscosity = ctxt->setup->viscosity;
+
+	if (!til_stream_tap_context(stream, &ctxt->til_module_context, NULL, &ctxt->taps.diffusion))
+		*ctxt->diffusion = ctxt->setup->diffusion;
+
+	if (!til_stream_tap_context(stream, &ctxt->til_module_context, NULL, &ctxt->taps.decay))
+		*ctxt->decay = ctxt->setup->decay;
+}
+
+
 static til_module_context_t * flui2d_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	static int		initialized;
@@ -269,6 +282,8 @@ static til_module_context_t * flui2d_create_context(const til_module_t *module, 
 	ctxt->taps.diffusion = til_tap_init_float(ctxt, &ctxt->diffusion, 1, &ctxt->vars.diffusion, "diffusion");
 	ctxt->taps.decay = til_tap_init_float(ctxt, &ctxt->decay, 1, &ctxt->vars.decay, "decay");
 
+	flui2d_update_taps(ctxt, stream, ticks);
+
 	return &ctxt->til_module_context;
 }
 
@@ -283,14 +298,7 @@ static void flui2d_prepare_frame(til_module_context_t *context, til_stream_t *st
 
 	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_tile64 };
 
-	if (!til_stream_tap_context(stream, context, NULL, &ctxt->taps.viscosity))
-		*ctxt->viscosity = ctxt->setup->viscosity;
-
-	if (!til_stream_tap_context(stream, context, NULL, &ctxt->taps.diffusion))
-		*ctxt->diffusion = ctxt->setup->diffusion;
-
-	if (!til_stream_tap_context(stream, context, NULL, &ctxt->taps.decay))
-		*ctxt->decay = ctxt->setup->decay;
+	flui2d_update_taps(ctxt, stream, ticks);
 
 	/* this duplication of visc/diff/decay is silly, it's just a product of this
 	 * module being written as a flui2d_t class in-situ but distinct from the module.
