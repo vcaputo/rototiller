@@ -202,9 +202,12 @@ static int rkt_pipe_update(void *context, til_stream_pipe_t *pipe, const void *o
 		return 0;
 	}
 
+	/* TODO: it would be nice if we could just use the same til_stream_tap() API as everything
+	 * else does.  til_stream_pipe_set_driving_tap() shouldn't really be necessary, since rkt'd
+	 * _always_ win the race to drive for pipes under rkt's purview.
+	 */
 	rkt_pipe->tap.inactive = 0;
-	if (driving_tap != &rkt_pipe->tap)
-		til_stream_pipe_set_driving_tap(pipe, &rkt_pipe->tap);
+	til_stream_pipe_set_driving_tap(ctxt->til_module_context.stream, pipe, &rkt_pipe->tap);
 
 	/* otherwise get the current interpolated value from the rocket track @ owner_foo->track
 	 * to update owner_foo->var.[fd], which _should_ be the driving tap.

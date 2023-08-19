@@ -66,7 +66,7 @@ void til_stream_fprint_pipes(til_stream_t *stream, FILE *out);
 
 int til_stream_for_each_pipe(til_stream_t *stream, til_stream_pipe_iter_func_t pipe_cb, void *cb_arg);
 void til_stream_pipe_set_owner(til_stream_pipe_t *pipe, const void *owner, const void *owner_foo);
-void til_stream_pipe_set_driving_tap(til_stream_pipe_t *pipe, const til_tap_t *driving_tap);
+void til_stream_pipe_set_driving_tap(til_stream_t *stream, til_stream_pipe_t *pipe, const til_tap_t *driving_tap);
 
 
 typedef int (til_stream_module_context_iter_func_t)(void *context, til_stream_module_context_t *module_context, size_t n_module_contexts, const til_module_context_t **contexts);

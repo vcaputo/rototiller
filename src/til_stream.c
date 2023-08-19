@@ -516,11 +516,13 @@ void til_stream_pipe_set_owner(til_stream_pipe_t *pipe, const void *owner, const
 /* NULLing out the driving_tap isn't supported, since the tap name is part of the pipe's identity,
  * just set tap.inactive to indicate another tap should take over driving.
  */
-void til_stream_pipe_set_driving_tap(til_stream_pipe_t *pipe, const til_tap_t *driving_tap)
+void til_stream_pipe_set_driving_tap(til_stream_t *stream, til_stream_pipe_t *pipe, const til_tap_t *driving_tap)
 {
+	assert(stream);
 	assert(pipe);
 	assert(driving_tap);
 
+	pipe->frame = stream->frame;
 	pipe->driving_tap = driving_tap;
 }
 
