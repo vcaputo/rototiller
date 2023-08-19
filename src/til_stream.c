@@ -92,6 +92,7 @@ struct til_stream_module_context_t {
 typedef struct til_stream_t {
 	pthread_mutex_t			mutex;
 	volatile int			ended;
+	unsigned			frame;
 	const til_stream_hooks_t	*hooks;
 	void				*hooks_context;
 	til_stream_pipe_t		*pipe_buckets[TIL_STREAM_PIPE_BUCKETS_COUNT];
@@ -126,6 +127,14 @@ int til_stream_active(til_stream_t *stream)
 	assert(stream);
 
 	return !stream->ended;
+}
+
+
+void til_stream_start_frame(til_stream_t *stream)
+{
+	assert(stream);
+
+	stream->frame++;
 }
 
 
