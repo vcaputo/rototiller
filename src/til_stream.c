@@ -248,6 +248,7 @@ int til_stream_tap(til_stream_t *stream, const void *owner, const void *owner_fo
 
 			if (pipe->driving_tap->elems == *(tap->ptr) ||
 			    (!strcmp(pipe->driving_tap->name, tap->name) && !strcmp(pipe->parent_path, parent_path))) {
+
 				if (pipe->driving_tap->type != tap->type ||
 				    pipe->driving_tap->n_elems != tap->n_elems) {
 					assert(0); /* I don't really want to handle such errors at runtime */
@@ -502,15 +503,6 @@ int til_stream_for_each_pipe(til_stream_t *stream, til_stream_pipe_iter_func_t p
 
 	pthread_mutex_unlock(&stream->mutex);
 	return 0;
-}
-
-
-void til_stream_pipe_set_owner(til_stream_pipe_t *pipe, const void *owner, const void *owner_foo)
-{
-	assert(pipe);
-
-	pipe->owner = owner;
-	pipe->owner_foo = owner_foo;
 }
 
 
