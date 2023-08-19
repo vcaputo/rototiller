@@ -255,7 +255,8 @@ int til_stream_tap(til_stream_t *stream, const void *owner, const void *owner_fo
 				}
 
 				/* this looks to be the pipe, but we're not driving, should we be? */
-				if (pipe->driving_tap->inactive)
+				if (pipe->driving_tap->inactive ||
+				    pipe->frame != stream->frame) /* every frame's a race for who's driving, because clones */
 					pipe->driving_tap = tap;
 
 				*(tap->ptr) = pipe->driving_tap->elems;
