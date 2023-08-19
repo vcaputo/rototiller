@@ -343,6 +343,7 @@ static void * rototiller_thread(void *_rt)
 			continue;
 		}
 
+		til_stream_start_frame(rt->stream);
 		gettimeofday(&now, NULL);
 		ticks = get_ticks(&rt->start_tv, &now, rt->ticks_offset);
 		til_module_render(rt->module_context, rt->stream, ticks, &rt->fragment);
