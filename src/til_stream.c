@@ -78,6 +78,7 @@ struct til_stream_pipe_t {
 	const void		*owner_foo;	/* supplemental pointer for owner's use */
 	char			*parent_path;
 	const til_tap_t		*driving_tap;	/* tap producing values for the pipe */
+	unsigned		frame;		/* most recent frame tapped */
 	uint32_t		hash;		/* hash of (driving_tap->name_hash ^ .parent_hash) */
 };
 
@@ -239,6 +240,7 @@ int til_stream_tap(til_stream_t *stream, const void *owner, const void *owner_fo
 			if (pipe->driving_tap == tap) {
 				/* this is the pipe and we're driving */
 				*(tap->ptr) = pipe->driving_tap->elems;
+				pipe->frame = stream->frame;
 
 				pthread_mutex_unlock(&stream->mutex);
 				return 0;
@@ -257,6 +259,7 @@ int til_stream_tap(til_stream_t *stream, const void *owner, const void *owner_fo
 					pipe->driving_tap = tap;
 
 				*(tap->ptr) = pipe->driving_tap->elems;
+				pipe->frame = stream->frame;
 
 				pthread_mutex_unlock(&stream->mutex);
 				return (tap != pipe->driving_tap);
@@ -282,6 +285,7 @@ int til_stream_tap(til_stream_t *stream, const void *owner, const void *owner_fo
 	pipe->owner = *p_owner;
 	pipe->owner_foo = *p_owner_foo;
 	pipe->driving_tap = *p_tap;
+	pipe->frame = stream->frame;
 
 	pipe->parent_path = strdup(parent_path);
 	if (!pipe->parent_path) {
