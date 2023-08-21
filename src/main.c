@@ -58,8 +58,6 @@ typedef struct rototiller_t {
 	til_fb_fragment_t	*fragment;
 	pthread_t		thread;
 	til_fb_t		*fb;
-	struct timeval		start_tv;
-	unsigned		ticks_offset;
 } rototiller_t;
 
 static rototiller_t		rototiller;
@@ -323,16 +321,9 @@ static int print_help(void)
 }
 
 
-static unsigned get_ticks(const struct timeval *start, const struct timeval *now, unsigned offset)
-{
-	return (unsigned)((now->tv_sec - start->tv_sec) * 1000 + (now->tv_usec - start->tv_usec) / 1000) + offset;
-}
-
-
 static void * rototiller_thread(void *_rt)
 {
 	rototiller_t	*rt = _rt;
-	struct timeval	now;
 
 	while (til_stream_active(rt->stream)) {
 		unsigned	ticks;
@@ -344,8 +335,7 @@ static void * rototiller_thread(void *_rt)
 		}
 
 		til_stream_start_frame(rt->stream);
-		gettimeofday(&now, NULL);
-		ticks = get_ticks(&rt->start_tv, &now, rt->ticks_offset);
+		ticks = til_ticks_now();
 		til_module_render(rt->module_context, rt->stream, ticks, &rt->fragment);
 		til_fb_fragment_submit(rt->fragment);
 
@@ -409,13 +399,10 @@ int main(int argc, const char *argv[])
 		exit_if(!fps_setup(),
 			"unable to setup fps counter");
 
-		gettimeofday(&rototiller.start_tv, NULL);
 		exit_if((r = til_module_create_context(	rototiller.module,
 							rototiller.stream,
 							setup.seed,
-							get_ticks(&rototiller.start_tv,
-								&rototiller.start_tv,
-								rototiller.ticks_offset),
+							til_ticks_now(),
 							0,
 							setup.module_setup,
 							&rototiller.module_context)) < 0,
