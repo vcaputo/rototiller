@@ -41,12 +41,6 @@
  *   a single radial test to check.  It's like the non-convex polygon
  *   problem...
  *
- * - Go threaded, for ease of implementation this is currently simple
- *   non-threaded code.  In the checkers use case, the individual checkers
- *   are already being rendered concurrently, so as-is this still becomes
- *   threaded there.  It's just full-frame shapes situations where it
- *   hurts.
- *
  */
 
 
