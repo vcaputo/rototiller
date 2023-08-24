@@ -295,7 +295,7 @@ static void shapes_render_fragment(til_module_context_t *context, til_stream_t *
 				for (unsigned x = xstart; x < xend; x++, X++, XX += s) {
 					float	a = rads[y * radcache->width + x] = atan2f(YY, XX);
 
-					if (YYY+X*X < r_sq * (1.f - fabsf(cosf(n_pinches * a + pinch)) * pinch_s))
+					if (YYY+X*X < r_sq * (1.f - fabsf(sinf(n_pinches * a + pinch)) * pinch_s))
 						til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x, y, 0xffffffff); /* TODO: stop relying on checked for clipping */
 					else if (!fragment->cleared)
 						til_fb_fragment_put_pixel_unchecked(fragment, 0, x, y, 0x0);
@@ -306,7 +306,7 @@ static void shapes_render_fragment(til_module_context_t *context, til_stream_t *
 				for (unsigned x = xstart; x < xend; x++, X++, XX += s) {
 					float	a = rads[y * radcache->width + x];
 
-					if (YYY+X*X < r_sq * (1.f - fabsf(cosf(n_pinches * a + pinch)) * pinch_s))
+					if (YYY+X*X < r_sq * (1.f - fabsf(sinf(n_pinches * a + pinch)) * pinch_s))
 						til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x, y, 0xffffffff); /* TODO: stop relying on checked for clipping */
 					else if (!fragment->cleared)
 						til_fb_fragment_put_pixel_unchecked(fragment, 0, x, y, 0x0);
@@ -337,7 +337,7 @@ static void shapes_render_fragment(til_module_context_t *context, til_stream_t *
 					float	a = rads[y * radcache->width + x] = atan2f(YY, XX);
 					float	r = cosf(n_points * (a + spin)) * .5f + .5f;
 
-					r *= 1.f - fabsf(cosf(n_pinches * (a + pinch))) * pinch_s;
+					r *= 1.f - fabsf(sinf(n_pinches * (a + pinch))) * pinch_s;
 
 					if (XX * XX + YYYY < r * r)
 						til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x, y, 0xffffffff);
@@ -350,7 +350,7 @@ static void shapes_render_fragment(til_module_context_t *context, til_stream_t *
 					float	a = rads[y * radcache->width + x];
 					float	r = cosf(n_points * (a + spin)) * .5f + .5f;
 
-					r *= 1.f - fabsf(cosf(n_pinches * (a + pinch))) * pinch_s;
+					r *= 1.f - fabsf(sinf(n_pinches * (a + pinch))) * pinch_s;
 
 					if (XX * XX + YYYY < r * r)
 						til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x, y, 0xffffffff);
@@ -384,7 +384,7 @@ static void shapes_render_fragment(til_module_context_t *context, til_stream_t *
 				for (unsigned x = xstart; x < xend; x++, X++, XX += s) {
 					float	a = rads[y * radcache->width + x] = atan2f(YY, XX);
 
-					if (abs(Y) + abs(X) < r * (1.f - fabsf(cosf(n_pinches * a + pinch)) * pinch_s))
+					if (abs(Y) + abs(X) < r * (1.f - fabsf(sinf(n_pinches * a + pinch)) * pinch_s))
 						til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x, y, 0xffffffff);
 					else if (!fragment->cleared)
 						til_fb_fragment_put_pixel_unchecked(fragment, 0, x, y, 0x0);
@@ -394,7 +394,7 @@ static void shapes_render_fragment(til_module_context_t *context, til_stream_t *
 				for (unsigned x = xstart; x < xend; x++, X++, XX += s) {
 					float	a = rads[y * radcache->width + x];
 
-					if (abs(Y) + abs(X) < r * (1.f - fabsf(cosf(n_pinches * a + pinch)) * pinch_s))
+					if (abs(Y) + abs(X) < r * (1.f - fabsf(sinf(n_pinches * a + pinch)) * pinch_s))
 						til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x, y, 0xffffffff);
 					else if (!fragment->cleared)
 						til_fb_fragment_put_pixel_unchecked(fragment, 0, x, y, 0x0);
@@ -426,7 +426,7 @@ static void shapes_render_fragment(til_module_context_t *context, til_stream_t *
 					float	r = (M_2_PI * asinf(sinf(n_points * (a + spin)) * .5f + .5f)) * .5f + .5f;
 						/*   ^^^^^^^^^^^^^^^^^^^ approximates a triangle wave */
 
-					r *= 1.f - fabsf(cosf(n_pinches * a + pinch)) * pinch_s;
+					r *= 1.f - fabsf(sinf(n_pinches * a + pinch)) * pinch_s;
 
 					if (XX * XX + YYYY < r * r)
 						til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x, y, 0xffffffff);
@@ -440,7 +440,7 @@ static void shapes_render_fragment(til_module_context_t *context, til_stream_t *
 					float	r = (M_2_PI * asinf(sinf(n_points * (a + spin)) * .5f + .5f)) * .5f + .5f;
 						/*   ^^^^^^^^^^^^^^^^^^^ approximates a triangle wave */
 
-					r *= 1.f - fabsf(cosf(n_pinches * a + pinch)) * pinch_s;
+					r *= 1.f - fabsf(sinf(n_pinches * a + pinch)) * pinch_s;
 
 					if (XX * XX + YYYY < r * r)
 						til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x, y, 0xffffffff);
