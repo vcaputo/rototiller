@@ -59,9 +59,9 @@
 #define SHAPES_DEFAULT_SCALE		1
 #define SHAPES_DEFAULT_POINTS		5
 #define SHAPES_DEFAULT_SPIN		.1
-#define SHAPES_DEFAULT_PINCH		0
+#define SHAPES_DEFAULT_PINCH		.5
 #define SHAPES_DEFAULT_PINCH_SPIN	.5
-#define SHAPES_DEFAULT_PINCHES		2
+#define SHAPES_DEFAULT_PINCHES		0
 
 #define SHAPES_SPIN_BASE		.0025f
 
@@ -578,6 +578,7 @@ static int shapes_setup(const til_settings_t *settings, til_setting_t **res_sett
 				NULL
 			};
 	const char	*pinches_values[] = {
+				"0",
 				"1",
 				"2",
 				"3",
@@ -606,68 +607,6 @@ static int shapes_setup(const til_settings_t *settings, til_setting_t **res_sett
 						res_desc);
 	if (r)
 		return r;
-
-	r = til_settings_get_and_describe_value(settings,
-						&(til_setting_spec_t){
-							.name = "Scaling factor",
-							.key = "scale",
-							.regex = "(1|0?\\.[0-9]{1,2})",
-							.preferred = TIL_SETTINGS_STR(SHAPES_DEFAULT_SCALE),
-							.values = scale_values,
-							.annotations = NULL
-						},
-						&scale,
-						res_setting,
-						res_desc);
-	if (r)
-		return r;
-
-	r = til_settings_get_and_describe_value(settings,
-						&(til_setting_spec_t){
-							.name = "Pinch factor",
-							.key = "pinch",
-							.regex = "(1|0?\\.[0-9]{1,2})",
-							.preferred = TIL_SETTINGS_STR(SHAPES_DEFAULT_PINCH),
-							.values = pinch_values,
-							.annotations = NULL
-						},
-						&pinch,
-						res_setting,
-						res_desc);
-	if (r)
-		return r;
-
-	if (strcasecmp(pinch, "0")) {
-		r = til_settings_get_and_describe_value(settings,
-							&(til_setting_spec_t){
-								.name = "Pinch spin factor",
-								.key = "pinch_spin",
-								.regex = "-?(0|1|0?\\.[0-9]{1,2})",
-								.preferred = TIL_SETTINGS_STR(SHAPES_DEFAULT_PINCH_SPIN),
-								.values = spin_values,
-								.annotations = NULL
-							},
-							&pinch_spin,
-							res_setting,
-							res_desc);
-		if (r)
-			return r;
-
-		r = til_settings_get_and_describe_value(settings,
-							&(til_setting_spec_t){
-								.name = "Number of pinches",
-								.key = "pinches",
-								.regex = "[0-9]+",
-								.preferred = TIL_SETTINGS_STR(SHAPES_DEFAULT_PINCHES),
-								.values = pinches_values,
-								.annotations = NULL
-							},
-							&pinches,
-							res_setting,
-							res_desc);
-		if (r)
-			return r;
-	}
 
 	if (!strcasecmp(type, "star") || !strcasecmp(type, "pinwheel")) {
 		r = til_settings_get_and_describe_value(settings,
@@ -701,6 +640,67 @@ static int shapes_setup(const til_settings_t *settings, til_setting_t **res_sett
 			return r;
 	}
 
+	r = til_settings_get_and_describe_value(settings,
+						&(til_setting_spec_t){
+							.name = "Scaling factor",
+							.key = "scale",
+							.regex = "(1|0?\\.[0-9]{1,2})",
+							.preferred = TIL_SETTINGS_STR(SHAPES_DEFAULT_SCALE),
+							.values = scale_values,
+							.annotations = NULL
+						},
+						&scale,
+						res_setting,
+						res_desc);
+	if (r)
+		return r;
+
+	r = til_settings_get_and_describe_value(settings,
+						&(til_setting_spec_t){
+							.name = "Number of pinches",
+							.key = "pinches",
+							.regex = "[0-9]+",
+							.preferred = TIL_SETTINGS_STR(SHAPES_DEFAULT_PINCHES),
+							.values = pinches_values,
+							.annotations = NULL
+						},
+						&pinches,
+						res_setting,
+						res_desc);
+	if (r)
+		return r;
+
+	/* once n_pinches is tapped, it can abruptly become non-zero, so let's always initialize the pinches-dependent settings */
+	r = til_settings_get_and_describe_value(settings,
+						&(til_setting_spec_t){
+							.name = "Pinch spin factor",
+							.key = "pinch_spin",
+							.regex = "-?(0|1|0?\\.[0-9]{1,2})",
+							.preferred = TIL_SETTINGS_STR(SHAPES_DEFAULT_PINCH_SPIN),
+							.values = spin_values,
+							.annotations = NULL
+						},
+						&pinch_spin,
+						res_setting,
+						res_desc);
+	if (r)
+		return r;
+
+	r = til_settings_get_and_describe_value(settings,
+						&(til_setting_spec_t){
+							.name = "Pinch factor",
+							.key = "pinch",
+							.regex = "(1|0?\\.[0-9]{1,2})",
+							.preferred = TIL_SETTINGS_STR(SHAPES_DEFAULT_PINCH),
+							.values = pinch_values,
+							.annotations = NULL
+						},
+						&pinch,
+						res_setting,
+						res_desc);
+	if (r)
+		return r;
+
 	if (res_setup) {
 		int	i;
 
@@ -723,11 +723,9 @@ static int shapes_setup(const til_settings_t *settings, til_setting_t **res_sett
 		}
 
 		sscanf(scale, "%f", &setup->scale); /* TODO: -EINVAL parse errors */
+		sscanf(pinches, "%u", &setup->n_pinches); /* TODO: -EINVAL parse errors */
+		sscanf(pinch_spin, "%f", &setup->pinch_spin); /* TODO: -EINVAL parse errors */
 		sscanf(pinch, "%f", &setup->pinch); /* TODO: -EINVAL parse errors */
-		if (setup->pinch != 0) {
-			sscanf(pinch_spin, "%f", &setup->pinch_spin); /* TODO: -EINVAL parse errors */
-			sscanf(pinches, "%u", &setup->n_pinches); /* TODO: -EINVAL parse errors */
-		}
 
 		if (setup->type == SHAPES_TYPE_STAR || setup->type == SHAPES_TYPE_PINWHEEL) {
 			sscanf(points, "%u", &setup->n_points); /* TODO: -EINVAL parse errors */
