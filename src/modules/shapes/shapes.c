@@ -54,6 +54,8 @@
 #include "til.h"
 #include "til_fb.h"
 #include "til_module_context.h"
+#include "til_stream.h"
+#include "til_tap.h"
 
 #define SHAPES_DEFAULT_TYPE		SHAPES_TYPE_PINWHEEL
 #define SHAPES_DEFAULT_SCALE		1
@@ -63,7 +65,7 @@
 #define SHAPES_DEFAULT_PINCH_SPIN	.5
 #define SHAPES_DEFAULT_PINCHES		0
 
-#define SHAPES_SPIN_BASE		.0025f
+#define SHAPES_SPIN_BASE		2.5f
 
 typedef struct shapes_radcache_t shapes_radcache_t;
 
@@ -89,6 +91,33 @@ typedef struct shapes_context_t {
 	til_module_context_t	til_module_context;
 	shapes_setup_t		*setup;
 	shapes_radcache_t	*radcache;
+
+	struct {
+		til_tap_t		scale;
+		til_tap_t		pinch_factor;
+		til_tap_t		pinch_spin_rate;
+		til_tap_t		spin_rate;
+		til_tap_t		n_pinches;
+		til_tap_t		n_points;
+	}			taps;
+
+	struct {
+		float			scale;
+		float			pinch_factor;
+		float			pinch_spin_rate;
+		float			spin_rate;
+		float			n_pinches;
+		float			n_points;
+	}			vars;
+
+	float			*scale;
+	float			*pinch_factor;
+	float			*pinch_spin_rate;
+	float			*spin_rate;
+	float			*n_pinches;
+	float			*n_points;
+
+	float			spin, pinch_spin;
 } shapes_context_t;
 
 struct shapes_radcache_t {
@@ -172,6 +201,48 @@ static shapes_radcache_t * shapes_radcache_new(unsigned width, unsigned height)
 }
 
 
+static void shapes_update_taps(shapes_context_t *ctxt, til_stream_t *stream, float dt)
+{
+	/* FIXME: these vars probably need to be clamped within safe bounds to prevent crashing */
+	if (!til_stream_tap_context(stream, &ctxt->til_module_context, NULL, &ctxt->taps.scale))
+		*ctxt->scale = ctxt->setup->scale;
+	else
+		ctxt->vars.scale = *ctxt->scale;
+
+	if (!til_stream_tap_context(stream, &ctxt->til_module_context, NULL, &ctxt->taps.pinch_factor))
+		*ctxt->pinch_factor = ctxt->setup->pinch;
+	else
+		ctxt->vars.pinch_factor = *ctxt->pinch_factor;
+
+	if (!til_stream_tap_context(stream, &ctxt->til_module_context, NULL, &ctxt->taps.pinch_spin_rate))
+		*ctxt->pinch_spin_rate = ctxt->setup->pinch_spin;
+	else
+		ctxt->vars.pinch_spin_rate = *ctxt->pinch_spin_rate;
+
+	if (!til_stream_tap_context(stream, &ctxt->til_module_context, NULL, &ctxt->taps.spin_rate))
+		*ctxt->spin_rate = ctxt->setup->spin;
+	else
+		ctxt->vars.spin_rate = *ctxt->spin_rate;
+
+	if (!til_stream_tap_context(stream, &ctxt->til_module_context, NULL, &ctxt->taps.n_pinches))
+		*ctxt->n_pinches = ctxt->setup->n_pinches;
+	else
+		ctxt->vars.n_pinches = *ctxt->n_pinches;
+
+	if (ctxt->setup->type == SHAPES_TYPE_STAR ||
+	    ctxt->setup->type == SHAPES_TYPE_PINWHEEL) {
+
+		if (!til_stream_tap_context(stream, &ctxt->til_module_context, NULL, &ctxt->taps.n_points))
+			*ctxt->n_points = ctxt->setup->n_points;
+		else
+			ctxt->vars.n_points = *ctxt->n_points;
+	}
+
+	ctxt->spin += dt * ctxt->vars.spin_rate * SHAPES_SPIN_BASE;
+	ctxt->pinch_spin += dt * ctxt->vars.pinch_spin_rate * SHAPES_SPIN_BASE;
+}
+
+
 static til_module_context_t * shapes_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	shapes_context_t	*ctxt;
@@ -181,6 +252,17 @@ static til_module_context_t * shapes_create_context(const til_module_t *module, 
 		return NULL;
 
 	ctxt->setup = (shapes_setup_t *)setup;
+
+	ctxt->taps.scale = til_tap_init_float(ctxt, &ctxt->scale, 1, &ctxt->vars.scale, "scale");
+	ctxt->taps.pinch_factor = til_tap_init_float(ctxt, &ctxt->pinch_factor, 1, &ctxt->vars.pinch_factor, "pinch_factor");
+	ctxt->taps.pinch_spin_rate = til_tap_init_float(ctxt, &ctxt->pinch_spin_rate, 1, &ctxt->vars.pinch_spin_rate, "pinch_spin_rate");
+	ctxt->taps.spin_rate = til_tap_init_float(ctxt, &ctxt->spin_rate, 1, &ctxt->vars.spin_rate, "spin_rate");
+	ctxt->taps.n_pinches = til_tap_init_float(ctxt, &ctxt->n_pinches, 1, &ctxt->vars.n_pinches, "n_pinches");
+	if (ctxt->setup->type == SHAPES_TYPE_STAR ||
+	    ctxt->setup->type == SHAPES_TYPE_PINWHEEL)
+		ctxt->taps.n_points = til_tap_init_float(ctxt, &ctxt->n_points, 1, &ctxt->vars.n_points, "n_points");
+
+	shapes_update_taps(ctxt, stream, 0.f);
 
 	return &ctxt->til_module_context;
 }
@@ -197,6 +279,8 @@ static void shapes_destroy_context(til_module_context_t *context)
 
 static void shapes_prepare_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
 {
+	til_fb_fragment_t	*fragment = *fragment_ptr;
+	shapes_context_t	*ctxt = (shapes_context_t *)context;
 
 	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu_x16 };
 
@@ -213,8 +297,6 @@ static void shapes_prepare_frame(til_module_context_t *context, til_stream_t *st
 	 * could have cached value to many modules
 	 */
 	{ /* radcache maintenance */
-		til_fb_fragment_t	*fragment = *fragment_ptr;
-		shapes_context_t	*ctxt = (shapes_context_t *)context;
 		shapes_radcache_t	*radcache = ctxt->radcache;
 
 		if (radcache &&
@@ -230,6 +312,8 @@ static void shapes_prepare_frame(til_module_context_t *context, til_stream_t *st
 
 		ctxt->radcache = radcache;
 	}
+
+	shapes_update_taps(ctxt, stream, (ticks - context->last_ticks) * .001f);
 }
 
 
@@ -238,7 +322,7 @@ static void shapes_render_fragment(til_module_context_t *context, til_stream_t *
 	shapes_context_t	*ctxt = (shapes_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;
 
-	unsigned		size = MIN(fragment->frame_width, fragment->frame_height) * ctxt->setup->scale;
+	unsigned		size = MIN(fragment->frame_width, fragment->frame_height) * ctxt->vars.scale;
 	unsigned		xoff = (fragment->frame_width - size) >> 1;
 	unsigned		yoff = (fragment->frame_height - size) >> 1;
 	unsigned		yskip = (fragment->y > yoff ? (fragment->y - yoff) : 0);
@@ -281,9 +365,9 @@ static void shapes_render_fragment(til_module_context_t *context, til_stream_t *
 		int	X, Y;
 		float	n_pinches, pinch, pinch_s;
 
-		n_pinches = ctxt->setup->n_pinches;
-		pinch_s = ctxt->setup->pinch;
-		pinch = (float)ticks * ctxt->setup->pinch_spin * SHAPES_SPIN_BASE;
+		n_pinches = rintf(ctxt->vars.n_pinches);
+		pinch_s = ctxt->vars.pinch_factor;
+		pinch = ctxt->pinch_spin;
 
 		YY = -1.f + yskip * s;
 		Y = -(size >> 1) + yskip;
@@ -322,11 +406,11 @@ static void shapes_render_fragment(til_module_context_t *context, til_stream_t *
 		float	XX, YY, YYYY, pinch, spin, pinch_s;
 		float	n_points, n_pinches;
 
-		n_points = ctxt->setup->n_points;
-		n_pinches = ctxt->setup->n_pinches;
-		pinch_s = ctxt->setup->pinch;
-		spin = (float)ticks * ctxt->setup->spin * SHAPES_SPIN_BASE;
-		pinch = (float)ticks * ctxt->setup->pinch_spin * SHAPES_SPIN_BASE;
+		n_points = rintf(ctxt->vars.n_points);
+		n_pinches = rintf(ctxt->vars.n_pinches);
+		pinch_s = ctxt->vars.pinch_factor;
+		spin = ctxt->spin;
+		pinch = ctxt->pinch_spin;
 
 		YY = -1.f + yskip * s;
 		for (unsigned y = ystart; y < yend; y++, YY += s) {
@@ -370,9 +454,9 @@ static void shapes_render_fragment(til_module_context_t *context, til_stream_t *
 		int	X, Y;
 		float	n_pinches, pinch, pinch_s;
 
-		n_pinches = ctxt->setup->n_pinches;
-		pinch_s = ctxt->setup->pinch;
-		pinch = (float)ticks * ctxt->setup->pinch_spin * SHAPES_SPIN_BASE;
+		n_pinches = rintf(ctxt->vars.n_pinches);
+		pinch_s = ctxt->vars.pinch_factor;
+		pinch = ctxt->pinch_spin;
 
 		YY = -1.f + yskip * s;
 		Y = -(size >> 1) + yskip;
@@ -410,11 +494,11 @@ static void shapes_render_fragment(til_module_context_t *context, til_stream_t *
 		float	XX, YY, YYYY, pinch, spin, pinch_s;
 		float	n_points, n_pinches;
 
-		n_points = ctxt->setup->n_points;
-		n_pinches = ctxt->setup->n_pinches;
-		pinch_s = ctxt->setup->pinch;
-		spin = (float)ticks * ctxt->setup->spin * SHAPES_SPIN_BASE;
-		pinch = (float)ticks * ctxt->setup->pinch_spin * SHAPES_SPIN_BASE;
+		n_points = rintf(ctxt->vars.n_points);
+		n_pinches = rintf(ctxt->vars.n_pinches);
+		pinch_s = ctxt->vars.pinch_factor;
+		spin = ctxt->spin;
+		pinch = ctxt->pinch_spin;
 
 		YY = -1.f + yskip * s;
 		for (unsigned y = ystart; y < yend; y++, YY += s) {
@@ -670,7 +754,7 @@ static int shapes_setup(const til_settings_t *settings, til_setting_t **res_sett
 	if (r)
 		return r;
 
-	/* once n_pinches is tapped, it can abruptly become non-zero, so let's always initialize the pinches-dependent settings */
+	/* since n_pinches is tapped, it can abruptly become non-zero, so let's always initialize the pinches-dependent settings */
 	r = til_settings_get_and_describe_value(settings,
 						&(til_setting_spec_t){
 							.name = "Pinch spin factor",
