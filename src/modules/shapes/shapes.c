@@ -203,7 +203,6 @@ static shapes_radcache_t * shapes_radcache_new(unsigned width, unsigned height)
 
 static void shapes_update_taps(shapes_context_t *ctxt, til_stream_t *stream, float dt)
 {
-	/* FIXME: these vars probably need to be clamped within safe bounds to prevent crashing */
 	if (!til_stream_tap_context(stream, &ctxt->til_module_context, NULL, &ctxt->taps.scale))
 		*ctxt->scale = ctxt->setup->scale;
 	else
@@ -237,6 +236,16 @@ static void shapes_update_taps(shapes_context_t *ctxt, til_stream_t *stream, flo
 		else
 			ctxt->vars.n_points = *ctxt->n_points;
 	}
+
+	if (ctxt->vars.scale > 1.f)
+		ctxt->vars.scale = 1.f;
+	else if (ctxt->vars.scale < 0.f)
+		ctxt->vars.scale = 0.f;
+
+	if (ctxt->vars.pinch_factor > 1.f)
+		ctxt->vars.pinch_factor = 1.f;
+	else if (ctxt->vars.pinch_factor < 0.f)
+		ctxt->vars.pinch_factor = 0.f;
 
 	ctxt->spin += dt * ctxt->vars.spin_rate * SHAPES_SPIN_BASE;
 	ctxt->pinch_spin += dt * ctxt->vars.pinch_spin_rate * SHAPES_SPIN_BASE;
