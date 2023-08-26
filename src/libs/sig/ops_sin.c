@@ -1,11 +1,15 @@
 #include <assert.h>
 #include <math.h>
+#include <pthread.h>
 
 #include "sig.h"
 
 
 typedef struct ops_sin_ctxt_t {
 	sig_sig_t	*hz;
+	float		theta;
+	unsigned	last_ticks_ms;
+	pthread_mutex_t	mutex;
 } ops_sin_ctxt_t;
 
 
@@ -22,6 +26,7 @@ static void ops_sin_init(void *context, va_list ap)
 	assert(ctxt);
 
 	ctxt->hz = va_arg(ap, sig_sig_t *);
+	pthread_mutex_init(&ctxt->mutex, NULL);
 }
 
 
@@ -32,6 +37,7 @@ static void ops_sin_destroy(void *context)
 	assert(ctxt);
 
 	sig_free(ctxt->hz);
+	pthread_mutex_destroy(&ctxt->mutex);
 }
 
 
@@ -62,7 +68,8 @@ static float output_tri(float rads)
 static float output(void *context, unsigned ticks_ms, float (*output_fn)(float rads))
 {
 	ops_sin_ctxt_t	*ctxt = context;
-	float		rads_per_ms, rads, hz;
+	float		rads_per_ms, theta, hz;
+	int		delta_ticks;
 
 	assert(ctxt);
 	assert(ctxt->hz);
@@ -71,16 +78,53 @@ static float output(void *context, unsigned ticks_ms, float (*output_fn)(float r
 	if (hz < .001f)
 		return 0.f;
 
-	/* TODO FIXME: wrap ticks_ms into the current cycle
-	 * so rads can be as small as possible for precision reasons.
-	 * I had some code here which attempted it but the results were
-	 * clearly broken, so it's removed for now.  As ticks_ms grows,
-	 * the precision here will suffer.
+	pthread_mutex_lock(&ctxt->mutex);
+	/* TODO: ^^^ eliminate the need for this mutex!
+	 *
+	 * This became necessary when ops_sin became stateful with the
+	 * addition of {last_ticks,theta}.  The experimental signals
+	 * module exercising this code performs parallel rendering of
+	 * signals, some of which share sig contexts via sig_ref().
+	 *
+	 * Prior to {last_ticks,theta}, all the sigs stuff was
+	 * stateless and this shared contexts w/parallel output
+	 * situation Just Worked.  So why can't we just keep things
+	 * stateless like before, why have {last_ticks,theta}, what
+	 * was wrong?
+	 *
+	 * The old ops_sin would simply multiply the incoming ticks_ms
+	 * by rads_per_ms to calculate theta for the sin function.
+	 * This approach produces potential discontinuities in the
+	 * output when hz varies, by applying the hz to *all* of
+	 * ticks_ms, and not just the delta since the last sample.  By
+	 * making theta stateful, and keeping track of the last
+	 * sample's ticks_ms, the current hz only gets applied to the
+	 * time difference, and applied relative to the last theta,
+	 * resulting in better continuity in the face of a varying hz.
+	 *
+	 * I'm sure this all needs more work in general...
 	 */
-	rads_per_ms = (M_PI * 2.f) * hz * .001f;
-	rads = (float)ticks_ms * rads_per_ms;
+	{
+		int		ticks, last_ticks;
+		unsigned	base;
 
-	return output_fn(rads);
+		base = ticks_ms < ctxt->last_ticks_ms ? ticks_ms : ctxt->last_ticks_ms;
+		ticks = ticks_ms - base;
+		last_ticks = ctxt->last_ticks_ms - base;
+
+		delta_ticks = ticks - last_ticks;
+	}
+
+	theta = ctxt->theta;
+	rads_per_ms = (M_PI * 2.f) * hz * .001f;
+	theta += delta_ticks * rads_per_ms;
+	theta = fmodf(theta, M_PI * 2.f);
+
+	ctxt->theta = theta;
+	ctxt->last_ticks_ms = ticks_ms;
+	pthread_mutex_unlock(&ctxt->mutex);
+
+	return output_fn(theta);
 }
 
 
