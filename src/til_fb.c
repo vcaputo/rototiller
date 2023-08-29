@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#include "til.h"
 #include "til_fb.h"
 #include "til_settings.h"
 #include "til_util.h"
@@ -117,6 +118,7 @@ struct _til_fb_page_t {
 	_til_fb_page_t		*all_next, *all_previous;
 	_til_fb_page_t		*next, *previous;
 	_til_fb_fragment_t	fragment;
+	unsigned		submitted_ticks, presented_ticks;
 };
 
 typedef struct til_fb_t {
@@ -179,6 +181,8 @@ int til_fb_flip(til_fb_t *fb)
 	r = fb->ops->page_flip(fb, fb->ops_context, next_active_page->fb_ops_page);
 	if (r < 0)	/* TODO: vet this: what happens to this page? */
 		return r;
+
+	next_active_page->presented_ticks = til_ticks_now();
 
 	/* now that we're displaying a new page, make the previously active one inactive so rendering can reuse it */
 	pthread_mutex_lock(&fb->inactive_mutex);
@@ -277,6 +281,7 @@ static void _til_fb_page_submit(til_fb_fragment_t *fragment)
 
 	fb->put_pages_count++;
 
+	page->submitted_ticks = til_ticks_now();
 	pthread_mutex_lock(&fb->ready_mutex);
 	if (fb->ready_pages_tail)
 		fb->ready_pages_tail->next = page;
