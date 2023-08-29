@@ -29,7 +29,7 @@ typedef struct strobe_setup_t {
 typedef struct strobe_context_t {
 	til_module_context_t	til_module_context;
 	strobe_setup_t		*setup;
-	unsigned		ticks;
+	unsigned		last_flash_ticks;
 	unsigned		flash:1;
 	unsigned		flash_ready:1;
 } strobe_context_t;
@@ -44,7 +44,7 @@ static til_module_context_t * strobe_create_context(const til_module_t *module, 
 		return NULL;
 
 	ctxt->setup = (strobe_setup_t *)setup;
-	ctxt->ticks = ticks;
+	ctxt->last_flash_ticks = ticks;
 
 	return &ctxt->til_module_context;
 }
@@ -56,7 +56,7 @@ static void strobe_prepare_frame(til_module_context_t *context, til_stream_t *st
 
 	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu_x16 };
 
-	if (ctxt->flash_ready && (ticks - ctxt->ticks >= (unsigned)((1.f / ctxt->setup->hz) * 1000.f))){
+	if (ctxt->flash_ready && (ticks - ctxt->last_flash_ticks >= (unsigned)((1.f / ctxt->setup->hz) * 1000.f))){
 		ctxt->flash = 1;
 		ctxt->flash_ready = 0;
 	} else {
@@ -85,7 +85,7 @@ static void strobe_finish_frame(til_module_context_t *context, til_stream_t *str
 		return;
 
 	ctxt->flash = 0;
-	ctxt->ticks = ticks;
+	ctxt->last_flash_ticks = ticks;
 }
 
 
