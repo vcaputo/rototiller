@@ -122,18 +122,24 @@ static void spiro_render_fragment(til_module_context_t *context, til_stream_t *s
 		(ctxt->p*display_R), display_origin_y, makergb(0xFF, 0xFF, 0x00, 1));
 #endif
 
-	/* check bounds and increment r & p */
-	float next_r=ctxt->r+(.00001f*ctxt->r_dir);
-	if(next_r >= 1.f || next_r <= 0.f || next_r <= ctxt->p)
-		ctxt->r_dir=ctxt->r_dir*-1;
-	else
-		ctxt->r=ctxt->r+(.00001f*ctxt->r_dir);
+	if (context->last_ticks != ticks) {
+		/* FIXME: these increments should be scaled by a delta-t,
+		 * but at least by filtering on same-tick things don't go
+		 * crazy in multi-drawn context scenarios like checkers::fill_module
+		 */
+		/* check bounds and increment r & p */
+		float next_r=ctxt->r+(.00001f*ctxt->r_dir);
+		if(next_r >= 1.f || next_r <= 0.f || next_r <= ctxt->p)
+			ctxt->r_dir=ctxt->r_dir*-1;
+		else
+			ctxt->r=ctxt->r+(.00001f*ctxt->r_dir);
 
-	float next_p=ctxt->p+(.0003f*ctxt->p_dir);
-	if(next_p >= ctxt->r || next_p <= 0)
-		ctxt->p_dir=ctxt->p_dir*-1;
-	else
-		ctxt->p=ctxt->p+(.0003f*ctxt->p_dir);
+		float next_p=ctxt->p+(.0003f*ctxt->p_dir);
+		if(next_p >= ctxt->r || next_p <= 0)
+			ctxt->p_dir=ctxt->p_dir*-1;
+		else
+			ctxt->p=ctxt->p+(.0003f*ctxt->p_dir);
+	}
 
 }
 
