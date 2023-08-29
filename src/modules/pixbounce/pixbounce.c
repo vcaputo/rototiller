@@ -303,16 +303,18 @@ static void pixbounce_render_fragment(til_module_context_t *context, til_stream_
 	}
 
 	/* update pixmap location */
-	if(ctxt->x+ctxt->x_dir < 0 || ctxt->x+ctxt->pix->width*ctxt->multiplier+ctxt->x_dir > width) {
-		ctxt->x_dir = ctxt->x_dir * -1;
-		ctxt->color = pick_color(&ctxt->til_module_context.seed);
+	if (ticks != context->last_ticks) {
+		if(ctxt->x+ctxt->x_dir < 0 || ctxt->x+ctxt->pix->width*ctxt->multiplier+ctxt->x_dir > width) {
+			ctxt->x_dir = ctxt->x_dir * -1;
+			ctxt->color = pick_color(&ctxt->til_module_context.seed);
+		}
+		if(ctxt->y+ctxt->y_dir < 0 || ctxt->y+ctxt->pix->height*ctxt->multiplier+ctxt->y_dir > height) {
+			ctxt->y_dir = ctxt->y_dir * -1;
+			ctxt->color = pick_color(&ctxt->til_module_context.seed);
+		}
+		ctxt->x = ctxt->x+ctxt->x_dir;
+		ctxt->y = ctxt->y+ctxt->y_dir;
 	}
-	if(ctxt->y+ctxt->y_dir < 0 || ctxt->y+ctxt->pix->height*ctxt->multiplier+ctxt->y_dir > height) {
-		ctxt->y_dir = ctxt->y_dir * -1;
-		ctxt->color = pick_color(&ctxt->til_module_context.seed);
-	}
-	ctxt->x = ctxt->x+ctxt->x_dir;
-	ctxt->y = ctxt->y+ctxt->y_dir;
 }
 
 int pixbounce_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
