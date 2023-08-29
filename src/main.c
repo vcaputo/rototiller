@@ -324,6 +324,7 @@ static int print_help(void)
 static void * rototiller_thread(void *_rt)
 {
 	rototiller_t	*rt = _rt;
+	unsigned	last_ticks = til_ticks_now();
 
 	while (til_stream_active(rt->stream)) {
 		unsigned	ticks, delay = 0;
@@ -335,9 +336,10 @@ static void * rototiller_thread(void *_rt)
 		}
 
 		til_stream_start_frame(rt->stream);
-		ticks = til_ticks_now();
-		til_module_render(rt->module_context, rt->stream, ticks + delay, &rt->fragment);
+		ticks = MAX(til_ticks_now() + delay, last_ticks);
+		til_module_render(rt->module_context, rt->stream, ticks, &rt->fragment);
 		til_fb_fragment_submit(rt->fragment);
+		last_ticks = ticks;
 
 		if (rt->args.print_module_contexts || rt->args.print_pipes) {
 			/* render threads are idle at this point */
