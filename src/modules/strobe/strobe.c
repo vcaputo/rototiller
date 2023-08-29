@@ -6,6 +6,8 @@
 #include "til.h"
 #include "til_fb.h"
 #include "til_module_context.h"
+#include "til_stream.h"
+#include "til_tap.h"
 
 /* Dead-simple strobe light, initially made to try simulate this contraption:
  * https://en.wikipedia.org/wiki/Dreamachine
@@ -30,9 +32,32 @@ typedef struct strobe_context_t {
 	til_module_context_t	til_module_context;
 	strobe_setup_t		*setup;
 	unsigned		last_flash_ticks;
+
+	struct {
+		til_tap_t		hz;
+	}			taps;
+
+	struct {
+		float			hz;
+	}			vars;
+
+	float			*hz;
+
 	unsigned		flash:1;
 	unsigned		flash_ready:1;
 } strobe_context_t;
+
+
+static void strobe_update_taps(strobe_context_t *ctxt, til_stream_t *stream, float dt)
+{
+	if (!til_stream_tap_context(stream, &ctxt->til_module_context, NULL, &ctxt->taps.hz))
+		*ctxt->hz = ctxt->setup->hz;
+	else
+		ctxt->vars.hz = *ctxt->hz;
+
+	if (ctxt->vars.hz <= 0.f)
+		ctxt->vars.hz = 0.f;
+}
 
 
 static til_module_context_t * strobe_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
@@ -46,6 +71,9 @@ static til_module_context_t * strobe_create_context(const til_module_t *module, 
 	ctxt->setup = (strobe_setup_t *)setup;
 	ctxt->last_flash_ticks = ticks;
 
+	ctxt->taps.hz = til_tap_init_float(ctxt, &ctxt->hz, 1, &ctxt->vars.hz, "hz");
+	strobe_update_taps(ctxt, stream, 0.f);
+
 	return &ctxt->til_module_context;
 }
 
@@ -56,7 +84,15 @@ static void strobe_prepare_frame(til_module_context_t *context, til_stream_t *st
 
 	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu_x16 };
 
-	if (ctxt->flash_ready && (ticks - ctxt->last_flash_ticks >= (unsigned)((1.f / ctxt->setup->hz) * 1000.f))){
+	strobe_update_taps(ctxt, stream, (ticks - context->last_ticks) * .001f);
+
+	if (ctxt->vars.hz <= 0.f) {
+		ctxt->flash = 0;
+		ctxt->flash_ready = 1;
+		return;
+	}
+
+	if (ctxt->flash_ready && (ticks - ctxt->last_flash_ticks >= (unsigned)((1.f / ctxt->vars.hz) * 1000.f))){
 		ctxt->flash = 1;
 		ctxt->flash_ready = 0;
 	} else {
