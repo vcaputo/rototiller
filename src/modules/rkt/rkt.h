@@ -21,7 +21,6 @@ typedef struct rkt_context_t {
 	const struct sync_track	*scene_track;
 	double			rows_per_ms;
 	double			rocket_row;
-	unsigned		last_ticks;
 	unsigned		last_connect;	/* ticks at last connect attempt */
 	unsigned		paused:1;
 	unsigned		connected:1;	/* currently connected to the RocketEditor */

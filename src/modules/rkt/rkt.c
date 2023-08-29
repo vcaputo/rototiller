@@ -233,9 +233,7 @@ static void rkt_update_rocket(rkt_context_t *ctxt, unsigned ticks)
 	rkt_setup_t	*s = (rkt_setup_t *)ctxt->til_module_context.setup;
 
 	if (!ctxt->paused)
-		ctxt->rocket_row += ((double)(ticks - ctxt->last_ticks)) * ctxt->rows_per_ms;
-
-	ctxt->last_ticks = ticks;
+		ctxt->rocket_row += ((double)(ticks - ctxt->til_module_context.last_ticks)) * ctxt->rows_per_ms;
 
 	if (!s->connect)
 		return;
@@ -287,7 +285,6 @@ static til_module_context_t * rkt_create_context(const til_module_t *module, til
 	}
 
 	ctxt->rows_per_ms = s->rows_per_ms;
-	ctxt->last_ticks = ticks;
 
 	rkt_update_rocket(ctxt, ticks);
 
