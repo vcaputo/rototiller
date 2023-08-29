@@ -16,14 +16,14 @@
 /* Copyright (C) 2022 Vito Caputo <vcaputo@pengaru.com> */
 
 /* TODO:
- *	- Make period setting more flexible
+ *	- Make hz setting more flexible
  */
 
-#define	STROBE_DEFAULT_PERIOD		.1
+#define	STROBE_DEFAULT_HZ		10
 
 typedef struct strobe_setup_t {
 	til_setup_t		til_setup;
-	float			period;
+	float			hz;
 } strobe_setup_t;
 
 typedef struct strobe_context_t {
@@ -56,7 +56,7 @@ static void strobe_prepare_frame(til_module_context_t *context, til_stream_t *st
 
 	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu_x16 };
 
-	if (ctxt->flash_ready && (ticks - ctxt->ticks >= (unsigned)(ctxt->setup->period * 1000.f))){
+	if (ctxt->flash_ready && (ticks - ctxt->ticks >= (unsigned)((1.f / ctxt->setup->hz) * 1000.f))){
 		ctxt->flash = 1;
 		ctxt->flash_ready = 0;
 	} else {
@@ -107,15 +107,15 @@ til_module_t	strobe_module = {
 
 static int strobe_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
-	const char	*period;
-	const char	*period_values[] = {
-				".0166",
-				".02",
-				".025",
-				".05",
-				".1",
-				".25",
-				".5",
+	const char	*hz;
+	const char	*hz_values[] = {
+				"60",
+				"50",
+				"40",
+				"20",
+				"10",
+				"4",
+				"2",
 				"1",
 				NULL
 			};
@@ -123,14 +123,14 @@ static int strobe_setup(const til_settings_t *settings, til_setting_t **res_sett
 
 	r = til_settings_get_and_describe_value(settings,
 						&(til_setting_spec_t){
-							.name = "Strobe period",
-							.key = "period",
+							.name = "Strobe frequency in hz",
+							.key = "hz",
 							.regex = "\\.[0-9]+",
-							.preferred = TIL_SETTINGS_STR(STROBE_DEFAULT_PERIOD),
-							.values = period_values,
+							.preferred = TIL_SETTINGS_STR(STROBE_DEFAULT_HZ),
+							.values = hz_values,
 							.annotations = NULL
 						},
-						&period,
+						&hz,
 						res_setting,
 						res_desc);
 	if (r)
@@ -143,7 +143,7 @@ static int strobe_setup(const til_settings_t *settings, til_setting_t **res_sett
 		if (!setup)
 			return -ENOMEM;
 
-		sscanf(period, "%f", &setup->period);
+		sscanf(hz, "%f", &setup->hz);
 
 		*res_setup = &setup->til_setup;
 	}
