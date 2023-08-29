@@ -47,7 +47,7 @@ typedef struct til_fb_ops_t {
 	int	(*page_flip)(til_fb_t *fb, void *context, void *page);
 } til_fb_ops_t;
 
-til_fb_fragment_t * til_fb_page_get(til_fb_t *fb);
+til_fb_fragment_t * til_fb_page_get(til_fb_t *fb, unsigned *res_delay_ticks);
 void til_fb_fragment_submit(til_fb_fragment_t *fragment);
 til_fb_fragment_t * til_fb_fragment_snapshot(til_fb_fragment_t **fragment_ptr, int preserve_original);
 til_fb_fragment_t * til_fb_fragment_reclaim(til_fb_fragment_t *fragment);

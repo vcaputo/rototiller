@@ -326,9 +326,9 @@ static void * rototiller_thread(void *_rt)
 	rototiller_t	*rt = _rt;
 
 	while (til_stream_active(rt->stream)) {
-		unsigned	ticks;
+		unsigned	ticks, delay = 0;
 
-		rt->fragment = til_fb_page_get(rt->fb);
+		rt->fragment = til_fb_page_get(rt->fb, &delay);
 		if (!rt->fragment) {
 			til_stream_end(rt->stream);
 			continue;

@@ -420,13 +420,19 @@ static inline _til_fb_page_t * _til_fb_page_get(til_fb_t *fb)
 
 
 /* public interface */
-til_fb_fragment_t * til_fb_page_get(til_fb_t *fb)
+til_fb_fragment_t * til_fb_page_get(til_fb_t *fb, unsigned *res_delay_ticks)
 {
 	_til_fb_page_t	*page;
 
 	page = _til_fb_page_get(fb);
 	if (!page)
 		return NULL;
+
+	if (res_delay_ticks) {
+		/* TODO: handle overflows, just asserting for now until it rears its head */
+		assert(page->presented_ticks >= page->submitted_ticks);
+		*res_delay_ticks = page->presented_ticks - page->submitted_ticks;
+	}
 
 	return &page->fragment.public;
 }
