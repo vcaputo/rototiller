@@ -336,7 +336,7 @@ static void * rototiller_thread(void *_rt)
 
 		til_stream_start_frame(rt->stream);
 		ticks = til_ticks_now();
-		til_module_render(rt->module_context, rt->stream, ticks, &rt->fragment);
+		til_module_render(rt->module_context, rt->stream, ticks + delay, &rt->fragment);
 		til_fb_fragment_submit(rt->fragment);
 
 		if (rt->args.print_module_contexts || rt->args.print_pipes) {
