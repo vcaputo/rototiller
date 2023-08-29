@@ -5,6 +5,7 @@
 
 typedef struct til_args_t {
 	const char	*module;
+	const char	*audio;
 	const char	*video;
 	const char	*seed;
 	const char	*title;

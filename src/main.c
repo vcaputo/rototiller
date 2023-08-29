@@ -12,6 +12,7 @@
 
 #include "til.h"
 #include "til_args.h"
+#include "til_audio.h"
 #include "til_fb.h"
 #include "til_settings.h"
 #include "til_stream.h"
@@ -45,10 +46,24 @@
 #define DEFAULT_VIDEO	"mem"
 #endif
 
+#ifndef DEFAULT_AUDIO
+#ifdef HAVE_SDL
+#define DEFAULT_AUDIO	"sdl"
+#endif
+#endif
+
+#ifndef DEFAULT_AUDIO
+#define DEFAULT_AUDIO	"mem"
+#endif
+
 extern til_fb_ops_t	drm_fb_ops;
 extern til_fb_ops_t	mem_fb_ops;
 extern til_fb_ops_t	sdl_fb_ops;
 static til_fb_ops_t	*fb_ops;
+
+extern til_audio_ops_t	sdl_audio_ops;
+extern til_audio_ops_t	mem_audio_ops;
+static til_audio_ops_t	*audio_ops;
 
 typedef struct rototiller_t {
 	til_args_t		args;
@@ -58,6 +73,7 @@ typedef struct rototiller_t {
 	til_fb_fragment_t	*fragment;
 	pthread_t		thread;
 	til_fb_t		*fb;
+	til_audio_context_t	*audio;
 } rototiller_t;
 
 static rototiller_t		rototiller;
@@ -66,6 +82,8 @@ static rototiller_t		rototiller;
 typedef struct setup_t {
 	til_settings_t	*module_settings;
 	til_setup_t	*module_setup;
+	til_settings_t	*audio_settings;
+	til_setup_t	*audio_setup;
 	til_settings_t	*video_settings;
 	til_setup_t	*video_setup;
 	unsigned	seed;
@@ -76,6 +94,59 @@ typedef struct setup_t {
  * more generic to encompass the setting up uniformly, then basically
  * subclass the video backend vs. renderer stuff.
  */
+
+/* select audio backend if not yet selected, then setup the selected backend. */
+static int setup_audio(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
+{
+	til_setting_t	*setting;
+	const char	*audio;
+
+	audio = til_settings_get_value_by_idx(settings, 0, &setting);
+	if (!audio || !setting->desc) {
+		const char		*values[] = {
+#ifdef HAVE_SDL
+						"sdl",
+#endif
+						"mem",
+						NULL,
+					};
+		int			r;
+
+		r = til_setting_desc_new(	settings,
+						&(til_setting_spec_t){
+							.name = "Audio backend",
+							.key = NULL,
+							.regex = "[a-z]+",
+							.preferred = DEFAULT_AUDIO,
+							.values = values,
+							.annotations = NULL,
+							.as_label = 1,
+						}, res_desc);
+
+		if (r < 0)
+			return r;
+
+		*res_setting = audio ? setting : NULL;
+
+		return 1;
+	}
+
+	/* XXX: this is kind of hacky for now */
+	if (!strcasecmp(audio, "mem")) {
+		audio_ops = &mem_audio_ops;
+
+		return mem_audio_ops.setup(settings, res_setting, res_desc, res_setup);
+	}
+#ifdef HAVE_SDL
+	if (!strcasecmp(audio, "sdl")) {
+		audio_ops = &sdl_audio_ops;
+
+		return sdl_audio_ops.setup(settings, res_setting, res_desc, res_setup);
+	}
+#endif
+
+	return -EINVAL;
+}
 
 /* select video backend if not yet selected, then setup the selected backend. */
 static int setup_video(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
@@ -228,11 +299,21 @@ static int setup_from_args(til_args_t *args, setup_t *res_setup, const char **re
 	if (!setup.module_settings)
 		goto _err;
 
+	setup.audio_settings = til_settings_new(NULL, NULL, "audio", args->audio);
+	if (!setup.audio_settings)
+		goto _err;
+
 	setup.video_settings = til_settings_new(NULL, NULL, "video", args->video);
 	if (!setup.video_settings)
 		goto _err;
 
 	r = setup_interactively(setup.module_settings, til_module_setup, args->use_defaults, &setup.module_setup, res_failed_desc_path);
+	if (r < 0)
+		goto _err;
+	if (r)
+		changes = 1;
+
+	r = setup_interactively(setup.audio_settings, setup_audio, args->use_defaults, &setup.audio_setup, res_failed_desc_path);
 	if (r < 0)
 		goto _err;
 	if (r)
@@ -251,6 +332,7 @@ static int setup_from_args(til_args_t *args, setup_t *res_setup, const char **re
 _err:
 	free((void *)setup.title);
 	til_settings_free(setup.module_settings);
+	til_settings_free(setup.audio_settings);
 	til_settings_free(setup.video_settings);
 
 	return r;
@@ -269,7 +351,7 @@ static char * seed_as_arg(unsigned seed)
 
 static int print_setup_as_args(setup_t *setup, int wait)
 {
-	char	*seed_arg, *module_args, *video_args;
+	char	*seed_arg, *module_args, *audio_args, *video_args;
 	char	buf[64];
 	int	r = -ENOMEM;
 
@@ -281,13 +363,18 @@ static int print_setup_as_args(setup_t *setup, int wait)
 	if (!module_args)
 		goto _out_seed;
 
-	video_args = til_settings_as_arg(setup->video_settings);
-	if (!video_args)
+	audio_args = til_settings_as_arg(setup->audio_settings);
+	if (!audio_args)
 		goto _out_module;
 
-	r = printf("\nConfigured settings as flags:\n  --seed=%s '--module=%s' '--video=%s'\n",
+	video_args = til_settings_as_arg(setup->video_settings);
+	if (!video_args)
+		goto _out_audio;
+
+	r = printf("\nConfigured settings as flags:\n  --seed=%s '--module=%s' '--audio=%s' '--video=%s'\n",
 		seed_arg,
 		module_args,
+		audio_args,
 		video_args);
 	if (r < 0)
 		goto _out_video;
@@ -302,6 +389,8 @@ static int print_setup_as_args(setup_t *setup, int wait)
 
 _out_video:
 	free(video_args);
+_out_audio:
+	free(audio_args);
 _out_module:
 	free(module_args);
 _out_seed:
@@ -395,6 +484,9 @@ int main(int argc, const char *argv[])
 		exit_if((r = til_fb_new(fb_ops, setup.title, setup.video_setup, NUM_FB_PAGES, &rototiller.fb)) < 0,
 			"unable to create fb: %s", strerror(-r));
 
+		exit_if((r = til_audio_open(audio_ops, setup.audio_setup, &rototiller.audio)) < 0,
+			"unable to open audio: %s", strerror(-r));
+
 		exit_if(!(rototiller.stream = til_stream_new()),
 			"unable to create root stream");
 
@@ -426,12 +518,15 @@ int main(int argc, const char *argv[])
 
 		til_module_context_free(rototiller.module_context);
 		til_stream_free(rototiller.stream);
+		til_audio_shutdown(rototiller.audio);
 		til_fb_free(rototiller.fb);
 
 		{ /* free setup (move to function? and disambiguate from til_setup_t w/rename? TODO) */
 			free((void *)setup.title);
 			til_setup_free(setup.video_setup);
 			til_settings_free(setup.video_settings);
+			til_setup_free(setup.audio_setup);
+			til_settings_free(setup.audio_settings);
 			til_setup_free(setup.module_setup);
 			til_settings_free(setup.module_settings);
 		}

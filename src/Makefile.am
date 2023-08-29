@@ -6,6 +6,10 @@ libtil_la_SOURCES =						\
 			til.h					\
 			til_args.c				\
 			til_args.h				\
+			til_audio.c				\
+			til_audio.h				\
+			til_audio_context.c			\
+			til_audio_context.h			\
 			til_builtins.c				\
 			til_fb.c				\
 			til_fb.h				\
@@ -75,6 +79,7 @@ rototiller_SOURCES =						\
 			fps.c					\
 			fps.h					\
 			main.c					\
+			mem_audio.c				\
 			mem_fb.c				\
 			setup.c					\
 			setup.h					\
@@ -89,7 +94,7 @@ rototiller_SOURCES =						\
 			til_util.h
 
 if ENABLE_SDL
-rototiller_SOURCES += sdl_fb.c
+rototiller_SOURCES += sdl_audio.c sdl_fb.c
 endif
 if ENABLE_DRM
 rototiller_SOURCES += drm_fb.c

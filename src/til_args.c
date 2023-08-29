@@ -44,7 +44,9 @@ static int args_parse(int argc, const char *argv[], til_args_t *res_args, int *r
 	/* this is intentionally being kept very simple, no new dependencies like getopt. */
 
 	for (int i = 1; i < argc; i++) {
-		if (!strncasecmp("--video=", argv[i], 8)) {
+		if (!strncasecmp("--audio=", argv[i], 8)) {
+			res_args->audio = &argv[i][8];
+		} else if (!strncasecmp("--video=", argv[i], 8)) {
 			res_args->video = &argv[i][8];
 		} else if (!strncasecmp("--module=", argv[i], 9)) {
 			res_args->module = &argv[i][9];
@@ -92,6 +94,7 @@ int til_args_parse(int argc, const char *argv[], til_args_t *res_args)
 int til_args_help(FILE *out)
 {
 	return fprintf(out,
+		"  --audio                 audio settings\n"
 		"  --defaults              use defaults for unspecified settings\n"
 		"  --go                    start rendering immediately upon fulfilling all required settings\n"
 		"  --help                  this help\n"
