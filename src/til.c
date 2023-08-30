@@ -430,7 +430,7 @@ int til_module_setup_full(const til_settings_t *settings, til_setting_t **res_se
 		return module->setup(settings, res_setting, res_desc, res_setup);
 
 	if (res_setup)
-		return til_module_setup_finalize(module, settings, res_setup);
+		return til_module_settings_finalize(module, settings, res_setup);
 
 	return 0;
 }
@@ -586,7 +586,7 @@ int til_module_settings_randomize(const til_module_t *module, til_settings_t *se
 /* This turns the incoming module+setings into a "baked" til_setup_t,
  * if module->setup() isn't provided, a minimal til_setup_t is still produced.
  */
-int til_module_setup_finalize(const til_module_t *module, const til_settings_t *module_settings, til_setup_t **res_setup)
+int til_module_settings_finalize(const til_module_t *module, const til_settings_t *module_settings, til_setup_t **res_setup)
 {
 	til_setting_t			*setting;
 	const til_setting_desc_t	*desc;
