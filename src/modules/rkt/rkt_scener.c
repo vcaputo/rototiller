@@ -644,7 +644,7 @@ static int rkt_scener_randomize_scene_settings(rkt_context_t *ctxt, unsigned sce
 		return -ENOMEM;
 
 	/* FIXME: seed reproducibility needs to be sorted out, maybe move seed into settings */
-	til_module_setup_randomize(module,
+	til_module_settings_randomize(module,
 				   new_settings,
 				   rand_r(&ctxt->til_module_context.seed),
 				   &setup,

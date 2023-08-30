@@ -457,7 +457,7 @@ int til_module_setup(const til_settings_t *settings, til_setting_t **res_setting
 /* originally taken from rtv, this randomizes a module's setup @res_setup, args @res_arg
  * returns 0 on on setup successful with results stored @res_*, -errno on error.
  */
-int til_module_setup_randomize(const til_module_t *module, til_settings_t *settings, unsigned seed, til_setup_t **res_setup, char **res_arg)
+int til_module_settings_randomize(const til_module_t *module, til_settings_t *settings, unsigned seed, til_setup_t **res_setup, char **res_arg)
 {
 	til_setting_t			*setting;
 	const char			*name;

@@ -201,7 +201,11 @@ static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks)
 								    "channel",
 								    ctxt->channel->module->name /* XXX: this should come from the channel settings */);
 
-			(void) til_module_setup_randomize(ctxt->channel->module, settings, rand_r(&ctxt->til_module_context.seed), &ctxt->channel->module_setup, &settings_as_arg);
+			(void) til_module_settings_randomize(ctxt->channel->module,
+							     settings,
+							     rand_r(&ctxt->til_module_context.seed),
+							     &ctxt->channel->module_setup,
+							     &settings_as_arg);
 			caption = txt_newf("Title: %s%s%s\nDescription: %s%s%s",
 						 ctxt->channel->module->name,
 						 ctxt->channel->module->author ? "\nAuthor: " : "",
