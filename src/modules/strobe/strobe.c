@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,13 +36,16 @@ typedef struct strobe_context_t {
 
 	struct {
 		til_tap_t		hz;
+		til_tap_t		toggle;
 	}			taps;
 
 	struct {
 		float			hz;
+		float			toggle;
 	}			vars;
 
 	float			*hz;
+	float			*toggle;
 
 	unsigned		flash:1;
 	unsigned		flash_ready:1;
@@ -54,6 +58,11 @@ static void strobe_update_taps(strobe_context_t *ctxt, til_stream_t *stream, flo
 		*ctxt->hz = ctxt->setup->hz;
 	else
 		ctxt->vars.hz = *ctxt->hz;
+
+	if (!til_stream_tap_context(stream, &ctxt->til_module_context, NULL, &ctxt->taps.toggle))
+		ctxt->vars.toggle = NAN;
+	else
+		ctxt->vars.toggle = *ctxt->toggle;
 
 	if (ctxt->vars.hz <= 0.f)
 		ctxt->vars.hz = 0.f;
@@ -72,6 +81,7 @@ static til_module_context_t * strobe_create_context(const til_module_t *module, 
 	ctxt->last_flash_ticks = ticks;
 
 	ctxt->taps.hz = til_tap_init_float(ctxt, &ctxt->hz, 1, &ctxt->vars.hz, "hz");
+	ctxt->taps.toggle = til_tap_init_float(ctxt, &ctxt->toggle, 1, &ctxt->vars.toggle, "toggle");
 	strobe_update_taps(ctxt, stream, 0.f);
 
 	return &ctxt->til_module_context;
@@ -85,6 +95,12 @@ static void strobe_prepare_frame(til_module_context_t *context, til_stream_t *st
 	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu_x16 };
 
 	strobe_update_taps(ctxt, stream, (ticks - context->last_ticks) * .001f);
+
+	if (!isnan(ctxt->vars.toggle)) {
+		ctxt->flash = rintf(ctxt->vars.toggle) >= 1 ? 1 : 0;
+		ctxt->flash_ready = !ctxt->flash; /* kind of pointless */
+		return;
+	}
 
 	if (ctxt->vars.hz <= 0.f) {
 		ctxt->flash = 0;
