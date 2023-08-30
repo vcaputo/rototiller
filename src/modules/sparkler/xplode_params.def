@@ -1,0 +1,8 @@
+#include "params_def.def"
+
+param(color, 0xffff00, XPLODE_PARAM_COLOR_UINT, unsigned, unsigned)
+param(decay_rate, rand_within_range(conf->seedp, 6, 10), XPLODE_PARAM_DECAY_INT, int, int)
+param(duration, rand_within_range(conf->seedp, 50, 150), XPLODE_PARAM_DURATION_INT, int, int)
+
+#include "params_undef.def"
+

@@ -1,0 +1,19 @@
+#ifdef param
+#undef param
+#endif
+
+#ifdef PARAMS_DECLARE_ENUM
+#undef PARAMS_DECLARE_ENUM
+#endif
+
+#ifdef PARAMS_DECLARE_STRUCT
+#undef PARAMS_DECLARE_STRUCT
+#endif
+
+#ifdef PARAMS_IMPLEMENT_SWITCH
+#undef PARAMS_IMPLEMENT_SWITCH
+#endif
+
+#ifdef PARAMS_ASSIGN_DEFAULTS
+#undef PARAMS_ASSIGN_DEFAULTS
+#endif

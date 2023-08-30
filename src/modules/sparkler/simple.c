@@ -1,3 +1,4 @@
+#include <stdarg.h>
 #include <stdlib.h>
 
 #include "til_fb.h"
@@ -24,7 +25,7 @@ typedef struct _simple_ctxt_t {
 } simple_ctxt_t;
 
 
-static int simple_init(particles_t *particles, const particles_conf_t *conf, particle_t *p)
+static int simple_init(particles_t *particles, const particles_conf_t *conf, particle_t *p, unsigned n_params, va_list params)
 {
 	simple_ctxt_t	*ctxt = p->ctxt;
 
@@ -78,17 +79,17 @@ static particle_status_t simple_sim(particles_t *particles, const particles_conf
 
 			if (i == (SIMPLE_MAX_SPAWN - 2)) {
 				ops = &rocket_ops;
-				props.velocity = (float)rand_within_range(conf->seedp, 60, 100) / 1000000.0;
+				props.velocity = (float)rand_within_range(conf->seedp, 60, 100) * .000001;
 			} else {
-				props.velocity = (float)rand_within_range(conf->seedp, 30, 100) / 10000.0;
+				props.velocity = (float)rand_within_range(conf->seedp, 30, 400) * .00001;
 			}
 
-			props.direction.x += (float)(rand_within_range(conf->seedp, 0, 315 * 2) - 315) / 100.0;
-			props.direction.y += (float)(rand_within_range(conf->seedp, 0, 315 * 2) - 315) / 100.0;
-			props.direction.z += (float)(rand_within_range(conf->seedp, 0, 315 * 2) - 315) / 100.0;
+			props.direction.x += (float)(rand_within_range(conf->seedp, 0, 315 * 2) - 315) * .01;
+			props.direction.y += (float)(rand_within_range(conf->seedp, 0, 315 * 2) - 315) * .01;
+			props.direction.z += (float)(rand_within_range(conf->seedp, 0, 315 * 2) - 315) * .01;
 			props.direction = v3f_normalize(&props.direction);
 
-			particles_spawn_particle(particles, p, &props, ops); // XXX
+			particles_spawn_particle(particles, p, &props, ops, 0); // XXX
 		}
 	}
 

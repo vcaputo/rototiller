@@ -1,0 +1,7 @@
+#include "params_def.def"
+
+param(radius, 0.075f, BURST_PARAM_RADIUS_FLOAT, float, double)		/* eventual radius of burst */
+param(force, 0.01f, BURST_PARAM_FORCE_FLOAT, float, double)		/* how much to accelerate victims */
+param(duration, 7, BURST_PARAM_DURATION_UINT, unsigned, unsigned)	/* how many steps to perform the burst */
+
+#include "params_undef.def"

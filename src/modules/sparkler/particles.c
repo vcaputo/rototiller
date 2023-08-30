@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -128,7 +129,7 @@ static void particles_reap_particle(particles_t *particles, _particle_t *particl
 
 
 /* add a particle to the specified list */
-static inline int _particles_add_particle(particles_t *particles, list_head_t *list, particle_props_t *props, particle_ops_t *ops)
+static inline int _particles_add_particle(particles_t *particles, list_head_t *list, particle_props_t *props, particle_ops_t *ops, unsigned n_params, va_list ap)
 {
 	_particle_t	*p;
 
@@ -158,7 +159,7 @@ static inline int _particles_add_particle(particles_t *particles, list_head_t *l
 		p->public.ctxt = p->context;
 	}
 
-	if (!particle_init(particles, &particles->conf, &p->public)) {
+	if (!particle_init(particles, &particles->conf, &p->public, n_params, ap)) {
 		/* XXX FIXME this shouldn't be normal, we don't want to allocate
 		 * particles that cannot be initialized.  the rockets today set a cap
 		 * by failing initialization, that's silly. */
@@ -175,36 +176,49 @@ static inline int _particles_add_particle(particles_t *particles, list_head_t *l
 
 
 /* add a new "top-level" particle of the specified props and ops taking from the provided parts list */
-int particles_add_particle(particles_t *particles, particle_props_t *props, particle_ops_t *ops)
+int particles_add_particle(particles_t *particles, particle_props_t *props, particle_ops_t *ops, unsigned n_params, ...)
 {
+	int	ret;
+	va_list	ap;
+
 	assert(particles);
 
-	return _particles_add_particle(particles, &particles->active, props, ops);
+	va_start(ap, n_params);
+	ret = _particles_add_particle(particles, &particles->active, props, ops, n_params, ap);
+	va_end(ap);
+
+	return ret;
 }
 
 
 /* spawn a new child particle from a parent, initializing it via inheritance if desired */
-void particles_spawn_particle(particles_t *particles, particle_t *parent, particle_props_t *props, particle_ops_t *ops)
+void particles_spawn_particle(particles_t *particles, particle_t *parent, particle_props_t *props, particle_ops_t *ops, unsigned n_params, ...)
 {
+	va_list		ap;
 	_particle_t	*p = container_of(parent, _particle_t, public);
 
 	assert(particles);
 	assert(parent);
 
-	_particles_add_particle(particles, &p->children, props ? props : parent->props, ops ? ops : parent->ops);
+	va_start(ap, n_params);
+	_particles_add_particle(particles, &p->children, props ? props : parent->props, ops ? ops : parent->ops, n_params, ap);
+	va_end(ap);
 }
 
 
 /* plural version of particle_add(); adds multiple "top-level" particles of uniform props and ops */
-void particles_add_particles(particles_t *particles, particle_props_t *props, particle_ops_t *ops, int num)
+void particles_add_particles(particles_t *particles, particle_props_t *props, particle_ops_t *ops, unsigned num, unsigned n_params, ...)
 {
+	va_list	ap;
 	int	i;
 
 	assert(particles);
 
+	va_start(ap, n_params);
 	for (i = 0; i < num; i++) {
-		_particles_add_particle(particles, &particles->active, props, ops);
+		_particles_add_particle(particles, &particles->active, props, ops, n_params, ap);
 	}
+	va_end(ap);
 }
 
 

@@ -1,6 +1,8 @@
+#include <stdarg.h>
 #include <stdlib.h>
 
 #include "bsp.h"
+#include "burst.h"
 #include "container.h"
 #include "particle.h"
 #include "particles.h"
@@ -9,21 +11,33 @@
 /* a "burst" (shockwave) particle type */
 /* this doesn't draw anything, it just pushes neighbors away in an increasing radius */
 
-#define BURST_FORCE		0.01f
-#define BURST_MAX_LIFETIME	8
-
 typedef struct _burst_ctxt_t {
-	int	longevity;
-	int	lifetime;
+#define PARAMS_DECLARE_STRUCT
+#include "burst_params.def"
+	int		age;
 } burst_ctxt_t;
 
 
-static int burst_init(particles_t *particles, const particles_conf_t *conf, particle_t *p)
+static int burst_init(particles_t *particles, const particles_conf_t *conf, particle_t *p, unsigned n_params, va_list params)
 {
 	burst_ctxt_t	*ctxt = p->ctxt;
 
-	ctxt->longevity = ctxt->lifetime = BURST_MAX_LIFETIME;
+#define PARAMS_ASSIGN_DEFAULTS
+#include "burst_params.def"
+
+	for (; n_params; n_params--) {
+		switch (va_arg(params, burst_param_t)) {
+#define PARAMS_IMPLEMENT_SWITCH
+#include "burst_params.def"
+		default:
+			return 0;
+		}
+	}
+
 	p->props->virtual = 1;
+	ctxt->age = ctxt->duration;
+	p->props->velocity = 0; /* burst should be stationary */
+	p->props->mass = 0; /* no mass prevents gravity's effects */
 
 	return 1;
 }
@@ -31,14 +45,15 @@ static int burst_init(particles_t *particles, const particles_conf_t *conf, part
 
 static inline void thrust_part(particle_t *burst, particle_t *victim, float distance_sq)
 {
-	v3f_t	direction = v3f_sub(&victim->props->position, &burst->props->position);
+	burst_ctxt_t	*ctxt = burst->ctxt;
+	v3f_t		direction = v3f_sub(&victim->props->position, &burst->props->position);
 
 	/* TODO: normalize is expensive, see about removing these. */
 	direction = v3f_normalize(&direction);
 	victim->props->direction = v3f_add(&victim->props->direction, &direction);
 	victim->props->direction = v3f_normalize(&victim->props->direction);
 
-	victim->props->velocity += BURST_FORCE;
+	victim->props->velocity += ctxt->force;
 }
 
 
@@ -100,12 +115,13 @@ static particle_status_t burst_sim(particles_t *particles, const particles_conf_
 	bsp_t		*bsp = particles_bsp(particles);	/* XXX see note above about bsp_occupant_t */
 	burst_sphere_t	s;
 
-	if (!ctxt->longevity || (ctxt->longevity--) <= 0) {
+	if (!ctxt->duration || (ctxt->duration--) <= 0) {
 		return PARTICLE_DEAD;
 	}
 
 	/* affect neighbors for the shock-wave */
-	s.radius_min = (1.0f - ((float)ctxt->longevity / ctxt->lifetime)) * 0.075f;
+	/* TODO: ctxt->radius should probably describe the max radius, and the min - .01f... FIXME later. */
+	s.radius_min = (1.0f - ((float)ctxt->duration / ctxt->age)) * ctxt->radius;
 	s.radius_max = s.radius_min + .01f;
 	s.center = s.last = p;
 	s.trace_matches = (conf->show_bsp_matches && !conf->show_bsp_matches_affected_only);

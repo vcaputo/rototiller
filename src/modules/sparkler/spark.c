@@ -1,3 +1,4 @@
+#include <stdarg.h>
 #include <stdlib.h>
 
 #include "til_fb.h"
@@ -19,7 +20,7 @@ typedef struct _spark_ctxt_t {
 } spark_ctxt_t;
 
 
-static int spark_init(particles_t *particles, const particles_conf_t *conf, particle_t *p)
+static int spark_init(particles_t *particles, const particles_conf_t *conf, particle_t *p, unsigned n_params, va_list params)
 {
 	spark_ctxt_t	*ctxt = p->ctxt;
 

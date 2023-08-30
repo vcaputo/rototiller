@@ -55,7 +55,7 @@ static til_module_context_t * sparkler_create_context(const til_module_t *module
 		return NULL;
 	}
 
-	particles_add_particles(ctxt->particles, NULL, &simple_ops, INIT_PARTS);
+	particles_add_particles(ctxt->particles, NULL, &simple_ops, INIT_PARTS, 0);
 
 	return &ctxt->til_module_context;
 }
@@ -81,7 +81,7 @@ static void sparkler_prepare_frame(til_module_context_t *context, til_stream_t *
 		til_fb_fragment_clear(fragment);
 
 	particles_sim(ctxt->particles, fragment);
-	particles_add_particles(ctxt->particles, NULL, &simple_ops, INIT_PARTS / 4);
+	particles_add_particles(ctxt->particles, NULL, &simple_ops, INIT_PARTS / 4, 0);
 	particles_age(ctxt->particles);
 }
 

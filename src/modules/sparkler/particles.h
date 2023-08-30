@@ -23,9 +23,9 @@ void particles_draw(particles_t *particles, til_fb_fragment_t *fragment);
 particle_status_t particles_sim(particles_t *particles, til_fb_fragment_t *fragment);
 void particles_age(particles_t *particles);
 void particles_free(particles_t *particles);
-int particles_add_particle(particles_t *particles, particle_props_t *props, particle_ops_t *ops);
-void particles_spawn_particle(particles_t *particles, particle_t *parent, particle_props_t *props, particle_ops_t *ops);
-void particles_add_particles(particles_t *particles, particle_props_t *props, particle_ops_t *ops, int num);
+int particles_add_particle(particles_t *particles, particle_props_t *props, particle_ops_t *ops, unsigned n_params, ...);
+void particles_spawn_particle(particles_t *particles, particle_t *parent, particle_props_t *props, particle_ops_t *ops, unsigned n_params, ...);
+void particles_add_particles(particles_t *particles, particle_props_t *props, particle_ops_t *ops, unsigned num, unsigned n_params, ...);
 bsp_t * particles_bsp(particles_t *particles);
 void particles_draw_line(particles_t *particles, const v3f_t *a, const v3f_t *b, til_fb_fragment_t *fragment);
 

@@ -1,6 +1,8 @@
 #ifndef _PARTICLE_H
 #define _PARTICLE_H
 
+#include <stdarg.h>
+
 #include "til_fb.h"
 
 #include "bsp.h"
@@ -26,10 +28,10 @@ typedef struct particles_t particles_t;
 typedef struct particles_conf_t particles_conf_t;
 
 typedef struct particle_ops_t {
-	unsigned		context_size;								/* size of the particle context (0 for none) */
-	int			(*init)(particles_t *, const particles_conf_t *, particle_t *);					/* initialize the particle, called after allocating context (optional) */
+	unsigned		context_size;											/* size of the particle context (0 for none) */
+	int			(*init)(particles_t *, const particles_conf_t *, particle_t *, unsigned, va_list);		/* initialize the particle, called after allocating context (optional) */
 	void			(*cleanup)(particles_t *, const particles_conf_t *, particle_t *);				/* cleanup function, called before freeing context (optional) */
-	particle_status_t	(*sim)(particles_t *, const particles_conf_t *, particle_t *, til_fb_fragment_t *);			/* simulate the particle for another cycle (required) */
+	particle_status_t	(*sim)(particles_t *, const particles_conf_t *, particle_t *, til_fb_fragment_t *);		/* simulate the particle for another cycle (required) */
 	void			(*draw)(particles_t *, const particles_conf_t *, particle_t *, int, int, til_fb_fragment_t *);	/* draw the particle, 3d->2d projection has been done already (optional) */
 } particle_ops_t;
 
@@ -49,9 +51,9 @@ struct particle_t {
 #define INHERIT_PROPS	NULL
 
 
-static inline int particle_init(particles_t *particles, const particles_conf_t *conf, particle_t *p) {
+static inline int particle_init(particles_t *particles, const particles_conf_t *conf, particle_t *p, unsigned n_params, va_list params) {
 	if (p->ops->init) {
-		return p->ops->init(particles, conf, p);
+		return p->ops->init(particles, conf, p, n_params, params);
 	}
 
 	return 1;
@@ -81,6 +83,6 @@ static inline void particle_draw(particles_t *particles, const particles_conf_t 
 }
 
 
-void particle_convert(particles_t *particles, const particles_conf_t *conf, particle_t *p, particle_props_t *props, particle_ops_t *ops);
+void particle_convert(particles_t *particles, const particles_conf_t *conf, particle_t *p, particle_props_t *props, particle_ops_t *ops, unsigned n_params, ...);
 
 #endif

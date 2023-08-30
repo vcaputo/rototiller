@@ -1,0 +1,21 @@
+#ifdef	PARAMS_DECLARE_ENUM
+#define param(_member, _default, _sym, _ctxt_type, _va_type)	\
+	_sym,
+#endif
+
+#ifdef PARAMS_DECLARE_STRUCT
+#define param(_member, _default, _sym, _ctxt_type, _va_type)	\
+	_ctxt_type _member;
+#endif
+
+#ifdef PARAMS_IMPLEMENT_SWITCH
+#define param(_member, _default, _sym, _ctxt_type, _va_type)		\
+	case _sym:							\
+		ctxt->_member = va_arg(params, _va_type);		\
+		break;
+#endif
+
+#ifdef PARAMS_ASSIGN_DEFAULTS
+#define param(_member, _default, _sym, _ctxt_type, _va_type)		\
+	ctxt->_member = _default;
+#endif
