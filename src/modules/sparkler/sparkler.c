@@ -117,10 +117,10 @@ til_module_t	sparkler_module = {
 /* Settings hooks for configurable variables */
 static int sparkler_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
-	const char	*show_bsp_leafs;
-	const char	*show_bsp_leafs_min_depth;
-	const char	*show_bsp_matches;
-	const char	*show_bsp_matches_affected_only;
+	til_setting_t	*show_bsp_leafs;
+	til_setting_t	*show_bsp_leafs_min_depth;
+	til_setting_t	*show_bsp_matches;
+	til_setting_t	*show_bsp_matches_affected_only;
 	const char	*values[] = {
 			       "off",
 			       "on",
@@ -128,9 +128,7 @@ static int sparkler_setup(const til_settings_t *settings, til_setting_t **res_se
 			};
 	int		r;
 
-	/* TODO: return -EINVAL on parse errors? */
-
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Show BSP-tree leaf-node bounding boxes",
 							.key = "show_bsp_leafs",
@@ -143,7 +141,7 @@ static int sparkler_setup(const til_settings_t *settings, til_setting_t **res_se
 	if (r)
 		return r;
 
-	if (!strcasecmp(show_bsp_leafs, "on")) {
+	if (!strcasecmp(show_bsp_leafs->value, "on")) {
 		const char	*depth_values[] = {
 					"0",
 					"4",
@@ -153,7 +151,7 @@ static int sparkler_setup(const til_settings_t *settings, til_setting_t **res_se
 					NULL
 				};
 
-		r = til_settings_get_and_describe_value(settings,
+		r = til_settings_get_and_describe_setting(settings,
 							&(til_setting_spec_t){
 								.name = "Minimum BSP-tree depth for shown leaf-nodes",
 								.key = "show_bsp_leafs_min_depth",
@@ -167,7 +165,7 @@ static int sparkler_setup(const til_settings_t *settings, til_setting_t **res_se
 			return r;
 	}
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Show BSP-tree search broad-phase match candidates",
 							.key = "show_bsp_matches",
@@ -180,8 +178,8 @@ static int sparkler_setup(const til_settings_t *settings, til_setting_t **res_se
 	if (r)
 		return r;
 
-	if (!strcasecmp(show_bsp_matches, "on")) {
-		r = til_settings_get_and_describe_value(settings,
+	if (!strcasecmp(show_bsp_matches->value, "on")) {
+		r = til_settings_get_and_describe_setting(settings,
 							&(til_setting_spec_t){
 								.name = "Show only narrow-phase affected match results",
 								.key = "show_bsp_matches_affected_only",
@@ -203,16 +201,17 @@ static int sparkler_setup(const til_settings_t *settings, til_setting_t **res_se
 		if (!setup)
 			return -ENOMEM;
 
-		if (!strcasecmp(show_bsp_leafs, "on")) {
+		if (!strcasecmp(show_bsp_leafs->value, "on")) {
 			setup->show_bsp_leafs = 1;
 
-			sscanf(show_bsp_leafs_min_depth, "%u", &setup->show_bsp_leafs_min_depth);
+			if (sscanf(show_bsp_leafs_min_depth->value, "%u", &setup->show_bsp_leafs_min_depth) != 1)
+				return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, show_bsp_leafs_min_depth, res_setting, -EINVAL);
 		}
 
-		if (!strcasecmp(show_bsp_matches, "on")) {
+		if (!strcasecmp(show_bsp_matches->value, "on")) {
 			setup->show_bsp_matches = 1;
 
-			if (!strcasecmp(show_bsp_matches_affected_only, "on"))
+			if (!strcasecmp(show_bsp_matches_affected_only->value, "on"))
 				setup->show_bsp_matches_affected_only = 1;
 		}
 
