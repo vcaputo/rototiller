@@ -131,10 +131,10 @@ til_module_t	_ref_module = {
 
 static int _ref_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
-	const char	*path;
+	til_setting_t	*path;
 	int		r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Context path to reference",
 							.key = "path",
@@ -154,7 +154,7 @@ static int _ref_setup(const til_settings_t *settings, til_setting_t **res_settin
 		if (!setup)
 			return -ENOMEM;
 
-		setup->path = strdup(path);
+		setup->path = strdup(path->value);
 		if (!setup->path) {
 			til_setup_free(&setup->til_setup);
 
