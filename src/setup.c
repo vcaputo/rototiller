@@ -44,12 +44,7 @@ int setup_interactively(til_settings_t *settings, int (*setup_func)(const til_se
 
 	/* TODO: regex and error handling */
 
-	/* until all the setup_funcs guarantee they return the failed setting on -EINVAL w/non-NULL res_setup (finalizing),
-	 * this will be done in two steps; this first loop just constructs the settings heirarchy, and if it fails with
-	 * -EINVAL we will use the setting for logging.  Then after this loop, one last recurrence of setup_func() w/res_setup
-	 * actually set.  Once all setup_funcs behave well even in res_setup we'll go back to just the loop on setup_func().
-	 */
-	while ((r = setup_func(settings, &setting, &desc, NULL)) > 0) {
+	while ((r = setup_func(settings, &setting, &desc, res_setup)) > 0) {
 		assert(desc);
 
 		additions++;
@@ -195,13 +190,13 @@ _next:
 	}
 
 	if (r < 0) {
-		if (r == -EINVAL)
+		if (r == -EINVAL) {
+			assert(setting);
 			return setup_ret_failed_desc_path(setting->desc, r, res_failed_desc_path);
+		}
 
 		return r;
 	}
-
-	r = setup_func(settings, &setting, &desc, res_setup);
 
 	return r < 0 ? r : additions;
 }
