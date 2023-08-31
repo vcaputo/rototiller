@@ -110,3 +110,17 @@ void * til_setup_free(til_setup_t *setup)
 
 	return NULL;
 }
+
+
+/* ergonomic helper for setup_funcs to use in res_setup baking */
+int til_setup_free_with_failed_setting_ret_err(til_setup_t *setup, til_setting_t *failed_setting, til_setting_t **res_setting, int err)
+{
+	assert(failed_setting);
+	assert(res_setting);
+	assert(err < 0);
+
+	til_setup_free(setup);
+	*res_setting = failed_setting;
+
+	return err;
+}
