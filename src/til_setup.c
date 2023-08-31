@@ -124,3 +124,14 @@ int til_setup_free_with_failed_setting_ret_err(til_setup_t *setup, til_setting_t
 
 	return err;
 }
+
+
+/* another ergonomic helper for setup_funcs to use in res_setup baking */
+int til_setup_free_with_ret_err(til_setup_t *setup, int err)
+{
+	assert(err < 0);
+
+	til_setup_free(setup);
+
+	return err;
+}
