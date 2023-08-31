@@ -346,10 +346,10 @@ static int submit_setup(const til_settings_t *settings, til_setting_t **res_sett
 				"on",
 				NULL
 			};
-	const char	*bilerp;
+	til_setting_t	*bilerp;
 	int		r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Bilinearly interpolate cell colors",
 							.key = "bilerp",
@@ -371,7 +371,7 @@ static int submit_setup(const til_settings_t *settings, til_setting_t **res_sett
 		if (!setup)
 			return -ENOMEM;
 
-		if (!strcasecmp(bilerp, "on"))
+		if (!strcasecmp(bilerp->value, "on"))
 			setup->bilerp = 1;
 
 		*res_setup = &setup->til_setup;
