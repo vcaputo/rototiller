@@ -75,10 +75,8 @@ static til_module_context_t * swab_create_context(const til_module_t *module, ti
 		return NULL;
 
 	ctxt->din = din_new(12, 12, 100, seed);
-	if (!ctxt->din) {
-		free(ctxt);
-		return NULL;
-	}
+	if (!ctxt->din)
+		return til_module_context_free(&ctxt->til_module_context);
 
 	return &ctxt->til_module_context;
 }

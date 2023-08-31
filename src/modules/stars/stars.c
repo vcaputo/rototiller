@@ -123,7 +123,8 @@ static til_module_context_t * stars_create_context(const til_module_t *module, t
 		for(int i=0; i<rand_r(&ctxt->seed)%16; i++){
 			p_ptr = malloc(sizeof(struct points));
 			if (!p_ptr)
-				return NULL;
+				return til_module_context_free(&ctxt->til_module_context);
+
 			p_ptr->x = get_random_unit_coord(&ctxt->seed);
 			p_ptr->y = get_random_unit_coord(&ctxt->seed);
 			p_ptr->z = z;

@@ -38,7 +38,7 @@ static til_module_context_t * signals_create_context(const til_module_t *module,
 
 	ctxt->signals[0] = sig_new_sin(sig_new_const(.5f));			/* oscillate @ .5hz */
 	if (!ctxt->signals[0])
-		goto err;
+		return til_module_context_free(&ctxt->til_module_context);
 
 	ctxt->signals[1] =	sig_new_sin(					/* oscillate */
 					sig_new_scale(				/* at a scaled frequency */
@@ -48,7 +48,7 @@ static til_module_context_t * signals_create_context(const til_module_t *module,
 					)
 				);
 	if (!ctxt->signals[1])
-		goto err;
+		return til_module_context_free(&ctxt->til_module_context);
 
 	ctxt->signals[2] =	sig_new_lerp(					/* interpolate */
 					sig_new_sin(sig_new_const(.33f)),	/* a .33hz oscillator */
@@ -56,21 +56,21 @@ static til_module_context_t * signals_create_context(const til_module_t *module,
 					sig_new_sin(sig_new_const(2.f))		/* weighted by a 2hz oscillator */
 				);
 	if (!ctxt->signals[2])
-		goto err;
+		return til_module_context_free(&ctxt->til_module_context);
 
 	ctxt->signals[3] =	sig_new_pow(	       				/* raise */
 					sig_new_sin(sig_new_const(4.f)),	/* a 4hz oscillator */
 					sig_new_sin(sig_new_const(.33f))	/* to the power of a .33f hz oscillator */
 				);
 	if (!ctxt->signals[3])
-		goto err;
+		return til_module_context_free(&ctxt->til_module_context);
 
 	ctxt->signals[4] =	sig_new_mult(	       		       		/* multiply */
 					sig_new_sin(sig_new_const(4.f)),	/* a 4hz oscillator */
 					sig_new_sin(sig_new_const(1.f))		/* by a 1hz oscillator */
 				);
 	if (!ctxt->signals[4])
-		goto err;
+		return til_module_context_free(&ctxt->til_module_context);
 
 	ctxt->signals[5] =	sig_new_lerp(					/* interpolate */
 					sig_ref(ctxt->signals[3]),		/* signals[3] */
@@ -78,7 +78,7 @@ static til_module_context_t * signals_create_context(const til_module_t *module,
 					sig_ref(ctxt->signals[2])		/* weighted by signals[2] */
 				);
 	if (!ctxt->signals[5])
-		goto err;
+		return til_module_context_free(&ctxt->til_module_context);
 
 	ctxt->signals[6] =	sig_new_lerp(					/* interpolate */
 					sig_new_inv(sig_ref(ctxt->signals[5])),	/* invert of signals[5] */
@@ -87,21 +87,21 @@ static til_module_context_t * signals_create_context(const til_module_t *module,
 					sig_ref(ctxt->signals[2])		/* weighted by signals[2] */
 				);
 	if (!ctxt->signals[6])
-		goto err;
+		return til_module_context_free(&ctxt->til_module_context);
 
 	ctxt->signals[7] =	sig_new_mult(					/* multiply */
 					sig_ref(ctxt->signals[6]),		/* signals[6] */
 					sig_ref(ctxt->signals[5])		/* signals[5] */
 				);
 	if (!ctxt->signals[7])
-		goto err;
+		return til_module_context_free(&ctxt->til_module_context);
 
 	ctxt->signals[8] =	sig_new_mult(					/* multiply */
 					sig_ref(ctxt->signals[1]),		/* signals[1] */
 					sig_ref(ctxt->signals[7])		/* signals[7] */
 				);
 	if (!ctxt->signals[8])
-		goto err;
+		return til_module_context_free(&ctxt->til_module_context);
 
 	ctxt->signals[9] =	sig_new_pow(					/* raise */
 					sig_ref(ctxt->signals[3]),		/* signals[3] */
@@ -112,7 +112,7 @@ static til_module_context_t * signals_create_context(const til_module_t *module,
 					)
 				);
 	if (!ctxt->signals[9])
-		goto err;
+		return til_module_context_free(&ctxt->til_module_context);
 
 	ctxt->signals[10] =	sig_new_lerp(					/* interpolate */
 					sig_ref(ctxt->signals[9]),		/* signals[9] */
@@ -125,17 +125,9 @@ static til_module_context_t * signals_create_context(const til_module_t *module,
 					)
 				);
 	if (!ctxt->signals[10])
-		goto err;
+		return til_module_context_free(&ctxt->til_module_context);
 
 	return &ctxt->til_module_context;
-
-err:
-	for (unsigned i = 0; i < N_SIGNALS; i++)
-		sig_free(ctxt->signals[i]);
-
-	free(ctxt);
-
-	return NULL;
 }
 
 

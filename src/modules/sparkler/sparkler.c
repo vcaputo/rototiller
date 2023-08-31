@@ -50,10 +50,8 @@ static til_module_context_t * sparkler_create_context(const til_module_t *module
 						.show_bsp_matches_affected_only = ((sparkler_setup_t *)setup)->show_bsp_matches_affected_only,
 						.seedp = &ctxt->til_module_context.seed,
 					});
-	if (!ctxt->particles) {
-		free(ctxt);
-		return NULL;
-	}
+	if (!ctxt->particles)
+		return til_module_context_free(&ctxt->til_module_context);
 
 	particles_add_particles(ctxt->particles, NULL, &simple_ops, INIT_PARTS, 0);
 
@@ -65,7 +63,9 @@ static void sparkler_destroy_context(til_module_context_t *context)
 {
 	sparkler_context_t	*ctxt = (sparkler_context_t *)context;
 
-	particles_free(ctxt->particles);
+	if (ctxt->particles)
+		particles_free(ctxt->particles);
+
 	free(ctxt);
 }
 

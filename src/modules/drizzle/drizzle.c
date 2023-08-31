@@ -110,10 +110,8 @@ static til_module_context_t * drizzle_create_context(const til_module_t *module,
 		return NULL;
 
 	ctxt->puddle = puddle_new(PUDDLE_SIZE, PUDDLE_SIZE);
-	if (!ctxt->puddle) {
-		free(ctxt);
-		return NULL;
-	}
+	if (!ctxt->puddle)
+		return til_module_context_free(&ctxt->til_module_context);
 
 	ctxt->taps.viscosity = til_tap_init_float(ctxt, &ctxt->viscosity, 1, &ctxt->vars.viscosity, "viscosity");
 	ctxt->taps.rainfall = til_tap_init_float(ctxt, &ctxt->rainfall, 1, &ctxt->vars.rainfall, "rainfall");
