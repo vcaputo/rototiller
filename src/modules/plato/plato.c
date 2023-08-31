@@ -715,8 +715,8 @@ til_module_t	plato_module = {
 
 static int plato_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
-	const char	*orbit_rate;
-	const char	*spin_rate;
+	til_setting_t	*orbit_rate;
+	til_setting_t	*spin_rate;
 	const char	*rate_values[] = {
 				"-1",
 				"-.75",
@@ -733,7 +733,7 @@ static int plato_setup(const til_settings_t *settings, til_setting_t **res_setti
 			};
 	int		r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Orbit rate and direction",
 							.key = "orbit_rate",
@@ -748,7 +748,7 @@ static int plato_setup(const til_settings_t *settings, til_setting_t **res_setti
 	if (r)
 		return r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Spin rate and direction",
 							.key = "spin_rate",
@@ -770,8 +770,11 @@ static int plato_setup(const til_settings_t *settings, til_setting_t **res_setti
 		if (!setup)
 			return -ENOMEM;
 
-		sscanf(orbit_rate, "%f", &setup->orbit_rate);
-		sscanf(spin_rate, "%f", &setup->spin_rate);
+		if (sscanf(orbit_rate->value, "%f", &setup->orbit_rate) != 1)
+			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, orbit_rate, res_setting, -EINVAL);
+
+		if (sscanf(spin_rate->value, "%f", &setup->spin_rate) != 1)
+			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, spin_rate, res_setting, -EINVAL);
 
 		*res_setup = &setup->til_setup;
 	}
