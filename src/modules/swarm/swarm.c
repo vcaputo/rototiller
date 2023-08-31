@@ -435,10 +435,10 @@ static int swarm_setup(const til_settings_t *settings, til_setting_t **res_setti
 				"lines",
 				NULL,
 			};
-	const char	*style;
+	til_setting_t	*style;
 	int		r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Particle drawing style",
 							.key = "style",
@@ -454,15 +454,21 @@ static int swarm_setup(const til_settings_t *settings, til_setting_t **res_setti
 
 	if (res_setup) {
 		swarm_setup_t	*setup;
+		unsigned	i;
 
 		setup = til_setup_new(settings, sizeof(*setup), NULL, &swarm_module);
 		if (!setup)
 			return -ENOMEM;
 
-		for (int i = 0; styles[i]; i++) {
-			if (!strcasecmp(styles[i], style))
+		for (i = 0; styles[i]; i++) {
+			if (!strcasecmp(styles[i], style->value)) {
 				setup->draw_style = i;
+				break;
+			}
 		}
+
+		if (!styles[i])
+			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, style, res_setting, -EINVAL);
 
 		*res_setup = &setup->til_setup;
 	}
