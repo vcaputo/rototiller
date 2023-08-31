@@ -240,10 +240,10 @@ static int montage_tile_module_setup(const til_settings_t *settings, til_setting
 static int montage_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	const til_settings_t	*tiles_settings;
-	const char		*tiles;
+	til_setting_t		*tiles;
 	int			r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Comma-separated list of modules, in left-to-right order, wraps top-down. (\"all\" for all)",
 							.key = "tiles",
@@ -252,14 +252,14 @@ static int montage_setup(const til_settings_t *settings, til_setting_t **res_set
 							.override = montage_tiles_setting_override,
 							.as_nested_settings = 1,
 						},
-						&tiles, /* XXX: unused in raw-value form, we want the settings instance */
+						&tiles,
 						res_setting,
 						res_desc);
 	if (r)
 		return r;
 
-	assert(res_setting && *res_setting && (*res_setting)->value_as_nested_settings);
-	tiles_settings = (*res_setting)->value_as_nested_settings;
+	tiles_settings = tiles->value_as_nested_settings;
+	assert(tiles_settings);
 	{
 		til_setting_t	*tile_setting;
 
