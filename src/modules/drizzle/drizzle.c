@@ -375,8 +375,8 @@ til_module_t	drizzle_module = {
 
 static int drizzle_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
-	const char	*viscosity;
-	const char	*style;
+	til_setting_t	*viscosity;
+	til_setting_t	*style;
 	const char	*viscosity_values[] = {
 				".005",
 				".01",
@@ -391,7 +391,7 @@ static int drizzle_setup(const til_settings_t *settings, til_setting_t **res_set
 			};
 	int		r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Puddle viscosity",
 							.key = "viscosity",
@@ -406,7 +406,7 @@ static int drizzle_setup(const til_settings_t *settings, til_setting_t **res_set
 	if (r)
 		return r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Overlay style",
 							.key = "style",
@@ -429,18 +429,19 @@ static int drizzle_setup(const til_settings_t *settings, til_setting_t **res_set
 		if (!setup)
 			return -ENOMEM;
 
-		sscanf(viscosity, "%f", &setup->viscosity);
+		if (sscanf(viscosity->value, "%f", &setup->viscosity) != 1)
+			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, viscosity, res_setting, -EINVAL);
 
 		/* TODO: til should prolly have a helper for this */
-		for (i = 0; i < nelems(style_values); i++) {
-			if (!strcasecmp(style_values[i], style)) {
+		for (i = 0; style_values[i]; i++) {
+			if (!strcasecmp(style_values[i], style->value)) {
 				setup->style = i;
 				break;
 			}
 		}
 
-		if (i >= nelems(style_values))
-			return -EINVAL;
+		if (!style_values[i])
+			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, style, res_setting, -EINVAL);
 
 		*res_setup = &setup->til_setup;
 	}
