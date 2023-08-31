@@ -266,8 +266,8 @@ static int compose_texture_module_setup(const til_settings_t *settings, til_sett
 static int compose_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	const til_settings_t	*layers_settings, *texture_settings;
-	const char		*layers;
-	const char		*texture;
+	til_setting_t		*layers;
+	til_setting_t		*texture;
 	const char		*texture_values[] = {
 					"none",
 					"blinds",
@@ -285,7 +285,7 @@ static int compose_setup(const til_settings_t *settings, til_setting_t **res_set
 				};
 	int			r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Comma-separated list of module layers, in draw-order",
 							.key = "layers",
@@ -301,8 +301,8 @@ static int compose_setup(const til_settings_t *settings, til_setting_t **res_set
 	if (r)
 		return r;
 
-	assert(res_setting && *res_setting && (*res_setting)->value_as_nested_settings);
-	layers_settings = (*res_setting)->value_as_nested_settings;
+	layers_settings = layers->value_as_nested_settings;
+	assert(layers_settings);
 	{
 		til_setting_t	*layer_setting;
 
@@ -339,7 +339,7 @@ static int compose_setup(const til_settings_t *settings, til_setting_t **res_set
 		}
 	}
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Module to use for source texture, \"none\" to disable",
 							.key = "texture",
@@ -366,9 +366,9 @@ static int compose_setup(const til_settings_t *settings, til_setting_t **res_set
 		return r;
 
 	if (res_setup) { /* turn layers settings into an array of compose_setup_layer_t's {name,til_setup_t} */
-		size_t			n_layers = til_settings_get_count(layers_settings);
-		til_setting_t		*layer_setting;
-		compose_setup_t		*setup;
+		size_t		n_layers = til_settings_get_count(layers_settings);
+		til_setting_t	*layer_setting;
+		compose_setup_t	*setup;
 
 		setup = til_setup_new(settings, sizeof(*setup) + n_layers * sizeof(*setup->layers), compose_setup_free, &compose_module);
 		if (!setup)
