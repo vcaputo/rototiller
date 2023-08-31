@@ -593,13 +593,13 @@ til_module_t	shapes_module = {
 
 static int shapes_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
-	const char	*type;
-	const char	*points;
-	const char	*spin;
-	const char	*scale;
-	const char	*pinch;
-	const char	*pinch_spin;
-	const char	*pinches;
+	til_setting_t	*type;
+	til_setting_t	*points;
+	til_setting_t	*spin;
+	til_setting_t	*scale;
+	til_setting_t	*pinch;
+	til_setting_t	*pinch_spin;
+	til_setting_t	*pinches;
 	const char	*type_values[] = {
 				"circle",
 				"pinwheel",
@@ -686,7 +686,7 @@ static int shapes_setup(const til_settings_t *settings, til_setting_t **res_sett
 			};
 	int		r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Shape type",
 							.key = "type",
@@ -701,8 +701,8 @@ static int shapes_setup(const til_settings_t *settings, til_setting_t **res_sett
 	if (r)
 		return r;
 
-	if (!strcasecmp(type, "star") || !strcasecmp(type, "pinwheel")) {
-		r = til_settings_get_and_describe_value(settings,
+	if (!strcasecmp(type->value, "star") || !strcasecmp(type->value, "pinwheel")) {
+		r = til_settings_get_and_describe_setting(settings,
 							&(til_setting_spec_t){
 								.name = "Number of points",
 								.key = "points",
@@ -717,7 +717,7 @@ static int shapes_setup(const til_settings_t *settings, til_setting_t **res_sett
 		if (r)
 			return r;
 
-		r = til_settings_get_and_describe_value(settings,
+		r = til_settings_get_and_describe_setting(settings,
 							&(til_setting_spec_t){
 								.name = "Spin factor",
 								.key = "spin",
@@ -733,7 +733,7 @@ static int shapes_setup(const til_settings_t *settings, til_setting_t **res_sett
 			return r;
 	}
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Scaling factor",
 							.key = "scale",
@@ -748,7 +748,7 @@ static int shapes_setup(const til_settings_t *settings, til_setting_t **res_sett
 	if (r)
 		return r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Number of pinches",
 							.key = "pinches",
@@ -764,7 +764,7 @@ static int shapes_setup(const til_settings_t *settings, til_setting_t **res_sett
 		return r;
 
 	/* since n_pinches is tapped, it can abruptly become non-zero, so let's always initialize the pinches-dependent settings */
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Pinch spin factor",
 							.key = "pinch_spin",
@@ -779,7 +779,7 @@ static int shapes_setup(const til_settings_t *settings, til_setting_t **res_sett
 	if (r)
 		return r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Pinch factor",
 							.key = "pinch",
@@ -795,7 +795,7 @@ static int shapes_setup(const til_settings_t *settings, til_setting_t **res_sett
 		return r;
 
 	if (res_setup) {
-		int	i;
+		unsigned	i;
 
 		shapes_setup_t	*setup;
 
@@ -804,25 +804,33 @@ static int shapes_setup(const til_settings_t *settings, til_setting_t **res_sett
 			return -ENOMEM;
 
 		for (i = 0; type_values[i]; i++) {
-			if (!strcasecmp(type, type_values[i])) {
+			if (!strcasecmp(type->value, type_values[i])) {
 				setup->type = i;
 				break;
 			}
 		}
 
-		if (!type_values[i]) {
-			til_setup_free(&setup->til_setup);
-			return -EINVAL;
-		}
+		if (!type_values[i])
+			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, type, res_setting, -EINVAL);
 
-		sscanf(scale, "%f", &setup->scale); /* TODO: -EINVAL parse errors */
-		sscanf(pinches, "%u", &setup->n_pinches); /* TODO: -EINVAL parse errors */
-		sscanf(pinch_spin, "%f", &setup->pinch_spin); /* TODO: -EINVAL parse errors */
-		sscanf(pinch, "%f", &setup->pinch); /* TODO: -EINVAL parse errors */
+		if (sscanf(scale->value, "%f", &setup->scale) != 1)
+			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, scale, res_setting, -EINVAL);
+
+		if (sscanf(pinches->value, "%u", &setup->n_pinches) != 1)
+			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, pinches, res_setting, -EINVAL);
+
+		if (sscanf(pinch_spin->value, "%f", &setup->pinch_spin) != 1)
+			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, spin, res_setting, -EINVAL);
+
+		if (sscanf(pinch->value, "%f", &setup->pinch) != 1)
+			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, pinch, res_setting, -EINVAL);
 
 		if (setup->type == SHAPES_TYPE_STAR || setup->type == SHAPES_TYPE_PINWHEEL) {
-			sscanf(points, "%u", &setup->n_points); /* TODO: -EINVAL parse errors */
-			sscanf(spin, "%f", &setup->spin); /* TODO: -EINVAL parse errors */
+			if (sscanf(points->value, "%u", &setup->n_points) != 1)
+				return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, points, res_setting, -EINVAL);
+
+			if (sscanf(spin->value, "%f", &setup->spin) != 1)
+				return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, spin, res_setting, -EINVAL);
 		}
 
 		*res_setup = &setup->til_setup;
