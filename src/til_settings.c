@@ -338,6 +338,47 @@ const char * til_settings_get_value_by_idx(const til_settings_t *settings, unsig
 /* helper for the common setup case of describing a setting when absent or not yet described.
  * returns:
  * -1 on error, res_* will be untouched in this case.
+ * 0 when setting is present and described, res_setting and res_setting_bis(optional) will be populated w/non-NULL, and res_desc NULL in this case.
+ * 1 when setting is either present but undescribed, or absent (and undescribed), res_* will be populated but res_setting{,_bis} may be NULL if absent and simply described.
+ */
+int til_settings_get_and_describe_setting(const til_settings_t *settings, const til_setting_spec_t *spec, til_setting_t **res_setting, til_setting_t **res_setting_bis, const til_setting_desc_t **res_desc)
+{
+	til_setting_t	*setting;
+
+	assert(settings);
+	assert(spec);
+	assert(res_setting);
+
+	setting = til_settings_get_setting_by_key(settings, spec->key, NULL);
+	if (!setting || !setting->desc) {
+		int	r;
+
+		assert(res_desc);
+
+		r = til_setting_desc_new(settings, spec, res_desc);
+		if (r < 0)
+			return r;
+
+		*res_setting = setting;
+		if (res_setting_bis)
+			*res_setting_bis = setting;
+
+		return 1;
+	}
+
+	*res_setting = setting;
+	if (res_setting_bis)
+		*res_setting_bis = setting;
+	if (res_desc)
+		*res_desc = NULL;
+
+	return 0;
+}
+
+
+/* helper for the common setup case of describing a setting when absent or not yet described.
+ * returns:
+ * -1 on error, res_* will be untouched in this case.
  * 0 when setting is present and described, res_value and res_setting will be populated w/non-NULL, and res_desc NULL in this case.
  * 1 when setting is either present but undescribed, or absent (and undescribed), res_* will be populated but res_{value,setting} may be NULL if absent and simply described.
  */

@@ -58,6 +58,7 @@ til_setting_t * til_settings_get_setting_by_idx(const til_settings_t *settings, 
 const char * til_settings_get_value_by_idx(const til_settings_t *settings, unsigned idx, til_setting_t **res_setting);
 til_setting_t * til_settings_add_value(til_settings_t *settings, const char *key, const char *value);
 void til_settings_reset_descs(til_settings_t *settings);
+int til_settings_get_and_describe_setting(const til_settings_t *settings, const til_setting_spec_t *spec, til_setting_t **res_setting, til_setting_t **res_setting_bis, const til_setting_desc_t **res_desc);
 int til_settings_get_and_describe_value(const til_settings_t *settings, const til_setting_spec_t *spec, const char **res_value, til_setting_t **res_setting, const til_setting_desc_t **res_desc);
 char * til_settings_as_arg(const til_settings_t *settings);
 char * til_settings_as_arg_unfiltered(const til_settings_t *settings);
