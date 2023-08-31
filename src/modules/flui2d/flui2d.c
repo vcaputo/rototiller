@@ -423,8 +423,8 @@ til_module_t	flui2d_module = {
 /* Settings hooks for configurable variables */
 static int flui2d_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
-	const char	*viscosity;
-	const char	*diffusion;
+	til_setting_t	*viscosity;
+	til_setting_t	*diffusion;
 	const char	*values[] = {
 				".000000000001",
 				".0000000001",
@@ -436,7 +436,7 @@ static int flui2d_setup(const til_settings_t *settings, til_setting_t **res_sett
 				".0001",
 				NULL
 			};
-	const char	*decay;
+	til_setting_t	*decay;
 	const char	*decay_values[] = {
 				".000001",
 				".00001",
@@ -445,13 +445,13 @@ static int flui2d_setup(const til_settings_t *settings, til_setting_t **res_sett
 				".01",
 				NULL
 			};
-	const char	*emitters;
+	til_setting_t	*emitters;
 	const char	*emitters_values[] = {
 				"figure8",
 				"clockgrid",
 				NULL
 			};
-	const char	*clockstep;
+	til_setting_t	*clockstep;
 	const char	*clockstep_values[] = {
 				".05",
 				".1",
@@ -465,7 +465,7 @@ static int flui2d_setup(const til_settings_t *settings, til_setting_t **res_sett
 			};
 	int		r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Fluid viscosity",
 							.key = "viscosity",
@@ -480,7 +480,7 @@ static int flui2d_setup(const til_settings_t *settings, til_setting_t **res_sett
 	if (r)
 		return r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Fluid diffusion",
 							.key = "diffusion",
@@ -495,7 +495,7 @@ static int flui2d_setup(const til_settings_t *settings, til_setting_t **res_sett
 	if (r)
 		return r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Fluid decay",
 							.key = "decay",
@@ -510,7 +510,7 @@ static int flui2d_setup(const til_settings_t *settings, til_setting_t **res_sett
 	if (r)
 		return r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Fluid emitters style",
 							.key = "emitters",
@@ -525,8 +525,8 @@ static int flui2d_setup(const til_settings_t *settings, til_setting_t **res_sett
 	if (r)
 		return r;
 
-	if (!strcasecmp(emitters, "clockgrid")) {
-		r = til_settings_get_and_describe_value(settings,
+	if (!strcasecmp(emitters->value, "clockgrid")) {
+		r = til_settings_get_and_describe_setting(settings,
 							&(til_setting_spec_t){
 								.name = "Fluid clockgrid emitters clock step",
 								.key = "clockstep",
@@ -544,32 +544,40 @@ static int flui2d_setup(const til_settings_t *settings, til_setting_t **res_sett
 
 	if (res_setup) {
 		flui2d_setup_t	*setup;
+		unsigned	i;
 
 		setup = til_setup_new(settings, sizeof(*setup), NULL, &flui2d_module);
 		if (!setup)
 			return -ENOMEM;
 
-		/* TODO: return -EINVAL on parse errors? */
-		sscanf(viscosity, "%f", &setup->viscosity);
-		sscanf(diffusion, "%f", &setup->diffusion);
-		sscanf(decay, "%f", &setup->decay);
+		if (sscanf(viscosity->value, "%f", &setup->viscosity) != 1)
+			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, viscosity, res_setting, -EINVAL);
+
+		if (sscanf(diffusion->value, "%f", &setup->diffusion) != 1)
+			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, diffusion, res_setting, -EINVAL);
+
+		if (sscanf(decay->value, "%f", &setup->decay) != 1)
+			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, decay, res_setting, -EINVAL);
 
 		/* prevent overflow in case an explicit out of range setting is supplied */
-		if (setup->decay > 1.f || setup->decay < 0.f) {
-			free(setup);
-			return -EINVAL;
-		}
+		if (setup->decay > 1.f || setup->decay < 0.f)
+			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, decay, res_setting, -EINVAL);
 
-		for (int i = 0; emitters_values[i]; i++) {
-			if (!strcasecmp(emitters, emitters_values[i])) {
+		for (i = 0; emitters_values[i]; i++) {
+			if (!strcasecmp(emitters->value, emitters_values[i])) {
 				setup->emitters = i;
 
 				break;
 			}
 		}
 
-		if (setup->emitters == FLUI2D_EMITTERS_CLOCKGRID)
-			 sscanf(clockstep, "%f", &setup->clockstep);
+		if (!emitters_values[i])
+			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, emitters, res_setting, -EINVAL);
+
+		if (setup->emitters == FLUI2D_EMITTERS_CLOCKGRID) {
+			 if (sscanf(clockstep->value, "%f", &setup->clockstep) != 1)
+				return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, clockstep, res_setting, -EINVAL);
+		}
 
 		*res_setup = &setup->til_setup;
 	}
