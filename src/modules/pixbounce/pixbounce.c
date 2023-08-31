@@ -331,7 +331,7 @@ til_module_t	pixbounce_module = {
 
 int pixbounce_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
-	const char	*pixmap_size;
+	til_setting_t	*pixmap_size;
 	const char	*pixmap_size_values[] = {
 				"0",
 				"0.2",
@@ -341,7 +341,7 @@ int pixbounce_setup(const til_settings_t *settings, til_setting_t **res_setting,
 				"1",
 				NULL
 			};
-	const char	*pixmap;
+	til_setting_t	*pixmap;
 	const char	*pixmap_values[] = {
 				"smiley",
 				"crosshairs",
@@ -355,7 +355,7 @@ int pixbounce_setup(const til_settings_t *settings, til_setting_t **res_setting,
 
 	int		r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Pixmap size",
 							.key = "pixmap_size",
@@ -370,7 +370,7 @@ int pixbounce_setup(const til_settings_t *settings, til_setting_t **res_setting,
 	if (r)
 		return r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Pixmap",
 							.key = "pixmap",
@@ -392,27 +392,25 @@ int pixbounce_setup(const til_settings_t *settings, til_setting_t **res_setting,
 		if (!setup)
 			return -ENOMEM;
 
-		sscanf(pixmap_size, "%f", &setup->pixmap_size);
+		if (sscanf(pixmap_size->value, "%f", &setup->pixmap_size) != 1)
+			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, pixmap_size, res_setting, -EINVAL);
 
-		if (!strcasecmp(pixmap, "smiley")) {
+		if (!strcasecmp(pixmap->value, "smiley"))
 			setup->pixmap = PIXBOUNCE_PIXMAP_SMILEY;
-		} else if (!strcasecmp(pixmap, "crosshairs")) {
-			setup->pixmap = PIXBOUNCE_PIXMAP_CROSSHAIRS;
-		} else if (!strcasecmp(pixmap, "no")) {
-			setup->pixmap = PIXBOUNCE_PIXMAP_NO;
-		} else if (!strcasecmp(pixmap, "circles")) {
-			setup->pixmap = PIXBOUNCE_PIXMAP_CIRCLES;
-		} else if (!strcasecmp(pixmap, "qr_til")) {
-			setup->pixmap = PIXBOUNCE_PIXMAP_QR_TIL;
-		} else if (!strcasecmp(pixmap, "ignignokt")) {
-			setup->pixmap = PIXBOUNCE_PIXMAP_IGNIGNOKT;
-		} else if (!strcasecmp(pixmap, "err")) {
-			setup->pixmap = PIXBOUNCE_PIXMAP_ERR;
-		} else {
-			til_setup_free(&setup->til_setup);
-
-			return -EINVAL;
-		}
+		else if (!strcasecmp(pixmap->value, "crosshairs"))
+		      setup->pixmap = PIXBOUNCE_PIXMAP_CROSSHAIRS;
+		else if (!strcasecmp(pixmap->value, "no"))
+		      setup->pixmap = PIXBOUNCE_PIXMAP_NO;
+		else if (!strcasecmp(pixmap->value, "circles"))
+		      setup->pixmap = PIXBOUNCE_PIXMAP_CIRCLES;
+		else if (!strcasecmp(pixmap->value, "qr_til"))
+		      setup->pixmap = PIXBOUNCE_PIXMAP_QR_TIL;
+		else if (!strcasecmp(pixmap->value, "ignignokt"))
+		      setup->pixmap = PIXBOUNCE_PIXMAP_IGNIGNOKT;
+		else if (!strcasecmp(pixmap->value, "err"))
+		      setup->pixmap = PIXBOUNCE_PIXMAP_ERR;
+		else
+			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, pixmap, res_setting, -EINVAL);
 
 		*res_setup = &setup->til_setup;
 	}
