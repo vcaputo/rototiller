@@ -70,6 +70,7 @@ typedef struct rkt_scener_t {
 		til_setting_t			*cur_edited;
 		unsigned			replacement:1;	/* set when editing / replacing scener->scene */
 		unsigned			editing:1;	/* set when editing */
+		unsigned			refinalizing:1;	/* set when fixing up an EINVAL @ finalize */
 	} new_scene;
 } rkt_scener_t;
 
@@ -440,6 +441,7 @@ static int rkt_scener_handle_input_editscene(rkt_context_t *ctxt)
 	scener->new_scene.cur_edited = NULL;
 	scener->new_scene.replacement = 1;
 	scener->new_scene.editing = 1;
+	scener->new_scene.refinalizing = 0;
 	scener->state = RKT_SCENER_FSM_SEND_NEWSCENE_SETUP;
 
 	return 0;
@@ -484,6 +486,7 @@ static int rkt_scener_handle_input_newscene(rkt_context_t *ctxt)
 	scener->new_scene.cur_edited = NULL;
 	scener->new_scene.replacement = 0;
 	scener->new_scene.editing = 0;
+	scener->new_scene.refinalizing = 0;
 	scener->state = RKT_SCENER_FSM_SEND_NEWSCENE_SETUP;
 
 	return 0;
@@ -1047,24 +1050,8 @@ int rkt_scener_update(rkt_context_t *ctxt)
 		r = rkt_scene_module_setup(scener->new_scene.settings,
 				     &scener->new_scene.cur_setting,
 				     &scener->new_scene.cur_desc,
-				     NULL);	/* res_setup deliberately left NULL for two reasons:
-						 * 1. prevents finalizing (path is "...WIP-new-scene...")
-						 * 2. disambiguates -EINVAL errors from those potentially
-						 *    returned while finalizing/baking into a til_setup_t.
-						 *
-						 *    This way if such an error is returned, we can expect
-						 *    res_setting and res_desc to refer to /what's/ invalid,
-						 *    and correct it before retrying.
-						 *
-						 *    It'd be rather obnoxious with how the setup funcs are
-						 *    implemented currently to try force returning the relevant
-						 *    setting+desc for errors found during baking...  I still
-						 *    need to firm up and document setup_func error semantics, and
-						 *    ideally it would be nice if the finalizing could say what
-						 *    setting/desc is relevant when say.. doing an atoi().
-						 *    That will require a bit of churn in the settings get_value
-						 *    API and changing all the setup_funcs to be setting-centric
-						 *    instead of the current char* value-centric mode TODO
+				     NULL);	/* res_setup deliberately left NULL to prevent finalizing
+						 * while path is still "...WIP-new-scene..."
 						 */
 		if (r < 0) {
 			/* something went wrong... */
@@ -1159,55 +1146,57 @@ int rkt_scener_update(rkt_context_t *ctxt)
 		 */
 
 		/* these *may* move into helpers, so scoping them as ad-hoc unnamed functions for now */
-		if (!scener->new_scene.replacement) { /* expand scenes settings */
-			til_settings_t	*scenes_settings;
-			til_setting_t	*scene_setting;
-			char		*label, *as_arg;
-			int		r;
+		if (!scener->new_scene.refinalizing) {
+			if (!scener->new_scene.replacement) { /* expand scenes settings */
+				til_settings_t	*scenes_settings;
+				til_setting_t	*scene_setting;
+				char		*label, *as_arg;
+				int		r;
 
-			/* now that we know settings is completely valid, expand scenes and get everything wired up */
-			as_arg = til_settings_as_arg(scener->new_scene.settings);
-			if (!as_arg)
-				return rkt_scener_err_close(scener, ENOMEM);
+				/* now that we know settings is completely valid, expand scenes and get everything wired up */
+				as_arg = til_settings_as_arg(scener->new_scene.settings);
+				if (!as_arg)
+					return rkt_scener_err_close(scener, ENOMEM);
 
-			scenes_settings = ((rkt_setup_t *)ctxt->til_module_context.setup)->scenes_settings;
-			scene_setting = til_settings_add_value(scenes_settings, NULL, as_arg);
-			if (!scene_setting)
-				return rkt_scener_err_close(scener, ENOMEM);
+				scenes_settings = ((rkt_setup_t *)ctxt->til_module_context.setup)->scenes_settings;
+				scene_setting = til_settings_add_value(scenes_settings, NULL, as_arg);
+				if (!scene_setting)
+					return rkt_scener_err_close(scener, ENOMEM);
 
-			r = til_setting_desc_new(scenes_settings,
-						 &(til_setting_spec_t){
-							.as_nested_settings = 1,
-						 },
-						 &scene_setting->desc);
-			if (r < 0) /* FIXME TODO we should probably drop the half-added value??? */
-				return rkt_scener_err_close(scener, r);
+				r = til_setting_desc_new(scenes_settings,
+							 &(til_setting_spec_t){
+								.as_nested_settings = 1,
+							 },
+							 &scene_setting->desc);
+				if (r < 0) /* FIXME TODO we should probably drop the half-added value??? */
+					return rkt_scener_err_close(scener, r);
 
-			r = til_settings_label_setting(scenes_settings, scene_setting, &label);
-			if (r < 0) /* FIXME TODO we should probably drop the half-added value??? */
-				return rkt_scener_err_close(scener, r);
+				r = til_settings_label_setting(scenes_settings, scene_setting, &label);
+				if (r < 0) /* FIXME TODO we should probably drop the half-added value??? */
+					return rkt_scener_err_close(scener, r);
 
-			r = til_settings_set_label(scener->new_scene.settings, label);
-			free(label);
-			if (r < 0) /* FIXME TODO we should probably drop the half-added value??? */
-				return rkt_scener_err_close(scener, r);
+				r = til_settings_set_label(scener->new_scene.settings, label);
+				free(label);
+				if (r < 0) /* FIXME TODO we should probably drop the half-added value??? */
+					return rkt_scener_err_close(scener, r);
 
-			scene_setting->value_as_nested_settings = scener->new_scene.settings;
+				scene_setting->value_as_nested_settings = scener->new_scene.settings;
 
-		} else { /* simply replace current nested settings */
-			til_settings_t	*scenes_settings;
-			til_setting_t	*scene_setting;
+			} else { /* simply replace current nested settings */
+				til_settings_t	*scenes_settings;
+				til_setting_t	*scene_setting;
 
-			scenes_settings = ((rkt_setup_t *)ctxt->til_module_context.setup)->scenes_settings;
-			if (!til_settings_get_value_by_idx(scenes_settings, scener->scene, &scene_setting))
-				return rkt_scener_err_close(scener, ENOENT);
+				scenes_settings = ((rkt_setup_t *)ctxt->til_module_context.setup)->scenes_settings;
+				if (!til_settings_get_value_by_idx(scenes_settings, scener->scene, &scene_setting))
+					return rkt_scener_err_close(scener, ENOENT);
 
-			/* FIXME TODO: keep this around until finishing the context replacement,
-			 * and put it back in all the failure cases before that point.
-			 */
-			til_settings_free(scene_setting->value_as_nested_settings);
+				/* FIXME TODO: keep this around until finishing the context replacement,
+				 * and put it back in all the failure cases before that point.
+				 */
+				til_settings_free(scene_setting->value_as_nested_settings);
 
-			scene_setting->value_as_nested_settings = scener->new_scene.settings;
+				scene_setting->value_as_nested_settings = scener->new_scene.settings;
+			}
 		}
 
 		{ /* finalize setup, create context, expand context scenes or replace existing */
@@ -1230,15 +1219,19 @@ int rkt_scener_update(rkt_context_t *ctxt)
 				if (r != -EINVAL)
 					return rkt_scener_err_close(scener, r);
 
-				/* FIXME TODO: error recovery needs a bunch of work, but let's not just
-				 * hard disconnect when finalize finds invalid settings... especially
-				 * with the addition of til_setting_t.nocheck / ':" prefixing, this is
-				 * much more likely.
+				/* Invalid setting found @ finalize! go back to prompting for input */
+				scener->new_scene.cur_invalid = scener->new_scene.cur_setting;
+				/* But since it's @ finalize, we're in this half-finished awkward state where scenes_settings
+				 * has already been expanded with this settings instance hanging off it.  So it's like the
+				 * previous step just needs to be suppressed altogether - it's not a replacement scenario,
+				 * and we definitely don't want to re-add again either.  We just want to re-finalize after
+				 * the cur_invalid has been fixed up.
 				 */
-				scener->new_scene.settings = NULL;
+				scener->new_scene.refinalizing = 1;
 
-				return rkt_scener_send_error(scener, EINVAL, RKT_SCENER_FSM_SEND_SCENES);
+				return rkt_scener_send_error(scener, EINVAL, RKT_SCENER_FSM_SEND_NEWSCENE_SETUP_PROMPT);
 			}
+			scener->new_scene.refinalizing = 0;
 
 			/* have baked setup @ setup, create context using it */
 			r = til_module_create_context(setup->creator,
