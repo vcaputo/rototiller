@@ -353,12 +353,12 @@ static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setti
 					"flicker",
 					NULL
 				};
-	const char		*style;
+	til_setting_t		*style;
 	const til_settings_t	*inputs_settings[2];
-	const char		*inputs[2];
+	til_setting_t		*inputs[2];
 	int			r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Mixer blend style",
 							.key = "style",
@@ -373,7 +373,7 @@ static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setti
 		return r;
 
 	for (int i = 0; i < 2; i++) {
-		r = til_settings_get_and_describe_value(settings,
+		r = til_settings_get_and_describe_setting(settings,
 							&(til_setting_spec_t){
 								.name = input_names[i],
 								.key = input_keys[i],
@@ -387,10 +387,8 @@ static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setti
 		if (r)
 			return r;
 
-		assert(res_setting && *res_setting);
-		assert((*res_setting)->value_as_nested_settings);
-
 		inputs_settings[i] = (*res_setting)->value_as_nested_settings;
+		assert(inputs_settings[i]);
 
 		r = til_module_setup_full(inputs_settings[i],
 					  res_setting,
@@ -406,18 +404,23 @@ static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setti
 
 	if (res_setup) {
 		mixer_setup_t	*setup;
+		unsigned	i;
 
 		setup = til_setup_new(settings, sizeof(*setup), mixer_setup_free, &mixer_module);
 		if (!setup)
 			return -ENOMEM;
 
-		/* TODO move checkers_value_to_pos() to libtil and use it here */
-		for (int i = 0; style_values[i]; i++) {
-			if (!strcasecmp(style_values[i], style))
+		for (i = 0; style_values[i]; i++) {
+			if (!strcasecmp(style_values[i], style->value)) {
 				setup->style = i;
+				break;
+			}
 		}
 
-		for (int i = 0; i < 2; i++) {
+		if (!style_values[i])
+			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, style, res_setting, -EINVAL);
+
+		for (i = 0; i < 2; i++) {
 			r = til_module_setup_full(inputs_settings[i],
 						  res_setting,
 						  res_desc,
@@ -428,6 +431,7 @@ static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setti
 						  exclusions);
 			if (r < 0) {
 				til_setup_free(&setup->til_setup);
+				/* til_module_setup_full() should already have populated *res_setting */
 				return r;
 			}
 
