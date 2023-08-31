@@ -143,10 +143,10 @@ til_fb_ops_t mem_fb_ops = {
 
 static int mem_fb_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
-	const char	*size;
+	til_setting_t	*size;
 	int		r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Virtual window size",
 							.key = "size",
@@ -168,8 +168,8 @@ static int mem_fb_setup(const til_settings_t *settings, til_setting_t **res_sett
 		if (!setup)
 			return -ENOMEM;
 
-		/* TODO FIXME: parse errors */
-		sscanf(size, "%ux%u", &setup->width, &setup->height);
+		if (sscanf(size->value, "%ux%u", &setup->width, &setup->height) != 2)
+			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, size, res_setting, -EINVAL);
 
 		*res_setup = &setup->til_setup;
 	}
