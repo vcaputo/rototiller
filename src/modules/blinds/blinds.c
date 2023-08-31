@@ -188,8 +188,8 @@ til_module_t	blinds_module = {
 
 static int blinds_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
-	const char	*orientation;
-	const char	*count;
+	til_setting_t	*orientation;
+	til_setting_t	*count;
 	const char	*orientation_values[] = {
 				"horizontal",
 				"vertical",
@@ -207,7 +207,7 @@ static int blinds_setup(const til_settings_t *settings, til_setting_t **res_sett
 			};
 	int		r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Blinds orientation",
 							.key = "orientation",
@@ -222,7 +222,7 @@ static int blinds_setup(const til_settings_t *settings, til_setting_t **res_sett
 	if (r)
 		return r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Blinds count",
 							.key = "count",
@@ -244,17 +244,15 @@ static int blinds_setup(const til_settings_t *settings, til_setting_t **res_sett
 		if (!setup)
 			return -ENOMEM;
 
-		sscanf(count, "%u", &setup->count);
+		if (sscanf(count->value, "%u", &setup->count) != 1)
+			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, count, res_setting, -EINVAL);
 
-		if (!strcasecmp(orientation, "horizontal")) {
+		if (!strcasecmp(orientation->value, "horizontal"))
 			setup->orientation = BLINDS_ORIENTATION_HORIZONTAL;
-		} else if (!strcasecmp(orientation, "vertical")) {
+		else if (!strcasecmp(orientation->value, "vertical"))
 			setup->orientation = BLINDS_ORIENTATION_VERTICAL;
-		} else {
-			til_setup_free(&setup->til_setup);
-
-			return -EINVAL;
-		}
+		else
+			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, orientation, res_setting, -EINVAL);
 
 		*res_setup = &setup->til_setup;
 	}
