@@ -502,10 +502,8 @@ static int roto_setup(const til_settings_t *settings, til_setting_t **res_settin
 					   res_setting,
 					   res_desc,
 					   &setup->fill_module_setup); /* finalize! */
-		if (r < 0) {
-			til_setup_free(&setup->til_setup);
-			return r;
-		}
+		if (r < 0)
+			return til_setup_free_with_ret_err(&setup->til_setup, r);
 
 		assert(r == 0);
 

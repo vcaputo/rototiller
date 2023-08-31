@@ -633,11 +633,8 @@ static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting
 			setup->scener_listen = 1;
 
 			setup->scener_address = strdup(listen_address->value);
-			if (!setup->scener_address) {
-				til_setup_free(&setup->til_setup);
-
-				return -ENOMEM;
-			}
+			if (!setup->scener_address)
+				return til_setup_free_with_ret_err(&setup->til_setup, -ENOMEM);
 
 			if (sscanf(listen_port->value, "%hu", &setup->scener_port) != 1)
 				return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, listen_port, res_setting, -EINVAL);
@@ -669,31 +666,22 @@ static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting
 						   res_setting,
 						   res_desc,
 						   &setup->scenes[i].setup); /* XXX: note no res_setup, must defer finalize */
-			if (r < 0) {
-				til_setup_free(&setup->til_setup);
-
-				return r;
-			}
+			if (r < 0)
+				return til_setup_free_with_ret_err(&setup->til_setup, r);
 
 			assert(r == 0); /* the settings should be complete by now, so this is unexpected */
 		}
 
 		setup->base = strdup(base->value);
-		if (!setup->base) {
-			til_setup_free(&setup->til_setup);
-
-			return -ENOMEM;
-		}
+		if (!setup->base)
+			return til_setup_free_with_ret_err(&setup->til_setup, -ENOMEM);
 
 		if (!strcasecmp(connect->value, "on")) {
 			setup->connect = 1;
 
 			setup->host = strdup(host->value);
-			if (!setup->host) {
-				til_setup_free(&setup->til_setup);
-
-				return -ENOMEM;
-			}
+			if (!setup->host)
+				return til_setup_free_with_ret_err(&setup->til_setup, -ENOMEM);
 
 			if (sscanf(port->value, "%hu", &setup->port) != 1)
 				return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, port, res_setting, -EINVAL);

@@ -521,11 +521,8 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 			til_get_modules(&modules, &n_modules);
 
 			tokchannels = strdup(channels->value); /* TODO FIXME: this is getting leaked currently */
-			if (!tokchannels) {
-				til_setup_free(&setup->til_setup);
-
-				return -ENOMEM;
-			}
+			if (!tokchannels)
+				return til_setup_free_with_ret_err(&setup->til_setup, -ENOMEM);
 
 			channel = strtok(tokchannels, ":");
 			do {
@@ -541,11 +538,8 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 					return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, channels, res_setting, -EINVAL);
 
 				new = realloc(setup, sizeof(*setup) + n * sizeof(setup->channels[0]));
-				if (!new) {
-					til_setup_free(&setup->til_setup);
-
-					return -ENOMEM;
-				}
+				if (!new)
+					return til_setup_free_with_ret_err(&setup->til_setup, -ENOMEM);
 
 				new->channels[n - 2] = channel;
 				new->channels[n - 1] = NULL;
@@ -560,11 +554,8 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 					  res_setting,
 					  res_desc,
 					  &setup->snow_module_setup); /* finalize! */
-		if (r < 0) {
-			til_setup_free(&setup->til_setup);
-
-			return r;
-		}
+		if (r < 0)
+			return til_setup_free_with_ret_err(&setup->til_setup, r);
 
 		assert(r == 0);
 
