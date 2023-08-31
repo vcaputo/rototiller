@@ -271,8 +271,8 @@ const char * til_settings_get_label(const til_settings_t *settings)
 }
 
 
-/* find key= in settings, return value NULL if missing, optionally store setting @res_setting if found */
-const char * til_settings_get_value_by_key(const til_settings_t *settings, const char *key, til_setting_t **res_setting)
+/* return setting matching key in settings, NULL if missing, optionally store setting @res_setting if found */
+til_setting_t * til_settings_get_setting_by_key(const til_settings_t *settings, const char *key, til_setting_t **res_setting)
 {
 	assert(settings);
 	assert(key);
@@ -285,8 +285,37 @@ const char * til_settings_get_value_by_key(const til_settings_t *settings, const
 			if (res_setting)
 				*res_setting = settings->entries[i];
 
-			return settings->entries[i]->value;
+			return settings->entries[i];
 		}
+	}
+
+	return NULL;
+}
+
+
+/* return value matching key in settings, NULL if missing, optionally store setting @res_setting if found */
+const char * til_settings_get_value_by_key(const til_settings_t *settings, const char *key, til_setting_t **res_setting)
+{
+	til_setting_t	*s;
+
+	s = til_settings_get_setting_by_key(settings, key, res_setting);
+	if (!s)
+		return NULL;
+
+	return s->value;
+}
+
+
+/* return positional setting from settings, NULL if missing, optionally store setting @res_setting if found */
+til_setting_t * til_settings_get_setting_by_idx(const til_settings_t *settings, unsigned idx, til_setting_t **res_setting)
+{
+	assert(settings);
+
+	if (idx < settings->num) {
+		if (res_setting)
+			*res_setting = settings->entries[idx];
+
+		return settings->entries[idx];
 	}
 
 	return NULL;
@@ -296,16 +325,13 @@ const char * til_settings_get_value_by_key(const til_settings_t *settings, const
 /* return positional value from settings, NULL if missing, optionally store setting @res_setting if found */
 const char * til_settings_get_value_by_idx(const til_settings_t *settings, unsigned idx, til_setting_t **res_setting)
 {
-	assert(settings);
+	til_setting_t	*s;
 
-	if (idx < settings->num) {
-		if (res_setting)
-			*res_setting = settings->entries[idx];
+	s = til_settings_get_setting_by_idx(settings, idx, res_setting);
+	if (!s)
+		return NULL;
 
-		return settings->entries[idx]->value;
-	}
-
-	return NULL;
+	return s->value;
 }
 
 
