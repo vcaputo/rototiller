@@ -449,7 +449,7 @@ til_module_t	roto_module = {
 
 static int roto_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
-	const char		*fill_module;
+	til_setting_t		*fill_module;
 	const til_settings_t	*fill_module_settings;
 	const char		*fill_module_values[] = {
 					"none",
@@ -466,7 +466,7 @@ static int roto_setup(const til_settings_t *settings, til_setting_t **res_settin
 				};
 	int			r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Filled module (\"none\" for classic roto)",
 							.key = "fill_module",
@@ -481,10 +481,8 @@ static int roto_setup(const til_settings_t *settings, til_setting_t **res_settin
 	if (r)
 		return r;
 
-	assert(res_setting && *res_setting);
-	assert((*res_setting)->value_as_nested_settings);
-
-	fill_module_settings = (*res_setting)->value_as_nested_settings;
+	fill_module_settings = fill_module->value_as_nested_settings;
+	assert(fill_module_settings);
 
 	r = roto_fill_module_setup(fill_module_settings,
 				   res_setting,
