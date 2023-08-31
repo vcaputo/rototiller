@@ -130,7 +130,7 @@ til_module_t	moire_module = {
 
 static int moire_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
-	const char	*centers;
+	til_setting_t	*centers;
 	const char	*values[] = {
 				"2",
 				"3",
@@ -140,7 +140,7 @@ static int moire_setup(const til_settings_t *settings, til_setting_t **res_setti
 			};
 	int		r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Number of radial centers",
 							.key = "centers",
@@ -162,7 +162,8 @@ static int moire_setup(const til_settings_t *settings, til_setting_t **res_setti
 		if (!setup)
 			return -ENOMEM;
 
-		sscanf(centers, "%u", &setup->n_centers);
+		if (sscanf(centers->value, "%u", &setup->n_centers) != 1)
+			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, centers, res_setting, -EINVAL);
 
 		*res_setup = &setup->til_setup;
 	}
