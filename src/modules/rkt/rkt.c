@@ -434,19 +434,19 @@ static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting
 					"on",
 					NULL
 				};
-	const char		*scenes;
-	const char		*base;
-	const char		*bpm;
-	const char		*rpb;
-	const char		*connect;
-	const char		*host;
-	const char		*port;
-	const char		*listen;
-	const char		*listen_address;
-	const char		*listen_port;
+	til_setting_t		*scenes;
+	til_setting_t		*base;
+	til_setting_t		*bpm;
+	til_setting_t		*rpb;
+	til_setting_t		*connect;
+	til_setting_t		*host;
+	til_setting_t		*port;
+	til_setting_t		*listen;
+	til_setting_t		*listen_address;
+	til_setting_t		*listen_port;
 	int			r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Comma-separated list of modules for scenes to sequence",
 							.key = "scenes",
@@ -490,7 +490,7 @@ static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting
 		}
 	}
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Rocket \"base\" label",
 							.key = "base",
@@ -503,7 +503,7 @@ static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting
 	if (r)
 		return r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Beats per minute",
 							.key = "bpm",
@@ -516,7 +516,7 @@ static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting
 	if (r)
 		return r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Rows per beat",
 							.key = "rpb",
@@ -529,7 +529,7 @@ static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting
 	if (r)
 		return r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "RocketEditor connection toggle",
 							.key = "connect",
@@ -544,8 +544,8 @@ static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting
 	if (r)
 		return r;
 
-	if (!strcasecmp(connect, "on")) {
-		r = til_settings_get_and_describe_value(settings,
+	if (!strcasecmp(connect->value, "on")) {
+		r = til_settings_get_and_describe_setting(settings,
 							&(til_setting_spec_t){
 								.name = "Editor host",
 								.key = "host",
@@ -559,7 +559,7 @@ static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting
 		if (r)
 			return r;
 
-		r = til_settings_get_and_describe_value(settings,
+		r = til_settings_get_and_describe_setting(settings,
 							&(til_setting_spec_t){
 								.name = "Editor port",
 								.key = "port",
@@ -574,7 +574,7 @@ static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting
 			return r;
 	}
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Scene editor listen toggle",
 							.key = "listen",
@@ -589,8 +589,8 @@ static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting
 	if (r)
 		return r;
 
-	if (!strcasecmp(listen, "on")) {
-		r = til_settings_get_and_describe_value(settings,
+	if (!strcasecmp(listen->value, "on")) {
+		r = til_settings_get_and_describe_setting(settings,
 							&(til_setting_spec_t){
 								.name = "Listen address",
 								.key = "listen_address",
@@ -604,7 +604,7 @@ static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting
 		if (r)
 			return r;
 
-		r = til_settings_get_and_describe_value(settings,
+		r = til_settings_get_and_describe_setting(settings,
 							&(til_setting_spec_t){
 								.name = "Listen port",
 								.key = "listen_port",
@@ -629,17 +629,18 @@ static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting
 		if (!setup)
 			return -ENOMEM;
 
-		if (!strcasecmp(listen, "on")) {
+		if (!strcasecmp(listen->value, "on")) {
 			setup->scener_listen = 1;
 
-			setup->scener_address = strdup(listen_address);
+			setup->scener_address = strdup(listen_address->value);
 			if (!setup->scener_address) {
 				til_setup_free(&setup->til_setup);
 
 				return -ENOMEM;
 			}
 
-			sscanf(listen_port, "%hu", &setup->scener_port); /* FIXME parse errors */
+			if (sscanf(listen_port->value, "%hu", &setup->scener_port) != 1)
+				return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, listen_port, res_setting, -EINVAL);
 
 			/* XXX FIXME TODO: HACK ALERT: til_settings_t probably needs to be refcounted,
 			 * and this should be taking a proper reference!  The only reason this can
@@ -677,28 +678,31 @@ static int rkt_setup(const til_settings_t *settings, til_setting_t **res_setting
 			assert(r == 0); /* the settings should be complete by now, so this is unexpected */
 		}
 
-		setup->base = strdup(base);
+		setup->base = strdup(base->value);
 		if (!setup->base) {
 			til_setup_free(&setup->til_setup);
 
 			return -ENOMEM;
 		}
 
-		if (!strcasecmp(connect, "on")) {
+		if (!strcasecmp(connect->value, "on")) {
 			setup->connect = 1;
 
-			setup->host = strdup(host);
+			setup->host = strdup(host->value);
 			if (!setup->host) {
 				til_setup_free(&setup->til_setup);
 
 				return -ENOMEM;
 			}
 
-			sscanf(port, "%hu", &setup->port); /* FIXME parse errors */
+			if (sscanf(port->value, "%hu", &setup->port) != 1)
+				return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, port, res_setting, -EINVAL);
 		}
 
-		sscanf(bpm, "%u", &ibpm);
-		sscanf(rpb, "%u", &irpb);
+		if (sscanf(bpm->value, "%u", &ibpm) != 1)
+				return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, bpm, res_setting, -EINVAL);
+		if (sscanf(rpb->value, "%u", &irpb) != 1)
+				return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, rpb, res_setting, -EINVAL);
 		setup->rows_per_ms = ((double)(ibpm * irpb)) * (1.0 / (60.0 * 1000.0));
 
 		*res_setup = &setup->til_setup;
