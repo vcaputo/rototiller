@@ -368,7 +368,7 @@ til_module_t	voronoi_module = {
 
 static int voronoi_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
-	const char	*n_cells;
+	til_setting_t	*n_cells;
 	const char	*n_cells_values[] = {
 				"512",
 				"1024",
@@ -379,7 +379,7 @@ static int voronoi_setup(const til_settings_t *settings, til_setting_t **res_set
 				"32768",
 				NULL
 			};
-	const char	*randomize;
+	til_setting_t	*randomize;
 	const char	*bool_values[] = {
 				"off",
 				"on",
@@ -387,7 +387,7 @@ static int voronoi_setup(const til_settings_t *settings, til_setting_t **res_set
 			};
 	int		r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Voronoi cells quantity",
 							.key = "cells",
@@ -402,7 +402,7 @@ static int voronoi_setup(const til_settings_t *settings, til_setting_t **res_set
 	if (r)
 		return r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Constantly randomize cell placement",
 							.key = "randomize",
@@ -424,9 +424,10 @@ static int voronoi_setup(const til_settings_t *settings, til_setting_t **res_set
 		if (!setup)
 			return -ENOMEM;
 
-		sscanf(n_cells, "%zu", &setup->n_cells);
+		if (sscanf(n_cells->value, "%zu", &setup->n_cells) != 1)
+			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, n_cells, res_setting, -EINVAL);
 
-		if (!strcasecmp(randomize, "on"))
+		if (!strcasecmp(randomize->value, "on"))
 			setup->randomize = 1;
 
 		*res_setup = &setup->til_setup;
