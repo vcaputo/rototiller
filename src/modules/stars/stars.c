@@ -271,7 +271,7 @@ til_module_t	stars_module = {
 
 int stars_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
-	const char	*rot_adj;
+	til_setting_t	*rot_adj;
 	const char	*rot_adj_values[] = {
 				".0",
 				".00001",
@@ -283,7 +283,7 @@ int stars_setup(const til_settings_t *settings, til_setting_t **res_setting, con
 			};
 	int		r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Rotation rate",
 							.key = "rot_adj",
@@ -305,7 +305,8 @@ int stars_setup(const til_settings_t *settings, til_setting_t **res_setting, con
 		if (!setup)
 			return -ENOMEM;
 
-		sscanf(rot_adj, "%f", &setup->rot_adj);
+		if (sscanf(rot_adj->value, "%f", &setup->rot_adj) != 1)
+			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, rot_adj, res_setting, -EINVAL);
 
 		*res_setup = &setup->til_setup;
 	}
