@@ -376,13 +376,16 @@ int til_settings_get_and_describe_setting(const til_settings_t *settings, const 
 }
 
 
+/* FIXME TODO: this is deprecated, but kept around just for  til_settings_apply_desc_generators() use,
+ * hence static.
+ */
 /* helper for the common setup case of describing a setting when absent or not yet described.
  * returns:
  * -1 on error, res_* will be untouched in this case.
  * 0 when setting is present and described, res_value and res_setting will be populated w/non-NULL, and res_desc NULL in this case.
  * 1 when setting is either present but undescribed, or absent (and undescribed), res_* will be populated but res_{value,setting} may be NULL if absent and simply described.
  */
-int til_settings_get_and_describe_value(const til_settings_t *settings, const til_setting_spec_t *spec, const char **res_value, til_setting_t **res_setting, const til_setting_desc_t **res_desc)
+static int til_settings_get_and_describe_value(const til_settings_t *settings, const til_setting_spec_t *spec, const char **res_value, til_setting_t **res_setting, const til_setting_desc_t **res_desc)
 {
 	til_setting_t	*setting;
 	const char	*value;
