@@ -621,14 +621,14 @@ til_module_t	checkers_module = {
 
 static int checkers_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
-	const char		*size;
-	const char		*pattern;
-	const char		*fill_module;
+	til_setting_t		*size;
+	til_setting_t		*pattern;
+	til_setting_t		*fill_module;
 	const til_settings_t	*fill_module_settings;
-	const char		*dynamics;
-	const char		*dynamics_rate;
-	const char		*fill, *clear;
-	const char		*fill_color, *clear_color;
+	til_setting_t		*dynamics;
+	til_setting_t		*dynamics_rate;
+	til_setting_t		*fill, *clear;
+	til_setting_t		*fill_color, *clear_color;
 	const char		*size_values[] = {
 					"4",
 					"8",
@@ -693,7 +693,7 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 				};
 	int			r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Checker size",
 							.key = "size",
@@ -708,7 +708,7 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 	if (r)
 		return r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Checkers pattern",
 							.key = "pattern",
@@ -722,7 +722,7 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 	if (r)
 		return r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Filled cell module (\"none\" for plain checkers)",
 							.key = "fill_module",
@@ -737,15 +737,8 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 	if (r)
 		return r;
 
-	/* hmm, we're about to assume this is always valid, so let's assert that's actually the case...
-	 * looking at til_settings_get_and_describe_value() it looks to be optional there.
-	 * TODO: since _we_ require the res_setting, we should provide a temporary place for it
-	 * here if it's not guaranteed, then copy it into *res_setting if wanted.
-	 */
-	assert(res_setting && *res_setting);
-	assert((*res_setting)->value_as_nested_settings);
-
-	fill_module_settings = (*res_setting)->value_as_nested_settings,
+	fill_module_settings = fill_module->value_as_nested_settings,
+	assert(fill_module_settings);
 
 	r = checkers_fill_module_setup(fill_module_settings,
 				       res_setting,
@@ -754,7 +747,7 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 	if (r)
 		return r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Checkers dynamics",
 							.key = "dynamics",
@@ -768,8 +761,8 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 	if (r)
 		return r;
 
-	if (strcasecmp(dynamics, "odd") && strcasecmp(dynamics, "even")) {
-		r = til_settings_get_and_describe_value(settings,
+	if (strcasecmp(dynamics->value, "odd") && strcasecmp(dynamics->value, "even")) {
+		r = til_settings_get_and_describe_setting(settings,
 							&(til_setting_spec_t){
 								.name = "Checkers dynamics rate",
 								.key = "dynamics_rate",
@@ -784,7 +777,7 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 			return r;
 	}
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Fill mode",
 							.key = "fill",
@@ -801,7 +794,7 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 	/* Even though sampled and textured fills don't neceesarily use the color,
 	 * if there's no texture or no underlay to sample, we should have a color to fallback on.
 	 */
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Fill color",
 							.key = "fill_color",
@@ -816,7 +809,7 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 	if (r)
 		return r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Clear mode",
 							.key = "clear",
@@ -830,8 +823,8 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 	if (r)
 		return r;
 
-	if (strcasecmp(clear, "clear")) {
-		r = til_settings_get_and_describe_value(settings,
+	if (strcasecmp(clear->value, "clear")) {
+		r = til_settings_get_and_describe_setting(settings,
 							&(til_setting_spec_t){
 								.name = "Clear color",
 								.key = "clear_color",
@@ -859,16 +852,15 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 		if (!setup)
 			return -ENOMEM;
 
-		sscanf(size, "%u", &setup->size);
+		if (sscanf(size->value, "%u", &setup->size) != 1)
+			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, size, res_setting, -EINVAL);
 
-		if (!strcasecmp(pattern, "checkered"))
+		if (!strcasecmp(pattern->value, "checkered"))
 			setup->pattern = CHECKERS_PATTERN_CHECKERED;
-		else if (!strcasecmp(pattern, "random"))
+		else if (!strcasecmp(pattern->value, "random"))
 			setup->pattern = CHECKERS_PATTERN_RANDOM;
-		else {
-			til_setup_free(&setup->til_setup);
-			return -EINVAL;
-		}
+		else
+			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, pattern, res_setting, -EINVAL);
 
 		r = checkers_fill_module_setup(fill_module_settings,
 					       res_setting,
@@ -881,46 +873,38 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 
 		assert(r == 0);
 
-		if (!strcasecmp(dynamics, "odd"))
+		if (!strcasecmp(dynamics->value, "odd"))
 			setup->dynamics = CHECKERS_DYNAMICS_ODD;
-		else if (!strcasecmp(dynamics, "even"))
+		else if (!strcasecmp(dynamics->value, "even"))
 			setup->dynamics = CHECKERS_DYNAMICS_EVEN;
-		else if (!strcasecmp(dynamics, "alternating"))
+		else if (!strcasecmp(dynamics->value, "alternating"))
 			setup->dynamics = CHECKERS_DYNAMICS_ALTERNATING;
-		else if (!strcasecmp(dynamics, "random"))
+		else if (!strcasecmp(dynamics->value, "random"))
 			setup->dynamics = CHECKERS_DYNAMICS_RANDOM;
-		else {
-			til_setup_free(&setup->til_setup);
-			return -EINVAL;
+		else
+			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, dynamics, res_setting, -EINVAL);
+
+		if (setup->dynamics != CHECKERS_DYNAMICS_ODD && setup->dynamics != CHECKERS_DYNAMICS_EVEN) {
+			if (sscanf(dynamics_rate->value, "%f", &setup->rate) != 1)
+				return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, dynamics_rate, res_setting, -EINVAL);
 		}
 
-		if (setup->dynamics != CHECKERS_DYNAMICS_ODD && setup->dynamics != CHECKERS_DYNAMICS_EVEN)
-			sscanf(dynamics_rate, "%f", &setup->rate);
+		r = checkers_value_to_pos(fill_values, fill->value, (unsigned *)&setup->fill);
+		if (r < 0)
+			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, fill, res_setting, -EINVAL);
 
-		r = checkers_value_to_pos(fill_values, fill, (unsigned *)&setup->fill);
-		if (r < 0) {
-			til_setup_free(&setup->til_setup);
-			return -EINVAL;
-		}
+		r = checkers_rgb_to_uint32(fill_color->value, &setup->fill_color);
+		if (r < 0)
+			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, fill_color, res_setting, -EINVAL);
 
-		r = checkers_rgb_to_uint32(fill_color, &setup->fill_color);
-		if (r < 0) {
-			til_setup_free(&setup->til_setup);
-			return -EINVAL;
-		}
-
-		r = checkers_value_to_pos(clear_values, clear, (unsigned *)&setup->clear);
-		if (r < 0) {
-			til_setup_free(&setup->til_setup);
-			return -EINVAL;
-		}
+		r = checkers_value_to_pos(clear_values, clear->value, (unsigned *)&setup->clear);
+		if (r < 0)
+			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, clear, res_setting, -EINVAL);
 
 		if (setup->clear != CHECKERS_CLEAR_CLEAR) {
-			r = checkers_rgb_to_uint32(clear_color, &setup->clear_color);
-			if (r < 0) {
-				til_setup_free(&setup->til_setup);
-				return -EINVAL;
-			}
+			r = checkers_rgb_to_uint32(clear_color->value, &setup->clear_color);
+			if (r < 0)
+				return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, clear_color, res_setting, -EINVAL);
 		}
 
 		*res_setup = &setup->til_setup;
