@@ -159,7 +159,7 @@ til_module_t	strobe_module = {
 
 static int strobe_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
-	const char	*hz;
+	til_setting_t	*hz;
 	const char	*hz_values[] = {
 				"60",
 				"50",
@@ -173,7 +173,7 @@ static int strobe_setup(const til_settings_t *settings, til_setting_t **res_sett
 			};
 	int		r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Strobe frequency in hz",
 							.key = "hz",
@@ -195,7 +195,8 @@ static int strobe_setup(const til_settings_t *settings, til_setting_t **res_sett
 		if (!setup)
 			return -ENOMEM;
 
-		sscanf(hz, "%f", &setup->hz);
+		if (sscanf(hz->value, "%f", &setup->hz) != 1)
+			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, hz, res_setting, -EINVAL);
 
 		*res_setup = &setup->til_setup;
 	}
