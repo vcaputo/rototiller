@@ -369,13 +369,13 @@ static int rtv_snow_module_setup(const til_settings_t *settings, til_setting_t *
 static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	const til_settings_t	*snow_module_settings;
-	const char		*channels;
-	const char		*duration;
-	const char		*context_duration;
-	const char		*caption_duration;
-	const char		*snow_duration;
-	const char		*snow_module;
-	const char		*log_channels;
+	til_setting_t		*channels;
+	til_setting_t		*duration;
+	til_setting_t		*context_duration;
+	til_setting_t		*caption_duration;
+	til_setting_t		*snow_duration;
+	til_setting_t		*snow_module;
+	til_setting_t		*log_channels;
 	const char		*log_channels_values[] = {
 					"off",
 					"on",
@@ -396,7 +396,7 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 	 * setup preparation phase for a settings instance that will be re-evaluated
 
 	 */
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Colon-separated list of channel modules, \"all\" for all",
 							.key = "channels",
@@ -409,7 +409,7 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 	if (r)
 		return r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Channel duration, in seconds",
 							.key = "duration",
@@ -423,7 +423,7 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 	if (r)
 		return r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Context duration, in seconds",
 							.key = "context_duration",
@@ -437,7 +437,7 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 	if (r)
 		return r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Caption duration, in seconds",
 							.key = "caption_duration",
@@ -451,7 +451,7 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 	if (r)
 		return r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Snow on channel-switch duration, in seconds",
 							.key = "snow_duration",
@@ -465,7 +465,7 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 	if (r)
 		return r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Module for snow (\"blank\" for blanking, \"none\" to disable)",
 							.key = "snow_module",
@@ -479,10 +479,8 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 	if (r)
 		return r;
 
-	assert(res_setting && *res_setting);
-	assert((*res_setting)->value_as_nested_settings);
-
-	snow_module_settings = (*res_setting)->value_as_nested_settings;
+	snow_module_settings = snow_module->value_as_nested_settings;
+	assert(snow_module_settings);
 
 	r = rtv_snow_module_setup(snow_module_settings,
 				       res_setting,
@@ -491,7 +489,7 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 	if (r)
 		return r;
 
-	r = til_settings_get_and_describe_value(settings,
+	r = til_settings_get_and_describe_setting(settings,
 						&(til_setting_spec_t){
 							.name = "Log channel settings to stderr",
 							.key = "log_channels",
@@ -514,7 +512,7 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 			return -ENOMEM;
 
 		/* turn channels colon-separated list into a null-terminated array of strings */
-		if (strcasecmp(channels, "all")) {
+		if (strcasecmp(channels->value, "all")) {
 			const til_module_t	**modules;
 			size_t			n_modules;
 			char			*tokchannels, *channel;
@@ -522,7 +520,7 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 
 			til_get_modules(&modules, &n_modules);
 
-			tokchannels = strdup(channels); /* TODO FIXME: this is getting leaked currently */
+			tokchannels = strdup(channels->value); /* TODO FIXME: this is getting leaked currently */
 			if (!tokchannels) {
 				til_setup_free(&setup->til_setup);
 
@@ -539,11 +537,8 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 						break;
 				}
 
-				if (i >= n_modules) {
-					til_setup_free(&setup->til_setup);
-
-					return -EINVAL;
-				}
+				if (i >= n_modules)
+					return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, channels, res_setting, -EINVAL);
 
 				new = realloc(setup, sizeof(*setup) + n * sizeof(setup->channels[0]));
 				if (!new) {
@@ -567,18 +562,25 @@ static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting
 					  &setup->snow_module_setup); /* finalize! */
 		if (r < 0) {
 			til_setup_free(&setup->til_setup);
+
 			return r;
 		}
 
 		assert(r == 0);
 
-		/* TODO FIXME: parse errors */
-		sscanf(duration, "%u", &setup->duration);
-		sscanf(context_duration, "%u", &setup->context_duration);
-		sscanf(caption_duration, "%u", &setup->caption_duration);
-		sscanf(snow_duration, "%u", &setup->snow_duration);
+		if (sscanf(duration->value, "%u", &setup->duration) != 1)
+			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, duration, res_setting, -EINVAL);
 
-		if (!strcasecmp(log_channels, log_channels_values[1]))
+		if (sscanf(context_duration->value, "%u", &setup->context_duration) != 1)
+			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, context_duration, res_setting, -EINVAL);
+
+		if (sscanf(caption_duration->value, "%u", &setup->caption_duration) != 1)
+			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, caption_duration, res_setting, -EINVAL);
+
+		if (sscanf(snow_duration->value, "%u", &setup->snow_duration) != 1)
+			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, snow_duration, res_setting, -EINVAL);
+
+		if (!strcasecmp(log_channels->value, log_channels_values[1]))
 			setup->log_channels = 1;
 
 		*res_setup = &setup->til_setup;
