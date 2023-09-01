@@ -24,10 +24,12 @@
 #include "til_module_context.h"
 
 #define MOIRE_DEFAULT_CENTERS	2
+#define MOIRE_DEFAULT_RINGS	20
 
 typedef struct moire_setup_t {
 	til_setup_t	til_setup;
 	unsigned	n_centers;
+	unsigned	n_rings;
 } moire_setup_t;
 
 typedef struct moire_center_t {
@@ -85,6 +87,7 @@ static void moire_render_fragment(til_module_context_t *context, til_stream_t *s
 	float		yf = 2.f / (float)fragment->frame_height;
 	unsigned	n_centers = ctxt->setup->n_centers;
 	moire_center_t	*centers = ctxt->centers;
+	float		n_rings = ctxt->setup->n_rings;
 	float		cx, cy;
 
 	/* TODO: optimize */
@@ -101,7 +104,7 @@ static void moire_render_fragment(til_module_context_t *context, til_stream_t *s
 				dx = cx - centers[i].x;
 				dy = cy - centers[i].y;
 
-				filled ^= ((int)((sqrtf(dx * dx + dy * dy)) * 20.f) & 0x1);
+				filled ^= ((int)(sqrtf(dx * dx + dy * dy) * n_rings) & 0x1);
 			}
 
 			if (filled)
@@ -131,11 +134,22 @@ til_module_t	moire_module = {
 static int moire_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	til_setting_t	*centers;
-	const char	*values[] = {
+	til_setting_t	*rings;
+	const char	*centers_values[] = {
 				"2",
 				"3",
 				"4",
 				"5",
+				NULL
+			};
+	const char	*rings_values[] = {
+				"5",
+				"10",
+				"20",
+				"40",
+				"60",
+				"80",
+				"100",
 				NULL
 			};
 	int		r;
@@ -146,10 +160,25 @@ static int moire_setup(const til_settings_t *settings, til_setting_t **res_setti
 							.key = "centers",
 							.regex = "\\.[0-9]+",
 							.preferred = TIL_SETTINGS_STR(MOIRE_DEFAULT_CENTERS),
-							.values = values,
+							.values = centers_values,
 							.annotations = NULL
 						},
 						&centers,
+						res_setting,
+						res_desc);
+	if (r)
+		return r;
+
+	r = til_settings_get_and_describe_setting(settings,
+						&(til_setting_spec_t){
+							.name = "Number of rings per center",
+							.key = "rings",
+							.regex = "\\.[0-9]+",
+							.preferred = TIL_SETTINGS_STR(MOIRE_DEFAULT_RINGS),
+							.values = rings_values,
+							.annotations = NULL
+						},
+						&rings,
 						res_setting,
 						res_desc);
 	if (r)
@@ -164,6 +193,9 @@ static int moire_setup(const til_settings_t *settings, til_setting_t **res_setti
 
 		if (sscanf(centers->value, "%u", &setup->n_centers) != 1)
 			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, centers, res_setting, -EINVAL);
+
+		if (sscanf(rings->value, "%u", &setup->n_rings) != 1)
+			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, rings, res_setting, -EINVAL);
 
 		*res_setup = &setup->til_setup;
 	}
