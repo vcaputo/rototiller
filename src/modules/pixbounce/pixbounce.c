@@ -255,16 +255,14 @@ static til_module_context_t * pixbounce_create_context(const til_module_t *modul
 	return &ctxt->til_module_context;
 }
 
-static void pixbounce_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
+static void pixbounce_prepare_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
 {
 	pixbounce_context_t	*ctxt = (pixbounce_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;
+	int			width = fragment->width, height = fragment->height;
 
-	int	width = fragment->width, height = fragment->height;
-
-	/* check for very small fragment */
-	if(ctxt->pix->width*2>width||ctxt->pix->height*2>height)
-		return;
+	/* tell rototiller how to subfragment the frame for threaded rendering */
+	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_tile64 };
 
 	if(ctxt->x == -1) {
 		int	multiplier_x, multiplier_y;
@@ -287,21 +285,6 @@ static void pixbounce_render_fragment(til_module_context_t *context, til_stream_
 
 	}
 
-	/* blank the frame */
-	til_fb_fragment_clear(fragment);
-
-	/* translate pixmap to multiplier size and draw it to the fragment */
-	for(int cursor_y=0; cursor_y < ctxt->pix->height*ctxt->multiplier; cursor_y++) {
-		for(int cursor_x=0; cursor_x < ctxt->pix->width*ctxt->multiplier; cursor_x++) {
-			int pix_offset = ((cursor_y/ctxt->multiplier)*ctxt->pix->width) + (cursor_x/ctxt->multiplier);
-			if(ctxt->pix->pix_map[pix_offset] == 0) continue;
-			til_fb_fragment_put_pixel_checked(
-					fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, ctxt->x+cursor_x, ctxt->y+cursor_y,
-					ctxt->color
-				);
-		}
-	}
-
 	/* update pixmap location */
 	if (ticks != context->last_ticks) {
 		if(ctxt->x+ctxt->x_dir < 0 || ctxt->x+ctxt->pix->width*ctxt->multiplier+ctxt->x_dir > width) {
@@ -317,14 +300,50 @@ static void pixbounce_render_fragment(til_module_context_t *context, til_stream_
 	}
 }
 
+static void pixbounce_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
+{
+	pixbounce_context_t	*ctxt = (pixbounce_context_t *)context;
+	til_fb_fragment_t	*fragment = *fragment_ptr;
+	int			pix_y, pix_x, pix_w, pix_h;
+
+	/* blank the fragment */
+	til_fb_fragment_clear(fragment);
+
+	/* check if this fragment is entirely outside the scaled pix */
+	if (fragment->x > ctxt->x + ctxt->pix->width * ctxt->multiplier ||
+	    fragment->x + fragment->width < ctxt->x ||
+	    fragment->y > ctxt->y + ctxt->pix->height * ctxt->multiplier ||
+	    fragment->y + fragment->height < ctxt->y)
+		return;
+
+	/* clip the scaled+placed pix to fragment->{x,y,width,height} */
+	pix_x = MAX(ctxt->x, fragment->x) - ctxt->x;
+	pix_y = MAX(ctxt->y, fragment->y) - ctxt->y;
+	pix_w = MIN(ctxt->x + ctxt->pix->width * ctxt->multiplier, fragment->x + fragment->width) - (ctxt->x + pix_x) ;
+	pix_h = MIN(ctxt->y + ctxt->pix->height * ctxt->multiplier, fragment->y + fragment->height) - (ctxt->y + pix_y);
+
+	/* translate pixmap to multiplier size and draw it to the fragment */
+	for(int cursor_y = 0; cursor_y < pix_h; cursor_y++) {
+		for(int cursor_x = 0; cursor_x < pix_w; cursor_x++) {
+			int pix_offset = (((cursor_y+pix_y)/ctxt->multiplier)*ctxt->pix->width) + ((cursor_x+pix_x)/ctxt->multiplier);
+			if(ctxt->pix->pix_map[pix_offset] == 0) continue;
+			til_fb_fragment_put_pixel_unchecked(
+					fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, ctxt->x+pix_x+cursor_x, ctxt->y+pix_y+cursor_y,
+					ctxt->color
+				);
+		}
+	}
+}
+
 int pixbounce_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
 
 til_module_t	pixbounce_module = {
 	.create_context  = pixbounce_create_context,
+	.prepare_frame = pixbounce_prepare_frame,
 	.render_fragment = pixbounce_render_fragment,
 	.setup = pixbounce_setup,
 	.name = "pixbounce",
-	.description = "Pixmap bounce",
+	.description = "Pixmap bounce (threaded)",
 	.author = "Philip J Freeman <elektron@halo.nu>",
 	.flags = TIL_MODULE_OVERLAYABLE,
 };
