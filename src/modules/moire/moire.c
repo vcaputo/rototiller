@@ -22,6 +22,8 @@
 #include "til.h"
 #include "til_fb.h"
 #include "til_module_context.h"
+#include "til_stream.h"
+#include "til_tap.h"
 
 #define MOIRE_DEFAULT_CENTERS	2
 #define MOIRE_DEFAULT_RINGS	20
@@ -41,8 +43,32 @@ typedef struct moire_center_t {
 typedef struct moire_context_t {
 	til_module_context_t	til_module_context;
 	moire_setup_t		*setup;
+
+	struct {
+		til_tap_t		n_rings;
+	}			taps;
+
+	struct {
+		float			n_rings;
+	}			vars;
+
+	float			*n_rings;
+
 	moire_center_t		centers[];
 } moire_context_t;
+
+
+static void moire_update_taps(moire_context_t *ctxt, til_stream_t *stream, unsigned ticks)
+{
+	if (!til_stream_tap_context(stream, &ctxt->til_module_context, NULL, &ctxt->taps.n_rings))
+		*ctxt->n_rings = ctxt->setup->n_rings;
+	else
+		ctxt->vars.n_rings = *ctxt->n_rings;
+
+	if (ctxt->vars.n_rings <= 0.f)
+		ctxt->vars.n_rings = 0.f;
+}
+
 
 static til_module_context_t * moire_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
@@ -61,6 +87,9 @@ static til_module_context_t * moire_create_context(const til_module_t *module, t
 		ctxt->centers[i].y = sinf(ctxt->centers[i].seed + (float)ticks * .001f * ctxt->centers[i].dir);
 	}
 
+	ctxt->taps.n_rings = til_tap_init_float(ctxt, &ctxt->n_rings, 1, &ctxt->vars.n_rings, "n_rings");
+	moire_update_taps(ctxt, stream, ticks);
+
 	return &ctxt->til_module_context;
 }
 
@@ -70,6 +99,8 @@ static void moire_prepare_frame(til_module_context_t *context, til_stream_t *str
 	moire_context_t	*ctxt = (moire_context_t *)context;
 
 	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu_x16 };
+
+	moire_update_taps(ctxt, stream, ticks);
 
 	for (unsigned i = 0; i < ctxt->setup->n_centers; i++) {
 		ctxt->centers[i].x = cosf(ctxt->centers[i].seed + (float)ticks * .001f * ctxt->centers[i].dir);
@@ -87,7 +118,7 @@ static void moire_render_fragment(til_module_context_t *context, til_stream_t *s
 	float		yf = 2.f / (float)fragment->frame_height;
 	unsigned	n_centers = ctxt->setup->n_centers;
 	moire_center_t	*centers = ctxt->centers;
-	float		n_rings = ctxt->setup->n_rings;
+	float		n_rings = rintf(ctxt->vars.n_rings);
 	float		cx, cy;
 
 	/* TODO: optimize */
