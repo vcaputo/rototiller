@@ -1,1 +1,1 @@
-SUBDIRS = blinds checkers compose drizzle flui2d julia meta2d mixer moire montage pixbounce plasma plato ray rkt roto rtv shapes signals snow sparkler spiro stars strobe submit swab swarm voronoi
+SUBDIRS = blinds checkers compose drizzle flow flui2d julia meta2d mixer moire montage pixbounce plasma plato ray rkt roto rtv shapes signals snow sparkler spiro stars strobe submit swab swarm voronoi
