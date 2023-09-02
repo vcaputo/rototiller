@@ -1,13 +1,23 @@
+Quickly jump sections of this document by searching forward/reverse for ^-
+
+
+---
+
+
 Hacking on rototiller / libtil:
+
+
+---
+
 
  Introduction:
 
-    This document primarily attempts to describe how one goes about
-  hacking on new rototiller modules.
+    This document primarily attempts to describe how one goes about hacking
+  on new rototiller modules.
 
-    Initially only a bare minimum module addition is described.  This
-  is a single-threaded, unconfigurable at runtime, simple module, requiring
-  only a single rendering function be implemented.
+    Initially only a bare minimum module creation is described.  This is a
+  single-threaded, unconfigurable at runtime, simple module, requiring only
+  the rendering function be implemented.
 
     Later more advanced topics like threaded rendering and runtime
   configurability will be covered.  These are completely optional and can
@@ -16,7 +26,10 @@ Hacking on rototiller / libtil:
     The creative process of developing a new module often starts with
   writing nothing more than a rendering function, later evolving to become
   more complex in pursuit of better performance via threaded rendering, and
-  greater flexibility via runtime settings.
+  greater flexibility via runtime settings and/or taps.
+
+
+---
 
 
  Getting started:
@@ -34,20 +47,26 @@ Hacking on rototiller / libtil:
 
   3. Integrating the module into the build system by adding its directory
      to the existing "configure.ac" and "src/modules/Makefile.am" files,
-     and creating its own "src/modules/${new}/Makefile.am" file.
+     creating its own "src/modules/${new}/Makefile.am" file, and adding
+     it's produced archive to "src/Makefile.am" for linking.
 
-  4. Binding the module into libtil exposing it to the world by adding it
+  4. Wiring the module into libtil exposing it to the world by adding it
      to the modules[] array in "src/til.c".
 
     Most of these steps are self-explanatory after looking at the existing
-  code/build-system files.  It's common to bootstrap a new module by copying
-  a "Makefile.am" and "${new}.c" file from one of the existing modules.
+  code/build-system files.  It's common (and encouraged) to bootstrap a new
+  module by copying a "Makefile.am" and "${new}.c" file from one of the
+  existing modules.
 
     There's also a "stub" branch provided in the git repository, adding a
   bare minimum module rendering a solid white canvas every frame.  This is
   intended for use as a clean slate for bootstrapping new modules, there's
   no harm in deriving new modules from either this "stub" branch, or
-  existing modules.
+  existing modules.  The "stub" branch may lag behind the state of the
+  world, so it's probably better to use an actual existing module.
+
+
+---
 
 
  Configuring and building the source:
@@ -58,51 +77,70 @@ Hacking on rototiller / libtil:
 
       $ ./bootstrap
       $ mkdir build; cd build; ../configure
-      $ make
+      $ make -j4
 
     The source is all C, so a C compiler is required.  Autotools is also
   required for `bootstrap` to succeed in generating the configure script
   and Makefile templates, `pkg-config` is used by configure, and a `make`
-  program for executing the build.  On Debian systems installing the
-  "build-essential" meta-package and "libtool" should at least get things
-  building successfully.
+  program for executing the build.  On Debian-derived systems installing
+  the "build-essential" meta-package and "libtool" should at least get
+  things building successfully.
 
     To actually produce a `rototiller` binary usable for rendering visual
   output, libsdl2 and/or libdrm development packages will also be needed.
   Look at the `../configure` output for SDL and DRM lines to see which have
   been enabled.  If both report "no" then the build will only produce a
-  libtil library for potential use in other frontends, with no rototiller
-  binary for the included CLI frontend.
+  libtil library for potential use in other frontends, and a rototiller
+  binary only capable of invisible in-memory rendering useful for testing
+  and benchmarking, but no visible output.  The SDL backend is preferred
+  when available.
 
-    After successfully building rototiller with the CLI frontend, an
-  executable will be at "src/rototiller" in the build tree.  If the steps
-  above were followed verbatim, that would be at "build/src/rototiller".
+    After successfully building rototiller, an executable will be at
+  "src/rototiller" in the build tree.  If the steps above were followed
+  verbatim, that would be at "build/src/rototiller".  This program is the
+  primary CLI front-end for rototiller.
+
+
+---
 
 
  Quickly testing modules via the CLI frontend:
 
-     The included frontend supports both an interactive stdio-style setup
-   and specifying those same settings via commandline arguments.  If run
-   without any arguments, i.e. just running `build/src/rototiller`, a
-   comprehensive interactive setup will be performed for determining both
-   module and video settings.
+    The included frontend supports both an interactive text dialog style
+  setup and specifying those same settings via commandline arguments.  If
+  run without any arguments, i.e. just running `build/src/rototiller`, a
+  comprehensive guided interactive setup will be performed for determining
+  both module and video settings.  Pressing just <enter> at any time
+  accepts the default, shown between the [] of the prompt.
 
-     Prior to actually proceeding with a given setup, the configured setup
-   about to be used is always printed on stdout as valid commandline
-   argument syntax.  This may be copied and reused for an automated
-   non-interactive startup using those settings.
+    Prior to actually proceeding with a given setup, the configured setup
+  to be used is always printed on stdout as valid commandline argument
+  syntax.  This may be copied and reused for an immediate, non-interactive
+  reexecution with those settings.  One can specify '--go' to skip the wait
+  for <enter> normally inserted while showing the produced settings
+  command-line.
 
-     One can also partially specify any setup in the commandline arguments,
-   resulting in an interactive setup for just the unspecified settings.
-   When developing a new module it's common to specify the video settings,
-   and just the module name under development, leaving the module's
-   settings for interactive specification during the experimentation
-   process.  i.e.:
+    One can also partially specify any setup in the commandline arguments,
+  resulting in a partial interactive setup for just the missing settings.
 
-      $ build/src/rototiller --module=newmodule --video=sdl,fullscreen=off,size=640x480
+    When developing a new module it's common to specify the video settings,
+  and just the module name under development, leaving the module's settings
+  for interactive dialog during the experimentation process.  i.e.:
 
-     This way, if "newmodule" implements settings, only those unspecified
-   will be asked for interactively.
+      $ build/src/rototiller --module=$new --video=sdl,fullscreen=off,size=640x480
+
+    This way, if "$new" implements settings, only those unspecified will
+  be asked for interactively.  Note this isn't coarse-grained, you can
+  specify some of the settings while leaving the one you want to be asked
+  for out, e.g.
+
+      $ build/src/rototiller --module=$new,foo=bar --video=sdl,fullscreen=off,size=640x480
+
+    If "$new" expects settings foo= and baz=, it rototiller would query
+  about baz= while accepting the "bar" for "foo".
+
+
+---
 
 
  The render function, a bare minimum module:
@@ -110,53 +148,62 @@ Hacking on rototiller / libtil:
     All rendering in rototiller is performed using the CPU, in 24-bit "True
   color" pixel format, with 32-bits/4-bytes of space used per pixel.
 
-    The surface for rendering into is described using a display system
-  agnostic "framebuffer fragment" structure type named
-  "til_fb_fragment_t", defined in "src/til_fb.h" as:
+    The surface for rendering into is described using a display-system
+  agnostic "framebuffer fragment" structure type named "til_fb_fragment_t",
+  defined in "src/til_fb.h" as:
 
       typedef struct til_fb_fragment_t {
         uint32_t *buf;           /* pointer to the first pixel in the fragment */
-        unsigned x, y;           /* absolute coordinates of the upper left corner of this fragment */
-        unsigned width, height;  /* width and height of this fragment */
-        unsigned frame_width;    /* width of the frame this fragment is part of */
-        unsigned frame_height;   /* height of the frame this fragment is part of */
-        unsigned stride;         /* number of bytes from the end of one row to the start of the next */
-        unsigned pitch;          /* number of bytes separating y from y + 1, including any padding */
+        unsigned x, y;           /* absolute coordinates of the upper left corner of this fragment within the logical frame */
+        unsigned width, height;  /* actual width and height of this fragment */
+        unsigned frame_width;    /* logical width of the frame this fragment is part of */
+        unsigned frame_height;   /* logical height of the frame this fragment is part of */
+        unsigned stride;         /* number of words from the end of one row to the start of the next */
+        unsigned pitch;          /* number of words separating y from y + 1, including any padding */
         unsigned number;         /* this fragment's number as produced by fragmenting */
         unsigned cleared:1;      /* if this fragment has been cleared since last flip */
       } til_fb_fragment_t;
 
-    For most modules these members are simply used as provided, and
-  there's no need to manipulate them.  For simple non-threaded cases only
-  the "buf" and "{width,height}" members are required, with "stride" or
-  "pitch" becoming important for algorithms directly manipulating buf's
-  memory contents to properly address rows of pixels since fragments may
-  be discontiguous in buf at row boundaries for a variety of reasons.
+    For most modules these members are simply used as provided, and there's
+  no need to manipulate them.  For simple non-threaded cases only the "buf"
+  and "{width,height}" members are required, with "stride" or "pitch"
+  becoming important for algorithms directly manipulating buf's memory
+  contents to properly address rows of pixels since fragments may be
+  discontiguous in buf at row boundaries for a variety of reasons.
 
-    When using threaded rendering, the "frame_{width,height}" members
-  become important as they describe a fragment's full-frame dimensions,
-  while "{width,height}" describe the specific fragment within the frame
-  being rendered by render_fragment().  In non-threaded scenarios these
-  members have the same values, but threading employs subfragmenting the
-  frame into independent fragments potentially rendered concurrently.
+    Particularly when using threaded rendering, the "frame_{width,height}"
+  members become important as they describe a fragment's full-frame
+  dimensions, while "{x,y,width,height}" describe the specific fragment
+  within the frame being rendered by render_fragment().
+
+    Note that even when not implementing a threaded module, the logical
+  "frame_{width,height}" may differ from "{width,height}".  So all modules
+  should take into consideration where the fragment they're rendering is
+  placed within its logical frame.  This is because rototiller treats
+  rendering modules as composable, and some modules may use other modules
+  as a sort of paintbrush in a greater whole, which may require clipping
+  the output by specifying a smaller fragment within a larger logical
+  frame.  You can ignore this detail initially, it's usually not too
+  complicated to correct later.
 
     The module_render() function prototype is declared within the
   "til_module_t" struct in "src/til.h" as:
 
-    void (*render_fragment)(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment);
+    void (*render_fragment)(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr);
 
     Every module must provide a "til_module_t" instance having at least this
   "render_fragment" member initialized to its rendering function.  This is
-  typically done using a global instance named with the module's prefix.
+  typically done using a global instance named using the module's name as
+  the prefix.
 
     None of the other function pointer members in "til_module_t" are
   required, and the convention is to use designated initialization in
   assigning a module's "til_module_t" members ensuring zero-initialization
   of omitted members, i.e.:
 
-      static void minimal_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
+      static void minimal_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
       {
-        /* render into fragment->buf */
+        /* render into (*fragment_ptr)->buf */
       }
 
       til_module_t minimal_module = {
@@ -165,21 +212,26 @@ Hacking on rototiller / libtil:
               .description = "Minimal example module",
       }
 
-    Note that the render_fragment() prototype has additional arguments than
-  just the "til_fb_fragment_t *fragment":
+    Note that the render_fragment() prototype has more arguments than just
+  the "til_fb_fragment_t **fragment_ptr":
 
-    void *context:
+    til_module_context_t *context:
 
       For modules implementing a create_context() function, this will be
       the pointer returned by that function.  Intended for modules that
-      require state persisted across frames rendered.
+      require state persisted across frames rendered.  For those not
+      implementing create_context(), this will be a libtil-provided context
+      containing only the members of "til_module_context_t" found in
+      "src/til_module_context.h".
 
     unsigned ticks:
 
       A convenient time-like counter the frontend advances during
       operation.  Instead of calling some kind of time function in every
       module which may become costly, "ticks" may be used to represent
-      time.
+      time.  This value is also adjusted to compensate for how many frames
+      are queued for display, making it a more accurate reference for what
+      tick is being rendered within the visuals timeline.
 
     unsigned cpu:
 
@@ -192,15 +244,16 @@ Hacking on rototiller / libtil:
   to be useful for even simple modules however.
 
     Rendering functions shouldn't make assumptions about the contents of
-  "fragment->buf", in part because rototiller will always use multiple
-  buffers for rendering which may be recycled in any order.  Additionally,
-  it's possible a given fragment will be further manipulated in composited
-  scenarios.  Consequently it's important that every render_fragment()
-  function fully render the region described by the fragment.
+  "(*fragment_ptr)->buf", in part because rototiller will always use
+  multiple buffers for rendering which may be recycled in any order.
+  Additionally, it's possible a given fragment will be further manipulated
+  in composited scenarios.  Consequently it's important that every
+  render_fragment() function fully render the region described by the
+  fragment.
 
     There tends to be two classes of rendering algorithms; those that
-  always produce a substantial color for every pixel available in the
-  output, and those producing more sparse output resembling an overlay.
+  always produce a color for every pixel available in the output, and those
+  producing sparse output akin to an overlay.
 
     In the latter case it's common to require bulk-clearing the fragment
   before the algorithm draws its sparse overlay-like contents onto the
@@ -215,10 +268,13 @@ Hacking on rototiller / libtil:
   til_fb_fragment_clear().  Simply call this at the start of the
   render_fragment() function, and the conditional cleared vs. non-cleared
   details will be handled automatically.  Otherwise see the implementation
-  in "src/til_fb.h" to see what's appropriate.  To clarify, modules
+  in "src/til_fb.h" to see what's appropriate to DIY.  To clarify, modules
   implementing algorithms that naturally always write every pixel in the
   fragment may completely ignore this aspect, and need not set the cleared
   member; that's handled automatically.
+
+
+---
 
 
  Stateful rendering:
@@ -228,25 +284,43 @@ Hacking on rototiller / libtil:
   and destroy_context() functions when initializing til_module_t, i.e.:
 
       typedef struct minimal_context_t {
+        til_module_context_t  til_module_context; /* must be at start of struct */
+
         int stateful_variables;
       } minimal_context_t;
 
-      static void * minimal_create_context(unsigned ticks, unsigned n_cpus, void *setup)
+      static til_module_context_t * minimal_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
       {
+        minimal_context_t *ctxt;
+
+        ctxt = til_module_context_new(module, sizeof(minimal_context_t), stream, seed, ticks, n_cpus, setup);
+        if (!ctxt)
+          return NULL;
+
         /* this can include more elaborate initialization of minimal_context_t as needed */
-        return calloc(1, sizeof(minimal_context_t));
+        ctxt->stateful_variables = 42;
+
+        return &ctxt->til_module_context;
       }
 
-      static void minimal_destroy_context(void *context)
+      static void minimal_destroy_context(til_module_context_t *context)
       {
+        /* Note that if all you need in your destroy_context is to free the
+         * top-level til_module_context_t, you can omit destroy_context(),
+         * libtil will do the bare free() for you.
+         *
+         * But if you have additional allocations requiring a "deep" free,
+         * then you must provide a destroy_context() and you're responsible
+         * for freeing the top-level context as well:
+         */
         free(context);
       }
 
-      static void minimal_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
+      static void minimal_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
       {
-        minimal_context_t *ctxt = context;
+        minimal_context_t *ctxt = (minimal_context_t *)context;
 
-        /* render into fragment->buf utilizing/updating ctxt->stateful_variables */
+        /* render into (*fragment_ptr)->buf utilizing/updating ctxt->stateful_variables */
       }
 
       til_module_t minimal_module = {
@@ -257,8 +331,28 @@ Hacking on rototiller / libtil:
               .description = "Minimal example module",
       }
 
+      static til_module_context_t * minimal_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+
     Note that the create_context() function prototype includes some
   arguments:
+
+    til_module_t *module:
+
+        The til_module_t this create_context came from, it should match the
+      til_module_t of your module.
+
+    til_stream_t *stream:
+
+        The stream this context is participating in.  Module contexts and
+      their taps are made discoverable from other modules via the stream.
+      You can ignore this for now.
+
+    unsigned seed:
+
+        The PRNG seed to be used for seeding any PRNGs used by the module.
+      It's very common to need random numbers, but rototiller strives to
+      make results reproducible, a component of that is controlling the
+      seeds used.  Note the --seed= CLI argument.
 
     unsigned ticks:
 
@@ -270,17 +364,17 @@ Hacking on rototiller / libtil:
 
     unsigned n_cpus:
 
-        This is the number of logical CPUs rototiller is running atop,
-      which is potentially relevant for threaded renderers.  The "unsigned
-      cpu" parameter supplied to render_fragment() will always be < this
-      n_cpus value, and the two are intended to complement eachother.  When
-      creating the context, one may allocate per-cpu cache-aligned space in
-      n_cpus quantity.  Then the render_fragment() function would address
-      this per-cpu space using the cpu parameter as an index into the
-      n_cpus sized allocation.
+        This is the number of logical CPUs the context is permitted to
+      utilize in rendering, which is potentially relevant for threaded
+      renderers.  The "unsigned cpu" parameter supplied to
+      render_fragment() will always be < this n_cpus value, and the two are
+      intended to complement eachother.  When creating the context, one may
+      allocate per-cpu cache-aligned space of n_cpus quantity.  Then the
+      render_fragment() function would address this per-cpu space using the
+      cpu parameter as an index into the n_cpus sized allocation.
       This is often ignored.
 
-    void *setup:
+    til_setup_t *setup:
 
         For modules implementing runtime-configuration by providing a
       setup() function in their til_module_t initializer, this will contain
@@ -290,6 +384,9 @@ Hacking on rototiller / libtil:
     As mentioned above in describing the rendering function, this is
   entirely optional.  One may create 100% valid modules implementing only
   the render_fragment() function.
+
+
+---
 
 
  Runtime-configurable rendering:
@@ -315,49 +412,65 @@ Hacking on rototiller / libtil:
   from stateful rendering:
 
       typedef struct minimal_setup_t {
+        til_setup_t til_setup; /* must be at start of struct */
+
         int foobar;
       } minimal_setup_t;
 
       typedef struct minimal_context_t {
+        til_module_context_t til_module_context; /* must be at start of struct */
+
         int stateful_variables;
       } minimal_context_t;
 
-      static void * minimal_create_context(unsigned ticks, unsigned n_cpus, void *setup)
+      static til_module_context_t * minimal_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
       {
         minimal_context_t *ctxt;
 
-        ctxt = calloc(1, sizeof(minimal_context_t));
+        ctxt = til_module_context_new(module, sizeof(minimal_context_t), stream, seed, ticks, n_cpus, setup);
         if (!ctxt)
           return NULL;
 
+        /* seed the stateful_variables from the runtime-provided setup */
         ctxt->stateful_variables = ((minimal_setup_t *)setup)->foobar;
 
-        return ctxt;
+        return &ctxt->til_module_context;
       }
 
-      static void minimal_destroy_context(void *context)
+      static void minimal_destroy_context(til_module_context_t *context)
       {
         free(context);
       }
 
-      static void minimal_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
+      static void minimal_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
       {
-        minimal_context_t *ctxt = context;
+        minimal_context_t *ctxt = (minimal_context_t *)context;
 
-        /* render into fragment->buf utilizing/updating ctxt->stateful_variables */
+        /* render into (*fragment_ptr)->buf utilizing/updating ctxt->stateful_variables */
       }
 
-      static int minimal_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, void **res_setup)
+      static int minimal_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
+
+      til_module_t minimal_module = {
+              .create_context = minimal_create_context,
+              .destroy_context = minimal_destroy_context,
+              .render_fragment = minimal_render_fragment,
+              .setup = minimal_setup,
+              .name = "minimal",
+              .description = "Minimal example module",
+      }
+
+      static int minimal_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
       {
-        const char  *values[] = {
+        const char    *values[] = {
               "off",
               "on",
               NULL
             };
-        const char  *foobar;
-        int         r;
+        til_setting_t *foobar;
+        int           r;
 
-        r = til_settings_get_and_describe_value(settings,
+        r = til_settings_get_and_describe_setting(settings,
                   &(til_setting_desc_t){
                     .name = "Foobar configurable setting",
                     .key = "foobar",
@@ -375,7 +488,7 @@ Hacking on rototiller / libtil:
         if (res_setup) {
           minimal_setup_t  *setup;
 
-          setup = calloc(1, sizeof(*setup));
+          setup = til_setup_new(settings, sizeof(*setup), NULL, &minimal_module);
           if (!setup)
             return -ENOMEM;
 
@@ -386,15 +499,6 @@ Hacking on rototiller / libtil:
         }
 
         return 0;
-      }
-
-      til_module_t minimal_module = {
-              .create_context = minimal_create_context,
-              .destroy_context = minimal_destroy_context,
-              .render_fragment = minimal_render_fragment,
-              .setup = minimal_setup,
-              .name = "minimal",
-              .description = "Minimal example module",
       }
 
 
@@ -417,20 +521,26 @@ Hacking on rototiller / libtil:
   be enough to get started.  Use the existing modules as a reference on how
   to implement settings.  The sparkler module in particular has one of the
   more complicated setup() functions involving dependencies where some
-  settings become expected and described only if others are enabled.
+  settings become expected and described only if others are enabled,
+  without too much complexity.
 
     None of the frontends currently enforce the regex, but it's best to
   always populate it with something valid as enforcement will become
-  implemented at some point in the future.  Module authors should be able
-  to largely assume the input is valid at least in terms of passing the
-  regex.
+  implemented at some point in the future.  Modules should be able to
+  largely assume the input is valid at least in terms of passing the regex,
+  but if it's too onerous to populate don't sweat it until front-ends start
+  actually enforcing them.
 
     Note how the minimal_setup_t instance returned by setup() in res_setup
   is subsequently supplied to minimal_create_context() in its setup
   parameter.  In the previous "Stateful rendering" example, this setup
-  parameter was ignored as it would always be NULL lacking any setup()
-  function.  But here we use it to retrieve the "foobar" value wired up by
-  the minimal_setup() function supplied as minimal_module.setup.
+  parameter was ignored, but it would still be non-NULL with the bare
+  til_setup_t populated, look at src/til_setup.h for what's there.  But
+  here we used it to retrieve the "foobar" value wired up by the
+  minimal_setup() function supplied as minimal_module.setup().
+
+
+---
 
 
  Threaded rendering:
@@ -455,13 +565,13 @@ Hacking on rototiller / libtil:
     The prepare_frame() function prototype is declared within the
   "til_module_t" struct in "src/til.h" as:
 
-      void (*prepare_frame)(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter);
+      void (*prepare_frame)(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan);
 
-    The context, ticks, n_cpus, and fragment parameters here are
-  semantically identical to their use in the other til_module_t
+    The context, stream, ticks, n_cpus, and fragment_ptr parameters here
+  are semantically identical to their use in the other til_module_t
   functions explained previously in this document.
 
-    What's special here is the res_fragmenter parameter.  This is where
+    What's special here is the res_frame_plan parameter.  This is where
   your module is expected to provide a fragmenter function rototiller will
   call repeatedly while breaking up the frame's fragment being rendered
   into smaller subfragments for passing to the module's render_fragment()
@@ -476,27 +586,27 @@ Hacking on rototiller / libtil:
     The fragmenter function's prototype is declared in the
   "til_fragmenter_t" typedef, also in "src/til.h":
 
-      typedef int (*til_fragmenter_t)(void *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment);
+      typedef int (*til_fragmenter_t)(til_module_context_t *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment);
 
     While rototiller renders a frame using the provided fragmenter, it
   repeatedly calls the fragmenter with an increasing number parameter until
   the fragmenter returns 0.  The fragmenter is expected to return 1 when it
-  describes another fragment for the supplied number in *res_fragment.  For
+  described another fragment for the supplied number in *res_fragment.  For
   a given frame being rendered this way, the context and fragment
   parameters will be uniform throughout the frame.  The produced fragment
   in *res_fragment is expected to describe a subset of the provided
   fragment.
 
-    Some rudimentary fragmenting helpers have been provided in
+    Some low-level fragmenting helpers have been provided in
   "src/til_fb.[ch]":
 
       int til_fb_fragment_slice_single(const til_fb_fragment_t *fragment, unsigned n_fragments, unsigned num, til_fb_fragment_t *res_fragment);
       int til_fb_fragment_tile_single(const til_fb_fragment_t *fragment, unsigned tile_size, unsigned num, til_fb_fragment_t *res_fragment);
 
-    It's common for threaded modules to simply call one of these in their
+    Threaded modules to simply call one of these in their
   fragmenter function, i.e. in the "ray" module:
 
-      static int ray_fragmenter(void *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
+      static int ray_fragmenter(til_module_context_t *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
       {
         return til_fb_fragment_tile_single(fragment, 64, number, res_fragment);
       }
@@ -508,30 +618,36 @@ Hacking on rototiller / libtil:
   rendering algorithm.  Use of these helpers is optional and provided just
   for convenience, modules are free to do whatever they wish here.
 
+    Some higher-level fragmenters helpers have also been provided in
+  "src/til.[ch]":
+
+      int til_fragmenter_slice_per_cpu(til_module_context_t *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment);
+      int til_fragmenter_slice_per_cpu_x16(til_module_context_t *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment);
+      int til_fragmenter_tile64(til_module_context_t *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment);
+
+    These may be provided directly as the fragmenter, rather than having to
+  write your own.  Most of the time, one of these suffices.
+
     Building upon the first minimal example from above, here's an example
-  adding threaded (tiled) rendering:
+  adding threaded (tiled) rendering, with the higher-level helper:
 
-      static int minimal_fragmenter(void *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
+      static void minimal_prepare_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
       {
-        return til_fb_fragment_tile_single(fragment, 64, number, res_fragment);
+	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_tile64 };
       }
 
-      static void minimal_prepare_frame)(void *context, unsigned ticks, unsigned n_cpus, til_fb_fragment_t *fragment, til_fragmenter_t *res_fragmenter)
+      static void minimal_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
       {
-        *res_fragmenter = minimal_fragmenter;
-      }
-
-      static void minimal_render_fragment(void *context, unsigned ticks, unsigned cpu, til_fb_fragment_t *fragment)
-      {
-        /* render into fragment->buf, which will be a 64x64 tile within the frame (modulo clipping) */
+        /* render into (*fragment_ptr)->buf, which will be a 64x64 tile within the frame (modulo clipping) */
 
         /* Note:
-         *  fragment->frame_{width,height} reflect the dimensions of the
-         *    whole-frame fragment provided to prepare_frame()
+         *  (*fragment_ptr)->frame_{width,height} reflect the logical
+         *  frame dimensions of the whole-frame fragment provided to
+         *  prepare_frame()
          *
-         *  fragment->{x,y,width,height} describe this fragment's tile
-         *    within the frame, which fragment->buf points at the upper left
-         *    corner of.
+         *  (*fragment_ptr)->{x,y,width,height} describe this fragment's
+         *  tile position and size within the logical frame, which
+         *  fragment->buf points at the upper left corner of.
          */
       }
 
@@ -548,9 +664,9 @@ Hacking on rototiller / libtil:
   render_fragment() function.
 
     When using threaded rendering, any varying state accessed via
-  render_fragment() must either be thread-local or synchronized using a
-  mutex or atomic intrinsics.  For performance reasons, the thread-local
-  option is strongly preferred, as it avoids the need for any atomics.
+  render_fragment() must either be per-cpu or synchronized using a mutex
+  or atomics.  For performance reasons, the per-cpu option is strongly
+  preferred, as it avoids the need for any synchronization/atomics.
 
     Both the create_context() and prepare_frame() functions receive an
   n_cpus parameter primarily for the purpose of preparing
@@ -560,5 +676,5 @@ Hacking on rototiller / libtil:
   lines.  A trivial (though wasteful) way to achieve this is to simply
   page-align the per-cpu allocation.  With more intimate knowledge of the
   cache line size (64 bytes is very common), one can be more frugal.  See
-  the "snow" module for an example of using per-cpu state for lockless
-  threaded stateful rendering.
+  the "snow" module for a simple example of using per-cpu state for lockless
+  threaded stateful rendering (PRNG seed state per cpu).
