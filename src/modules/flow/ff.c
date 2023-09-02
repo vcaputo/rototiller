@@ -26,6 +26,19 @@ void ff_populate(ff_t *ff, unsigned idx)
 }
 
 
+ff_t * ff_free(ff_t *ff)
+{
+	if (ff) {
+		for (int i = 0; i < 2; i++)
+			free(ff->fields[i]);
+
+		free(ff);
+	}
+
+	return NULL;
+}
+
+
 ff_t * ff_new(unsigned size, void (*populator)(void *context, unsigned size, const v3f_t *other, v3f_t *field), void *context)
 {
 	ff_t		*ff;
@@ -36,13 +49,8 @@ ff_t * ff_new(unsigned size, void (*populator)(void *context, unsigned size, con
 
 	for (int i = 0; i < 2; i++) {
 		ff->fields[i] = calloc(size * size * size, sizeof(v3f_t));
-		if (!ff->fields[i]) {
-			for (int j = 0; j < i; j++)
-				free(ff->fields[j]);
-
-			free(ff);
-			return NULL;
-		}
+		if (!ff->fields[i])
+			return ff_free(ff);
 	}
 
 	ff->size = size;
@@ -53,15 +61,6 @@ ff_t * ff_new(unsigned size, void (*populator)(void *context, unsigned size, con
 		ff_populate(ff, i);
 
 	return ff;
-}
-
-
-void ff_free(ff_t *ff)
-{
-	for (int i = 0; i < 2; i++)
-		free(ff->fields[i]);
-
-	free(ff);
 }
 
 
