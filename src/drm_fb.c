@@ -159,6 +159,9 @@ static int connector_desc_generator(const til_settings_t *settings, til_setup_t 
 	if (r < 0)
 		return r;
 
+	if (!connectors[0])
+		return -ENOENT;
+
 	r = til_setting_desc_new(	settings,
 					&(til_setting_spec_t){
 						.name = "DRM connector",
@@ -268,6 +271,9 @@ static int mode_desc_generator(const til_settings_t *settings, til_setup_t *setu
 	r = get_modes(s->dev, s->connector, &modes);
 	if (r < 0)
 		return r;
+
+	if (!modes[0])
+		return -ENOENT;
 
 	r = til_setting_desc_new(	settings,
 					&(til_setting_spec_t){
