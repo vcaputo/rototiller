@@ -1,4 +1,4 @@
-Quickly jump sections of this document by searching forward/reverse for ^-
+Quickly jump sections of this text by searching forward/reverse for ---
 
 
 ---
@@ -255,7 +255,7 @@ Quickly jump sections of this document by searching forward/reverse for ^-
     GNU Rocket[0] for supporting sequencing of variables that have been
     exposed by modules as "taps".  These taps show up in a Rocket Editor as
     tracks you can control on a timeline, for easily choreographing what's
-    happening visually in a convenient GUI[1] tracker-style interface.
+    happening visually in a convenient, tracker-style GUI[1].
 
       This opens up the possibility of using rototiller as a sort of
     demo[2] engine, where the rendering modules are composed and sequenced
@@ -284,21 +284,23 @@ Quickly jump sections of this document by searching forward/reverse for ^-
     data and rototiller binary, to produce a reproducible work.
 
       Also note that when you trigger an export from the Editor, it's only
-    instructing the Demo to dump the binary form Demo-native tracks.  These
-    aren't usable by the Editor to import for future editing, for that you
-    want to Save the tracks with the Editor, which will save a
-    Editor-native format the Editor can load and edit.
+    instructing the Demo to dump the binary form, Demo-native tracks, local
+    to the Demo.  These aren't usable by the Editor to import for future
+    editing, for that you want to Save the tracks with the Editor, which
+    will save an Editor-native format the Editor can load and edit, local
+    to the Editor.  These are GNU Rocket-isms, and take some getting used
+    to.
 
       This area of rototiller is still very experimental, and GNU Rocket
     needs some work before it's a better, more polished/ergonomic
     experience, which I am working towards with upstream.
 
-      There is also a need for music integration, I have an experimental
+      There is also a need for music integration.  I have an experimental
     SchismTracker branch[3] integrating GNU Rocket support that already
     mostly works.  I've also already landed upstream changes to
     RocketEditor[4] supporting multiple GNU Rocket clients, enabling having
     both SchismTracker and rototiller (via rkt) connected to RocketEditor
-    simultaneously.  The current Rocket row stays synchronized across the
+    simultaneously.  The current Rocket "row" stays synchronized across the
     three of them when playing, moving the cursor in Schism moves the
     cursor in RocketEditor and vice-versa when editing.
 
