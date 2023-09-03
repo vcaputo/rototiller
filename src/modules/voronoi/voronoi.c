@@ -126,9 +126,10 @@ static inline size_t voronoi_cell_origin_to_distance_idx(const voronoi_context_t
 }
 
 
-static void voronoi_jumpfill_pass(voronoi_context_t *ctxt, v2f_t *db, v2f_t *ds, size_t step, const til_fb_fragment_t *fragment)
+static size_t voronoi_jumpfill_pass(voronoi_context_t *ctxt, const v2f_t *db, const v2f_t *ds, size_t step, const til_fb_fragment_t *fragment)
 {
-	v2f_t			dp = {};
+	size_t	n_unassigned = 0;
+	v2f_t	dp = {};
 
 	dp.y = db->y;
 	for (int y = 0; y < fragment->height; y++, dp.y += ds->y) {
@@ -214,8 +215,13 @@ static void voronoi_jumpfill_pass(voronoi_context_t *ctxt, v2f_t *db, v2f_t *ds,
 
 				VORONOI_JUMPFILL;
 			}
+
+			if (!d->cell)
+				n_unassigned++;
 		}
 	}
+
+	return n_unassigned;
 }
 
 
@@ -256,6 +262,7 @@ static void voronoi_calculate_distances_render_pass(voronoi_context_t *ctxt, con
 			.x = fragment->x * ds.x - 1.f,
 			.y = fragment->y * ds.y - 1.f,
 		};
+	size_t	n_unassigned;
 
 	/* An attempt at implementing https://en.wikipedia.org/wiki/Jump_flooding_algorithm */
 
@@ -275,8 +282,17 @@ static void voronoi_calculate_distances_render_pass(voronoi_context_t *ctxt, con
 	 * changing the cell pointers while we try dereference them.  But all we really care about is finding
 	 * seeds reliably, and those should already be populated in the prepare phase.
 	 */
-	for (size_t step = MAX(fragment->frame_width, fragment->frame_height) / 2; step > 0; step >>= 1)
-		voronoi_jumpfill_pass(ctxt, &db, &ds, step, fragment);
+	do {
+		for (size_t step = MAX(fragment->frame_width, fragment->frame_height) >> 1; step > 0; step >>= 1)
+			n_unassigned = voronoi_jumpfill_pass(ctxt, &db, &ds, step, fragment);
+	} while (n_unassigned); /* FIXME: there seems to be bug/race potential with sparse voronois at high res,
+				 * especially w/randomize=on where jumpfill constantly recurs, it could leave a
+				 * spurious NULL cell resulting in a segfault.  The simplest thing to do here is
+				 * just repeat the jumpfill for the fragment.  It's inefficient, but rare, and doing
+				 * voronoi as-is that way on a high resolution is brutally slow anyways, this all needs
+				 * revisiting to make things scale better.  So for now this prevents crashing, which is
+				 * all that matters.
+				 */
 }
 
 
