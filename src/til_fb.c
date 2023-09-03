@@ -560,6 +560,7 @@ int til_fb_new(const til_fb_ops_t *ops, const char *title, const til_setup_t *se
 	assert(ops->page_alloc);
 	assert(ops->page_free);
 	assert(ops->page_flip);
+	assert(!setup || setup->creator == ops);
 	assert(n_pages > 1);
 	assert(res_fb);
 
