@@ -322,6 +322,7 @@ int til_module_create_contexts(const til_module_t *module, til_stream_t *stream,
 
 	assert(module);
 	assert(setup); /* we *always* want a setup, even if the module has no setup() method - for the path */
+	assert(module == setup->creator); /* these should never differ */
 	assert(n_contexts > 0);
 	assert(res_contexts);
 
