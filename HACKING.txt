@@ -1,4 +1,4 @@
-Quickly jump sections of this document by searching forward/reverse for ^-
+Quickly jump sections of this text by searching forward/reverse for ---
 
 
 ---
@@ -37,10 +37,10 @@ Hacking on rototiller / libtil:
     After acquiring a copy of the source, adding a new module to rototiller
   consists of four steps:
 
-  1. Giving the module a unique name, creating a directory as named under
-     src/modules.  This can be a temporary working name just to get
+  1. Giving the module a unique name, creating a directory using that name
+     under src/modules.  This can be a temporary working name just to get
      started, what's important is that it not conflcit with any existing
-     module names.
+     names.
 
   2. Implementing at least a ${new}_render_fragment() method for the module
      in a file placed in its directory at "src/modules/${new}/${new}.c".
@@ -86,14 +86,14 @@ Hacking on rototiller / libtil:
   the "build-essential" meta-package and "libtool" should at least get
   things building successfully.
 
-    To actually produce a `rototiller` binary usable for rendering visual
+    To actually produce a `rototiller` binary usable for rendering visible
   output, libsdl2 and/or libdrm development packages will also be needed.
   Look at the `../configure` output for SDL and DRM lines to see which have
   been enabled.  If both report "no" then the build will only produce a
   libtil library for potential use in other frontends, and a rototiller
   binary only capable of invisible in-memory rendering useful for testing
   and benchmarking, but no visible output.  The SDL backend is preferred
-  when available.
+  when available, and known to work on Linux, MacOS, and Windows(mingw).
 
     After successfully building rototiller, an executable will be at
   "src/rototiller" in the build tree.  If the steps above were followed
@@ -106,21 +106,20 @@ Hacking on rototiller / libtil:
 
  Quickly testing modules via the CLI frontend:
 
-    The included frontend supports both an interactive text dialog style
-  setup and specifying those same settings via commandline arguments.  If
+    The included frontend supports both an interactive, text dialog style
+  setup, and specifying those same settings via command-line arguments.  If
   run without any arguments, i.e. just running `build/src/rototiller`, a
-  comprehensive guided interactive setup will be performed for determining
-  both module and video settings.  Pressing just <enter> at any time
+  comprehensive, guided interactive setup will be performed for determining
+  all needed module and video settings.  Pressing just <enter> at any time
   accepts the default, shown between the [] of the prompt.
 
     Prior to actually proceeding with a given setup, the configured setup
-  to be used is always printed on stdout as valid commandline argument
+  to be used is always printed on stdout in a valid command-line argument
   syntax.  This may be copied and reused for an immediate, non-interactive
   reexecution with those settings.  One can specify '--go' to skip the wait
-  for <enter> normally inserted while showing the produced settings
-  command-line.
+  for <enter> normally inserted while showing the resulting command-line.
 
-    One can also partially specify any setup in the commandline arguments,
+    One can also partially specify any setup in the command-line arguments,
   resulting in a partial interactive setup for just the missing settings.
 
     When developing a new module it's common to specify the video settings,
@@ -504,12 +503,12 @@ Hacking on rototiller / libtil:
 
     In the above example the minimal module now has a "foobar" boolean
   style setting supporting the values "on" and "off".  It may be specified
-  at runtime to rototiller (or any other frontend) via the commandline
+  at runtime to rototiller (or any other frontend) via the command-line
   argument:
 
       "--module=minimal,foobar=on"
 
-    And if the "foobar=on" setting were omitted from the commandline, in
+    And if the "foobar=on" setting were omitted from the command-line, in
   rototiller's CLI frontend an interactive setup dialog would occur, i.e:
 
       Foobar configurable setting:
