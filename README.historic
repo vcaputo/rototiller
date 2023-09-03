@@ -1,0 +1,35 @@
+This is a quick little graphics hack I put together to experiment with libdrm
+and this "dumb buffer" thingy David Airlie added to the kernel back in 2011.
+
+If you're like me and miss the pre-KMS days of functional SVGAlib on linux
+where we could write purely software-rendered graphics toys like demos that
+were still beautiful and synchronized to vertical retrace without any tearing
+or flickering, there is cause to rejoice.
+
+Using libdrm and these two ioctls:
+DRM_IOCTL_MODE_CREATE_DUMB
+DRM_IOCTL_MODE_MAP_DUMB
+
+We can then mmap into our address space a 32bpp buffer that can be drawn to
+while off-screen, and submitted to the gpu for displaying in a page-flipping
+fashion, synchronized to the vertical retrace.  It's revisiting the 90s, it's
+VESA 2.0 linear frame buffers but actually supporting all our crazy native
+resolutions and abundant memory for 32bpp with page flipping.
+
+In my testing so far, this seems to work without even requiring root.
+
+Before you try to run these things, realize this is direct libdrm graphics,
+it's going to compete with your X/wayland server.  Switch to a plain virtual
+console to run the program.  You don't need to quit X, just switch away from the
+X vt so it's not visible.
+
+To quit it's as simple as Ctrl-C, rototiller will otherwise run forever.
+
+Do not try switching back to X while rototiller is drawing, Ctrl-C it first, or
+X will get angry and exit when it tries to do drm things and can't.
+
+Your display may be left in an inconsistent state after exiting rototiller.
+Don't panic!  Just switch virtual consoles or go back to X, graphics will be
+restored.  This seems like a bug in drm to me.  It's genuine SVGAlib dejavu,
+corrupt displays and all.  BUCKETS OF NOSTALGIA
+

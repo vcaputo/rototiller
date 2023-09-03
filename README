@@ -1,82 +1,317 @@
+Quickly jump sections of this document by searching forward/reverse for ^-
 
-rototiller implements a corpus of software-rendered graphics modules,
-integrated into a single program.
-
-It can be used as a static library (libtil.a) embedded in other programs,
-or it can be used standalone to display stuff realtime via libdrm and/or
-SDL2.
-
-If you wish to see some eye candy, just build it in the conventional
-autotools project fashion:
-
-`./bootstrap; mkdir build; cd build; ../configure; make`
-
-If successful, run build/src/rototiller with no arguments for an
-interactive dialog to choose what to see.  You can just smash enter a bunch
-for defaults and it will probably work.  You can also just pass --defaults
-to achieve the same thing non-interactively.
-
-If you wish to hack on rototiller check out HACKING.txt in this tree.
-
-See https://rototiller.pengaru.com for more information.
-
-Everything below is out of date vestigial stuff from simpler times.
-
--------------------------------------------------------------------------------
-
-rototiller is, rendered entirely in software:
-	drizzle: a 2D raindrops visualization
-	flui2d: a 2D fluid dynamics simulation
-	julia: a morphing Julia set (fractal)
-	meta2d: a 2D metaballs effect
-	montage: a montage of modules meta-module
-	pixbounce: a 2D bouncing pixmap demonstration
-	plasma: an oldskool "plasma" effect
-	plato: a basic 3D Platonic solids display
-	ray: a multi-threaded ray tracer
-	roto: a simple fixed-point tiled texture rotation
-	rtv: a "Rototiller TV" slideshow meta-module
-	snow: a "TV snow" / white noise effect
-	sparkler: a fireworks-like particle system with spatial interactions
-	spiro: a Spirograph simulator
-	stars: a starfield simulator
-	submit: a 2D cellular automata game sim
-	swab: a colorful perlin-noise visualization
-	swarm: "Boids"-inspired particle swarm in 3D
 
 ---
 
-This is a quick little graphics hack I put together to experiment with libdrm
-and this "dumb buffer" thingy David Airlie added to the kernel back in 2011.
 
-If you're like me and miss the pre-KMS days of functional SVGAlib on linux
-where we could write purely software-rendered graphics toys like demos that
-were still beautiful and synchronized to vertical retrace without any tearing
-or flickering, there is cause to rejoice.
+ Overview:
 
-Using libdrm and these two ioctls:
-DRM_IOCTL_MODE_CREATE_DUMB
-DRM_IOCTL_MODE_MAP_DUMB
+      rototiller implements a corpus of software-rendered graphics
+    rendering modules, integrated into a single program.
 
-We can then mmap into our address space a 32bpp buffer that can be drawn to
-while off-screen, and submitted to the gpu for displaying in a page-flipping
-fashion, synchronized to the vertical retrace.  It's revisiting the 90s, it's
-VESA 2.0 linear frame buffers but actually supporting all our crazy native
-resolutions and abundant memory for 32bpp with page flipping.
+      It can be used as a static library (libtil.a) embedded in other
+    programs, or it can be used as a standalone CLI tool for displaying
+    stuff realtime via libdrm and/or SDL2.
 
-In my testing so far, this seems to work without even requiring root.
+      If you wish to see some eye candy, just build it in the conventional
+    autotools project fashion:
 
-Before you try to run these things, realize this is direct libdrm graphics,
-it's going to compete with your X/wayland server.  Switch to a plain virtual
-console to run the program.  You don't need to quit X, just switch away from the
-X vt so it's not visible.
+        `./bootstrap; mkdir build; cd build; ../configure; make`
 
-To quit it's as simple as Ctrl-C, rototiller will otherwise run forever.
+      If successful, run build/src/rototiller with no arguments for an
+    interactive dialog to choose what to see.  You can just smash <enter> a
+    bunch for defaults and it will probably work.  You can also just pass
+    "--defaults" on the command-line to achieve the same thing:
 
-Do not try switching back to X while rototiller is drawing, Ctrl-C it first, or
-X will get angry and exit when it tries to do drm things and can't.
+        `./build/src/rototiller --defaults`
 
-Your display may be left in an inconsistent state after exiting rototiller.
-Don't panic!  Just switch virtual consoles or go back to X, graphics will be
-restored.  This seems like a bug in drm to me.  It's genuine SVGAlib dejavu,
-corrupt displays and all.  BUCKETS OF NOSTALGIA
+    If you wish to hack on rototiller modules see HACKING.txt.
+
+      See https://rototiller.pengaru.com for more information, including
+    videos, and screenshots.
+
+      Everything below pertains to the CLI `rototiller` program, but much
+    will probably overlap with anything utilizing libtil.a.
+
+
+---
+
+
+ Modules:
+
+      The list of currently available modules is found by running the CLI
+    tool `rototiller` without any flags.  This enters an interactive setup
+    mode, beginning with selecting the module to use from a list.
+
+    Here's what's output as of writing this document:
+
+       ```
+        $ build/src/rototiller
+
+        /module:
+         Renderer module:
+          0:    blinds: Retro 80s-inspired window blinds (threaded)
+          1:  checkers: Checker-patterned overlay (threaded)
+          2:   compose: Layered modules compositor
+          3:   drizzle: Classic 2D rain effect (threaded (poorly))
+          4:      flow: 3D flow field
+          5:    flui2d: Fluid dynamics simulation in 2D (threaded (poorly))
+          6:     julia: Julia set fractal morpher (threaded)
+          7:    meta2d: Classic 2D metaballs (threaded)
+          8:     mixer: Module blender (threaded)
+          9:     moire: 2D Moire interference patterns (threaded)
+         10:   montage: Rototiller montage (threaded)
+         11: pixbounce: Pixmap bounce (threaded)
+         12:    plasma: Oldskool plasma effect (threaded)
+         13:     plato: Platonic solids rendered in 3D
+         14:       ray: Ray tracer (threaded)
+         15:       rkt: GNU Rocket module sequencer
+         16:      roto: Anti-aliased tiled texture rotation (threaded)
+         17:       rtv: Rototiller TV
+         18:    shapes: Procedural 2D shapes (threaded)
+         19:      snow: TV snow / white noise (threaded)
+         20:  sparkler: Particle system with spatial interactions (threaded (poorly))
+         21:     spiro: Spirograph emulator
+         22:     stars: Basic starfield
+         23:    strobe: Strobe light (threaded)
+         24:    submit: Cellular automata conquest game sim (threaded (poorly))
+         25:      swab: Colorful perlin-noise visualization (threaded)
+         26:     swarm: "Boids"-inspired particle swarm in 3D
+         27:   voronoi: Voronoi diagram (threaded)
+         28:     blank: Blanker (built-in)
+         29:      none: Disabled (built-in)
+         30:      noop: Nothing-doer (built-in)
+         31:       ref: Context referencer (built-in)
+         Enter a value 0-31 [17 (rtv)]: 
+        ```
+
+      Most modules are simple rendering modules, implementing a single
+    real-time graphics algorithm.
+
+      Some are more complex "composite" or "meta" modules, which play more
+    of a compositing or orchestrating role, utilizing other modules as
+    unwitting participants in a larger production.  At this time, rtv, rkt,
+    compose, mixer, and montage, are the primary compositing/meta modules.
+
+      The default module selected by simply pressing <enter> at the list
+    above's prompt, or running with "--defaults", is rtv.  This module
+    cycles through randomly configured modules on a regular interval.  The
+    participating modules are configurable via its channels= setting.  The
+    default is channels=compose, which results in a huge variety of
+    randomly configured compositions pulling from all available modules.
+    This is a good way to see what's available in rototiller in a
+    hands-off, automated fashion.  Shortening the rtv channel durations,
+    e.g. duration=1,context_duration=1 as rtv settings can make it more
+    entertaining by increasing the pace.
+
+      Other modules sit in a sort of middle-ground between the purely
+    meta/composite, and implementing a graphics algorithm of their own.
+    This is due to their use of other modules as a sort of brush within
+    their own rendering.  Some examples of these include roto and checkers,
+    which both support optional fill_module= settings for drawing an aspect
+    of their output using another module.  The montage module kind of
+    straddles the boundary between these and the purely meta/composite
+    modules, due to the simplicity of its tiled layout and its output being
+    otherwise entirely determined by other modules.
+
+      At the bottom of the list above, there's a few entries labeled
+    (built-in).  These are basic low-level modules that don't really
+    implement anything aesthetically interesting or particularly
+    substantial, but should always be present in libtil builds.  They're
+    not generally interesting to use, unless testing things as a developer,
+    or in composing larger works.  The ref module in particular plays an
+    important role in combination with rkt.
+
+      When starting rototiller, the top-level module to use may be
+    specified via the "--module=" flag.  e.g. `rototiller --module=roto`.
+
+    For information on how modules are implemented, see HACKING.txt.
+
+
+---
+
+
+ Execution:
+
+      The CLI UX is heavily biased towards module developers iterating on
+    and experimenting with their creations.  As a result it's all rather
+    text/shell-centric, and works best with proficiency at quickly editing
+    shell command-lines in-situ.  If you're not familiar with your shell's
+    command-line editing features, it might be quite frustrating and
+    cumbersome to work with.  For me personally, GNU bash in vi-mode
+    (anything readline-based should offer this) makes quick work of editing
+    rototiller command-lines.  YMMV
+
+      All rototiller flags are of the GNU long-form style prefixed by "--",
+    there are no short "-" variants.  They also expect a trailing "="
+    separator if they accept a parameter, a space separator is not
+    supported.  e.g.  "--video=sdl" is valid, but "--video sdl" is not.
+
+      To see what flags are currently supported, there is a "--help" flag
+    which prints a summary:
+
+       ```
+        $ build/src/rototiller --help
+
+        Run without any flags or partial settings for interactive mode.
+
+        Supported flags:
+          --defaults              use defaults for unspecified settings
+          --go                    start rendering immediately upon fulfilling all required settings
+          --help                  this help
+          --module=               module settings
+          --print-module-contexts print active contexts on-stream to stdout
+          --print-pipes           print active pipes on-stream to stdout
+          --seed=                 seed to use for all PRNG in hexadecimal (e.g. 0xdeadbeef)
+          --title=                title to use where applicable (e.g. window title)
+          --video=                video settings
+       ```
+
+      When you run rototiller without any flags, it enters an interactive
+    setup dialog mode, as shown in the Modules section.  You can skip this
+    by specifying "--defaults" to automatically accept all defaults, the
+    equivalent of pressing <enter> at every prompt the interactive setup
+    would have presented.
+
+      When you specify some flags, but omit others, without "--defaults",
+    the interactive setup dialog will be performed for only what's missing.
+    This is done on a granular, per-setting basis, not per-flag.
+
+      Flags like "--module=" and "--video=" accept variadic,
+    value-dependent settings in their argument.  Specifying "--video=sdl"
+    for instance, partially specifies the video settings in that it says
+    what fb backend to use (sdl), but no settings for that backend.
+    Without "--defaults" this results in an interactive dialog for
+    specifying sdl's needed settings:
+
+       ```
+        $ build/src/rototiller --module=blank --video=sdl
+
+        /video/sdl/fullscreen:
+         SDL fullscreen mode:
+          0: off
+          1:  on
+         Enter a value 0-1 [0 (off)]: 
+
+        /video/sdl/size:
+         SDL window size [640x480]: 
+
+        Configured settings as flags:
+          --seed=0x64f9cb30 '--module=blank' '--video=sdl,fullscreen=off,size=640x480'
+
+        Press enter to continue, add --go to skip this step...
+       ```
+
+      In the above example, <enter> was pressed at the two setting prompts
+    accepting the defaults for "fullscreen=off" and "size=640x480".  If the
+    command-line had specified "--video=sdl,size=300x300", only the
+    "fullscreen" setting would have been asked about interactively, in lieu
+    of "--defaults".  The same thing applies to "--module=", any settings
+    omitted that the module wants will be asked for, in lieu of
+    "--defaults".
+
+      Before rototiller proceeds after completing the setup phase, it
+    normally waits for you to press <enter> at a prompt showing the
+    completed settings being used, in CLI argument format, as shown above
+    after "Configured settings as flags".
+
+      This provides an opportunity for review, copy-and-paste for saving
+    into a script or pasting into another command-line, or simply a
+    convenient log sitting in scrollback should you need to reproduce the
+    invocation.  Suppress this review prompt by specifying "--go".  The
+    complete settings will still be shown, just without the wait.
+
+      Note that whatever is shown under "Configured settings as flags:"
+    should always be comprehensive and reproduce the same results.  If
+    placing those in wrapper scripts, by not adding "--defaults", it should
+    never enter an interactive setup mode unless new settings were
+    introduced in a newer build of rototiller.  This is useful for
+    detecting when something relevant changes, so in scripted invocations
+    it's useful to not use "--defaults".
+
+      One power of this granular per-setting interactive fallback is you
+    can always just strip things off an existing invocation to receive
+    guidance on changing the stripped parts to something else.  It's
+    especially useful during the development/creative process to use a
+    partially specified "--module=" flag, with some settings present, but
+    the ones you're experimenting with absent, then just keep re-running
+    from the shell history the same underspecified invocation.
+
+      You can also utilize the "rtv" module to automate the process of
+    exploring a module's possibility space by specifying the module of
+    interest as the sole "channels=" argument, since rtv randomizes
+    settings on every channel switch.  Its "log_channels=on" mode is useful
+    in keeping track of which permutation you're looking at, and is printed
+    in the same CLI-appropriate format as "Configured settings as flags:"
+    shows.
+
+
+---
+
+
+ Sequencing:
+
+      With the addition of the "rkt" module rototiller now integrates with
+    GNU Rocket[0] for supporting sequencing of variables that have been
+    exposed by modules as "taps".  These taps show up in a Rocket Editor as
+    tracks you can control on a timeline, for easily choreographing what's
+    happening visually in a convenient GUI[1] tracker-style interface.
+
+      This opens up the possibility of using rototiller as a sort of
+    demo[2] engine, where the rendering modules are composed and sequenced
+    via the rkt module.  For now, your demo would then be a .bat/.sh
+    wrapper containing the rototiller incantation for establishing all the
+    scenes via rkt settings, accompanied by Rocket tracks on the filesystem
+    exported as part of the Rocket Editor sequencing process.
+
+      You can explore this interesting space by simply running with
+    "--module=rkt".  It will by default attempt to connect to the Rocket
+    Editor on localhost, as well as listen for telnet connects on port
+    54321.
+
+      The Rocket Editor is responsible for sequencing the taps, one of
+    which is the scene selection track, treated as an integer index into
+    the active scenes.  The telnet interface is what's currently offered
+    for interactively creating and editing scenes, which you can access via
+    `telnet localhost 54321`.
+
+      When you trigger an export from the Rocket Editor, rototiller, via
+    the rkt module, will export the track data into a directory named by
+    rkt's "base=" setting (default is rkt).  Note this does not trigger
+    saving the rototiller incantation needed for reproducing the scenes.
+    That command-line is found using the telnet interface, and must be
+    copy-and-pasted into a .sh/.bat wrapper to accompany the exported track
+    data and rototiller binary, to produce a reproducible work.
+
+      Also note that when you trigger an export from the Editor, it's only
+    instructing the Demo to dump the binary form Demo-native tracks.  These
+    aren't usable by the Editor to import for future editing, for that you
+    want to Save the tracks with the Editor, which will save a
+    Editor-native format the Editor can load and edit.
+
+      This area of rototiller is still very experimental, and GNU Rocket
+    needs some work before it's a better, more polished/ergonomic
+    experience, which I am working towards with upstream.
+
+      There is also a need for music integration, I have an experimental
+    SchismTracker branch[3] integrating GNU Rocket support that already
+    mostly works.  I've also already landed upstream changes to
+    RocketEditor[4] supporting multiple GNU Rocket clients, enabling having
+    both SchismTracker and rototiller (via rkt) connected to RocketEditor
+    simultaneously.  The current Rocket row stays synchronized across the
+    three of them when playing, moving the cursor in Schism moves the
+    cursor in RocketEditor and vice-versa when editing.
+
+      The main remaining piece here is to get audio support sorted out in
+    rototiller, and some music playback modules, contributions welcome.
+
+
+ ---
+
+
+[0] GNU Rocket: https://github.com/rocket/rocket
+[1] C/OpenGL: RocketEditor https://github.com/emoon/rocket
+[2] Demos: https://en.wikipedia.org/wiki/Demo_scene
+[3] Experimental SchismTracker GNU Rocket support: https://github.com/vcaputo/schismtracker/tree/gnurocket
+[4] RocketEditor, the first GNU Rocket editor supporting multiple clients: https://github.com/emoon/rocket/pull/165
+
