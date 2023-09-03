@@ -48,7 +48,7 @@ typedef struct flow_setup_t {
 } flow_setup_t;
 
 
-static void populator(void *context, unsigned size, const v3f_t *other, v3f_t *field)
+static void populator(void *context, unsigned size, const ff_data_t *other, ff_data_t *field)
 {
 	flow_context_t	*ctxt = context;
 	unsigned	*seedp = &ctxt->til_module_context.seed;
@@ -58,9 +58,11 @@ static void populator(void *context, unsigned size, const v3f_t *other, v3f_t *f
 		for (y = 0; y < size; y++) {
 			for (z = 0; z < size; z++) {
 				v3f_t	v = v3f_rand(seedp, -1.0f, 1.0f);
+				v3f_t	c = v3f_rand(seedp, 0.f, 1.0f);
 				size_t	idx = x * size * size + y * size + z;
 
-				field[idx] = v3f_lerp(&other[idx], &v, .75f);
+				field[idx].direction = v3f_lerp(&other[idx].direction, &v, .75f);
+				field[idx].color = v3f_lerp(&other[idx].color, &c, .75f);
 			}
 		}
 	}
@@ -150,22 +152,19 @@ static void flow_render_fragment(til_module_context_t *context, til_stream_t *st
 	for (unsigned j = 0; j < ctxt->n_elements; j++) {
 		flow_element_t	*e = &ctxt->elements[j];
 		v3f_t		pos = e->position;
-		v3f_t		v = ff_get(ctxt->ff, &pos, w * .5f + .5f);
+		ff_data_t	d = ff_get(ctxt->ff, &pos, w * .5f + .5f);
 
-		v = v3f_mult_scalar(&v, .001f);
+		d.direction = v3f_mult_scalar(&d.direction, .001f);
 
 		for (unsigned k = 0; k < ctxt->n_iters; k++) {
 			unsigned	x, y;
-			v3f_t		color;
 
-			pos = v3f_add(&pos, &v);
+			pos = v3f_add(&pos, &d.direction);
 #define ZCONST 1.0f
 			x = (pos.x * 2.f - 1.f) / (pos.z + ZCONST) * fragment->width + (fragment->width >> 1);
 			y = (pos.y * 2.f - 1.f) / (pos.z + ZCONST) * fragment->height + (fragment->height >> 1) ;
 
-			color.x = color.y = color.z = e->lifetime;
-
-			if (!til_fb_fragment_put_pixel_checked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x, y, color_to_uint32_rgb(color)) ||
+			if (!til_fb_fragment_put_pixel_checked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x, y, color_to_uint32_rgb(d.color)) ||
 			    pos.x < 0.f || pos.x > 1.f ||
 			    pos.y < 0.f || pos.y > 1.f ||
 			    pos.z < 0.f || pos.z > 1.f)

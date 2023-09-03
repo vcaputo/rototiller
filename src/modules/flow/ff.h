@@ -5,9 +5,14 @@
 
 typedef struct ff_t ff_t;
 
-ff_t * ff_new(unsigned size, void (*populator)(void *context, unsigned size, const v3f_t *other, v3f_t *field), void *context);
+typedef struct ff_data_t {
+	v3f_t	direction;
+	v3f_t	color;
+} ff_data_t;
+
+ff_t * ff_new(unsigned size, void (*populator)(void *context, unsigned size, const ff_data_t *other, ff_data_t *field), void *context);
 ff_t * ff_free(ff_t *ff);
-v3f_t ff_get(ff_t *ff, v3f_t *coordinate, float w);
+ff_data_t ff_get(ff_t *ff, v3f_t *coordinate, float w);
 void ff_populate(ff_t *ff, unsigned idx);
 
 #endif

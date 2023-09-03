@@ -7,8 +7,8 @@
 
 typedef struct ff_t {
 	unsigned	size;
-	v3f_t		*fields[2];
-	void		(*populator)(void *context, unsigned size, const v3f_t *other, v3f_t *field);
+	ff_data_t	*fields[2];
+	void		(*populator)(void *context, unsigned size, const ff_data_t *other, ff_data_t *field);
 	void		*populator_context;
 } ff_t;
 
@@ -39,7 +39,7 @@ ff_t * ff_free(ff_t *ff)
 }
 
 
-ff_t * ff_new(unsigned size, void (*populator)(void *context, unsigned size, const v3f_t *other, v3f_t *field), void *context)
+ff_t * ff_new(unsigned size, void (*populator)(void *context, unsigned size, const ff_data_t *other, ff_data_t *field), void *context)
 {
 	ff_t		*ff;
 
@@ -48,7 +48,7 @@ ff_t * ff_new(unsigned size, void (*populator)(void *context, unsigned size, con
 		return NULL;
 
 	for (int i = 0; i < 2; i++) {
-		ff->fields[i] = calloc(size * size * size, sizeof(v3f_t));
+		ff->fields[i] = calloc(size * size * size, sizeof(ff_data_t));
 		if (!ff->fields[i])
 			return ff_free(ff);
 	}
@@ -64,10 +64,11 @@ ff_t * ff_new(unsigned size, void (*populator)(void *context, unsigned size, con
 }
 
 
-static inline v3f_t ff_sample(v3f_t *field, size_t size, v3f_t *min, v3f_t *max, v3f_t *t)
+static inline ff_data_t ff_sample(ff_data_t *field, size_t size, v3f_t *min, v3f_t *max, v3f_t *t)
 {
-	v3f_t	*a, *b, *c, *d, *e, *f, *g, *h;
-	size_t	ss = size * size;
+	ff_data_t	*a, *b, *c, *d, *e, *f, *g, *h;
+	size_t		ss = size * size;
+	ff_data_t	res;
 
 	a = &field[(size_t)min->x * ss + (size_t)max->y * size + (size_t)min->z];
 	b = &field[(size_t)max->x * ss + (size_t)max->y * size + (size_t)min->z];
@@ -78,16 +79,20 @@ static inline v3f_t ff_sample(v3f_t *field, size_t size, v3f_t *min, v3f_t *max,
 	g = &field[(size_t)min->x * ss + (size_t)min->y * size + (size_t)max->z];
 	h = &field[(size_t)max->x * ss + (size_t)min->y * size + (size_t)max->z];
 
-	return v3f_trilerp(a, b, c, d, e, f, g, h, t);
+	res.direction = v3f_trilerp(&a->direction, &b->direction, &c->direction, &d->direction, &e->direction, &f->direction, &g->direction, &h->direction, t);
+	res.color = v3f_trilerp(&a->color, &b->color, &c->color, &d->color, &e->color, &f->color, &g->color, &h->color, t);
+
+	return res;
 }
 
 
 /* return an interpolated value from ff for the supplied coordinate */
 /* coordinate must be in the range 0-1,0-1,0-1 */
 /* w must be in the range 0-1 and determines how much of field 0 or 1 contributes to the result */
-v3f_t ff_get(ff_t *ff, v3f_t *coordinate, float w)
+ff_data_t ff_get(ff_t *ff, v3f_t *coordinate, float w)
 {
-	v3f_t		scaled, min, max, t, A, B;
+	v3f_t		scaled, min, max, t;
+	ff_data_t	A, B, res;
 
 	assert(w <= 1.f && w >= 0.f);
 	assert(coordinate->x <= 1.f && coordinate->x >= 0.f);
@@ -119,5 +124,8 @@ v3f_t ff_get(ff_t *ff, v3f_t *coordinate, float w)
 	A = ff_sample(ff->fields[0], ff->size, &min, &max, &t);
 	B = ff_sample(ff->fields[1], ff->size, &min, &max, &t);
 
-	return v3f_nlerp(&A, &B, w);
+	res.direction = v3f_nlerp(&A.direction, &B.direction, w);
+	res.color = v3f_nlerp(&A.color, &B.color, w);
+
+	return res;
 }
