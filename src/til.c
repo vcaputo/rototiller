@@ -629,6 +629,13 @@ int til_module_settings_finalize(const til_module_t *module, const til_settings_
 }
 
 
+/* generic noop fragmenter that does no subfragmenting at all, producing a whole fragment per-cpu */
+int til_fragmenter_noop_per_cpu(til_module_context_t *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
+{
+	return til_fb_fragment_noop_single(fragment, context->n_cpus, number, res_fragment);
+}
+
+
 /* generic fragmenter using a horizontal slice per cpu according to context->n_cpus */
 int til_fragmenter_slice_per_cpu(til_module_context_t *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment)
 {

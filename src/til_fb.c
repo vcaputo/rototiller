@@ -646,6 +646,56 @@ void * til_fb_context(til_fb_t *fb)
 
 
 /* helpers for fragmenting incrementally */
+int til_fb_fragment_noop_single(const til_fb_fragment_t *fragment, unsigned n_fragments, unsigned number, til_fb_fragment_t *res_fragment)
+{
+	assert(fragment);
+	assert(res_fragment);
+
+	if (number >= n_fragments)
+		return 0;
+
+	if (fragment->texture) {
+		assert(res_fragment->texture);
+		assert(fragment->frame_width == fragment->texture->frame_width);
+		assert(fragment->frame_height == fragment->texture->frame_height);
+		assert(fragment->width == fragment->texture->width);
+		assert(fragment->height == fragment->texture->height);
+		assert(fragment->x == fragment->texture->x);
+		assert(fragment->y == fragment->texture->y);
+
+		*(res_fragment->texture) = (til_fb_fragment_t){
+				.buf = fragment->texture->buf,
+				.x = fragment->x,
+				.y = fragment->y,
+				.width = fragment->width,
+				.height = fragment->height,
+				.frame_width = fragment->frame_width,
+				.frame_height = fragment->frame_height,
+				.stride = fragment->texture->stride,
+				.pitch = fragment->texture->pitch,
+				.cleared = fragment->texture->cleared,
+		};
+	}
+
+	*res_fragment = (til_fb_fragment_t){
+				.texture = fragment->texture ? res_fragment->texture : NULL,
+				.buf = fragment->buf,
+				.x = fragment->x,
+				.y = fragment->y,
+				.width = fragment->width,
+				.height = fragment->height,
+				.frame_width = fragment->frame_width,
+				.frame_height = fragment->frame_height,
+				.stride = fragment->stride,
+				.pitch = fragment->pitch,
+				.number = number,
+				.cleared = fragment->cleared,
+			};
+
+	return 1;
+}
+
+
 int til_fb_fragment_slice_single(const til_fb_fragment_t *fragment, unsigned n_fragments, unsigned number, til_fb_fragment_t *res_fragment)
 {
 	unsigned	slice = MAX(fragment->height / n_fragments, 1);
