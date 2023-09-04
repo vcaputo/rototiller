@@ -8,6 +8,8 @@
 #include "til_fb.h"
 #include "til_module_context.h"
 #include "til_settings.h"
+#include "til_stream.h"
+#include "til_tap.h"
 
 #include "ff.h"
 #include "v3f.h"
@@ -32,6 +34,18 @@ typedef struct flow_element_t {
 
 typedef struct flow_context_t {
 	til_module_context_t	til_module_context;
+
+	struct {
+		til_tap_t		speed;
+	}			taps;
+
+	struct {
+		float			speed;
+	}			vars;
+
+	float			*speed;
+
+
 	ff_t			*ff;
 	unsigned		last_populate_idx;
 	unsigned		n_iters;
@@ -86,6 +100,23 @@ static inline flow_element_t rand_element(unsigned *seed)
 }
 
 
+static void flow_update_taps(flow_context_t *ctxt, til_stream_t *stream)
+{
+	if (!til_stream_tap_context(stream, &ctxt->til_module_context, NULL, &ctxt->taps.speed))
+		*ctxt->speed = ((flow_setup_t *)ctxt->til_module_context.setup)->speed;
+	else
+		ctxt->vars.speed = *ctxt->speed;
+
+	if (ctxt->vars.speed < 0.f)
+		ctxt->vars.speed = 0.f;
+
+	if (ctxt->vars.speed > 1.f)
+		ctxt->vars.speed = 1.f;
+
+	ctxt->n_iters = ceilf(ctxt->vars.speed * FLOW_MAX_SPEED);
+}
+
+
 static til_module_context_t * flow_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	flow_setup_t	*s = (flow_setup_t *)setup;
@@ -103,8 +134,10 @@ static til_module_context_t * flow_create_context(const til_module_t *module, ti
 	for (i = 0; i < s->count; i++)
 		ctxt->elements[i] = rand_element(&ctxt->til_module_context.seed);
 
-	ctxt->n_iters = ceilf(s->speed * FLOW_MAX_SPEED);
 	ctxt->n_elements = s->count;
+
+	ctxt->taps.speed = til_tap_init_float(ctxt, &ctxt->speed, 1, &ctxt->vars.speed, "speed");
+	flow_update_taps(ctxt, stream);
 
 	return &ctxt->til_module_context;
 }
@@ -141,6 +174,8 @@ static void flow_render_fragment(til_module_context_t *context, til_stream_t *st
 	flow_context_t		*ctxt = (flow_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;
 	float			w;
+
+	flow_update_taps(ctxt, stream);
 
 	til_fb_fragment_clear(fragment);
 
