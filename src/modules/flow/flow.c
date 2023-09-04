@@ -164,8 +164,9 @@ static void flow_render_fragment(til_module_context_t *context, til_stream_t *st
 			x = (pos.x * 2.f - 1.f) / (pos.z + ZCONST) * fragment->width + (fragment->width >> 1);
 			y = (pos.y * 2.f - 1.f) / (pos.z + ZCONST) * fragment->height + (fragment->height >> 1) ;
 
-			if (!til_fb_fragment_put_pixel_checked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x, y, color_to_uint32_rgb(d.color)) ||
-			    pos.x < 0.f || pos.x > 1.f ||
+			(void) til_fb_fragment_put_pixel_checked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x, y, color_to_uint32_rgb(d.color));
+
+			if (pos.x < 0.f || pos.x > 1.f ||
 			    pos.y < 0.f || pos.y > 1.f ||
 			    pos.z < 0.f || pos.z > 1.f)
 				*e = rand_element(&ctxt->til_module_context.seed);
