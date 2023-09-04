@@ -271,7 +271,7 @@ static void mixer_render_fragment(til_module_context_t *context, til_stream_t *s
 }
 
 
-static void mixer_finish_frame(til_module_context_t *context, til_stream_t *stream, unsigned int ticks, til_fb_fragment_t **fragment_ptr)
+static int mixer_finish_frame(til_module_context_t *context, til_stream_t *stream, unsigned int ticks, til_fb_fragment_t **fragment_ptr)
 {
 	mixer_context_t	*ctxt = (mixer_context_t *)context;
 
@@ -281,6 +281,8 @@ static void mixer_finish_frame(til_module_context_t *context, til_stream_t *stre
 
 		ctxt->snapshots[i] = til_fb_fragment_reclaim(ctxt->snapshots[i]);
 	}
+
+	return 0;
 }
 
 

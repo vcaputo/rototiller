@@ -129,15 +129,16 @@ static void strobe_render_fragment(til_module_context_t *context, til_stream_t *
 }
 
 
-static void strobe_finish_frame(til_module_context_t *context, til_stream_t *stream, unsigned int ticks, til_fb_fragment_t **fragment_ptr)
+static int strobe_finish_frame(til_module_context_t *context, til_stream_t *stream, unsigned int ticks, til_fb_fragment_t **fragment_ptr)
 {
 	strobe_context_t	*ctxt = (strobe_context_t *)context;
 
-	if (!ctxt->flash)
-		return;
+	if (ctxt->flash) {
+		ctxt->flash = 0;
+		ctxt->last_flash_ticks = ticks;
+	}
 
-	ctxt->flash = 0;
-	ctxt->last_flash_ticks = ticks;
+	return 0;
 }
 
 

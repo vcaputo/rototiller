@@ -347,12 +347,14 @@ static void drizzle_render_fragment(til_module_context_t *context, til_stream_t 
 }
 
 
-static void drizzle_finish_frame(til_module_context_t *context, til_stream_t *stream, unsigned int ticks, til_fb_fragment_t **fragment_ptr)
+static int drizzle_finish_frame(til_module_context_t *context, til_stream_t *stream, unsigned int ticks, til_fb_fragment_t **fragment_ptr)
 {
 	drizzle_context_t	*ctxt = (drizzle_context_t *)context;
 
 	if (ctxt->snapshot)
 		ctxt->snapshot = til_fb_fragment_reclaim(ctxt->snapshot);
+
+	return 0;
 }
 
 

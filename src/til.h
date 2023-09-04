@@ -30,7 +30,7 @@ struct til_module_t {
 	void			(*destroy_context)(til_module_context_t *context);	/* destroy gets stream in context, but the render-related functions should always use the passed-in stream so it can potentially change */
 	void			(*prepare_frame)(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan);
 	void			(*render_fragment)(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr);
-	void			(*finish_frame)(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr);
+	int			(*finish_frame)(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr);
 	int			(*setup)(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
 	char			*name;
 	char			*description;

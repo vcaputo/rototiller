@@ -548,7 +548,7 @@ static void shapes_render_fragment(til_module_context_t *context, til_stream_t *
 }
 
 
-static void shapes_finish_frame(til_module_context_t *context, til_stream_t *stream, unsigned int ticks, til_fb_fragment_t **fragment_ptr)
+static int shapes_finish_frame(til_module_context_t *context, til_stream_t *stream, unsigned int ticks, til_fb_fragment_t **fragment_ptr)
 {
 	shapes_context_t	*ctxt = (shapes_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;
@@ -571,6 +571,8 @@ static void shapes_finish_frame(til_module_context_t *context, til_stream_t *str
 	if (fragment->width == fragment->frame_width &&
 	    fragment->height == fragment->frame_height)
 		ctxt->radcache->initialized = 1;
+
+	return 0;
 }
 
 

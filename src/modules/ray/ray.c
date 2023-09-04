@@ -187,11 +187,13 @@ static void ray_render_fragment(til_module_context_t *context, til_stream_t *str
 }
 
 
-static void ray_finish_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr)
+static int ray_finish_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr)
 {
 	ray_context_t	*ctxt = (ray_context_t *)context;
 
 	ray_render_free(ctxt->render);
+
+	return 0;
 }
 
 

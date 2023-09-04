@@ -238,6 +238,7 @@ static void module_render_fragment(til_module_context_t *context, til_stream_t *
 
 	module = context->module;
 
+render_again:
 	if (module->prepare_frame) {
 		til_frame_plan_t	frame_plan = {};
 
@@ -269,7 +270,8 @@ static void module_render_fragment(til_module_context_t *context, til_stream_t *
 	}
 
 	if (module->finish_frame) {
-		module->finish_frame(context, stream, ticks, fragment_ptr);
+		if (module->finish_frame(context, stream, ticks, fragment_ptr) > 0)
+			goto render_again;
 		touched++;
 	}
 

@@ -70,7 +70,7 @@ static void setup_next_channel(rtv_context_t *ctxt, unsigned ticks);
 static til_module_context_t * rtv_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup);
 static void rtv_destroy_context(til_module_context_t *context);
 static void rtv_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr);
-static void rtv_finish_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr);
+static int rtv_finish_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr);
 static int rtv_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
 
 static til_module_t	rtv_none_module = {};
@@ -330,26 +330,27 @@ static void rtv_render_fragment(til_module_context_t *context, til_stream_t *str
 }
 
 
-static void rtv_finish_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr)
+static int rtv_finish_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr)
 {
 	rtv_context_t		*ctxt = (rtv_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;
 
-	if (!ctxt->caption)
-		return;
-
-	txt_render_fragment(ctxt->caption, fragment, 0x00000000,
-			    1, fragment->frame_height + 1,
-			    (txt_align_t){
+	if (ctxt->caption) {
+		txt_render_fragment(ctxt->caption, fragment, 0x00000000,
+				    1, fragment->frame_height + 1,
+				    (txt_align_t){
+						.horiz = TXT_HALIGN_LEFT,
+						.vert = TXT_VALIGN_BOTTOM
+				    });
+		txt_render_fragment(ctxt->caption, fragment, 0xffffffff,
+				    0, fragment->frame_height,
+				    (txt_align_t){
 					.horiz = TXT_HALIGN_LEFT,
 					.vert = TXT_VALIGN_BOTTOM
-			    });
-	txt_render_fragment(ctxt->caption, fragment, 0xffffffff,
-			    0, fragment->frame_height,
-			    (txt_align_t){
-				.horiz = TXT_HALIGN_LEFT,
-				.vert = TXT_VALIGN_BOTTOM
-			    });
+				    });
+	}
+
+	return 0;
 }
 
 

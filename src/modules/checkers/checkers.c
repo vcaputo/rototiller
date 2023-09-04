@@ -440,7 +440,7 @@ static void checkers_render_fragment(til_module_context_t *context, til_stream_t
 }
 
 
-static void checkers_finish_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr)
+static int checkers_finish_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr)
 {
 	checkers_context_t	*ctxt = (checkers_context_t *)context;
 
@@ -487,6 +487,8 @@ static void checkers_finish_frame(til_module_context_t *context, til_stream_t *s
 #endif
 		}
 	}
+
+	return 0;
 }
 
 

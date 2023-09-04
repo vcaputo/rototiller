@@ -357,11 +357,13 @@ static void voronoi_render_fragment(til_module_context_t *context, til_stream_t 
 }
 
 
-static void voronoi_finish_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr)
+static int voronoi_finish_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr)
 {
 	voronoi_context_t	*ctxt = (voronoi_context_t *)context;
 
 	ctxt->distances.recalc_needed = 0;
+
+	return 0;
 }
 
 
