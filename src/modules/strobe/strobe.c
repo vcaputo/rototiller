@@ -64,7 +64,7 @@ static void strobe_update_taps(strobe_context_t *ctxt, til_stream_t *stream, flo
 	else
 		ctxt->vars.toggle = *ctxt->toggle;
 
-	if (ctxt->vars.hz <= 0.f)
+	if (ctxt->vars.hz < 0.f)
 		ctxt->vars.hz = 0.f;
 }
 
