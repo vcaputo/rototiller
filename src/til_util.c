@@ -28,23 +28,20 @@ unsigned til_get_ncpus(void)
 #endif
 
 #ifdef __MACH__
-	int count;
-	size_t count_len = sizeof(count);
+	int	count;
+	size_t	count_len = sizeof(count);
 
 	if (sysctlbyname("hw.logicalcpu_max", &count, &count_len, NULL, 0) < 0)
 		return 1;
 
 	return MIN(count, TIL_MAXCPUS);
 #else
-	char		path[cstrlen(TIL_SYSFS_CPU "1024") + 1];
-	unsigned	n;
+	long	n;
 
-	for (n = 0; n < TIL_MAXCPUS; n++) {
-		snprintf(path, sizeof(path), "%s%u", TIL_SYSFS_CPU, n);
-		if (access(path, F_OK) == -1)
-			break;
-	}
+	n = sysconf(_SC_NPROCESSORS_ONLN);
+	if (n <= 0)
+		return 1;
 
-	return n == 0 ? 1 : n;
+	return MIN(n, TIL_MAXCPUS);
 #endif
 }
