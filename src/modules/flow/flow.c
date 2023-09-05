@@ -17,8 +17,8 @@
 /* Copyright (C) 2017 Vito Caputo <vcaputo@pengaru.com> */
 
 /* TODO:
- * - make threaded
- * - make colorful
+ * - improve the second pass's element rejection efficiency, a spatial data structure
+ *   could probably help here.
  */
 
 #define FLOW_DEFAULT_SIZE	"8"
@@ -29,7 +29,9 @@
 
 typedef struct flow_element_t {
 	float	lifetime;
-	v3f_t	position;
+	v3f_t	position_a, position_b;
+	v3f_t	velocity;	/* per-iter step + direction applicable directly to position_a */
+	v3f_t	color;
 } flow_element_t;
 
 typedef struct flow_context_t {
@@ -50,6 +52,9 @@ typedef struct flow_context_t {
 	unsigned		last_populate_idx;
 	unsigned		n_iters;
 	unsigned		n_elements;
+	unsigned		n_elements_per_cpu;
+	unsigned		pass;
+	float			w;
 	flow_element_t		elements[];
 } flow_context_t;
 
@@ -62,7 +67,7 @@ typedef struct flow_setup_t {
 } flow_setup_t;
 
 
-static void populator(void *context, unsigned size, const ff_data_t *other, ff_data_t *field)
+static void flow_ff_populator(void *context, unsigned size, const ff_data_t *other, ff_data_t *field)
 {
 	flow_context_t	*ctxt = context;
 	unsigned	*seedp = &ctxt->til_module_context.seed;
@@ -91,10 +96,12 @@ static inline float rand_within_range(unsigned *seed, float min, float max)
 
 static inline flow_element_t rand_element(unsigned *seed)
 {
-	flow_element_t	e;
+	flow_element_t	e = {
+				.lifetime = rand_within_range(seed, .5f, 20.f),
+				.position_a = v3f_rand(seed, -1.f, 1.f),
+			};
 
-	e.lifetime = rand_within_range(seed, 0.5f, 20.0f);
-	e.position = v3f_rand(seed, 0.0f, 1.0f);
+	e.position_b = e.position_a;
 
 	return e;
 }
@@ -121,20 +128,22 @@ static til_module_context_t * flow_create_context(const til_module_t *module, ti
 {
 	flow_setup_t	*s = (flow_setup_t *)setup;
 	flow_context_t	*ctxt;
-	unsigned	i;
+	unsigned	elements_per_cpu;
 
-	ctxt = til_module_context_new(module, sizeof(flow_context_t) + sizeof(ctxt->elements[0]) * s->count, stream, seed, ticks, n_cpus, setup);
+	elements_per_cpu  = s->count / n_cpus;
+	ctxt = til_module_context_new(module, sizeof(flow_context_t) + sizeof(ctxt->elements[0]) * elements_per_cpu * n_cpus, stream, seed, ticks, n_cpus, setup);
 	if (!ctxt)
 		return NULL;
 
-	ctxt->ff = ff_new(s->size, populator, ctxt);
+	ctxt->ff = ff_new(s->size, flow_ff_populator, ctxt);
 	if (!ctxt->ff)
 		return til_module_context_free(&ctxt->til_module_context);
 
-	for (i = 0; i < s->count; i++)
+	for (unsigned i = 0; i < s->count; i++)
 		ctxt->elements[i] = rand_element(&ctxt->til_module_context.seed);
 
-	ctxt->n_elements = s->count;
+	ctxt->n_elements_per_cpu = elements_per_cpu;
+	ctxt->n_elements = elements_per_cpu * n_cpus;
 
 	ctxt->taps.speed = til_tap_init_float(ctxt, &ctxt->speed, 1, &ctxt->vars.speed, "speed");
 	flow_update_taps(ctxt, stream);
@@ -169,65 +178,213 @@ static inline uint32_t color_to_uint32_rgb(v3f_t color) {
 }
 
 
+static void flow_prepare_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
+{
+	flow_context_t	*ctxt = (flow_context_t *)context;
+
+	switch (ctxt->pass) {
+	case 0:
+		flow_update_taps(ctxt, stream);
+
+		ctxt->w = (M_2_PI * asinf(fabsf(sinf((ticks * .001f))))) * 2.f - 1.f;
+		/* ^^ this approximates a triangle wave,
+		 * a sine wave dwells too long for the illusion of continuously evolving
+		 */
+
+		*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_noop_per_cpu };
+		return;
+
+	case 1:
+		*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu };
+		return;
+
+	default:
+		assert(0);
+	}
+}
+
+
 static void flow_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
 {
 	flow_context_t		*ctxt = (flow_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;
-	float			w;
 
-	flow_update_taps(ctxt, stream);
+	switch (ctxt->pass) {
+	case 0: {
+		flow_element_t	*e = &ctxt->elements[fragment->number * ctxt->n_elements_per_cpu];
+		unsigned	n = ctxt->n_elements_per_cpu;
+		float		w = ctxt->w * .5f + .5f;
 
-	til_fb_fragment_clear(fragment);
+		/* XXX: note the fragment->number is used above as the cpu number, this is to ensure all cpu #s
+		 * are actually used.  Since our noop_fragmenter_per_cpu always produces a fragment per cpu,
+		 * the fragment->number should exhaust the cpu space.  Relying on the actual cpu number could
+		 * skip entire regions of the elements, since there's no guarantee we get scheduled on all CPUs
+		 * in a given frame, despite having a fragment per cpu.  An alternative would be to set the
+		 * .cpu_affinity flag in the frame_plan, but that just slows things down pointlessly.
+		 */
 
-	w = (M_2_PI * asinf(fabsf(sinf((ticks * .001f))))) * 2.f - 1.f;
-	/* ^^ this approximates a triangle wave,
-	 * a sine wave dwells too long for the illusion of continuously evolving
-	 */
+		/* sample the flow-field and update the elements accordingly, splitting ctxt->elements
+		 * into elements_per_cpu chunks indexed by cpu, only working on the chunk for this cpu
+		 */
+		for (unsigned i = 0; i < n; e++, i++) {
+			v3f_t		pos;
+			ff_data_t	d;
 
-	for (unsigned j = 0; j < ctxt->n_elements; j++) {
-		flow_element_t	*e = &ctxt->elements[j];
-		v3f_t		pos = e->position;
-		ff_data_t	d = ff_get(ctxt->ff, &pos, w * .5f + .5f);
-
-		d.direction = v3f_mult_scalar(&d.direction, .001f);
-
-		for (unsigned k = 0; k < ctxt->n_iters; k++) {
-			unsigned	x, y;
-
-			pos = v3f_add(&pos, &d.direction);
-#define ZCONST 1.0f
-			x = (pos.x * 2.f - 1.f) / (pos.z + ZCONST) * fragment->width + (fragment->width >> 1);
-			y = (pos.y * 2.f - 1.f) / (pos.z + ZCONST) * fragment->height + (fragment->height >> 1) ;
-
-			(void) til_fb_fragment_put_pixel_checked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x, y, color_to_uint32_rgb(d.color));
-
-			if (pos.x < 0.f || pos.x > 1.f ||
-			    pos.y < 0.f || pos.y > 1.f ||
-			    pos.z < 0.f || pos.z > 1.f)
+			e->lifetime -= .1f;
+			if (e->lifetime <= 0.0f)
 				*e = rand_element(&ctxt->til_module_context.seed);
-			else
-				e->position = pos;
+
+			if (e->position_b.x < -1.f || e->position_b.x > 1.f ||
+			    e->position_b.y < -1.f || e->position_b.y > 1.f ||
+			    e->position_b.z < -1.f || e->position_b.z > 1.f)
+				*e = rand_element(&ctxt->til_module_context.seed);
+
+			pos = e->position_a = e->position_b;
+
+			d = ff_get(ctxt->ff,
+				   &(v3f_t){ /* FIXME TODO: just make ff.[ch] use a -1..+1 coordinate system */
+					.x = pos.x * .5f + .5f,
+					.y = pos.y * .5f + .5f,
+					.z = pos.z * .5f + .5f,
+				   }, w);
+			e->color = d.color;
+			d.direction = v3f_mult_scalar(&d.direction, .001f); /* XXX FIXME: magic number alert! */
+			e->velocity = d.direction;
+
+			/* Compute the final position now for the next go-round.
+			 * The second pass can't just write it back willy-nilly while racing with others,
+			 * despite doing the same thing iteratively as it draws n_iters pixels.  Hence
+			 * this position_b becomes position_a situation above.
+			 */
+			d.direction = v3f_mult_scalar(&d.direction, (float)ctxt->n_iters);
+			e->position_b = v3f_add(&pos, &d.direction);
 		}
 
-		e->lifetime -= .1f;
-		if (e->lifetime <= 0.0f)
-			*e = rand_element(&ctxt->til_module_context.seed);
+		return;
 	}
 
-	/* Re-populate the other field before changing directions.
-	 * note if the frame rate is too low and we miss a >.95 sample
-	 * this will regress to just revisiting the previous field which
-	 * is relatively harmless.
-	 */
-	if (fabsf(w) > .95f) {
-		unsigned	other_idx;
+	case 1: {
+		unsigned	ffw = fragment->frame_width,
+				ffh = fragment->frame_height;
+		unsigned	fx1 = fragment->x,
+				fy1 = fragment->y,
+				fx2 = fragment->x + fragment->width,
+				fy2 = fragment->y + fragment->height;
 
-		other_idx = rintf(-w * .5f + .5f);
-		if (other_idx != ctxt->last_populate_idx) {
-			ff_populate(ctxt->ff, other_idx);
-			ctxt->last_populate_idx = other_idx;
+		til_fb_fragment_clear(fragment);
+
+		/* render elements overlapping with this fragment's tile */
+		for (unsigned i = 0; i < ctxt->n_elements; i++) {
+			flow_element_t	*e = &ctxt->elements[i];
+			v3f_t		pos = e->position_a;
+			v3f_t		v = e->velocity;
+			unsigned	x1, y1, x2, y2;
+			uint32_t	pixel;
+
+			/* Perspective-project the endpoints of the element's travel, this is
+			 * the part we can't currently avoid doing per-element per-fragment.
+			 */
+#define ZCONST 1.0f
+			x1 = pos.x / (pos.z + ZCONST) * ffw + (ffw >> 1);
+			y1 = pos.y / (pos.z + ZCONST) * ffh + (ffh >> 1) ;
+			x2 = e->position_b.x / (e->position_b.z + ZCONST) * ffw + (ffw >> 1);
+			y2 = e->position_b.y / (e->position_b.z + ZCONST) * ffh + (ffh >> 1) ;
+
+			/* for cases obviously outside the fragment, don't draw anything */
+
+			/* totally outside (above) */
+			if (y1 < fy1 && y2 < fy1)
+				continue;
+
+			/* totally outside (below) */
+			if (y1 > fy2 && y2 > fy2)
+				continue;
+
+			/* totally outside (left) */
+			if (x1 < fx1 && x2 < fx1)
+				continue;
+
+			/* totally outside (right) */
+			if (x1 > fx2 && x2 > fx2)
+				continue;
+
+			/* remaining cases draw something, get the pixel ready */
+			pixel = color_to_uint32_rgb(e->color);
+
+			/* totally inside, render unchecked */
+			if (y1 >= fy1 && y1 < fy2 && y2 >= fy1 && y2 < fy2 &&
+			    x1 >= fx1 && x1 < fx2 && x2 >= fx1 && x2 < fx2) {
+
+				(void) til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x1, y1, pixel);
+				(void) til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x2, y2, pixel);
+
+				if (!ctxt->n_iters)
+					continue;
+
+				for (unsigned j = 1; j < ctxt->n_iters - 1; j++) {
+
+					pos = v3f_add(&pos, &v);
+
+					x1 = pos.x / (pos.z + ZCONST) * ffw + (ffw >> 1);
+					y1 = pos.y / (pos.z + ZCONST) * ffh + (ffh >> 1);
+
+					(void) til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x1, y1, pixel);
+				}
+
+				continue;
+			}
+
+			/* may partially overlap, do same as above but w/checking */
+			(void) til_fb_fragment_put_pixel_checked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x1, y1, pixel);
+			(void) til_fb_fragment_put_pixel_checked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x2, y2, pixel);
+
+			if (!ctxt->n_iters)
+				continue;
+
+			for (unsigned j = 1; j < ctxt->n_iters - 1; j++) {
+
+				pos = v3f_add(&pos, &v);
+
+				x1 = pos.x / (pos.z + ZCONST) * ffw + (ffw >> 1);
+				y1 = pos.y / (pos.z + ZCONST) * ffh + (ffh >> 1) ;
+
+				(void) til_fb_fragment_put_pixel_checked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x1, y1, pixel);
+			}
+		}
+
+		return;
+	}
+
+	default:
+		assert(0);
+	}
+}
+
+
+static int flow_finish_frame(til_module_context_t *context, til_stream_t *stream, unsigned int ticks, til_fb_fragment_t **fragment_ptr)
+{
+	flow_context_t		*ctxt = (flow_context_t *)context;
+
+	ctxt->pass = (ctxt->pass + 1) % 2;
+
+	if (!ctxt->pass) {
+		/* Re-populate the other field before changing directions.
+		 * note if the frame rate is too low and we miss a >.95 sample
+		 * this will regress to just revisiting the previous field which
+		 * is relatively harmless.
+		 */
+		if (fabsf(ctxt->w) > .95f) {
+			unsigned	other_idx;
+
+			other_idx = rintf(-ctxt->w * .5f + .5f);
+			if (other_idx != ctxt->last_populate_idx) {
+				ff_populate(ctxt->ff, other_idx);
+				ctxt->last_populate_idx = other_idx;
+			}
 		}
 	}
+
+	return ctxt->pass;
 }
 
 
@@ -237,7 +394,9 @@ static int flow_setup(const til_settings_t *settings, til_setting_t **res_settin
 til_module_t	flow_module = {
 	.create_context = flow_create_context,
 	.destroy_context = flow_destroy_context,
+	.prepare_frame = flow_prepare_frame,
 	.render_fragment = flow_render_fragment,
+	.finish_frame = flow_finish_frame,
 	.setup = flow_setup,
 	.name = "flow",
 	.description = "3D flow field",
