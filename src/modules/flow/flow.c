@@ -98,9 +98,11 @@ static inline flow_element_t rand_element(unsigned *seed)
 {
 	flow_element_t	e = {
 				.lifetime = rand_within_range(seed, .5f, 20.f),
-				.position_a = v3f_rand(seed, -1.f, 1.f),
+				.position_a = v3f_rand(seed, 0.f, 1.f),
 			};
 
+	e.position_a.x = e.position_a.x * 2.f - 1.f;
+	e.position_a.y = e.position_a.y * 2.f - 1.f;
 	e.position_b = e.position_a;
 
 	return e;
@@ -236,7 +238,7 @@ static void flow_render_fragment(til_module_context_t *context, til_stream_t *st
 
 			if (e->position_b.x < -1.f || e->position_b.x > 1.f ||
 			    e->position_b.y < -1.f || e->position_b.y > 1.f ||
-			    e->position_b.z < -1.f || e->position_b.z > 1.f)
+			    e->position_b.z < 0.f || e->position_b.z > 1.f)
 				*e = rand_element(&ctxt->til_module_context.seed);
 
 			pos = e->position_a = e->position_b;
@@ -245,7 +247,7 @@ static void flow_render_fragment(til_module_context_t *context, til_stream_t *st
 				   &(v3f_t){ /* FIXME TODO: just make ff.[ch] use a -1..+1 coordinate system */
 					.x = pos.x * .5f + .5f,
 					.y = pos.y * .5f + .5f,
-					.z = pos.z * .5f + .5f,
+					.z = pos.z,
 				   }, w);
 			e->color = d.color;
 			d.direction = v3f_mult_scalar(&d.direction, .001f); /* XXX FIXME: magic number alert! */
@@ -346,7 +348,7 @@ static void flow_render_fragment(til_module_context_t *context, til_stream_t *st
 				pos = v3f_add(&pos, &v);
 
 				x1 = pos.x / (pos.z + ZCONST) * ffw + (ffw >> 1);
-				y1 = pos.y / (pos.z + ZCONST) * ffh + (ffh >> 1) ;
+				y1 = pos.y / (pos.z + ZCONST) * ffh + (ffh >> 1);
 
 				(void) til_fb_fragment_put_pixel_checked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x1, y1, pixel);
 			}
