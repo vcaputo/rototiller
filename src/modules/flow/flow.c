@@ -401,7 +401,7 @@ til_module_t	flow_module = {
 	.finish_frame = flow_finish_frame,
 	.setup = flow_setup,
 	.name = "flow",
-	.description = "3D flow field",
+	.description = "3D flow field (threaded)",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",
 	.flags = TIL_MODULE_OVERLAYABLE,
 };
