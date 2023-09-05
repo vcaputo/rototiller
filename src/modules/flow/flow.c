@@ -425,9 +425,10 @@ static int flow_setup(const til_settings_t *settings, til_setting_t **res_settin
 				"5000",
 				"10000",
 				"20000",
-				"30000",
 				"40000",
-				"50000",
+				"60000",
+				"80000",
+				"100000",
 				NULL
 			};
 	til_setting_t	*speed;
