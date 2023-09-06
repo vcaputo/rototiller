@@ -22,7 +22,7 @@
  */
 
 #define FLOW_DEFAULT_SIZE	"8"
-#define FLOW_DEFAULT_COUNT	"30000"
+#define FLOW_DEFAULT_COUNT	"40000"
 #define FLOW_DEFAULT_SPEED	".2"
 
 #define FLOW_MAX_SPEED		40
