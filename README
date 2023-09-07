@@ -30,6 +30,10 @@ Quickly jump sections of this text by searching forward/reverse for ---
       See https://rototiller.pengaru.com for more information, including
     videos, and screenshots.
 
+      The current rototiller source is browsable on the web @
+    https://git.pengaru.com/cgit/rototiller/.git or the github mirror @
+    https://github.com/vcaputo/rototiller/
+
       Everything below pertains to the CLI `rototiller` program, but much
     will probably overlap with anything utilizing libtil.a.
 
