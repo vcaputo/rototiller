@@ -19,6 +19,9 @@
 /* TODO:
  * - improve the second pass's element rejection efficiency, a spatial data structure
  *   could probably help here.
+ *
+ * - rand_element() is called in parallel in the first pass when elements are rebooted,
+ *   but a single shared seed is being used.  This should be made a per-cpu seed.
  */
 
 #define FLOW_DEFAULT_SIZE	"8"
