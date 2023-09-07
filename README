@@ -312,7 +312,7 @@ Quickly jump sections of this text by searching forward/reverse for ---
 
 
 [0] GNU Rocket: https://github.com/rocket/rocket
-[1] C/OpenGL: RocketEditor https://github.com/emoon/rocket
+[1] C/OpenGL RocketEditor: https://github.com/emoon/rocket
 [2] Demos: https://en.wikipedia.org/wiki/Demo_scene
 [3] Experimental SchismTracker GNU Rocket support: https://github.com/vcaputo/schismtracker/tree/gnurocket
 [4] RocketEditor, the first GNU Rocket editor supporting multiple clients: https://github.com/emoon/rocket/pull/165
