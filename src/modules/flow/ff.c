@@ -41,7 +41,7 @@ ff_t * ff_free(ff_t *ff)
 
 ff_t * ff_new(unsigned size, void (*populator)(void *context, unsigned size, const ff_data_t *other, ff_data_t *field), void *context)
 {
-	ff_t		*ff;
+	ff_t	*ff;
 
 	ff = calloc(1, sizeof(ff_t));
 	if (!ff)

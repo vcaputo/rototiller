@@ -137,15 +137,16 @@ static til_module_context_t * flow_create_context(const til_module_t *module, ti
 	if (!ctxt)
 		return NULL;
 
+	ctxt->n_elements_per_cpu = elements_per_cpu;
+	ctxt->n_elements = elements_per_cpu * n_cpus;
+
 	ctxt->ff = ff_new(s->size, flow_ff_populator, ctxt);
 	if (!ctxt->ff)
 		return til_module_context_free(&ctxt->til_module_context);
 
-	for (unsigned i = 0; i < s->count; i++)
+	for (unsigned i = 0; i < ctxt->n_elements; i++)
 		ctxt->elements[i] = rand_element(&ctxt->til_module_context.seed);
 
-	ctxt->n_elements_per_cpu = elements_per_cpu;
-	ctxt->n_elements = elements_per_cpu * n_cpus;
 
 	ctxt->taps.speed = til_tap_init_float(ctxt, &ctxt->speed, 1, &ctxt->vars.speed, "speed");
 	flow_update_taps(ctxt, stream);
