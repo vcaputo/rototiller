@@ -8,9 +8,17 @@
 
 
 /* "blank" built-in module */
+typedef struct _blank_setup_t {
+	til_setup_t	til_setup;
+	unsigned	force:1;
+} _blank_setup_t;
+
 static void _blank_prepare_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
 {
 	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu };
+
+	if (((_blank_setup_t *)context->setup)->force)
+		(*fragment_ptr)->cleared = 0;
 }
 
 
@@ -20,14 +28,60 @@ static void _blank_render_fragment(til_module_context_t *context, til_stream_t *
 }
 
 
+static int blank_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
+
+
 til_module_t	_blank_module = {
 	.prepare_frame = _blank_prepare_frame,
 	.render_fragment = _blank_render_fragment,
+	.setup = blank_setup,
 	.name = "blank",
 	.description = "Blanker (built-in)",
 	.author = "built-in",
 	.flags = TIL_MODULE_BUILTIN,
 };
+
+
+static int blank_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
+{
+	const char	*values[] = {
+				"off",
+				"on",
+				NULL
+			};
+	til_setting_t	*force;
+	int		r;
+
+	r = til_settings_get_and_describe_setting(settings,
+						&(til_setting_spec_t){
+							.name = "Force clearing",
+							.key = "force",
+							.regex = NULL,
+							.preferred = values[0],
+							.values = values,
+							.annotations = NULL
+						},
+						&force,
+						res_setting,
+						res_desc);
+	if (r)
+		return r;
+
+	if (res_setup) {
+		_blank_setup_t	*setup;
+
+		setup = til_setup_new(settings, sizeof(*setup), NULL, &_blank_module);
+		if (!setup)
+			return -ENOMEM;
+
+		if (!strcasecmp(force->value, "on"))
+			setup->force = 1;
+
+		*res_setup = &setup->til_setup;
+	}
+
+	return 0;
+}
 
 
 /* "noop" built-in module */
