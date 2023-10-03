@@ -669,3 +669,24 @@ int til_fragmenter_tile64(til_module_context_t *context, const til_fb_fragment_t
 {
 	return til_fb_fragment_tile_single(fragment, 64, number, res_fragment);
 }
+
+
+/* Helper for mapping a value to a position in the supplied NULL-terminated lsit of options.
+ * Primarily useful for modules when mapping a settings value to an entry in a values array.
+ * Returns 0 on success w/position @res_pos, -ENOENT when not found.
+ */
+int til_value_to_pos(const char **options, const char *value, unsigned *res_pos)
+{
+	assert(options);
+	assert(value);
+	assert(res_pos);
+
+	for (unsigned i = 0; options[i]; i++) {
+		if (!strcasecmp(value, options[i])) {
+			*res_pos = i;
+			return 0;
+		}
+	}
+
+	return -ENOENT;
+}

@@ -58,5 +58,6 @@ int til_fragmenter_noop_per_cpu(til_module_context_t *context, const til_fb_frag
 int til_fragmenter_slice_per_cpu(til_module_context_t *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment);
 int til_fragmenter_slice_per_cpu_x16(til_module_context_t *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment);
 int til_fragmenter_tile64(til_module_context_t *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment);
+int til_value_to_pos(const char **options, const char *value, unsigned *res_pos);
 
 #endif
