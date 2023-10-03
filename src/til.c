@@ -28,6 +28,7 @@
 static til_threads_t	*til_threads;
 static struct timeval	til_start_tv;
 
+extern til_module_t	asc_module;
 extern til_module_t	blinds_module;
 extern til_module_t	checkers_module;
 extern til_module_t	compose_module;
@@ -65,6 +66,7 @@ extern til_module_t	_noop_module;
 extern til_module_t	_ref_module;
 
 static const til_module_t	*modules[] = {
+	&asc_module,
 	&blinds_module,
 	&checkers_module,
 	&compose_module,

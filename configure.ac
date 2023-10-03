@@ -42,6 +42,7 @@ AC_CONFIG_FILES([
  src/libs/sig/Makefile
  src/libs/txt/Makefile
  src/modules/Makefile
+ src/modules/asc/Makefile
  src/modules/blinds/Makefile
  src/modules/checkers/Makefile
  src/modules/compose/Makefile
