@@ -150,7 +150,6 @@ static til_module_context_t * flow_create_context(const til_module_t *module, ti
 	for (unsigned i = 0; i < ctxt->n_elements; i++)
 		ctxt->elements[i] = rand_element(&ctxt->til_module_context.seed);
 
-
 	ctxt->taps.speed = til_tap_init_float(ctxt, &ctxt->speed, 1, &ctxt->vars.speed, "speed");
 	flow_update_taps(ctxt, stream);
 
