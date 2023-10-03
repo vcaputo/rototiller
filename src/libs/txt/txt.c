@@ -43,6 +43,9 @@ static void measure_str(const char *str, int *res_width, int *res_height)
 		str++;
 	}
 
+	if (col > cols)
+		cols = col;
+
 	*res_height = 1 + rows * (ASCII_HEIGHT + 1);
 	*res_width = 1 + cols * (ASCII_WIDTH + 1);
 }
