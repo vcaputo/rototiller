@@ -571,20 +571,6 @@ static void checkers_setup_free(til_setup_t *setup)
 }
 
 
-/* TODO: move something like this to libtil */
-static int checkers_value_to_pos(const char **options, const char *value, unsigned *res_pos)
-{
-	for (unsigned i = 0; options[i]; i++) {
-		if (!strcasecmp(value, options[i])) {
-			*res_pos = i;
-			return 0;
-		}
-	}
-
-	return -ENOENT;
-}
-
-
 static int checkers_fill_module_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	/* XXX: Note that this is for processing the underlying fill_module_settings, starting with the module name.
@@ -889,7 +875,7 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 				return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, dynamics_rate, res_setting, -EINVAL);
 		}
 
-		r = checkers_value_to_pos(fill_values, fill->value, (unsigned *)&setup->fill);
+		r = til_value_to_pos(fill_values, fill->value, (unsigned *)&setup->fill);
 		if (r < 0)
 			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, fill, res_setting, -EINVAL);
 
@@ -897,7 +883,7 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 		if (r < 0)
 			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, fill_color, res_setting, -EINVAL);
 
-		r = checkers_value_to_pos(clear_values, clear->value, (unsigned *)&setup->clear);
+		r = til_value_to_pos(clear_values, clear->value, (unsigned *)&setup->clear);
 		if (r < 0)
 			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, clear, res_setting, -EINVAL);
 
