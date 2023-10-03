@@ -7,6 +7,8 @@
 #include "til.h"
 #include "til_fb.h"
 #include "til_module_context.h"
+#include "til_stream.h"
+#include "til_tap.h"
 
 #include "txt/txt.h"
 
@@ -16,8 +18,6 @@
  * replace with something a more visually interesting font/style.
  *
  * TODO:
- *	- Wire up taps for the x/y coordinates, making this a handy taps diagnostic
- *
  *      - Maybe add a dynamic justification mode where the h/v alignment offsets are
  *        just the inverse of the normalized x/y coordinates.  This requires extending
  *        libs/txt to support precise offsetting when rendering as an alternative to the
@@ -45,8 +45,36 @@ typedef struct asc_setup_t {
 typedef struct asc_context_t {
 	til_module_context_t	til_module_context;
 
+	struct {
+		til_tap_t		x, y;
+	}			taps;
+
+	struct {
+		float			x, y;
+	}			vars;
+
+	float			*x, *y;
+
 	txt_t			*txt;
 } asc_context_t;
+
+
+static void asc_update_taps(asc_context_t *ctxt, til_stream_t *stream)
+{
+	if (!til_stream_tap_context(stream, &ctxt->til_module_context, NULL, &ctxt->taps.x))
+		*ctxt->x = ((asc_setup_t *)ctxt->til_module_context.setup)->x;
+	else
+		ctxt->vars.x = *ctxt->x;
+
+	if (!til_stream_tap_context(stream, &ctxt->til_module_context, NULL, &ctxt->taps.y))
+		*ctxt->y = ((asc_setup_t *)ctxt->til_module_context.setup)->y;
+	else
+		ctxt->vars.y = *ctxt->y;
+
+	/* XXX: maybe clamp to -1.0..+1.0 ?  It's not a crash risk since txt_render_fragment()
+	 * clips to the fragment by using ...put_pixel_checked() *shrug*
+	 */
+}
 
 
 static til_module_context_t * asc_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
@@ -61,6 +89,11 @@ static til_module_context_t * asc_create_context(const til_module_t *module, til
 	if (!ctxt->txt)
 		return til_module_context_free(&ctxt->til_module_context);
 
+	ctxt->taps.x = til_tap_init_float(ctxt, &ctxt->x, 1, &ctxt->vars.x, "x");
+	ctxt->taps.y = til_tap_init_float(ctxt, &ctxt->y, 1, &ctxt->vars.y, "y");
+
+	asc_update_taps(ctxt, stream);
+
 	return &ctxt->til_module_context;
 }
 
@@ -71,11 +104,13 @@ static void asc_render_fragment(til_module_context_t *context, til_stream_t *str
 	asc_setup_t		*s = (asc_setup_t *)context->setup;
 	til_fb_fragment_t	*fragment = *fragment_ptr;
 
+	asc_update_taps(ctxt, stream);
+
 	til_fb_fragment_clear(fragment);
 
 	txt_render_fragment(ctxt->txt, fragment, 0xffffffff,
-			    s->x * ((float)fragment->frame_width) * .5f + .5f * ((float)fragment->frame_width),
-			    s->y * ((float)fragment->frame_height) * .5f + .5f * ((float)fragment->frame_height),
+			    ctxt->vars.x * ((float)fragment->frame_width) * .5f + .5f * ((float)fragment->frame_width),
+			    ctxt->vars.y * ((float)fragment->frame_height) * .5f + .5f * ((float)fragment->frame_height),
 			    (txt_align_t){
 				.horiz = s->halign,
 				.vert = s->valign
