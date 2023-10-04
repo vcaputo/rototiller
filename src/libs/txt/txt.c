@@ -168,21 +168,18 @@ static inline void draw_char(til_fb_fragment_t *fragment, uint32_t color, int x,
 }
 
 
-void txt_render_fragment(txt_t *txt, til_fb_fragment_t *fragment, uint32_t color, int x, int y, txt_align_t alignment)
+static void txt_render(txt_t *txt, til_fb_fragment_t *fragment, uint32_t color, int jx, int jy)
 {
-	int	jx, jy, col, row;
+	int	col, row;
 	char	*str;
 
 	assert(txt);
 	assert(fragment);
 
-	justify(alignment, x, y, txt->width, txt->height, &jx, &jy);
-
 	if (!overlaps(jx, jy, txt->width, txt->height,
 		      fragment->x, fragment->y,
 		      fragment->width, fragment->height))
 		return;
-
 
 	for (col = 0, row = 0, str = txt->str; *str; str++) {
 		switch (*str) {
@@ -200,4 +197,16 @@ void txt_render_fragment(txt_t *txt, til_fb_fragment_t *fragment, uint32_t color
 			break;
 		}
 	}
+}
+
+
+void txt_render_fragment_aligned(txt_t *txt, til_fb_fragment_t *fragment, uint32_t color, int x, int y, txt_align_t alignment)
+{
+	int	jx, jy;
+
+	assert(txt);
+
+	justify(alignment, x, y, txt->width, txt->height, &jx, &jy);
+
+	return txt_render(txt, fragment, color, jx, jy);
 }

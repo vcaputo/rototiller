@@ -108,13 +108,13 @@ static void asc_render_fragment(til_module_context_t *context, til_stream_t *str
 
 	til_fb_fragment_clear(fragment);
 
-	txt_render_fragment(ctxt->txt, fragment, 0xffffffff,
-			    ctxt->vars.x * ((float)fragment->frame_width) * .5f + .5f * ((float)fragment->frame_width),
-			    ctxt->vars.y * ((float)fragment->frame_height) * .5f + .5f * ((float)fragment->frame_height),
-			    (txt_align_t){
-				.horiz = s->halign,
-				.vert = s->valign
-			    });
+	txt_render_fragment_aligned(ctxt->txt, fragment, 0xffffffff,
+				    ctxt->vars.x * ((float)fragment->frame_width) * .5f + .5f * ((float)fragment->frame_width),
+				    ctxt->vars.y * ((float)fragment->frame_height) * .5f + .5f * ((float)fragment->frame_height),
+				    (txt_align_t){
+					.horiz = s->halign,
+					.vert = s->valign
+				    });
 }
 
 

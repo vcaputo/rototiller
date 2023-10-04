@@ -350,12 +350,12 @@ static void rkt_render_fragment(til_module_context_t *context, til_stream_t *str
 			 * as this is a diagnostic it's not so important.
 			 */
 			til_fb_fragment_clear(*fragment_ptr);
-			txt_render_fragment(msg, *fragment_ptr, 0xffffffff,
-					    0, 0,
-					    (txt_align_t){
-						.horiz = TXT_HALIGN_LEFT,
-						.vert = TXT_VALIGN_TOP,
-					   });
+			txt_render_fragment_aligned(msg, *fragment_ptr, 0xffffffff,
+						    0, 0,
+						    (txt_align_t){
+							.horiz = TXT_HALIGN_LEFT,
+							.vert = TXT_VALIGN_TOP,
+						   });
 			txt_free(msg);
 		}
 
@@ -368,12 +368,12 @@ static void rkt_render_fragment(til_module_context_t *context, til_stream_t *str
 			 * will revisit the status text in the future.  Not a huge priority since
 			 * none of this should be active in "production" playback mode.
 			 */
-			txt_render_fragment(msg, *fragment_ptr, 0xffffffff,
-					    0, 0,
-					    (txt_align_t){
-						.horiz = TXT_HALIGN_LEFT,
-						.vert = TXT_VALIGN_TOP,
-					   });
+			txt_render_fragment_aligned(msg, *fragment_ptr, 0xffffffff,
+						    0, 0,
+						    (txt_align_t){
+							.horiz = TXT_HALIGN_LEFT,
+							.vert = TXT_VALIGN_TOP,
+						   });
 
 			txt_free(msg);
 		}

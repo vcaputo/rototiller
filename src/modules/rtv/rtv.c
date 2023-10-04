@@ -336,18 +336,18 @@ static int rtv_finish_frame(til_module_context_t *context, til_stream_t *stream,
 	til_fb_fragment_t	*fragment = *fragment_ptr;
 
 	if (ctxt->caption) {
-		txt_render_fragment(ctxt->caption, fragment, 0x00000000,
-				    1, fragment->frame_height + 1,
-				    (txt_align_t){
+		txt_render_fragment_aligned(ctxt->caption, fragment, 0x00000000,
+					    1, fragment->frame_height + 1,
+					    (txt_align_t){
+							.horiz = TXT_HALIGN_LEFT,
+							.vert = TXT_VALIGN_BOTTOM
+					    });
+		txt_render_fragment_aligned(ctxt->caption, fragment, 0xffffffff,
+					    0, fragment->frame_height,
+					    (txt_align_t){
 						.horiz = TXT_HALIGN_LEFT,
 						.vert = TXT_VALIGN_BOTTOM
-				    });
-		txt_render_fragment(ctxt->caption, fragment, 0xffffffff,
-				    0, fragment->frame_height,
-				    (txt_align_t){
-					.horiz = TXT_HALIGN_LEFT,
-					.vert = TXT_VALIGN_BOTTOM
-				    });
+					    });
 	}
 
 	return 0;

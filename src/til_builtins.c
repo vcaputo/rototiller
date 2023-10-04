@@ -143,12 +143,12 @@ static void _ref_render_fragment(til_module_context_t *context, til_stream_t *st
 			txt_t	*msg = txt_newf("%s: BAD PATH \"%s\"", context->setup->path, s->path);
 
 			til_fb_fragment_clear(*fragment_ptr);
-			txt_render_fragment(msg, *fragment_ptr, 0xffffffff,
-					    0, 0,
-					    (txt_align_t){
-						.horiz = TXT_HALIGN_LEFT,
-						.vert = TXT_VALIGN_TOP,
-					    });
+			txt_render_fragment_aligned(msg, *fragment_ptr, 0xffffffff,
+						    0, 0,
+						    (txt_align_t){
+							.horiz = TXT_HALIGN_LEFT,
+							.vert = TXT_VALIGN_TOP,
+						    });
 			txt_free(msg);
 			/* TODO: maybe print all available contexts into the fragment? */
 			return;
