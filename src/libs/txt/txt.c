@@ -210,3 +210,29 @@ void txt_render_fragment_aligned(txt_t *txt, til_fb_fragment_t *fragment, uint32
 
 	return txt_render(txt, fragment, color, jx, jy);
 }
+
+
+/* Like txt_render_fragment_aligned(), except instead of specifying halign/valign enum variants,
+ * you provide -1..+1 normalized offsets within the rendered text rectangle to anchor the
+ * provided x,y pixel coordinates.  This enables progressively varying the justification
+ * offset rather than it behaving like a step function of three options left/right/center or
+ * top/bottom/center etc.  (modules/asc was the impetus for adding this)
+ */
+void txt_render_fragment_offsetted(txt_t *txt, til_fb_fragment_t *fragment, uint32_t color, int x, int y, float x_offset, float y_offset)
+{
+	int	jx = x, jy = y;
+
+	assert(txt);
+
+	/* XXX: one could argue the offsets should be clamped to -1..+1, but
+	 * I can see valid use cases where one wants to go grater than abs(1)
+	 * to achieve extremely offset texts in dynamic situations.  So I'm
+	 * just letting whatever comes in pass thru for now, considering this
+	 * is "art" oriented where allowing creative stuff to just work trumps
+	 * preventing potential buggy behavior.
+	 */
+	jx -= x_offset * txt->width * .5f + txt->width * .5f;
+	jy -= y_offset * txt->height * .5f + txt->height * .5f;
+
+	return txt_render(txt, fragment, color, jx, jy);
+}
