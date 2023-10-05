@@ -28,7 +28,6 @@
 static til_threads_t	*til_threads;
 static struct timeval	til_start_tv;
 
-extern til_module_t	asc_module;
 extern til_module_t	blinds_module;
 extern til_module_t	checkers_module;
 extern til_module_t	compose_module;
@@ -59,14 +58,14 @@ extern til_module_t	swab_module;
 extern til_module_t	swarm_module;
 extern til_module_t	voronoi_module;
 
-/* built-ins (til_builtins.c) */
+/* built-ins (mostly in til_builtins.c) */
+extern til_module_t	asc_module;
 extern til_module_t	_blank_module;
 extern til_module_t	_none_module;
 extern til_module_t	_noop_module;
 extern til_module_t	_ref_module;
 
 static const til_module_t	*modules[] = {
-	&asc_module,
 	&blinds_module,
 	&checkers_module,
 	&compose_module,
@@ -98,6 +97,7 @@ static const til_module_t	*modules[] = {
 	&voronoi_module,
 
 	/* built-ins at the end */
+	&asc_module,
 	&_blank_module,
 	&_none_module,
 	&_noop_module,

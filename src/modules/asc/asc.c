@@ -182,9 +182,9 @@ til_module_t	asc_module = {
 	.render_fragment = asc_render_fragment,
 	.setup = asc_setup,
 	.name = "asc",
-	.description = "ASCII text",
+	.description = "ASCII text (built-in)",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",
-	.flags = TIL_MODULE_OVERLAYABLE,
+	.flags = TIL_MODULE_OVERLAYABLE | TIL_MODULE_BUILTIN,
 };
 
 
