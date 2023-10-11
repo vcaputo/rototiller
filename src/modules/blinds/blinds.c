@@ -86,7 +86,7 @@ static void blinds_prepare_frame(til_module_context_t *context, til_stream_t *st
 
 
 /* draw a horizontal blind over fragment */
-static inline void draw_blind_horizontal(til_fb_fragment_t *fragment, unsigned row, unsigned count, float t)
+static void draw_blind_horizontal(til_fb_fragment_t *fragment, unsigned row, unsigned count, float t)
 {
 	float		row_height = fragment->frame_height / (float)count;
 	unsigned	height = roundf(t * row_height);
@@ -117,7 +117,7 @@ static inline void draw_blind_horizontal(til_fb_fragment_t *fragment, unsigned r
 
 
 /* draw a vertical blind over fragment */
-static inline void draw_blind_vertical(til_fb_fragment_t *fragment, unsigned column, unsigned count, float t)
+static void draw_blind_vertical(til_fb_fragment_t *fragment, unsigned column, unsigned count, float t)
 {
 	float		column_width = fragment->frame_width / (float)count;
 	unsigned	width = roundf(t * column_width);
