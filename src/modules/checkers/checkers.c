@@ -189,7 +189,7 @@ static void checkers_destroy_context(til_module_context_t *context)
  * XXX note this fragmenter in particular really exercises fill_modules' correct handling
  *     of frame vs. fragment dimensions and clipping semantics
  */
-int checkers_fragment_tile_single(const til_fb_fragment_t *fragment, unsigned tile_size, unsigned number, til_fb_fragment_t *res_fragment)
+static int checkers_fragment_tile_single(const til_fb_fragment_t *fragment, unsigned tile_size, unsigned number, til_fb_fragment_t *res_fragment)
 {
 	unsigned	numw = fragment->width / tile_size, numh = fragment->height / tile_size;
 	unsigned	x, y, xoff, yoff, xshift = 0, yshift = 0;
