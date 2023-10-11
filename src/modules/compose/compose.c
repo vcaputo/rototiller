@@ -355,8 +355,8 @@ static int compose_setup(const til_settings_t *settings, til_setting_t **res_set
 	if (r)
 		return r;
 
-	assert(res_setting && *res_setting && (*res_setting)->value_as_nested_settings);
-	texture_settings = (*res_setting)->value_as_nested_settings;
+	texture_settings = texture->value_as_nested_settings;
+	assert(texture_settings);
 
 	r = compose_texture_module_setup(texture_settings,
 					 res_setting,
