@@ -48,7 +48,7 @@ Hacking on rototiller / libtil:
   3. Integrating the module into the build system by adding its directory
      to the existing "configure.ac" and "src/modules/Makefile.am" files,
      creating its own "src/modules/${new}/Makefile.am" file, and adding
-     it's produced archive to "src/Makefile.am" for linking.
+     its produced archive to "src/Makefile.am" for linking.
 
   4. Wiring the module into libtil exposing it to the world by adding it
      to the modules[] array in "src/til.c".
