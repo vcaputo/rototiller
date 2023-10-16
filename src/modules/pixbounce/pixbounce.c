@@ -227,7 +227,7 @@ typedef struct pixbounce_context_t {
 	pixbounce_pixmap_t	*pix;
 	uint32_t		color;
 	float			pixmap_size_factor;
-	int			multiplier;
+	float			multiplier;
 } pixbounce_context_t;
 
 static uint32_t pick_color(unsigned *seedp)
@@ -259,27 +259,27 @@ static void pixbounce_prepare_frame(til_module_context_t *context, til_stream_t 
 {
 	pixbounce_context_t	*ctxt = (pixbounce_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;
-	int			width = fragment->width, height = fragment->height;
+	int			width = fragment->frame_width, height = fragment->frame_height;
 
 	/* tell rototiller how to subfragment the frame for threaded rendering */
 	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_tile64 };
 
 	if(ctxt->x == -1) {
-		int	multiplier_x, multiplier_y;
+		float	multiplier_x, multiplier_y;
 
 		/* calculate multiplyer for the pixmap */
 		multiplier_x = width / ctxt->pix->width;
 		multiplier_y = height / ctxt->pix->height;
 
 		if(multiplier_x>=multiplier_y) {
-			ctxt->multiplier = multiplier_y * (ctxt->pixmap_size_factor*55 + 22 )/ 100;
+			ctxt->multiplier = multiplier_y * (ctxt->pixmap_size_factor * 55 + 22 ) * .01f;
 		} else {
-			ctxt->multiplier = multiplier_x * (ctxt->pixmap_size_factor*55 + 22 ) / 100;
+			ctxt->multiplier = multiplier_x * (ctxt->pixmap_size_factor * 55 + 22 ) * .01f;
 		}
 
 		/* randomly initialize location and direction of pixmap */
-		ctxt->x = rand_r(&ctxt->til_module_context.seed) % (width - ctxt->pix->width * ctxt->multiplier) + 1;
-		ctxt->y = rand_r(&ctxt->til_module_context.seed) % (height - ctxt->pix->height * ctxt->multiplier) + 1;
+		ctxt->x = rand_r(&ctxt->til_module_context.seed) % (int)(width - ctxt->pix->width * ctxt->multiplier) + 1;
+		ctxt->y = rand_r(&ctxt->til_module_context.seed) % (int)(height - ctxt->pix->height * ctxt->multiplier) + 1;
 		ctxt->x_dir = (rand_r(&ctxt->til_module_context.seed) % 7) - 3;
 		ctxt->y_dir = (rand_r(&ctxt->til_module_context.seed) % 7) - 3;
 
@@ -305,6 +305,7 @@ static void pixbounce_render_fragment(til_module_context_t *context, til_stream_
 	pixbounce_context_t	*ctxt = (pixbounce_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;
 	int			pix_y, pix_x, pix_w, pix_h;
+	float			inv_multiplier = 1.f / ctxt->multiplier;
 
 	/* blank the fragment */
 	til_fb_fragment_clear(fragment);
@@ -325,7 +326,7 @@ static void pixbounce_render_fragment(til_module_context_t *context, til_stream_
 	/* translate pixmap to multiplier size and draw it to the fragment */
 	for(int cursor_y = 0; cursor_y < pix_h; cursor_y++) {
 		for(int cursor_x = 0; cursor_x < pix_w; cursor_x++) {
-			int pix_offset = (((cursor_y+pix_y)/ctxt->multiplier)*ctxt->pix->width) + ((cursor_x+pix_x)/ctxt->multiplier);
+			int pix_offset = ((int)((cursor_y+pix_y)*inv_multiplier)*ctxt->pix->width) + ((int)(cursor_x+pix_x)*inv_multiplier);
 			if(ctxt->pix->pix_map[pix_offset] == 0) continue;
 			til_fb_fragment_put_pixel_unchecked(
 					fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, ctxt->x+pix_x+cursor_x, ctxt->y+pix_y+cursor_y,
