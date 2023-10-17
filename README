@@ -6,8 +6,12 @@ Quickly jump sections of this text by searching forward/reverse for ---
 
  Overview:
 
-      rototiller implements a corpus of software-rendered graphics
-    rendering modules, integrated into a single program.
+      rototiller implements a corpus of software-rendered real-time
+    graphics rendering modules, integrated into a single program.  For a
+    sample of what sort of outputs rototiller produces, a YouTube playlist
+    of short captures may be found here:
+
+    https://www.youtube.com/playlist?list=PLIA5njm7IjTJlVkKaEUYpbR-Ka7f2Fuuk
 
       It can be used as a static library (libtil.a) embedded in other
     programs, or it can be used as a standalone CLI tool for displaying
