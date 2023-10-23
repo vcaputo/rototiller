@@ -1,1 +1,32 @@
-SUBDIRS = asc blinds checkers compose drizzle flow flui2d julia meta2d mixer moire montage pixbounce plasma plato ray rkt roto rtv shapes signals snow sparkler spiro stars strobe stub submit swab swarm voronoi
+SUBDIRS =			\
+		asc		\
+		blinds		\
+		checkers	\
+		compose		\
+		drizzle		\
+		flow		\
+		flui2d		\
+		julia		\
+		meta2d		\
+		mixer		\
+		moire		\
+		montage		\
+		pixbounce	\
+		plasma		\
+		plato		\
+		ray		\
+		rkt		\
+		roto		\
+		rtv		\
+		shapes		\
+		signals		\
+		snow		\
+		sparkler	\
+		spiro		\
+		stars		\
+		strobe		\
+		stub		\
+		submit		\
+		swab		\
+		swarm		\
+		voronoi
