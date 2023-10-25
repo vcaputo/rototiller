@@ -33,19 +33,19 @@
 #define TICKS_PER_FRAME 8000
 
 typedef struct color_t {
-	float	r, g, b;
+	float	r, g, b, a;
 } color_t;
 
 static color_t colors[NUM_PLAYERS + 1] = {
-	{},		 	/* uninitialized cell starts black, becomes winner colors */
-	{1.f, .317f, 0.f },	/* orange */
-	{.627f, .125f, 1.f },	/* blue */
-	{.878f, 0.f, 0.f },	/* red */
-	{.165f, .843f, .149f },	/* green */
-	{0.f, .878f, .815f },	/* cyan */
-	{.878f, 0.f, 1.f },	/* purple */
-	{.906f, .937f, 0.f }, 	/* yellow */
-	{}, 			/* black */
+	{},			 	/* uninitialized cell starts black, becomes winner colors */
+	{1.f, .317f, 0.f, 1.f },	/* orange */
+	{.627f, .125f, 1.f, 1.f },	/* blue */
+	{.878f, 0.f, 0.f, 1.f },	/* red */
+	{.165f, .843f, .149f, 1.f },	/* green */
+	{0.f, .878f, .815f, 1.f },	/* cyan */
+	{.878f, 0.f, 1.f, 1.f },	/* purple */
+	{.906f, .937f, 0.f, 1.f }, 	/* yellow */
+	{}, 				/* black */
 };
 
 
@@ -71,8 +71,11 @@ static inline uint32_t color_to_uint32(color_t color) {
 	if (color.r > 1.0f) color.r = 1.0f;
 	if (color.g > 1.0f) color.g = 1.0f;
 	if (color.b > 1.0f) color.b = 1.0f;
+	if (color.a > 1.0f) color.a = 1.0f;
 
-	pixel = (uint32_t)(color.r * 255.0f);
+	pixel = (uint32_t)(color.a * 255.0f);
+	pixel <<= 8;
+	pixel |= (uint32_t)(color.r * 255.0f);
 	pixel <<= 8;
 	pixel |= (uint32_t)(color.g * 255.0f);
 	pixel <<= 8;
@@ -108,6 +111,7 @@ static color_t color_lerp(color_t *a, color_t *b, float t)
 		.r = a->r * (1.f - t) + b->r * t,
 		.g = a->g * (1.f - t) + b->g * t,
 		.b = a->b * (1.f - t) + b->b * t,
+		.a = a->a * (1.f - t) + b->a * t,
 	};
 
 	return res;
@@ -194,14 +198,28 @@ static void draw_grid(submit_context_t *ctxt, til_fb_fragment_t *fragment)
 	float	xscale = ((float)GRID_SIZE - 1.f) / (float)fragment->frame_width;
 	float	yscale = ((float)GRID_SIZE - 1.f) / (float)fragment->frame_height;
 
-	for (int y = 0; y < fragment->height; y++) {
-		for (int x = 0; x < fragment->width; x++) {
-			uint32_t	color;
+	if (!fragment->cleared) {
+		for (int y = 0; y < fragment->height; y++) {
+			for (int x = 0; x < fragment->width; x++) {
+				uint32_t	color;
 
-			/* TODO: this could be optimized a bit! i.e. don't recompute the y for every x etc. */
-			color = sample_grid(ctxt, .5f + ((float)(fragment->x + x)) * xscale, .5f + ((float)(fragment->y + y)) * yscale);
-			til_fb_fragment_put_pixel_unchecked(fragment, 0, fragment->x + x, fragment->y + y, color);
+				/* TODO: this could be optimized a bit! i.e. don't recompute the y for every x etc. */
+				color = sample_grid(ctxt, .5f + ((float)(fragment->x + x)) * xscale, .5f + ((float)(fragment->y + y)) * yscale);
+				til_fb_fragment_put_pixel_unchecked(fragment, 0, fragment->x + x, fragment->y + y, color);
+			}
 		}
+	} else {
+		for (int y = 0; y < fragment->height; y++) {
+			for (int x = 0; x < fragment->width; x++) {
+				uint32_t	color;
+
+				/* TODO: this could be optimized a bit! i.e. don't recompute the y for every x etc. */
+				color = sample_grid(ctxt, .5f + ((float)(fragment->x + x)) * xscale, .5f + ((float)(fragment->y + y)) * yscale);
+				if ((color & 0xff000000) == 0xff000000)
+					til_fb_fragment_put_pixel_unchecked(fragment, 0, fragment->x + x, fragment->y + y, color);
+			}
+		}
+
 	}
 }
 
@@ -211,13 +229,26 @@ static void draw_grid_bilerp(submit_context_t *ctxt, til_fb_fragment_t *fragment
 	float	xscale = ((float)GRID_SIZE - 2.f) / (float)fragment->frame_width;
 	float	yscale = ((float)GRID_SIZE - 2.f) / (float)fragment->frame_height;
 
-	for (int y = 0; y < fragment->height; y++) {
-		for (int x = 0; x < fragment->width; x++) {
-			uint32_t	color;
+	if (!fragment->cleared) {
+		for (int y = 0; y < fragment->height; y++) {
+			for (int x = 0; x < fragment->width; x++) {
+				uint32_t	color;
 
-			/* TODO: this could be optimized a bit! i.e. don't recompute the y for every x etc. */
-			color = sample_grid_bilerp(ctxt, 1.f + ((float)(fragment->x + x)) * xscale, 1.f + ((float)(fragment->y + y)) * yscale);
-			til_fb_fragment_put_pixel_unchecked(fragment, 0, fragment->x + x, fragment->y + y, color);
+				/* TODO: this could be optimized a bit! i.e. don't recompute the y for every x etc. */
+				color = sample_grid_bilerp(ctxt, 1.f + ((float)(fragment->x + x)) * xscale, 1.f + ((float)(fragment->y + y)) * yscale);
+				til_fb_fragment_put_pixel_unchecked(fragment, 0, fragment->x + x, fragment->y + y, color);
+			}
+		}
+	} else {
+		for (int y = 0; y < fragment->height; y++) {
+			for (int x = 0; x < fragment->width; x++) {
+				uint32_t	color;
+
+				/* TODO: this could be optimized a bit! i.e. don't recompute the y for every x etc. */
+				color = sample_grid_bilerp(ctxt, 1.f + ((float)(fragment->x + x)) * xscale, 1.f + ((float)(fragment->y + y)) * yscale);
+				if ((color & 0xff000000) == 0xff000000)
+					til_fb_fragment_put_pixel_unchecked(fragment, 0, fragment->x + x, fragment->y + y, color);
+			}
 		}
 	}
 }
@@ -335,10 +366,11 @@ til_module_t	submit_module = {
 	.destroy_context = submit_destroy_context,
 	.prepare_frame = submit_prepare_frame,
 	.render_fragment = submit_render_fragment,
+	.setup = submit_setup,
 	.name = "submit",
 	.description = "Cellular automata conquest game sim (threaded (poorly))",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",
-	.setup = submit_setup,
+	.flags = TIL_MODULE_OVERLAYABLE,
 };
 
 
