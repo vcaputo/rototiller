@@ -323,6 +323,7 @@ static void submit_destroy_context(til_module_context_t *context)
 static void submit_prepare_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
 {
 	submit_context_t	*ctxt = (submit_context_t *)context;
+	til_fb_fragment_t	*fragment = *fragment_ptr;
 
 	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_tile64 };
 
@@ -334,6 +335,9 @@ static void submit_prepare_frame(til_module_context_t *context, til_stream_t *st
 
 	for (int i = 0; i < NUM_PLAYERS; i++) {
 		int	moves = rand_r(&ctxt->til_module_context.seed) % TICKS_PER_FRAME;
+
+		if (fragment->cleared && colors[i + 1].a == 0.f)
+			moves = MIN(TICKS_PER_FRAME, moves + (TICKS_PER_FRAME / 10));
 
 		for (int j = 0; j < moves; j++)
 			grid_player_plan(ctxt->players[i], ctxt->seq++,
