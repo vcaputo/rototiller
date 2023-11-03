@@ -511,55 +511,6 @@ static char * checkers_random_color(unsigned seed)
 }
 
 
-/* TODO: migrate to libtil */
-static int checkers_rgb_to_uint32(const char *in, uint32_t *out)
-{
-	uint32_t	color = 0;
-
-	/* this isn't html, but accept #rrggbb syntax */
-	if (*in == '#')
-		in++;
-	else if (in[0] == '0' && in[1] == 'x') /* and 0xrrggbb */
-		in += 2;
-
-	if (strlen(in) != 6)
-		return -EINVAL;
-
-	for (int i = 0; i < 6;) {
-		uint8_t	c = 0;
-
-		color <<= 8;
-
-		for (int j = 0; j < 2; in++, j++, i++) {
-			c <<= 4;
-
-			switch (*in) {
-			case '0'...'9':
-				c |= (*in) - '0';
-				break;
-
-			case 'a'...'f':
-				c |= (*in) - 'a' + 10;
-				break;
-
-			case 'A'...'F':
-				c |= (*in) - 'A' + 10;
-				break;
-
-			default:
-				return -EINVAL;
-			}
-		}
-
-		color |= c;
-	}
-
-	*out = color;
-
-	return 0;
-}
-
-
 static void checkers_setup_free(til_setup_t *setup)
 {
 	checkers_setup_t	*s = (checkers_setup_t *)setup;
@@ -879,7 +830,7 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 		if (r < 0)
 			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, fill, res_setting, -EINVAL);
 
-		r = checkers_rgb_to_uint32(fill_color->value, &setup->fill_color);
+		r = til_rgb_to_uint32(fill_color->value, &setup->fill_color);
 		if (r < 0)
 			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, fill_color, res_setting, -EINVAL);
 
@@ -888,7 +839,7 @@ static int checkers_setup(const til_settings_t *settings, til_setting_t **res_se
 			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, clear, res_setting, -EINVAL);
 
 		if (setup->clear != CHECKERS_CLEAR_CLEAR) {
-			r = checkers_rgb_to_uint32(clear_color->value, &setup->clear_color);
+			r = til_rgb_to_uint32(clear_color->value, &setup->clear_color);
 			if (r < 0)
 				return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, clear_color, res_setting, -EINVAL);
 		}

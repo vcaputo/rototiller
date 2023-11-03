@@ -5,6 +5,8 @@
 #include "til_module_context.h"
 #include "til_setup.h"
 
+#include <stdint.h>
+
 /* til_fragmenter_t produces fragments from an input fragment, num being the desired fragment for the current call.
  * return value of 1 means a fragment has been produced, 0 means num is beyond the end of fragments. */
 typedef int (*til_fragmenter_t)(til_module_context_t *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment);
@@ -59,5 +61,6 @@ int til_fragmenter_slice_per_cpu(til_module_context_t *context, const til_fb_fra
 int til_fragmenter_slice_per_cpu_x16(til_module_context_t *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment);
 int til_fragmenter_tile64(til_module_context_t *context, const til_fb_fragment_t *fragment, unsigned number, til_fb_fragment_t *res_fragment);
 int til_value_to_pos(const char **options, const char *value, unsigned *res_pos);
+int til_rgb_to_uint32(const char *str, uint32_t *res);
 
 #endif

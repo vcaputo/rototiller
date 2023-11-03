@@ -694,3 +694,56 @@ int til_value_to_pos(const char **options, const char *value, unsigned *res_pos)
 
 	return -ENOENT;
 }
+
+
+/* Helper for turning a hex string rgb color into an uint32 */
+int til_rgb_to_uint32(const char *str, uint32_t *res)
+{
+	uint32_t	color = 0;
+
+	assert(str);
+	assert(res);
+
+	/* this isn't html, but accept #rrggbb syntax */
+	if (*str == '#')
+		str++;
+	else if (str[0] == '0' && str[1] == 'x') /* and 0xrrggbb */
+		str += 2;
+
+	if (strlen(str) != 6)
+		return -EINVAL;
+
+	/* TODO: maybe support alternatively including alpha? e.g. #aarrggbb? */
+	for (int i = 0; i < 6;) {
+		uint8_t	c = 0;
+
+		color <<= 8;
+
+		for (int j = 0; j < 2; str++, j++, i++) {
+			c <<= 4;
+
+			switch (*str) {
+			case '0'...'9':
+				c |= (*str) - '0';
+				break;
+
+			case 'a'...'f':
+				c |= (*str) - 'a' + 10;
+				break;
+
+			case 'A'...'F':
+				c |= (*str) - 'A' + 10;
+				break;
+
+			default:
+				return -EINVAL;
+			}
+		}
+
+		color |= c;
+	}
+
+	*res = color;
+
+	return 0;
+}
