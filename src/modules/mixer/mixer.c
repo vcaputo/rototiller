@@ -318,12 +318,10 @@ static void mixer_setup_free(til_setup_t *setup)
 {
 	mixer_setup_t	*s = (mixer_setup_t *)setup;
 
-	if (s) {
-		for (size_t i = 0; i < nelems(s->inputs); i++)
-			til_setup_free(s->inputs[i].setup);
+	for (size_t i = 0; i < nelems(s->inputs); i++)
+		til_setup_free(s->inputs[i].setup);
 
-		free(setup);
-	}
+	free(setup);
 }
 
 

@@ -412,10 +412,8 @@ static void roto_setup_free(til_setup_t *setup)
 {
 	roto_setup_t	*s = (roto_setup_t *)setup;
 
-	if (s) {
-		til_setup_free(s->fill_module_setup);
-		free(setup);
-	}
+	til_setup_free(s->fill_module_setup);
+	free(setup);
 }
 
 

@@ -387,15 +387,13 @@ static void rkt_setup_free(til_setup_t *setup)
 {
 	rkt_setup_t	*s = (rkt_setup_t *)setup;
 
-	if (s) {
-		for (size_t i = 0; i < s->n_scenes; i++)
-			til_setup_free(s->scenes[i].setup);
+	for (size_t i = 0; i < s->n_scenes; i++)
+		til_setup_free(s->scenes[i].setup);
 
-		free((void *)s->base);
-		free((void *)s->host);
-		free((void *)s->scener_address);
-		free(setup);
-	}
+	free((void *)s->base);
+	free((void *)s->host);
+	free((void *)s->scener_address);
+	free(setup);
 }
 
 

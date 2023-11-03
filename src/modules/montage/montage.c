@@ -216,11 +216,9 @@ static void montage_setup_free(til_setup_t *setup)
 {
 	montage_setup_t	*s = (montage_setup_t *)setup;
 
-	if (s) {
-		for (size_t i = 0; i < s->n_tiles; i++)
-			til_setup_free(s->tiles[i].setup);
-		free(setup);
-	}
+	for (size_t i = 0; i < s->n_tiles; i++)
+		til_setup_free(s->tiles[i].setup);
+	free(setup);
 }
 
 

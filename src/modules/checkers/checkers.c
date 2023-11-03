@@ -515,10 +515,8 @@ static void checkers_setup_free(til_setup_t *setup)
 {
 	checkers_setup_t	*s = (checkers_setup_t *)setup;
 
-	if (s) {
-		til_setup_free(s->fill_module_setup);
-		free(setup);
-	}
+	til_setup_free(s->fill_module_setup);
+	free(setup);
 }
 
 

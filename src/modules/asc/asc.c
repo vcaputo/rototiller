@@ -167,10 +167,8 @@ static void asc_setup_free(til_setup_t *setup)
 {
 	asc_setup_t	*s = (asc_setup_t *)setup;
 
-	if (s) {
-		free((void *)s->string);
-		free(s);
-	}
+	free((void *)s->string);
+	free(s);
 }
 
 
