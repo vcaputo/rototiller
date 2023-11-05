@@ -1,3 +1,6 @@
 [submodule "src/libs/rocket/rocket"]
 	path = src/libs/rocket/rocket
 	url = https://github.com/rocket/rocket
+[submodule "src/libs/playit"]
+	path = src/libs/playit
+	url = https://git.pengaru.com/git/libplayit
