@@ -96,12 +96,14 @@ typedef struct til_stream_t {
 	unsigned			frame;
 	const til_stream_hooks_t	*hooks;
 	void				*hooks_context;
+	til_audio_context_t		*audio_context;
 	til_stream_pipe_t		*pipe_buckets[TIL_STREAM_PIPE_BUCKETS_COUNT];
 	til_stream_module_context_t	*module_context_buckets[TIL_STREAM_CTXT_BUCKETS_COUNT];
 } til_stream_t;
 
 
-til_stream_t * til_stream_new(void)
+/* the caller must ensure audio_context persists, til_stream_free() will not free it */
+til_stream_t * til_stream_new(til_audio_context_t *audio_context)
 {
 	til_stream_t	*stream;
 
@@ -110,6 +112,7 @@ til_stream_t * til_stream_new(void)
 		return NULL;
 
 	pthread_mutex_init(&stream->mutex, NULL);
+	stream->audio_context = audio_context;
 
 	return stream;
 }
@@ -206,6 +209,23 @@ int til_stream_unset_hooks(til_stream_t *stream, const til_stream_hooks_t *hooks
 	return 0;
 }
 
+
+/* An audio context is just a simple singleton per stream, nothing fancy currently.
+ * Any module that wants to produce audio just calls til_stream_get_audio_context()
+ * on the stream, and til_audio_queue() against that context if non-NULL.  When
+ * the context is NULL audio-producing code should just not do anything.
+ *
+ * Nothing is done currently to prevent multiple modules from queueing audio and
+ * making an awful mess, this will probably get improved in the future.  It's just
+ * up to the user/setup to not arrange multiple audio-generating modules on the
+ * same stream.
+ */
+til_audio_context_t * til_stream_get_audio_context(til_stream_t *stream)
+{
+	assert(stream);
+
+	return stream->audio_context;
+}
 
 /* Taps the key-named type-typed pipe on the supplied stream.
  * If this is the first use of the pipe on this stream, new pipe will be created.

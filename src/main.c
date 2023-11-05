@@ -487,7 +487,7 @@ int main(int argc, const char *argv[])
 		exit_if((r = til_audio_open(audio_ops, setup.audio_setup, &rototiller.audio)) < 0,
 			"unable to open audio: %s", strerror(-r));
 
-		exit_if(!(rototiller.stream = til_stream_new()),
+		exit_if(!(rototiller.stream = til_stream_new(rototiller.audio)),
 			"unable to create root stream");
 
 		exit_if(!fps_setup(),

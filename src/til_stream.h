@@ -24,6 +24,7 @@
 #include "til_module_context.h"
 #include "til_setup.h"
 
+typedef struct til_audio_context_t til_audio_context_t;
 typedef struct til_stream_t til_stream_t;
 typedef struct til_stream_module_context_t til_stream_module_context_t;
 typedef struct til_stream_pipe_t til_stream_pipe_t;
@@ -44,13 +45,14 @@ typedef struct til_stream_hooks_t {
 	void (*pipe_dtor)(void *context, til_stream_t *stream, const void *owner, const void *owner_foo, const char *parent_path, const til_tap_t *tap);	/* called immediately *after* pipe "destroyed" (withdrawn from stream) */
 } til_stream_hooks_t;
 
-til_stream_t * til_stream_new(void);
+til_stream_t * til_stream_new(til_audio_context_t *audio_context);
 til_stream_t * til_stream_free(til_stream_t *stream);
 void til_stream_end(til_stream_t *stream);
 int til_stream_active(til_stream_t *stream);
 void til_stream_start_frame(til_stream_t *stream);
 int til_stream_set_hooks(til_stream_t *stream, const til_stream_hooks_t *hooks, void *context);
 int til_stream_unset_hooks(til_stream_t *stream, const til_stream_hooks_t *hooks);
+til_audio_context_t * til_stream_get_audio_context(til_stream_t *stream);
 
 /* bare interface for non-module-context owned taps */
 int til_stream_tap(til_stream_t *stream, const void *owner, const void *owner_foo, const char *parent_path, uint32_t parent_hash, const til_tap_t *tap);
