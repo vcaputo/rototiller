@@ -74,4 +74,9 @@ AC_CONFIG_FILES([
  src/modules/swarm/Makefile
  src/modules/voronoi/Makefile
 ])
+
+AC_CONFIG_SUBDIRS([
+ src/libs/playit
+])
+
 AC_OUTPUT

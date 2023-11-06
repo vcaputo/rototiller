@@ -4,6 +4,7 @@ SUBDIRS =		\
 		din	\
 		rocket	\
 		puddle	\
+		playit	\
 		ray	\
 		sig	\
 		txt

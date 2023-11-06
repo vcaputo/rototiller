@@ -99,4 +99,4 @@ endif
 if ENABLE_DRM
 rototiller_SOURCES += drm_fb.c
 endif
-rototiller_LDADD = libtil.la -lm
+rototiller_LDADD = libtil.la @top_builddir@/src/libs/playit/src/libplayit.a -lm
