@@ -42,6 +42,7 @@ extern til_module_t	montage_module;
 extern til_module_t	pixbounce_module;
 extern til_module_t	plasma_module;
 extern til_module_t	plato_module;
+extern til_module_t	playit_module;
 extern til_module_t	ray_module;
 extern til_module_t	rkt_module;
 extern til_module_t	roto_module;
@@ -81,6 +82,7 @@ static const til_module_t	*modules[] = {
 	&pixbounce_module,
 	&plasma_module,
 	&plato_module,
+	&playit_module,
 	&ray_module,
 	&rkt_module,
 	&roto_module,

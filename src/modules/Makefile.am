@@ -14,6 +14,7 @@ SUBDIRS =			\
 		pixbounce	\
 		plasma		\
 		plato		\
+		playit		\
 		ray		\
 		rkt		\
 		roto		\

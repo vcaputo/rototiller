@@ -49,6 +49,7 @@ libtil_la_LIBADD =						\
 			modules/pixbounce/libpixbounce.la	\
 			modules/plasma/libplasma.la		\
 			modules/plato/libplato.la		\
+			modules/playit/libplayit.la		\
 			modules/ray/libray.la			\
 			modules/rkt/librkt.la			\
 			modules/roto/libroto.la			\

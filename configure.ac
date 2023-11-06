@@ -57,6 +57,7 @@ AC_CONFIG_FILES([
  src/modules/pixbounce/Makefile
  src/modules/plasma/Makefile
  src/modules/plato/Makefile
+ src/modules/playit/Makefile
  src/modules/ray/Makefile
  src/modules/rkt/Makefile
  src/modules/roto/Makefile
