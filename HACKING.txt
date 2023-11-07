@@ -15,6 +15,11 @@ Hacking on rototiller / libtil:
     This document primarily attempts to describe how one goes about hacking
   on new rototiller modules.
 
+    If video tutorials are preferred, a growing collection of rototiller
+  module development tutorial screencasts may be found on YouTube here:
+
+  https://www.youtube.com/playlist?list=PLIA5njm7IjTIg9gub7XwR_yGSkdAtOKy6
+
     Initially only a bare minimum module creation is described.  This is a
   single-threaded, unconfigurable at runtime, simple module, requiring only
   the rendering function be implemented.
