@@ -274,7 +274,7 @@ til_fb_ops_t sdl_fb_ops = {
 
 static int sdl_fb_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
-	const char	*fullscreen_values[] = {
+	const char	*bool_values[] = {
 				"off",
 				"on",
 				NULL
@@ -288,8 +288,8 @@ static int sdl_fb_setup(const til_settings_t *settings, til_setting_t **res_sett
 							.name = "SDL fullscreen mode",
 							.key = "fullscreen",
 							.regex = NULL,
-							.preferred = fullscreen_values[0],
-							.values = fullscreen_values,
+							.preferred = bool_values[0],
+							.values = bool_values,
 							.annotations = NULL
 						},
 						&fullscreen,
