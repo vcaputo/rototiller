@@ -26,7 +26,7 @@ struct sdl_fb_page_t {
 typedef struct sdl_fb_t {
 	const char	*title;
 	unsigned	width, height;
-	Uint32		flags;
+	Uint32		window_flags;
 
 	SDL_Window	*window;
 	SDL_Renderer	*renderer;
@@ -68,9 +68,9 @@ static int sdl_fb_init(const char *title, const til_setup_t *setup, void **res_c
 
 	if (s->fullscreen) {
 		if (s->width && s->height)
-			c->flags = SDL_WINDOW_FULLSCREEN;
+			c->window_flags = SDL_WINDOW_FULLSCREEN;
 		else
-			c->flags = SDL_WINDOW_FULLSCREEN_DESKTOP;
+			c->window_flags = SDL_WINDOW_FULLSCREEN_DESKTOP;
 	}
 
 	c->title = strdup(title);
@@ -89,7 +89,7 @@ static int sdl_fb_init(const char *title, const til_setup_t *setup, void **res_c
 		return -sdl_err_to_errno(r);
 	}
 
-	if (c->flags == SDL_WINDOW_FULLSCREEN_DESKTOP) {
+	if (c->window_flags == SDL_WINDOW_FULLSCREEN_DESKTOP) {
 		SDL_DisplayMode	mode;
 
 		r = SDL_GetDesktopDisplayMode(0, &mode);
@@ -130,7 +130,7 @@ static int sdl_fb_acquire(til_fb_t *fb, void *context, void *page)
 {
 	sdl_fb_t	*c = context;
 
-	c->window = SDL_CreateWindow(c->title, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, c->width, c->height, c->flags);
+	c->window = SDL_CreateWindow(c->title, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, c->width, c->height, c->window_flags);
 	if (!c->window)
 		return -1;
 
@@ -142,7 +142,7 @@ static int sdl_fb_acquire(til_fb_t *fb, void *context, void *page)
 	if (!c->texture)
 		return -1;
 
-	if (c->flags & SDL_WINDOW_FULLSCREEN || c->flags & SDL_WINDOW_FULLSCREEN_DESKTOP)
+	if (c->window_flags & SDL_WINDOW_FULLSCREEN || c->window_flags & SDL_WINDOW_FULLSCREEN_DESKTOP)
 		SDL_ShowCursor(SDL_DISABLE);
 
 	return 0;
