@@ -12,7 +12,8 @@
 
 typedef struct sdl_fb_setup_t {
 	til_setup_t	til_setup;
-	int		fullscreen;
+	int		fullscreen:1;
+	int		vsync:1;
 	unsigned	width, height;
 } sdl_fb_setup_t;
 
@@ -27,6 +28,7 @@ typedef struct sdl_fb_t {
 	const char	*title;
 	unsigned	width, height;
 	Uint32		window_flags;
+	Uint32		renderer_flags;
 
 	SDL_Window	*window;
 	SDL_Renderer	*renderer;
@@ -72,6 +74,9 @@ static int sdl_fb_init(const char *title, const til_setup_t *setup, void **res_c
 		else
 			c->window_flags = SDL_WINDOW_FULLSCREEN_DESKTOP;
 	}
+
+	if (s->vsync)
+		c->renderer_flags = SDL_RENDERER_PRESENTVSYNC;
 
 	c->title = strdup(title);
 	if (!c->title) {
@@ -134,7 +139,7 @@ static int sdl_fb_acquire(til_fb_t *fb, void *context, void *page)
 	if (!c->window)
 		return -1;
 
-	c->renderer = SDL_CreateRenderer(c->window, -1, SDL_RENDERER_PRESENTVSYNC);
+	c->renderer = SDL_CreateRenderer(c->window, -1, c->renderer_flags);
 	if (!c->renderer)
 		return -1;
 
@@ -280,6 +285,7 @@ static int sdl_fb_setup(const til_settings_t *settings, til_setting_t **res_sett
 				NULL
 			};
 	til_setting_t	*fullscreen;
+	til_setting_t	*vsync;
 	til_setting_t	*size;
 	int		r;
 
@@ -293,6 +299,21 @@ static int sdl_fb_setup(const til_settings_t *settings, til_setting_t **res_sett
 							.annotations = NULL
 						},
 						&fullscreen,
+						res_setting,
+						res_desc);
+	if (r)
+		return r;
+
+	r = til_settings_get_and_describe_setting(settings,
+						&(til_setting_spec_t){
+							.name = "SDL synchronize present with refresh rate",
+							.key = "vsync",
+							.regex = NULL,
+							.preferred = bool_values[1],
+							.values = bool_values,
+							.annotations = NULL
+						},
+						&vsync,
 						res_setting,
 						res_desc);
 	if (r)
@@ -348,6 +369,9 @@ static int sdl_fb_setup(const til_settings_t *settings, til_setting_t **res_sett
 
 		if (!strcasecmp(fullscreen->value, "on"))
 			setup->fullscreen = 1;
+
+		if (!strcasecmp(vsync->value, "on"))
+			setup->vsync = 1;
 
 		if (size && sscanf(size->value, "%u%*[xX]%u", &setup->width, &setup->height) != 2)
 			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, size, res_setting, -EINVAL);
