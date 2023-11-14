@@ -287,7 +287,16 @@ static void _til_module_render(til_module_context_t *context, til_stream_t *stre
 {
 	unsigned	start = til_ticks_now();
 
-	module_render_fragment(context, stream, til_threads, n_cpus, ticks, fragment_ptr);
+	/* When a module provides a render_audio method, it's strictly audio and we don't do any render_fragment.
+	 * If a module wants to do interesting things combining visuals and audio together, it should do the
+	 * audio queueing from its prepare_frame/render_fragment/finish_frame alongside its visuals rendering,
+	 * and leave render_audio NULL.
+	 * FIXME TODO: assert() somewhere .render_audio isn't combined with .prepare_frame/.render_fragment/.finish_frame
+	 */
+	if (context->module->render_audio)
+		context->module->render_audio(context, stream, ticks);
+	else
+		module_render_fragment(context, stream, til_threads, n_cpus, ticks, fragment_ptr);
 
 	context->last_render_duration = til_ticks_now() - start;
 	if (context->last_render_duration > context->max_render_duration)
