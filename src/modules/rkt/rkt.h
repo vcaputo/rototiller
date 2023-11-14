@@ -17,6 +17,7 @@ typedef struct rkt_context_t {
 	til_module_context_t	til_module_context;
 
 	rkt_scener_t		*scener;
+	til_audio_context_t	*audio_context;
 	struct sync_device	*sync_device;
 	const struct sync_track	*scene_track;
 	double			rows_per_ms;

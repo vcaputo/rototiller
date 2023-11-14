@@ -1,3 +1,4 @@
+#include <math.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,6 +9,7 @@
 #include "rocket/rocket/lib/track.h"
 
 #include "til.h"
+#include "til_audio.h"
 #include "til_fb.h"
 #include "til_module_context.h"
 #include "til_settings.h"
@@ -83,20 +85,28 @@ static const struct sync_track * rkt_sync_get_trackf(rkt_context_t *ctxt, const 
 
 static void rkt_sync_pause(void *context, int flag)
 {
-	rkt_context_t	*ctxt = context;
+	rkt_context_t		*ctxt = context;
 
-	if (flag)
+	if (flag) {
 		ctxt->paused = 1;
-	else
+		til_audio_pause(ctxt->audio_context);
+	} else {
 		ctxt->paused = 0;
+		til_audio_unpause(ctxt->audio_context);
+	}
 }
 
 
 static void rkt_sync_set_row(void *context, int row)
 {
 	rkt_context_t	*ctxt = context;
+	unsigned	audio_ticks;
 
 	ctxt->rocket_row = row;
+
+	/* inform any interested parties like a music player about the seek */
+	audio_ticks = rint(ctxt->rocket_row / ctxt->rows_per_ms);
+	til_audio_seek(ctxt->audio_context, audio_ticks);
 }
 
 
@@ -276,6 +286,7 @@ static til_module_context_t * rkt_create_context(const til_module_t *module, til
 	if (!ctxt->scene_track)
 		return til_module_context_free(&ctxt->til_module_context);
 
+	ctxt->audio_context = til_stream_get_audio_context(stream);
 	/* set the stream hooks early so context creates can establish taps early */
 	til_stream_set_hooks(stream, &rkt_stream_hooks, ctxt);
 
@@ -380,6 +391,9 @@ static void rkt_render_fragment(til_module_context_t *context, til_stream_t *str
 
 		ctxt->last_scene = scene;
 	}
+
+	if (!ctxt->paused)
+		til_audio_unpause(ctxt->audio_context);
 }
 
 
