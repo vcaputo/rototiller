@@ -72,17 +72,17 @@ static til_module_context_t * compose_create_context(const til_module_t *module,
 	for (size_t i = 0; i < s->n_layers; i++) {
 		const til_module_t	*layer_module;
 
-		layer_module = ((compose_setup_t *)setup)->layers[i].module_setup->creator;
+		layer_module = s->layers[i].module_setup->creator;
 		if (til_module_create_context(layer_module, stream, rand_r(&seed), ticks, n_cpus, s->layers[i].module_setup, &ctxt->layers[i].module_ctxt) < 0)
 			return til_module_context_free(&ctxt->til_module_context);
 
 		ctxt->n_layers++;
 	}
 
-	if (((compose_setup_t *)setup)->texture.module_setup) {
+	if (s->texture.module_setup) {
 		const til_module_t	*texture_module;
 
-		texture_module = ((compose_setup_t *)setup)->texture.module_setup->creator;
+		texture_module = s->texture.module_setup->creator;
 		if (til_module_create_context(texture_module, stream, rand_r(&seed), ticks, n_cpus, s->texture.module_setup, &ctxt->texture.module_ctxt) < 0)
 			return til_module_context_free(&ctxt->til_module_context);
 	}
