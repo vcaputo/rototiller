@@ -53,6 +53,7 @@ void til_stream_start_frame(til_stream_t *stream);
 int til_stream_set_hooks(til_stream_t *stream, const til_stream_hooks_t *hooks, void *context);
 int til_stream_unset_hooks(til_stream_t *stream, const til_stream_hooks_t *hooks);
 til_audio_context_t * til_stream_get_audio_context(til_stream_t *stream);
+til_audio_context_t * til_stream_get_audio_context_control(til_stream_t *stream);
 
 /* bare interface for non-module-context owned taps */
 int til_stream_tap(til_stream_t *stream, const void *owner, const void *owner_foo, const char *parent_path, uint32_t parent_hash, const til_tap_t *tap);

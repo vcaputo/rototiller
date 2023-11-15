@@ -97,6 +97,7 @@ typedef struct til_stream_t {
 	const til_stream_hooks_t	*hooks;
 	void				*hooks_context;
 	til_audio_context_t		*audio_context;
+	unsigned			audio_controlled:1;
 	til_stream_pipe_t		*pipe_buckets[TIL_STREAM_PIPE_BUCKETS_COUNT];
 	til_stream_module_context_t	*module_context_buckets[TIL_STREAM_CTXT_BUCKETS_COUNT];
 } til_stream_t;
@@ -226,6 +227,23 @@ til_audio_context_t * til_stream_get_audio_context(til_stream_t *stream)
 
 	return stream->audio_context;
 }
+
+
+/* identical to til_stream_get_audio_context() except taking control,
+ * returns NULL if control is already taken.
+ */
+til_audio_context_t * til_stream_get_audio_context_control(til_stream_t *stream)
+{
+	assert(stream);
+
+	if (stream->audio_controlled)
+		return NULL;
+
+	stream->audio_controlled = 1;
+
+	return stream->audio_context;
+}
+
 
 /* Taps the key-named type-typed pipe on the supplied stream.
  * If this is the first use of the pipe on this stream, new pipe will be created.

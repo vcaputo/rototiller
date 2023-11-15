@@ -286,7 +286,10 @@ static til_module_context_t * rkt_create_context(const til_module_t *module, til
 	if (!ctxt->scene_track)
 		return til_module_context_free(&ctxt->til_module_context);
 
-	ctxt->audio_context = til_stream_get_audio_context(stream);
+	ctxt->audio_context = til_stream_get_audio_context_control(stream);
+	if (!ctxt->audio_context)
+		return til_module_context_free(&ctxt->til_module_context);
+
 	/* set the stream hooks early so context creates can establish taps early */
 	til_stream_set_hooks(stream, &rkt_stream_hooks, ctxt);
 

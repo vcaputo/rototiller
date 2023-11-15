@@ -73,7 +73,7 @@ typedef struct rototiller_t {
 	til_fb_fragment_t	*fragment;
 	pthread_t		thread;
 	til_fb_t		*fb;
-	til_audio_context_t	*audio;
+	til_audio_context_t	*audio, *audio_control;
 } rototiller_t;
 
 static rototiller_t		rototiller;
@@ -430,6 +430,10 @@ static void * rototiller_thread(void *_rt)
 		til_fb_fragment_submit(rt->fragment);
 		last_ticks = ticks;
 
+		/* if we're in audio control, ensure it's unpaused if something's queueing audio */
+		if (rt->audio_control && til_audio_n_queued(rt->audio_control))
+			til_audio_unpause(rt->audio_control);
+
 		if (rt->args.print_module_contexts || rt->args.print_pipes) {
 			/* render threads are idle at this point */
 			printf("\x1b[2J\x1b[;H"); /* ANSI codes for clear screen and move cursor to top left */
@@ -501,6 +505,9 @@ int main(int argc, const char *argv[])
 							setup.module_setup,
 							&rototiller.module_context)) < 0,
 			"unable to create module context: %s", strerror(-r));
+
+		/* this determines if we need to "control" the audio (unpause it, really) */
+		rototiller.audio_control = til_stream_get_audio_context_control(rototiller.stream);
 
 		pexit_if(pthread_create(&rototiller.thread, NULL, rototiller_thread, &rototiller) != 0,
 			"unable to create dispatch thread");
