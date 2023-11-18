@@ -424,9 +424,8 @@ static void * rototiller_thread(void *_rt)
 			continue;
 		}
 
-		til_stream_start_frame(rt->stream);
 		ticks = MAX(til_ticks_now() + delay, last_ticks);
-		til_module_render(rt->module_context, rt->stream, ticks, &rt->fragment);
+		til_stream_render(rt->stream, ticks, &rt->fragment);
 		til_fb_fragment_submit(rt->fragment);
 		last_ticks = ticks;
 
@@ -508,6 +507,8 @@ int main(int argc, const char *argv[])
 
 		/* this determines if we need to "control" the audio (unpause it, really) */
 		rototiller.audio_control = til_stream_get_audio_context_control(rototiller.stream);
+
+		til_stream_set_module_context(rototiller.stream, rototiller.module_context);
 
 		pexit_if(pthread_create(&rototiller.thread, NULL, rototiller_thread, &rototiller) != 0,
 			"unable to create dispatch thread");
