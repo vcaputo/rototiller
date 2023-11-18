@@ -25,6 +25,7 @@
 #include "til_setup.h"
 
 typedef struct til_audio_context_t til_audio_context_t;
+typedef struct til_fb_fragment_t til_fb_fragment_t;
 typedef struct til_stream_t til_stream_t;
 typedef struct til_stream_module_context_t til_stream_module_context_t;
 typedef struct til_stream_pipe_t til_stream_pipe_t;
@@ -79,5 +80,8 @@ int til_stream_register_module_contexts(til_stream_t *stream, size_t n_contexts,
 int til_stream_find_module_contexts(til_stream_t *stream, const char *path, size_t n_contexts, til_module_context_t **res_contexts);
 unsigned til_stream_gc_module_contexts(til_stream_t *stream);
 void til_stream_fprint_module_contexts(til_stream_t *stream, FILE *out);
+
+void til_stream_set_module_context(til_stream_t *stream, til_module_context_t *context);
+void til_stream_render(til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr);
 
 #endif

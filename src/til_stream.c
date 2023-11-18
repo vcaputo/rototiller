@@ -100,6 +100,7 @@ typedef struct til_stream_t {
 	unsigned			audio_controlled:1;
 	til_stream_pipe_t		*pipe_buckets[TIL_STREAM_PIPE_BUCKETS_COUNT];
 	til_stream_module_context_t	*module_context_buckets[TIL_STREAM_CTXT_BUCKETS_COUNT];
+	til_module_context_t		*module_context;
 } til_stream_t;
 
 
@@ -790,4 +791,25 @@ void til_stream_fprint_module_contexts(til_stream_t *stream, FILE *out)
 	fprintf(out, "Module contexts on stream %p:\n", stream);
 	(void) til_stream_for_each_module_context(stream, til_stream_fprint_module_context_cb, out);
 	fprintf(out, "\n");
+}
+
+
+void til_stream_set_module_context(til_stream_t *stream, til_module_context_t *context)
+{
+	assert(stream);
+	assert(context);
+
+	/* TODO: it feels like this should probably take a reference */
+	stream->module_context = context;
+}
+
+
+void til_stream_render(til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr)
+{
+	assert(stream);
+	assert(fragment_ptr);
+
+	stream->frame++;
+
+	til_module_render(stream->module_context, stream, ticks, fragment_ptr);
 }
