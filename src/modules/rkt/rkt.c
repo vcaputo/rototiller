@@ -357,8 +357,10 @@ static void rkt_render_fragment(til_module_context_t *context, til_stream_t *str
 						((rkt_setup_t *)context->setup)->connect ? (ctxt->connected ? "ONLINE" : "OFFLINE") : "PLAYER",
 						ctxt->scener ? "SCENER" : "NOSCENER");
 
-			if (scene != ctxt->last_scene)
+			if (scene != ctxt->last_scene) {
 				ctxt->paused = 1;
+				til_audio_pause(ctxt->audio_context);
+			}
 
 			/* TODO: creating/destroying this every frame is dumb, but
 			 * as this is a diagnostic it's not so important.
