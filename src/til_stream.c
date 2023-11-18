@@ -136,14 +136,6 @@ int til_stream_active(til_stream_t *stream)
 }
 
 
-void til_stream_start_frame(til_stream_t *stream)
-{
-	assert(stream);
-
-	stream->frame++;
-}
-
-
 til_stream_t * til_stream_free(til_stream_t *stream)
 {
 	unsigned	leaked;

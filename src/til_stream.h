@@ -50,7 +50,6 @@ til_stream_t * til_stream_new(til_audio_context_t *audio_context);
 til_stream_t * til_stream_free(til_stream_t *stream);
 void til_stream_end(til_stream_t *stream);
 int til_stream_active(til_stream_t *stream);
-void til_stream_start_frame(til_stream_t *stream);
 int til_stream_set_hooks(til_stream_t *stream, const til_stream_hooks_t *hooks, void *context);
 int til_stream_unset_hooks(til_stream_t *stream, const til_stream_hooks_t *hooks);
 til_audio_context_t * til_stream_get_audio_context(til_stream_t *stream);
