@@ -90,6 +90,12 @@ struct til_stream_module_context_t {
 	til_module_context_t		*module_contexts[];
 };
 
+typedef struct til_stream_pre_module_context_t til_stream_pre_module_context_t;
+struct til_stream_pre_module_context_t {
+	til_stream_pre_module_context_t	*next;
+	til_module_context_t		*module_context;
+};
+
 typedef struct til_stream_t {
 	pthread_mutex_t			mutex;
 	volatile int			ended;
@@ -100,6 +106,7 @@ typedef struct til_stream_t {
 	unsigned			audio_controlled:1;
 	til_stream_pipe_t		*pipe_buckets[TIL_STREAM_PIPE_BUCKETS_COUNT];
 	til_stream_module_context_t	*module_context_buckets[TIL_STREAM_CTXT_BUCKETS_COUNT];
+	til_stream_pre_module_context_t	*pre_module_contexts;
 	til_module_context_t		*module_context;
 } til_stream_t;
 
@@ -142,6 +149,10 @@ til_stream_t * til_stream_free(til_stream_t *stream)
 
 	if (!stream)
 		return NULL;
+
+	/* TODO: if stream->pre_module_contexts and stream->module_context take
+	 * references on the contexts, then we'd unreference them here.
+	 */
 
 	leaked = til_stream_gc_module_contexts(stream);
 	assert(!leaked);
@@ -796,6 +807,59 @@ void til_stream_set_module_context(til_stream_t *stream, til_module_context_t *c
 }
 
 
+int til_stream_add_pre_module_context(til_stream_t *stream, til_module_context_t *context)
+{
+	til_stream_pre_module_context_t	*c;
+
+	assert(stream);
+	assert(context);
+
+	c = calloc(1, sizeof(*c));
+	if (!c)
+		return -ENOMEM;
+
+	/* TODO: it feels like this should probably take a reference */
+	c->module_context = context;
+
+	c->next = stream->pre_module_contexts;
+	stream->pre_module_contexts = c;
+
+	return 0;
+}
+
+
+int til_stream_del_pre_module_context(til_stream_t *stream, til_module_context_t *context)
+{
+	til_stream_pre_module_context_t	*c, *c_prev, *c_next;
+
+	assert(stream);
+	assert(context);
+
+	for (c_prev = NULL, c = stream->pre_module_contexts; c; c = c_next) {
+		c_next = c->next;
+
+		if (c->module_context == context) {
+			if (!c_prev)
+				stream->pre_module_contexts = c_next;
+			else
+				c_prev->next = c_next;
+
+			break;
+		}
+
+		c_prev = c;
+	}
+
+	if (!c)
+		return -ENOENT;
+
+	/* TODO: if add_pre starts taking a reference, this should unref here */
+	free(c);
+
+	return 0;
+}
+
+
 void til_stream_render(til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr)
 {
 	assert(stream);
@@ -803,5 +867,14 @@ void til_stream_render(til_stream_t *stream, unsigned ticks, til_fb_fragment_t *
 
 	stream->frame++;
 
+	{
+		til_stream_pre_module_context_t	*c;
+
+		for (c = stream->pre_module_contexts; c; c = c->next)
+			til_module_render(c->module_context, stream, ticks, fragment_ptr);
+	}
+
 	til_module_render(stream->module_context, stream, ticks, fragment_ptr);
+
+	/* TODO: add a concept of "post" modules here? */
 }

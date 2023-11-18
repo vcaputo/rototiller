@@ -81,6 +81,8 @@ unsigned til_stream_gc_module_contexts(til_stream_t *stream);
 void til_stream_fprint_module_contexts(til_stream_t *stream, FILE *out);
 
 void til_stream_set_module_context(til_stream_t *stream, til_module_context_t *context);
+int til_stream_add_pre_module_context(til_stream_t *stream, til_module_context_t *context);
+int til_stream_del_pre_module_context(til_stream_t *stream, til_module_context_t *context);
 void til_stream_render(til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr);
 
 #endif
