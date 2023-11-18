@@ -297,6 +297,8 @@ static void _til_module_render(til_module_context_t *context, til_stream_t *stre
 	 */
 	if (context->module->render_audio)
 		context->module->render_audio(context, stream, ticks);
+	else if (context->module->render_proxy)
+		context->module->render_proxy(context, stream, ticks, fragment_ptr);
 	else
 		module_render_fragment(context, stream, til_threads, n_cpus, ticks, fragment_ptr);
 
