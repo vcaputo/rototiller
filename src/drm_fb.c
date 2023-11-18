@@ -21,6 +21,7 @@ typedef struct drm_fb_page_t drm_fb_page_t;
 struct drm_fb_page_t {
 	drm_fb_page_t		*next_spare;
 	uint32_t		*mmap;
+	uint32_t		*shadow;
 	size_t			mmap_size, pitch;
 	uint32_t		drm_dumb_handle;
 	uint32_t		drm_fb_id;
@@ -32,6 +33,7 @@ typedef struct drm_fb_t {
 	drmModeConnector	*connector;
 	drmModeModeInfo		*mode;
 	drm_fb_page_t		*spare_pages;
+	unsigned		use_shadow:1;
 } drm_fb_t;
 
 typedef struct drm_fb_setup_t {
@@ -381,6 +383,13 @@ static int drm_fb_init(const char *title, const til_setup_t *setup, void **res_c
 		goto _err_enc;
 	}
 
+	{
+		uint64_t	use_shadow;
+
+		if (!drmGetCap(c->drm_fd, DRM_CAP_DUMB_PREFER_SHADOW, &use_shadow) && use_shadow)
+			c->use_shadow = 1;
+	}
+
 	drmModeFreeEncoder(enc);
 
 	*res_context = c;
@@ -410,6 +419,7 @@ static void _drm_fb_page_free(drm_fb_t *fb, drm_fb_page_t *page)
 	destroy_dumb.handle = page->drm_dumb_handle;
 	ioctl(fb->drm_fd, DRM_IOCTL_MODE_DESTROY_DUMB, &destroy_dumb); // XXX: errors?
 
+	free(page->shadow);
 	free(page);
 }
 
@@ -487,6 +497,11 @@ static void * drm_fb_page_alloc(til_fb_t *fb, void *context, til_fb_fragment_t *
 		 */
 		assert(!(create_dumb.pitch & 0x3));
 
+		if (c->use_shadow) {
+			pexit_if(!(p->shadow = malloc(create_dumb.size)),
+				"unable to allocate page shadow buffer");
+		}
+
 		p->mmap = map;
 		p->mmap_size = create_dumb.size;
 		p->pitch = create_dumb.pitch >> 2;
@@ -495,7 +510,7 @@ static void * drm_fb_page_alloc(til_fb_t *fb, void *context, til_fb_fragment_t *
 	}
 
 	*res_fragment =	(til_fb_fragment_t){
-				.buf = p->mmap,
+				.buf = p->shadow ? : p->mmap,
 				.width = c->mode->hdisplay,
 				.frame_width = c->mode->hdisplay,
 				.height = c->mode->vdisplay,
@@ -529,6 +544,9 @@ static int drm_fb_page_flip(til_fb_t *fb, void *context, void *page)
 			};
 	drm_fb_t	*c = context;
 	drm_fb_page_t	*p = page;
+
+	if (p->shadow)
+		memcpy(p->mmap, p->shadow, p->mmap_size);
 
 	if (drmModePageFlip(c->drm_fd, c->crtc->crtc_id, p->drm_fb_id, DRM_MODE_PAGE_FLIP_EVENT, NULL) < 0)
 		return -1;
