@@ -534,7 +534,7 @@ static int checkers_fill_module_setup(const til_settings_t *settings, til_settin
 				     res_setup,
 				     "Filled cell module name",
 				     CHECKERS_DEFAULT_FILL_MODULE,
-				     (TIL_MODULE_EXPERIMENTAL | TIL_MODULE_HERMETIC),
+				     (TIL_MODULE_EXPERIMENTAL | TIL_MODULE_HERMETIC | TIL_MODULE_AUDIO_ONLY),
 				     NULL);
 }
 

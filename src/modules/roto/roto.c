@@ -425,7 +425,7 @@ static int roto_fill_module_setup(const til_settings_t *settings, til_setting_t 
 				     res_setup,
 				     "Fill module name",
 				     ROTO_DEFAULT_FILL_MODULE,
-				     (TIL_MODULE_EXPERIMENTAL | TIL_MODULE_HERMETIC),
+				     (TIL_MODULE_EXPERIMENTAL | TIL_MODULE_HERMETIC | TIL_MODULE_AUDIO_ONLY),
 				     NULL);
 }
 

@@ -245,7 +245,7 @@ static int rtv_should_skip_module(const rtv_setup_t *setup, const til_module_t *
 	 */
 	if (!setup->channels[0]) {
 		/* for "all" skip these, but you can still explicitly name them. */
-		if ((module->flags & (TIL_MODULE_HERMETIC | TIL_MODULE_EXPERIMENTAL | TIL_MODULE_BUILTIN)))
+		if ((module->flags & (TIL_MODULE_HERMETIC | TIL_MODULE_EXPERIMENTAL | TIL_MODULE_BUILTIN | TIL_MODULE_AUDIO_ONLY)))
 			return 1;
 
 		return 0;
@@ -362,7 +362,7 @@ static int rtv_snow_module_setup(const til_settings_t *settings, til_setting_t *
 				     res_setup,
 				     "Snow module name",
 				     RTV_DEFAULT_SNOW_MODULE,
-				     (TIL_MODULE_EXPERIMENTAL | TIL_MODULE_HERMETIC),
+				     (TIL_MODULE_EXPERIMENTAL | TIL_MODULE_HERMETIC | TIL_MODULE_AUDIO_ONLY),
 				     NULL);
 }
 

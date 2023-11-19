@@ -208,7 +208,7 @@ static const char * montage_tiles_setting_override(const char *value)
 	if (strcasecmp(value, "all"))
 		return value;
 
-	return til_get_module_names((TIL_MODULE_HERMETIC|TIL_MODULE_EXPERIMENTAL|TIL_MODULE_BUILTIN), exclusions);
+	return til_get_module_names((TIL_MODULE_HERMETIC|TIL_MODULE_EXPERIMENTAL|TIL_MODULE_BUILTIN|TIL_MODULE_AUDIO_ONLY), exclusions);
 }
 
 
@@ -230,7 +230,7 @@ static int montage_tile_module_setup(const til_settings_t *settings, til_setting
 				     res_setup,
 				     "Tile module name",
 				     MONTAGE_DEFAULT_TILE_MODULE,
-				     (TIL_MODULE_EXPERIMENTAL | TIL_MODULE_HERMETIC),
+				     (TIL_MODULE_EXPERIMENTAL | TIL_MODULE_HERMETIC | TIL_MODULE_AUDIO_ONLY),
 				     NULL);
 }
 

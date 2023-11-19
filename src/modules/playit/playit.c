@@ -144,7 +144,7 @@ til_module_t	playit_module = {
 	.name = "playit",
 	.description = ".IT tracked music file player",
 	.author = "Vito Caputo <vcaputo@pengaru.com>",
-	.flags = TIL_MODULE_EXPERIMENTAL,
+	.flags = TIL_MODULE_AUDIO_ONLY,
 };
 
 
