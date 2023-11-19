@@ -217,9 +217,9 @@ static inline v3f_t v3f_floor(const v3f_t *v)
 
 static inline v3f_t v3f_rand(unsigned *seed, float min, float max)
 {
-	v3f_t	res = v3f_init( (min + ((float)rand_r(seed) * (1.0f/RAND_MAX)) * (max - min)),
-				(min + ((float)rand_r(seed) * (1.0f/RAND_MAX)) * (max - min)),
-				(min + ((float)rand_r(seed) * (1.0f/RAND_MAX)) * (max - min)));
+	v3f_t	res = v3f_init( (min + ((float)rand_r(seed) * (1.0f/(float)RAND_MAX)) * (max - min)),
+				(min + ((float)rand_r(seed) * (1.0f/(float)RAND_MAX)) * (max - min)),
+				(min + ((float)rand_r(seed) * (1.0f/(float)RAND_MAX)) * (max - min)));
 
 	return res;
 }

@@ -93,7 +93,7 @@ static void flow_ff_populator(void *context, unsigned size, const ff_data_t *oth
 
 static inline float rand_within_range(unsigned *seed, float min, float max)
 {
-	return (min + ((float)rand_r(seed) * (1.0f/RAND_MAX)) * (max - min));
+	return (min + ((float)rand_r(seed) * (1.0f/(float)RAND_MAX)) * (max - min));
 }
 
 
