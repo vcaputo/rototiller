@@ -39,7 +39,8 @@ typedef struct asc_setup_t {
 
 	const char	*string;
 	asc_justify_t	justify;
-	txt_halign_t	halign, valign;
+	txt_halign_t	halign;
+	txt_valign_t	valign;
 	float		hoffset, voffset;
 	float		x, y;
 } asc_setup_t;
