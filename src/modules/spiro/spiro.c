@@ -7,6 +7,8 @@
 #include "til.h"
 #include "til_fb.h"
 #include "til_module_context.h"
+#include "til_stream.h"
+#include "til_tap.h"
 
 #include "draw.h"
 
@@ -28,8 +30,55 @@ typedef struct spiro_context_t {
 	int			r_dir;
 	float			p;
 	int			p_dir;
+
+	struct {
+		til_tap_t		l;
+		til_tap_t		k;
+		til_tap_t		rounds;
+	}			taps;
+
+	struct {
+		float			l;
+		float			k;
+		float			rounds;
+	}			vars;
+
+	float			*l;
+	float			*k;
+	float			*rounds;
 } spiro_context_t;
 
+static void spiro_update_taps(spiro_context_t *ctxt, til_stream_t *stream, float dt)
+{
+
+	if (dt > 0.f) {
+		/* FIXME: these increments should be scaled by a delta-t,
+		 * but at least by filtering on same-tick things don't go
+		 * crazy in multi-drawn context scenarios like checkers::fill_module
+		 */
+		/* check bounds and increment r & p */
+		float next_r=ctxt->r+(.00001f*ctxt->r_dir);
+		if(next_r >= 1.f || next_r <= 0.f || next_r <= ctxt->p)
+			ctxt->r_dir=ctxt->r_dir*-1;
+		else
+			ctxt->r=ctxt->r+(.00001f*ctxt->r_dir);
+
+		float next_p=ctxt->p+(.0003f*ctxt->p_dir);
+		if(next_p >= ctxt->r || next_p <= 0)
+			ctxt->p_dir=ctxt->p_dir*-1;
+		else
+			ctxt->p=ctxt->p+(.0003f*ctxt->p_dir);
+	}
+
+	if (!til_stream_tap_context(stream, &ctxt->til_module_context, NULL, &ctxt->taps.l))
+		*ctxt->l = ctxt->p/ctxt->r;
+
+	if (!til_stream_tap_context(stream, &ctxt->til_module_context, NULL, &ctxt->taps.k))
+		*ctxt->k = ctxt->r;
+
+	if (!til_stream_tap_context(stream, &ctxt->til_module_context, NULL, &ctxt->taps.rounds))
+		*ctxt->rounds = 128;
+}
 
 static til_module_context_t * spiro_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
@@ -49,6 +98,12 @@ static til_module_context_t * spiro_create_context(const til_module_t *module, t
 #ifdef DEBUG
 	printf("spiro: initial context: r=%f, dir=%i, p=%f, dir=%i\n", ctxt->r, ctxt->r_dir, ctxt->p, ctxt->p_dir);
 #endif
+	ctxt->taps.l = til_tap_init_float(ctxt, &ctxt->l, 1, &ctxt->vars.l, "l");
+	ctxt->taps.k = til_tap_init_float(ctxt, &ctxt->k, 1, &ctxt->vars.k, "k");
+	ctxt->taps.rounds = til_tap_init_float(ctxt, &ctxt->rounds, 1, &ctxt->vars.rounds, "rounds");
+
+	spiro_update_taps(ctxt, stream, 0.f);
+
 	return &ctxt->til_module_context;
 }
 
@@ -59,6 +114,9 @@ static void spiro_render_fragment(til_module_context_t *context, til_stream_t *s
 
 	int	width = fragment->frame_width, height = fragment->frame_height;
 	int	display_R, display_origin_x, display_origin_y;
+	float	dt = ((float)(ticks - context->last_ticks)) * .001f;
+
+	spiro_update_taps(ctxt, stream, dt);
 
 	/* Based on the fragment's dimensions, calculate the origin and radius of the fixed outer
 	circle, C0. */
@@ -77,9 +135,10 @@ static void spiro_render_fragment(til_module_context_t *context, til_stream_t *s
 	til_fb_fragment_clear(fragment);
 
 	/* plot one spirograph run */
-	float l=ctxt->p/ctxt->r;
-	float k=ctxt->r;
-	for(float t=0.f; t<128*2*M_PI; t+= M_PI/display_R) {
+	float l=*ctxt->l;
+	float k=*ctxt->k;
+	float incr=M_PI/display_R;
+	for(float t=0.f; t<*ctxt->rounds*2*M_PI; t+= incr) {
 		float my_x=((1.f-k)*cosf(t))+(l*k*cosf(((1.f-k)/k)*t));
 		float my_y=((1.f-k)*sinf(t))-(l*k*sinf(((1.f-k)/k)*t));
 		int pos_x=display_origin_x+(my_x*display_R);
@@ -121,25 +180,6 @@ static void spiro_render_fragment(til_module_context_t *context, til_stream_t *s
 	til_fb_fragment_put_pixel_checked(fragment, 0, display_origin_x+display_R-(ctxt->r*display_R)+
 		(ctxt->p*display_R), display_origin_y, makergb(0xFF, 0xFF, 0x00, 1));
 #endif
-
-	if (context->last_ticks != ticks) {
-		/* FIXME: these increments should be scaled by a delta-t,
-		 * but at least by filtering on same-tick things don't go
-		 * crazy in multi-drawn context scenarios like checkers::fill_module
-		 */
-		/* check bounds and increment r & p */
-		float next_r=ctxt->r+(.00001f*ctxt->r_dir);
-		if(next_r >= 1.f || next_r <= 0.f || next_r <= ctxt->p)
-			ctxt->r_dir=ctxt->r_dir*-1;
-		else
-			ctxt->r=ctxt->r+(.00001f*ctxt->r_dir);
-
-		float next_p=ctxt->p+(.0003f*ctxt->p_dir);
-		if(next_p >= ctxt->r || next_p <= 0)
-			ctxt->p_dir=ctxt->p_dir*-1;
-		else
-			ctxt->p=ctxt->p+(.0003f*ctxt->p_dir);
-	}
 
 }
 
