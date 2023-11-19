@@ -129,7 +129,7 @@ static void _ref_destroy_context(til_module_context_t *context)
 }
 
 
-static void _ref_render_fragment(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned cpu, til_fb_fragment_t **fragment_ptr)
+static void _ref_render_proxy(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr)
 {
 	_ref_context_t	*ctxt = (_ref_context_t *)context;
 	_ref_setup_t	*s = (_ref_setup_t *)context->setup;
@@ -174,7 +174,7 @@ static int _ref_setup(const til_settings_t *settings, til_setting_t **res_settin
 til_module_t	_ref_module = {
 	.create_context = _ref_create_context,
 	.destroy_context = _ref_destroy_context,
-	.render_fragment = _ref_render_fragment,
+	.render_proxy = _ref_render_proxy,
 	.setup = _ref_setup,
 	.name = "ref",
 	.description = "Context referencer (built-in)",
