@@ -242,3 +242,155 @@ static int _none_setup(const til_settings_t *settings, til_setting_t **res_setti
 
 	return 0;
 }
+
+
+/* "pre" built-in module */
+typedef struct _pre_setup_t {
+	til_setup_t		til_setup;
+
+	til_setup_t		*module_setup;
+} _pre_setup_t;
+
+
+typedef struct _pre_context_t {
+	til_module_context_t	til_module_context;
+
+	til_module_context_t	*module_ctxt;
+} _pre_context_t;
+
+
+#define _PRE_DEFAULT_MODULE	"none"
+
+
+static til_module_context_t * _pre_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
+{
+	_pre_setup_t	*s = (_pre_setup_t *)setup;
+	_pre_context_t	*ctxt;
+
+	ctxt = til_module_context_new(module, sizeof(*ctxt), stream, seed, ticks, n_cpus, setup);
+	if (!ctxt)
+		return NULL;
+
+	if (s->module_setup) {
+		const til_module_t	*m = s->module_setup->creator;
+
+		if (til_module_create_context(m, stream, rand_r(&seed), ticks, n_cpus, s->module_setup, &ctxt->module_ctxt) < 0)
+			return til_module_context_free(&ctxt->til_module_context);
+	}
+
+	if (til_stream_add_pre_module_context(stream, &ctxt->til_module_context) < 0)
+		return til_module_context_free(&ctxt->til_module_context);
+
+	return &ctxt->til_module_context;
+}
+
+
+static void _pre_destroy_context(til_module_context_t *context)
+{
+	_pre_context_t	*ctxt = (_pre_context_t *)context;
+
+	til_stream_del_pre_module_context(context->stream, context);
+	til_module_context_free(ctxt->module_ctxt);
+	free(context);
+}
+
+
+static void _pre_render_proxy(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr)
+{
+	_pre_context_t	*ctxt = (_pre_context_t *)context;
+
+	/* TODO: introduce taps toggling the render */
+
+	if (ctxt->module_ctxt)
+		til_module_render(ctxt->module_ctxt, stream, ticks, fragment_ptr);
+}
+
+
+static void _pre_setup_free(til_setup_t *setup)
+{
+	_pre_setup_t	*s = (_pre_setup_t *)setup;
+
+	til_setup_free(s->module_setup);
+	free(s);
+}
+
+
+static int _pre_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
+
+
+til_module_t	_pre_module = {
+	.create_context = _pre_create_context,
+	.destroy_context = _pre_destroy_context,
+	.render_proxy = _pre_render_proxy,
+	.setup = _pre_setup,
+	.name = "pre",
+	.description = "Pre-render hook registration (built-in)",
+	.author = "built-in",
+	.flags = TIL_MODULE_BUILTIN,
+};
+
+
+static int _pre_module_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
+{
+	return til_module_setup_full(settings,
+				     res_setting,
+				     res_desc,
+				     res_setup,
+				     "Pre-rendering module name",
+				     _PRE_DEFAULT_MODULE,
+				     (TIL_MODULE_EXPERIMENTAL | TIL_MODULE_HERMETIC),
+				     NULL);
+}
+
+
+static int _pre_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
+{
+	const til_settings_t	*module_settings;
+	til_setting_t		*module;
+	int			r;
+
+	r = til_settings_get_and_describe_setting(settings,
+						&(til_setting_spec_t){
+							.name = "Module to hook for pre-rendering",
+							.key = "module",
+							.preferred = _PRE_DEFAULT_MODULE,
+							.as_nested_settings = 1,
+							.as_label = 1,
+						},
+						&module,
+						res_setting,
+						res_desc);
+	if (r)
+		return r;
+
+	module_settings = module->value_as_nested_settings;
+	assert(module_settings);
+
+	r = _pre_module_setup(module_settings,
+			      res_setting,
+			      res_desc,
+			      NULL); /* XXX: note no res_setup, must defer finalize */
+	if (r)
+		return r;
+
+	if (res_setup) {
+		_pre_setup_t    *setup;
+
+		setup = til_setup_new(settings, sizeof(*setup), _pre_setup_free, &_pre_module);
+		if (!setup)
+			return -ENOMEM;
+
+		r = _pre_module_setup(module_settings,
+				      res_setting,
+				      res_desc,
+				      &setup->module_setup); /* finalize! */
+		if (r < 0)
+			return til_setup_free_with_ret_err(&setup->til_setup, r);
+
+		assert(r == 0);
+
+		*res_setup = &setup->til_setup;
+	}
+
+	return 0;
+}

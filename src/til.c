@@ -65,6 +65,7 @@ extern til_module_t	asc_module;
 extern til_module_t	_blank_module;
 extern til_module_t	_none_module;
 extern til_module_t	_noop_module;
+extern til_module_t	_pre_module;
 extern til_module_t	_ref_module;
 
 static const til_module_t	*modules[] = {
@@ -105,6 +106,7 @@ static const til_module_t	*modules[] = {
 	&_blank_module,
 	&_none_module,
 	&_noop_module,
+	&_pre_module,
 	&_ref_module,
 };
 
