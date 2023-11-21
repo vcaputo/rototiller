@@ -195,7 +195,7 @@ static int rkt_scener_send_error(rkt_scener_t *scener, int error, rkt_scener_fsm
 	assert(scener);
 
 	/* TODO: this should really use a static allocated output buffer to try work under ENOMEM */
-	output = til_str_newf("\nError: %s\n", strerror(error));
+	output = til_str_newf("\r\nError: %s\r\n", strerror(error));
 	if (!output)
 		return -ENOMEM;
 
@@ -211,11 +211,11 @@ static int rkt_scener_send_invalid_input(rkt_scener_t *scener, rkt_scener_fsm_t 
 	assert(scener);
 	assert(scener->input);
 
-	output = til_str_new("\nInvalid input: ");
+	output = til_str_new("\r\nInvalid input: ");
 	if (!output)
 		return rkt_scener_err_close(scener, ENOMEM);
 
-	if (til_str_appendf(output, "\"%s\"\n\n", til_str_buf(scener->input, NULL)) < 0)
+	if (til_str_appendf(output, "\"%s\"\r\n\r\n", til_str_buf(scener->input, NULL)) < 0)
 		return rkt_scener_err_close(scener, ENOMEM);
 
 	scener->input = til_str_free(scener->input);
@@ -241,8 +241,8 @@ static int rkt_scener_send_message(rkt_scener_t *scener, const char *msg, rkt_sc
 static int rkt_scener_send_welcome(rkt_scener_t *scener, rkt_scener_fsm_t next_state)
 {
 	return rkt_scener_send_message(scener,
-				       "\n\nWelcome to scener.\n"
-				       "\n\n    Long live the scene!\n\n",
+				       "\r\n\r\nWelcome to scener.\r\n"
+				       "\r\n\r\n    Long live the scene!\r\n\r\n",
 				       next_state);
 }
 
@@ -251,7 +251,7 @@ static int rkt_scener_send_welcome(rkt_scener_t *scener, rkt_scener_fsm_t next_s
 static int rkt_scener_send_goodbye(rkt_scener_t *scener, rkt_scener_fsm_t next_state)
 {
 	return rkt_scener_send_message(scener,
-				       "\n\n    The scene is dead.\n\n",
+				       "\r\n\r\n    The scene is dead.\r\n\r\n",
 				       next_state);
 }
 
@@ -282,7 +282,7 @@ static int rkt_scener_edit_scene(rkt_context_t *ctxt)
 	if (!as_arg )
 		return rkt_scener_err_close(scener, ENOMEM);
 
-	output = til_str_newf("\nInput replacement scene \"module[,settings...]\" <just enter edits current interactively>\n [%s]: ", as_arg);
+	output = til_str_newf("\r\nInput replacement scene \"module[,settings...]\" <just enter edits current interactively>\r\n [%s]: ", as_arg);
 	free(as_arg);
 	if (!output)
 		return rkt_scener_err_close(scener, ENOMEM);
@@ -300,7 +300,7 @@ static int rkt_scener_new_scene(rkt_context_t *ctxt)
 	scener = ctxt->scener;
 	assert(scener);
 
-	output = til_str_new("\nInput new scene \"module[,settings...]\" <just enter goes interactive>:\n");
+	output = til_str_new("\r\nInput new scene \"module[,settings...]\" <just enter goes interactive>:\r\n");
 	if (!output)
 		return rkt_scener_err_close(scener, ENOMEM);
 
@@ -555,7 +555,7 @@ static int rkt_scener_handle_input_newscene_setup(rkt_context_t *ctxt)
 				unsigned	i, j, found;
 
 				if (sscanf(buf, "%u", &j) < 1) {
-					output = til_str_newf("Invalid input: \"%s\"\n", buf);
+					output = til_str_newf("Invalid input: \"%s\"\r\n", buf);
 					if (!output)
 						return -ENOMEM;
 
@@ -571,7 +571,7 @@ static int rkt_scener_handle_input_newscene_setup(rkt_context_t *ctxt)
 				}
 
 				if (!found) {
-					output = til_str_newf("Invalid option: %u outside of range [0-%u]\n", j, i - 1);
+					output = til_str_newf("Invalid option: %u outside of range [0-%u]\r\n", j, i - 1);
 					if (!output)
 						return -ENOMEM;
 
@@ -962,7 +962,7 @@ int rkt_scener_update(rkt_context_t *ctxt)
 		if (!as_arg)
 			return rkt_scener_err_close(scener, ENOMEM);
 
-		output = til_str_newf("\n--module='%s'\n", as_arg);
+		output = til_str_newf("\r\n--module='%s'\r\n", as_arg);
 		free(as_arg);
 		if (!output)
 			return rkt_scener_err_close(scener, ENOMEM);
@@ -975,7 +975,7 @@ int rkt_scener_update(rkt_context_t *ctxt)
 		til_str_t	*output;
 		unsigned	i;
 
-		output = til_str_new("\n\n");
+		output = til_str_new("\r\n\r\n");
 		if (!output)
 			return rkt_scener_err_close(scener, ENOMEM);
 
@@ -983,18 +983,18 @@ int rkt_scener_update(rkt_context_t *ctxt)
 		if (til_settings_strprint_path(scenes_settings, output) < 0)
 			return rkt_scener_err_close(scener, ENOMEM);
 
-		if (til_str_appendf(output, ":\n\n") < 0)
+		if (til_str_appendf(output, ":\r\n\r\n") < 0)
 			return rkt_scener_err_close(scener, ENOMEM);
 
-		if (til_str_appendf(output,	" +- Rocket\n"
-						" |+- Scener\n"
-						" ||+- Pinned by scener\n"
-						" |||\n") < 0)
+		if (til_str_appendf(output,	" +- Rocket\r\n"
+						" |+- Scener\r\n"
+						" ||+- Pinned by scener\r\n"
+						" |||\r\n") < 0)
 			return rkt_scener_err_close(scener, ENOMEM);
 
 		for (i = 0; i < ctxt->n_scenes; i++) {
 			if (til_str_appendf(output,
-					    " %c%c%c%s\n",
+					    " %c%c%c%s\r\n",
 					    ctxt_scene == i ? '*' : ' ',
 					    scener->scene == i ? '*' : ' ',
 					    (scener->scene == i && scener->pin_scene) ? '!' : ' ',
@@ -1003,14 +1003,14 @@ int rkt_scener_update(rkt_context_t *ctxt)
 		}
 
 		if (til_str_appendf(output,
-				    "    ...\n %c%c%cEXITED [%u]\n",
+				    "    ...\r\n %c%c%cEXITED [%u]\r\n",
 				    ctxt_scene == RKT_EXIT_SCENE_IDX ? '*' : ' ',
 				    scener->scene == RKT_EXIT_SCENE_IDX ? '*' : ' ',
 				    (scener->scene == RKT_EXIT_SCENE_IDX && scener->pin_scene) ? '!' : ' ',
 				    RKT_EXIT_SCENE_IDX) < 0)
 			return rkt_scener_err_close(scener, ENOMEM);
 
-		if (til_str_appendf(output, "\n") < 0)
+		if (til_str_appendf(output, "\r\n") < 0)
 			return rkt_scener_err_close(scener, ENOMEM);
 
 		if (i) {
@@ -1273,8 +1273,8 @@ int rkt_scener_update(rkt_context_t *ctxt)
 
 		return rkt_scener_send_message(scener,
 					       scener->new_scene.replacement ?
-						"\n\nScene replaced successfully...\n" :
-						"\n\nNew scene added successfully...\n",
+						"\r\n\r\nScene replaced successfully...\r\n" :
+						"\r\n\r\nNew scene added successfully...\r\n",
 					       RKT_SCENER_FSM_SEND_SCENES);
 	}
 
@@ -1310,7 +1310,7 @@ int rkt_scener_update(rkt_context_t *ctxt)
 		 * this was derived from setup_interactively(), but til_str_t-centric and
 		 * decomposed further for the scener fsm integration.
 		 */
-		output = til_str_new("\n");
+		output = til_str_new("\r\n");
 		if (!output)
 			return rkt_scener_err_close(scener, ENOMEM);
 
@@ -1330,16 +1330,16 @@ int rkt_scener_update(rkt_context_t *ctxt)
 			if (til_setting_desc_strprint_path(desc, output) < 0)
 				return rkt_scener_err_close(scener, ENOMEM);
 
-			if (til_str_appendf(output, "%s%s:\n%s%s%s",
+			if (til_str_appendf(output, "%s%s:\r\n%s%s%s",
 					    label ? "/" : "",
 					    label ? : "",
 					    label ? "" : " ",
 					    label ? "" : desc->spec.name,
-					    label ? "" : ":\n") < 0)
+					    label ? "" : ":\r\n") < 0)
 				return rkt_scener_err_close(scener, ENOMEM);
 
 			for (i = 0; desc->spec.values[i]; i++) {
-				if (til_str_appendf(output, " %2u: %*s%s%s\n", i, width, desc->spec.values[i],
+				if (til_str_appendf(output, " %2u: %*s%s%s\r\n", i, width, desc->spec.values[i],
 						    desc->spec.annotations ? ": " : "",
 						    desc->spec.annotations ? desc->spec.annotations[i] : "") < 0)
 					return rkt_scener_err_close(scener, ENOMEM);
@@ -1353,7 +1353,7 @@ int rkt_scener_update(rkt_context_t *ctxt)
 			if (til_setting_desc_strprint_path(desc, output) < 0)
 				return rkt_scener_err_close(scener, ENOMEM);
 
-			if (til_str_appendf(output, "%s%s:\n %s%s[%s]: ",
+			if (til_str_appendf(output, "%s%s:\r\n %s%s[%s]: ",
 					    label ? "/" : "",
 					    label ? : "",
 					    label ? "" : desc->spec.name,
@@ -1392,12 +1392,12 @@ int rkt_scener_update(rkt_context_t *ctxt)
 		if (!as_arg)
 			return rkt_scener_err_close(scener, ENOMEM);
 
-		output = til_str_newf("\n"
-				      "%s:\n\n"
-				      " Visible: %s\n"
-				      " Pinned: %s\n"
-				      " Settings: \'%s\'\n"
-				      "\n"
+		output = til_str_newf("\r\n"
+				      "%s:\r\n\r\n"
+				      " Visible: %s\r\n"
+				      " Pinned: %s\r\n"
+				      " Settings: \'%s\'\r\n"
+				      "\r\n"
 				      " (E)dit (R)andomizeSetup (N)ewScene %s: ",
 				      ctxt->scenes[scener->scene].module_ctxt->setup->path,
 				      scener->pin_scene ?  "YES" : (ctxt_scene == scener->scene ? "YES" : "NO, PIN TO FORCE"),
