@@ -115,7 +115,7 @@ static void playit_render_audio(til_module_context_t *context, til_stream_t *str
 {
 	playit_context_t	*ctxt = (playit_context_t *)context;
 	playit_setup_t		*s = (playit_setup_t *)context->setup;
-	size_t			tomix = s->bufsize;
+	ssize_t			tomix = s->bufsize;
 	unsigned		frame, frames;
 
 	if (ctxt->paused)
