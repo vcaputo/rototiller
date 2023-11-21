@@ -153,7 +153,7 @@ static char * compose_random_layers_setting(unsigned seed)
 	size_t			n_modules, n_rand_overlays, n_overlayable = 0, n_unusable = 0, base_idx;
 	char			*layers = NULL;
 	const til_module_t	**modules;
-	unsigned		unusable_flags = (TIL_MODULE_HERMETIC | TIL_MODULE_EXPERIMENTAL | TIL_MODULE_BUILTIN);
+	unsigned		unusable_flags = (TIL_MODULE_HERMETIC | TIL_MODULE_EXPERIMENTAL | TIL_MODULE_BUILTIN | TIL_MODULE_AUDIO_ONLY);
 
 	til_get_modules(&modules, &n_modules);
 
@@ -247,7 +247,7 @@ static int compose_layer_module_setup(const til_settings_t *settings, til_settin
 				     res_setup,
 				     "Layer module name",
 				     COMPOSE_DEFAULT_LAYER_MODULE,
-				     (TIL_MODULE_EXPERIMENTAL | TIL_MODULE_HERMETIC),
+				     (TIL_MODULE_EXPERIMENTAL | TIL_MODULE_HERMETIC | TIL_MODULE_AUDIO_ONLY),
 				     exclusions);
 }
 
@@ -260,7 +260,7 @@ static int compose_texture_module_setup(const til_settings_t *settings, til_sett
 				     res_setup,
 				     "Texture module name",
 				     COMPOSE_DEFAULT_TEXTURE_MODULE,
-				     (TIL_MODULE_EXPERIMENTAL | TIL_MODULE_HERMETIC),
+				     (TIL_MODULE_EXPERIMENTAL | TIL_MODULE_HERMETIC | TIL_MODULE_AUDIO_ONLY),
 				     NULL);
 }
 

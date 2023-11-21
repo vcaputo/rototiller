@@ -396,7 +396,7 @@ static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setti
 					  NULL, /* XXX: no res_setup, defer finalizing */
 					  input_module_name_names[i],
 					  input_preferred[i],
-					  (TIL_MODULE_EXPERIMENTAL | TIL_MODULE_HERMETIC),
+					  (TIL_MODULE_EXPERIMENTAL | TIL_MODULE_HERMETIC | TIL_MODULE_AUDIO_ONLY),
 					  exclusions);
 		if (r)
 			return r;
@@ -427,7 +427,7 @@ static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setti
 						  &setup->inputs[i].setup, /* finalize! */
 						  input_module_name_names[i],
 						  input_preferred[i],
-						  (TIL_MODULE_EXPERIMENTAL | TIL_MODULE_HERMETIC),
+						  (TIL_MODULE_EXPERIMENTAL | TIL_MODULE_HERMETIC | TIL_MODULE_AUDIO_ONLY),
 						  exclusions);
 			if (r < 0)
 				return til_setup_free_with_ret_err(&setup->til_setup, r);
