@@ -25,9 +25,8 @@ unsigned til_get_ncpus(void)
 	GetSystemInfo(&sysinfo);
 
 	return MIN(sysinfo.dwNumberOfProcessors, TIL_MAXCPUS);
-#endif
-
-#ifdef __MACH__
+#else
+ #ifdef __MACH__
 	int	count;
 	size_t	count_len = sizeof(count);
 
@@ -35,7 +34,7 @@ unsigned til_get_ncpus(void)
 		return 1;
 
 	return MIN(count, TIL_MAXCPUS);
-#else
+ #else
 	long	n;
 
 	n = sysconf(_SC_NPROCESSORS_ONLN);
@@ -43,5 +42,6 @@ unsigned til_get_ncpus(void)
 		return 1;
 
 	return MIN(n, TIL_MAXCPUS);
+ #endif
 #endif
 }
