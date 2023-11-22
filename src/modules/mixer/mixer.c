@@ -147,10 +147,34 @@ static void mixer_prepare_frame(til_module_context_t *context, til_stream_t *str
 		for (int i = 0; i < context->n_cpus; i++)
 			ctxt->seeds[i].state = rand_r(&context->seed);
 		/* fallthrough */
+	{
+		float	T = ctxt->vars.T;
+		/* INTERLACE and PAINTROLLER progressively overlay b_module output atop a_module,
+		 * so we can render b_module into the fragment first.  Only when (T < 1) do we
+		 * have to snapshot that then render a_module into the fragment, then the snapshot
+		 * of b_module's output can be copied from to overlay the progression.
+		 */
+
+		if (T > .001f) {
+			til_module_render(ctxt->inputs[1].module_ctxt, stream, ticks, &fragment);
+
+			if (T < .999f)
+				ctxt->snapshots[1] = til_fb_fragment_snapshot(&fragment, 0);
+		}
+
+		if (T < .999f)
+			til_module_render(ctxt->inputs[0].module_ctxt, stream, ticks, &fragment);
+
+		break;
+	}
 
 	case MIXER_STYLE_BLEND: {
 		float	T = ctxt->vars.T;
 
+		/* BLEND needs *both* contexts rendered and snapshotted for blending,
+		 * except when at the start/end points for T.  It's the most costly
+		 * style to perform.
+		 */
 		if (T < .999f) {
 			til_module_render(ctxt->inputs[0].module_ctxt, stream, ticks, &fragment);
 
@@ -282,26 +306,21 @@ static void mixer_render_fragment(til_module_context_t *context, til_stream_t *s
 	}
 
 	case MIXER_STYLE_INTERLACE: {
-		til_fb_fragment_t	*snapshot_a, *snapshot_b;
+		til_fb_fragment_t	*snapshot_b;
 		float			T = ctxt->vars.T;
 
 		if (T <= 0.001f || T  >= .999f)
 			break;
 
-		assert(ctxt->snapshots[0]);
 		assert(ctxt->snapshots[1]);
 
-		snapshot_a = ctxt->snapshots[0];
 		snapshot_b = ctxt->snapshots[1];
 
 		for (unsigned y = 0; y < fragment->height; y++) {
 			float	r = randf(&ctxt->seeds[cpu].state);
 
-			if (r < T) {
+			if (r < T)
 				til_fb_fragment_copy(fragment, 0, fragment->x, fragment->y + y, fragment->width, 1, snapshot_b);
-			} else {
-				til_fb_fragment_copy(fragment, 0, fragment->x, fragment->y + y, fragment->width, 1, snapshot_a);
-			}
 		}
 		break;
 	}
