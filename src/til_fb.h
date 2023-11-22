@@ -137,10 +137,10 @@ static inline int til_fb_fragment_put_pixel_checked(til_fb_fragment_t *fragment,
 /* copy a fragment, x,y,width,height are absolute coordinates within the frames, and will be clipped to the overlapping fragment areas */
 static inline void til_fb_fragment_copy(til_fb_fragment_t *dest, uint32_t flags, int x, int y, int width, int height, til_fb_fragment_t *src)
 {
-	int	X = MAX(dest->x, src->x);
-	int	Y = MAX(dest->y, src->y);
-	int	W = MIN(dest->x + dest->width, src->x + src->width) - X;
-	int	H = MIN(dest->y + dest->height, src->y + src->height) - Y;
+	int	X = MAX(MAX(dest->x, src->x), x);
+	int	Y = MAX(MAX(dest->y, src->y), y);
+	int	W = MIN(MIN(dest->x + dest->width, src->x + src->width), x + width) - X;
+	int	H = MIN(MIN(dest->y + dest->height, src->y + src->height), y + height) - Y;
 
 	assert(W >= 0 && H >= 0);
 
