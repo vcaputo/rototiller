@@ -142,7 +142,8 @@ static inline void til_fb_fragment_copy(til_fb_fragment_t *dest, uint32_t flags,
 	int	W = MIN(MIN(dest->x + dest->width, src->x + src->width), x + width) - X;
 	int	H = MIN(MIN(dest->y + dest->height, src->y + src->height), y + height) - Y;
 
-	assert(W >= 0 && H >= 0);
+	if (W <= 0 || H <= 0)
+		return;
 
 	/* XXX FIXME TODO */
 	/* XXX FIXME TODO */
