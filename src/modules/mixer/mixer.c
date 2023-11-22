@@ -39,8 +39,8 @@ typedef struct mixer_input_t {
 } mixer_input_t;
 
 typedef struct mixer_seed_t {
-	char		__padding[256];	/* prevent seeds sharing a cache line */
-	unsigned	state;
+	char			__padding[256];	/* prevent seeds sharing a cache line */
+	unsigned		state;
 } mixer_seed_t;
 
 typedef struct mixer_context_t {
