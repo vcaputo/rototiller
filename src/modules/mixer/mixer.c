@@ -60,7 +60,7 @@ typedef struct mixer_setup_t {
 static void mixer_update_taps(mixer_context_t *ctxt, til_stream_t *stream, unsigned ticks)
 {
 	if (!til_stream_tap_context(stream, &ctxt->til_module_context, NULL, &ctxt->taps.T))
-		*ctxt->T = cosf(ticks * .001f) * .5f + .5f;
+		*ctxt->T = cosf(til_ticks_to_rads(ticks)) * .5f + .5f;
 	else /* we're not driving the tap, so let's update our local copy just once */
 		ctxt->vars.T = *ctxt->T; /* FIXME: taps need synchronization/thread-safe details fleshed out / atomics */
 }
@@ -143,6 +143,7 @@ static void mixer_prepare_frame(til_module_context_t *context, til_stream_t *str
 
 		if (T > 0.f) {
 			til_module_render(ctxt->inputs[1].module_ctxt, stream, ticks, &fragment);
+
 			if (T < 1.f)
 				ctxt->snapshots[1] = til_fb_fragment_snapshot(&fragment, 0);
 		}
@@ -410,14 +411,8 @@ static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setti
 		if (!setup)
 			return -ENOMEM;
 
-		for (i = 0; style_values[i]; i++) {
-			if (!strcasecmp(style_values[i], style->value)) {
-				setup->style = i;
-				break;
-			}
-		}
-
-		if (!style_values[i])
+		r = til_value_to_pos(style_values, style->value, (unsigned *)&setup->style);
+		if (r < 0)
 			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, style, res_setting, -EINVAL);
 
 		for (i = 0; i < 2; i++) {
