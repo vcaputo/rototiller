@@ -151,17 +151,17 @@ static void mixer_prepare_frame(til_module_context_t *context, til_stream_t *str
 	case MIXER_STYLE_BLEND: {
 		float	T = ctxt->vars.T;
 
-		if (T < 1.f) {
+		if (T < .999f) {
 			til_module_render(ctxt->inputs[0].module_ctxt, stream, ticks, &fragment);
 
-			if (T > 0.f)
+			if (T > 0.001f)
 				ctxt->snapshots[0] = til_fb_fragment_snapshot(&fragment, 0);
 		}
 
-		if (T > 0.f) {
+		if (T > 0.001f) {
 			til_module_render(ctxt->inputs[1].module_ctxt, stream, ticks, &fragment);
 
-			if (T < 1.f)
+			if (T < .999f)
 				ctxt->snapshots[1] = til_fb_fragment_snapshot(&fragment, 0);
 		}
 		break;
@@ -226,7 +226,7 @@ static void mixer_render_fragment(til_module_context_t *context, til_stream_t *s
 		float			T = ctxt->vars.T;
 		float			one_sub_T = 1.f - T;
 
-		if (T <= 0.f || T  >= 1.f)
+		if (T <= 0.001f || T  >= .999f)
 			break;
 
 		assert(ctxt->snapshots[0]);
@@ -285,7 +285,7 @@ static void mixer_render_fragment(til_module_context_t *context, til_stream_t *s
 		til_fb_fragment_t	*snapshot_a, *snapshot_b;
 		float			T = ctxt->vars.T;
 
-		if (T <= 0.f || T  >= 1.f)
+		if (T <= 0.001f || T  >= .999f)
 			break;
 
 		assert(ctxt->snapshots[0]);
