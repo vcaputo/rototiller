@@ -553,7 +553,7 @@ til_fb_t * til_fb_free(til_fb_t *fb)
 int til_fb_new(const til_fb_ops_t *ops, const char *title, const til_setup_t *setup, int n_pages, til_fb_t **res_fb)
 {
 	_til_fb_page_t	*page;
-	til_fb_t		*fb;
+	til_fb_t	*fb;
 	int		r;
 
 	assert(ops);
