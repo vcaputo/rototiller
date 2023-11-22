@@ -25,7 +25,13 @@ typedef enum mixer_style_t {
 	MIXER_STYLE_BLEND,
 	MIXER_STYLE_FLICKER,
 	MIXER_STYLE_INTERLACE,
+	MIXER_STYLE_PAINTROLLER,
 } mixer_style_t;
+
+typedef enum mixer_orientation_t {
+	MIXER_ORIENTATION_HORIZONTAL,
+	MIXER_ORIENTATION_VERTICAL,
+} mixer_orientation_t;
 
 typedef struct mixer_input_t {
 	til_module_context_t	*module_ctxt;
@@ -64,9 +70,13 @@ typedef struct mixer_setup_t {
 
 	mixer_style_t		style;
 	mixer_setup_input_t	inputs[2];
+	mixer_orientation_t	orientation;
+	unsigned		n_passes;
 } mixer_setup_t;
 
-#define MIXER_DEFAULT_STYLE	MIXER_STYLE_BLEND
+#define MIXER_DEFAULT_STYLE		MIXER_STYLE_BLEND
+#define MIXER_DEFAULT_PASSES		8
+#define MIXER_DEFAULT_ORIENTATION	MIXER_ORIENTATION_VERTICAL
 
 
 static void mixer_update_taps(mixer_context_t *ctxt, til_stream_t *stream, unsigned ticks)
@@ -147,7 +157,7 @@ static void mixer_prepare_frame(til_module_context_t *context, til_stream_t *str
 		for (int i = 0; i < context->n_cpus; i++)
 			ctxt->seeds[i].state = rand_r(&context->seed);
 		/* fallthrough */
-	{
+	case MIXER_STYLE_PAINTROLLER: {
 		float	T = ctxt->vars.T;
 		/* INTERLACE and PAINTROLLER progressively overlay b_module output atop a_module,
 		 * so we can render b_module into the fragment first.  Only when (T < 1) do we
@@ -325,6 +335,68 @@ static void mixer_render_fragment(til_module_context_t *context, til_stream_t *s
 		break;
 	}
 
+	case MIXER_STYLE_PAINTROLLER: {
+		mixer_orientation_t	orientation = ((mixer_setup_t *)context->setup)->orientation;
+		unsigned		n_passes = ((mixer_setup_t *)context->setup)->n_passes;
+
+		til_fb_fragment_t	*snapshot_b;
+		float			T = ctxt->vars.T;
+		float			div = 1.f / (float)n_passes;
+		unsigned		iwhole = T * n_passes;
+		float			frac = T * n_passes - iwhole;
+
+
+		if (T <= 0.001f || T  >= .999f)
+			break;
+
+		assert(ctxt->snapshots[1]);
+
+		snapshot_b = ctxt->snapshots[1];
+
+		/* There are two rects to compute:
+		 * 1. the whole "rolled" area already transitioned
+		 * 2. the in-progress fractional area being rolled
+		 *
+		 * The simple thing to do is just compute those two in two steps,
+		 * and clip their rects to the fragment rect and copy b->fragment
+		 * clipped by the result, for each step.  til_fb_fragment_copy()
+		 * should clip to the dest fragment for us, so this is rather
+		 * trivial.
+		 */
+
+		switch (orientation) {
+		case MIXER_ORIENTATION_HORIZONTAL: {
+			float		row_h = ((float)fragment->frame_height * div);
+			unsigned	whole_w = fragment->frame_width;
+			unsigned	whole_h = ceilf(row_h * (float)iwhole);
+			unsigned	frac_w = ((float)fragment->frame_width * frac);
+			unsigned	frac_h = row_h;
+
+			til_fb_fragment_copy(fragment, 0, 0, 0, whole_w, whole_h, snapshot_b);
+			til_fb_fragment_copy(fragment, 0, 0, whole_h, frac_w, frac_h, snapshot_b);
+			break;
+		}
+
+		case MIXER_ORIENTATION_VERTICAL: {
+			float		col_w = ((float)fragment->frame_width * div);
+			unsigned	whole_w = ceilf(col_w * (float)iwhole);
+			unsigned	whole_h = fragment->frame_height;
+			unsigned	frac_w = col_w;
+			unsigned	frac_h = ((float)fragment->frame_height * frac);
+
+			til_fb_fragment_copy(fragment, 0, 0, 0, whole_w, whole_h, snapshot_b);
+			til_fb_fragment_copy(fragment, 0, whole_w, 0, frac_w, frac_h, snapshot_b);
+			break;
+		}
+
+		default:
+			assert(0);
+		}
+
+		/* progressively transition from a->b via incremental striping */
+		break;
+	}
+
 	default:
 		assert(0);
 	}
@@ -414,9 +486,29 @@ static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setti
 					"blend",
 					"flicker",
 					"interlace",
+					"paintroller",
+					NULL
+				};
+	const char		*passes_values[] = {
+					"2",
+					"4",
+					"6",
+					"8",
+					"10",
+					"12",
+					"16",
+					"18",
+					"20",
+					NULL
+				};
+	const char		*orientation_values[] = {
+					"horizontal",
+					"vertical",
 					NULL
 				};
 	til_setting_t		*style;
+	til_setting_t		*passes;
+	til_setting_t		*orientation;
 	const til_settings_t	*inputs_settings[2];
 	til_setting_t		*inputs[2];
 	int			r;
@@ -434,6 +526,37 @@ static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setti
 						res_desc);
 	if (r)
 		return r;
+
+	if (!strcasecmp(style->value, style_values[MIXER_STYLE_PAINTROLLER])) {
+
+		r = til_settings_get_and_describe_setting(settings,
+							&(til_setting_spec_t){
+								.name = "Mixer paint roller orientation",
+								.key = "orientation",
+								.values = orientation_values,
+								.preferred = orientation_values[MIXER_DEFAULT_ORIENTATION],
+								.annotations = NULL
+							},
+							&orientation,
+							res_setting,
+							res_desc);
+		if (r)
+			return r;
+
+		r = til_settings_get_and_describe_setting(settings,
+							&(til_setting_spec_t){
+								.name = "Mixer paint roller passes",
+								.key = "passes",
+								.values = passes_values,
+								.preferred = TIL_SETTINGS_STR(MIXER_DEFAULT_PASSES),
+								.annotations = NULL
+							},
+							&passes,
+							res_setting,
+							res_desc);
+		if (r)
+			return r;
+	}
 
 	for (int i = 0; i < 2; i++) {
 		r = til_settings_get_and_describe_setting(settings,
@@ -476,6 +599,16 @@ static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setti
 		r = til_value_to_pos(style_values, style->value, (unsigned *)&setup->style);
 		if (r < 0)
 			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, style, res_setting, -EINVAL);
+
+		if (setup->style == MIXER_STYLE_PAINTROLLER) {
+
+			if (sscanf(passes->value, "%u", &setup->n_passes) != 1)
+				return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, passes, res_setting, -EINVAL);
+
+			r = til_value_to_pos(orientation_values, orientation->value, (unsigned *)&setup->orientation);
+			if (r < 0)
+				return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, orientation, res_setting, -EINVAL);
+		}
 
 		for (i = 0; i < 2; i++) {
 			r = til_module_setup_full(inputs_settings[i],
