@@ -16,15 +16,26 @@
 
 /* This implements a rudimentary mixing module for things like fades */
 
+/*
+ * TODO:
+ * - make interlace line granularity configurable instead of always 1 pixel
+ */
+
 typedef enum mixer_style_t {
 	MIXER_STYLE_BLEND,
 	MIXER_STYLE_FLICKER,
+	MIXER_STYLE_INTERLACE,
 } mixer_style_t;
 
 typedef struct mixer_input_t {
 	til_module_context_t	*module_ctxt;
 	/* XXX: it's expected that inputs will get more settable attributes to stick in here */
 } mixer_input_t;
+
+typedef struct mixer_seed_t {
+	char		__padding[256];	/* prevent seeds sharing a cache line */
+	unsigned	state;
+} mixer_seed_t;
 
 typedef struct mixer_context_t {
 	til_module_context_t	til_module_context;
@@ -41,6 +52,7 @@ typedef struct mixer_context_t {
 
 	mixer_input_t		inputs[2];
 	til_fb_fragment_t	*snapshots[2];
+	mixer_seed_t		seeds[];
 } mixer_context_t;
 
 typedef struct mixer_setup_input_t {
@@ -74,7 +86,7 @@ static til_module_context_t * mixer_create_context(const til_module_t *module, t
 
 	assert(setup);
 
-	ctxt = til_module_context_new(module, sizeof(mixer_context_t), stream, seed, ticks, n_cpus, setup);
+	ctxt = til_module_context_new(module, sizeof(mixer_context_t) * (sizeof(mixer_seed_t) * n_cpus), stream, seed, ticks, n_cpus, setup);
 	if (!ctxt)
 		return NULL;
 
@@ -130,6 +142,11 @@ static void mixer_prepare_frame(til_module_context_t *context, til_stream_t *str
 
 		til_module_render(ctxt->inputs[i].module_ctxt, stream, ticks, &fragment);
 		break;
+
+	case MIXER_STYLE_INTERLACE:
+		for (int i = 0; i < context->n_cpus; i++)
+			ctxt->seeds[i].state = rand_r(&context->seed);
+		/* fallthrough */
 
 	case MIXER_STYLE_BLEND: {
 		float	T = ctxt->vars.T;
@@ -264,6 +281,31 @@ static void mixer_render_fragment(til_module_context_t *context, til_stream_t *s
 		break;
 	}
 
+	case MIXER_STYLE_INTERLACE: {
+		til_fb_fragment_t	*snapshot_a, *snapshot_b;
+		float			T = ctxt->vars.T;
+
+		if (T <= 0.f || T  >= 1.f)
+			break;
+
+		assert(ctxt->snapshots[0]);
+		assert(ctxt->snapshots[1]);
+
+		snapshot_a = ctxt->snapshots[0];
+		snapshot_b = ctxt->snapshots[1];
+
+		for (unsigned y = 0; y < fragment->height; y++) {
+			float	r = randf(&ctxt->seeds[cpu].state);
+
+			if (r > T) {
+				til_fb_fragment_copy(fragment, 0, fragment->x, fragment->y + y, fragment->width, 1, snapshot_b);
+			} else {
+				til_fb_fragment_copy(fragment, 0, fragment->x, fragment->y + y, fragment->width, 1, snapshot_a);
+			}
+		}
+		break;
+	}
+
 	default:
 		assert(0);
 	}
@@ -352,6 +394,7 @@ static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setti
 	const char		*style_values[] = {
 					"blend",
 					"flicker",
+					"interlace",
 					NULL
 				};
 	til_setting_t		*style;
