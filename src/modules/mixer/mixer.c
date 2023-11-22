@@ -297,7 +297,7 @@ static void mixer_render_fragment(til_module_context_t *context, til_stream_t *s
 		for (unsigned y = 0; y < fragment->height; y++) {
 			float	r = randf(&ctxt->seeds[cpu].state);
 
-			if (r > T) {
+			if (r < T) {
 				til_fb_fragment_copy(fragment, 0, fragment->x, fragment->y + y, fragment->width, 1, snapshot_b);
 			} else {
 				til_fb_fragment_copy(fragment, 0, fragment->x, fragment->y + y, fragment->width, 1, snapshot_a);
