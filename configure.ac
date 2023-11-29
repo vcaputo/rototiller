@@ -54,6 +54,7 @@ AC_CONFIG_FILES([
  src/modules/mixer/Makefile
  src/modules/moire/Makefile
  src/modules/montage/Makefile
+ src/modules/pan/Makefile
  src/modules/pixbounce/Makefile
  src/modules/plasma/Makefile
  src/modules/plato/Makefile

@@ -46,6 +46,7 @@ libtil_la_LIBADD =						\
 			modules/mixer/libmixer.la		\
 			modules/moire/libmoire.la		\
 			modules/montage/libmontage.la		\
+			modules/pan/libpan.la			\
 			modules/pixbounce/libpixbounce.la	\
 			modules/plasma/libplasma.la		\
 			modules/plato/libplato.la		\

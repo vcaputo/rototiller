@@ -11,6 +11,7 @@ SUBDIRS =			\
 		mixer		\
 		moire		\
 		montage		\
+		pan		\
 		pixbounce	\
 		plasma		\
 		plato		\
