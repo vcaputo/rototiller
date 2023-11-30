@@ -9,6 +9,7 @@
 #include <stdint.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <math.h>
 
 #include "til.h"
 #include "til_args.h"
@@ -24,7 +25,7 @@
 
 /* Copyright (C) 2016 Vito Caputo <vcaputo@pengaru.com> */
 
-#define NUM_FB_PAGES	3
+#define NUM_FB_PAGES		3
 /* ^ By triple-buffering, we can have a page tied up being displayed, another
  * tied up submitted and waiting for vsync, and still not block on getting
  * another page so we can begin rendering another frame before vsync.  With
@@ -33,29 +34,32 @@
 
 #ifndef DEFAULT_VIDEO
 #ifdef HAVE_SDL
-#define DEFAULT_VIDEO	"sdl"
+#define DEFAULT_VIDEO		"sdl"
 #endif
 #endif
 
 #ifndef DEFAULT_VIDEO
 #ifdef  HAVE_DRM
-#define DEFAULT_VIDEO	"drm"
+#define DEFAULT_VIDEO		"drm"
 #endif
 #endif
 
 #ifndef DEFAULT_VIDEO
-#define DEFAULT_VIDEO	"mem"
+#define DEFAULT_VIDEO		"mem"
 #endif
+
+#define DEFAULT_VIDEO_RATIO	"full"
 
 #ifndef DEFAULT_AUDIO
 #ifdef HAVE_SDL
-#define DEFAULT_AUDIO	"sdl"
+#define DEFAULT_AUDIO		"sdl"
 #endif
 #endif
 
 #ifndef DEFAULT_AUDIO
-#define DEFAULT_AUDIO	"mem"
+#define DEFAULT_AUDIO		"mem"
 #endif
+
 
 extern til_fb_ops_t	drm_fb_ops;
 extern til_fb_ops_t	mem_fb_ops;
@@ -153,6 +157,33 @@ static int setup_audio(const til_settings_t *settings, til_setting_t **res_setti
 static int setup_video(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup)
 {
 	til_setting_t	*setting;
+	til_setting_t	*ratio;
+	const char	*ratio_values[] = {
+				"full",
+				"1:1",
+				"4:3",
+				"3:2",
+				"16:10",
+				"5:3",
+				"16:9",
+				"2:1",
+				"21:9",
+				"32:9",
+				NULL
+			};
+	const char	*ratio_annotations[] = {
+				"Fill fb with content, inheriting its ratio as-is (may stretch)",
+				"Square",
+				"CRT Monitor/TV (VGA/XGA)",
+				"35mm film, iphone",
+				"Widescreen monitor (WXGA)",
+				"Super 16mm film",
+				"Widescreen TV / newer laptops",
+				"Dominoes",
+				"Ultra-widescreen",
+				"Super ultra-widescreen",
+				NULL
+			};
 	const char	*video;
 	int		r;
 
@@ -188,6 +219,21 @@ static int setup_video(const til_settings_t *settings, til_setting_t **res_setti
 		return 1;
 	}
 
+	r = til_settings_get_and_describe_setting(settings,
+						  &(til_setting_spec_t){
+							.name = "Content aspect ratio (W:H)",
+							.key = "ratio",
+							.preferred = DEFAULT_VIDEO_RATIO,
+							.values = ratio_values,
+							.annotations = ratio_annotations,
+						  },
+						  &ratio,
+						  res_setting,
+						  res_desc);
+	if (r)
+		return r;
+
+
 	/* XXX: this is kind of hacky for now */
 #ifdef HAVE_DRM
 	if (!strcasecmp(video, "drm"))
@@ -214,6 +260,17 @@ static int setup_video(const til_settings_t *settings, til_setting_t **res_setti
 		r = fb_ops->setup(settings, res_setting, res_desc, (til_setup_t **)&setup);
 		if (r)
 			return r;
+
+		if (!strcasecmp(ratio->value, "full"))
+			setup->ratio = NAN;
+		else {
+			float	w, h;
+
+			if (sscanf(ratio->value, "%f:%f", &w, &h) != 2)
+				return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, ratio, res_setting, -EINVAL);
+
+			setup->ratio = w / h;
+		}
 
 		*res_setup = &setup->til_setup;
 	}

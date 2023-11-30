@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <math.h>
 #include <pthread.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -126,6 +127,7 @@ typedef struct til_fb_t {
 	const til_fb_ops_t	*ops;
 	void			*ops_context;
 	int			n_pages;
+	float			ratio;
 
 	pthread_mutex_t		rebuild_mutex;
 	int			rebuild_pages;		/* counter of pages needing a rebuild */
@@ -155,6 +157,48 @@ typedef struct til_fb_t {
 #endif
 
 static _til_fb_page_t * _til_fb_page_alloc(til_fb_t *fb);
+
+
+/* apply an aspect ratio to a fragment's frame,
+ * if ratio=NAN then the fragment is used as-is (e.g. for "ratio=full").
+ */
+static _til_fb_page_t * _til_fb_page_apply_ratio(_til_fb_page_t *page)
+{
+	til_fb_fragment_t	*fragment;
+	float			fragment_ratio, d;
+	float			ratio;
+
+	assert(page);
+	assert(page->fb);
+
+	ratio = page->fb->ratio;
+	fragment = &page->fragment.public;
+
+	assert(fragment->frame_width > 0 && fragment->frame_height > 0);
+	assert(ratio > 0.f);
+
+	if (isnan(ratio))
+		return page;
+
+	fragment_ratio = (float)fragment->frame_width / (float)fragment->frame_height;
+	d = fragment_ratio - ratio;
+	if (d < 0) { /* letterboxed, scale height */
+		unsigned	h = fragment->frame_width / ratio;
+
+		fragment->buf += ((fragment->frame_height - h) / 2) * fragment->pitch;
+		fragment->frame_height = h;
+		fragment->height = h;
+	} else if (d > 0) { /* pillarboxed, scale width */
+		unsigned	w = fragment->frame_height * ratio;
+
+		fragment->buf += ((fragment->frame_width - w) / 2);
+		fragment->stride += fragment->frame_width - w;
+		fragment->frame_width = w;
+		fragment->width = w;
+	}
+
+	return page;
+}
 
 
 /* Consumes ready pages queued via til_fb_page_put(), submits them to drm to flip
@@ -205,6 +249,8 @@ int til_fb_flip(til_fb_t *fb)
 		fb->ops->page_free(fb, fb->ops_context, p->fb_ops_page);
 		p->fb_ops_page = fb->ops->page_alloc(fb, fb->ops_context, &p->fragment.public);
 		p->fragment.public.ops = &p->fragment.ops;
+		_til_fb_page_apply_ratio(p);
+
 		fb->rebuild_pages--;
 	}
 	pthread_mutex_unlock(&fb->rebuild_mutex);
@@ -366,7 +412,7 @@ static _til_fb_page_t * _til_fb_page_alloc(til_fb_t *fb)
 	else
 		fb->all_pages_tail = page;
 
-	return page;
+	return _til_fb_page_apply_ratio(page);
 }
 
 
@@ -561,7 +607,7 @@ int til_fb_new(const til_fb_ops_t *ops, const char *title, const til_video_setup
 	assert(ops->page_alloc);
 	assert(ops->page_free);
 	assert(ops->page_flip);
-	assert(!setup && setup->til_setup.creator == ops);
+	assert(setup && setup->til_setup.creator == ops);
 	assert(n_pages > 1);
 	assert(res_fb);
 
@@ -580,6 +626,15 @@ int til_fb_new(const til_fb_ops_t *ops, const char *title, const til_video_setup
 			goto fail;
 	}
 
+	/* TODO: fb should probably just take a reference on the setup,
+	 * the whole distinction of the ops-specific setup and intermediate
+	 * fb-common setup needs clarification, it's rather muddy right now esp.
+	 * with the advent of til_video_setup_t to facilitate a common ratio=
+	 * setting... with the backend allocating the whole setup, when it only
+	 * performs setup of its own little subset.  This all needs some tidying up
+	 * now that things have evolved so much on the video/fb side.
+	 */
+	fb->ratio = setup->ratio;
 	pthread_mutex_init(&fb->ready_mutex, NULL);
 	pthread_cond_init(&fb->ready_cond, NULL);
 	pthread_mutex_init(&fb->inactive_mutex, NULL);
