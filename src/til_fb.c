@@ -174,11 +174,11 @@ static _til_fb_page_t * _til_fb_page_apply_ratio(_til_fb_page_t *page)
 	ratio = page->fb->ratio;
 	fragment = &page->fragment.public;
 
-	assert(fragment->frame_width > 0 && fragment->frame_height > 0);
-	assert(ratio > 0.f);
-
 	if (isnan(ratio))
 		return page;
+
+	assert(fragment->frame_width > 0 && fragment->frame_height > 0);
+	assert(ratio > 0.f);
 
 	fragment_ratio = (float)fragment->frame_width / (float)fragment->frame_height;
 	d = fragment_ratio - ratio;
