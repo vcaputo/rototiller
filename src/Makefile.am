@@ -30,7 +30,8 @@ libtil_la_SOURCES =						\
 			til_threads.c				\
 			til_threads.h				\
 			til_util.c				\
-			til_util.h
+			til_util.h				\
+			til_video_setup.h
 
 libtil_la_CPPFLAGS = -I@top_srcdir@/src
 libtil_la_LIBADD =						\
