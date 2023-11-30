@@ -8,6 +8,7 @@
 #include "til_fb.h"
 #include "til_settings.h"
 #include "til_util.h"
+#include "til_video_setup.h"
 
 /* Copyright (C) 2016-2017 Vito Caputo <vcaputo@pengaru.com> */
 
@@ -550,7 +551,7 @@ til_fb_t * til_fb_free(til_fb_t *fb)
 
 
 /* create a new fb instance */
-int til_fb_new(const til_fb_ops_t *ops, const char *title, const til_setup_t *setup, int n_pages, til_fb_t **res_fb)
+int til_fb_new(const til_fb_ops_t *ops, const char *title, const til_video_setup_t *setup, int n_pages, til_fb_t **res_fb)
 {
 	_til_fb_page_t	*page;
 	til_fb_t	*fb;
@@ -560,7 +561,7 @@ int til_fb_new(const til_fb_ops_t *ops, const char *title, const til_setup_t *se
 	assert(ops->page_alloc);
 	assert(ops->page_free);
 	assert(ops->page_flip);
-	assert(!setup || setup->creator == ops);
+	assert(!setup && setup->til_setup.creator == ops);
 	assert(n_pages > 1);
 	assert(res_fb);
 

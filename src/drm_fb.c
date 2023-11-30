@@ -14,6 +14,7 @@
 #include "til_fb.h"
 #include "til_settings.h"
 #include "til_util.h"
+#include "til_video_setup.h"
 
 /* drm fb backend, everything drm-specific in rototiller resides here. */
 typedef struct drm_fb_page_t drm_fb_page_t;
@@ -37,7 +38,7 @@ typedef struct drm_fb_t {
 } drm_fb_t;
 
 typedef struct drm_fb_setup_t {
-	til_setup_t		til_setup;
+	til_video_setup_t	til_video_setup;
 	const char		*dev;
 	const char		*connector;
 	const char		*mode;
@@ -330,7 +331,7 @@ static drmModeModeInfo * lookup_mode(drmModeConnector *connector, const char *mo
 
 
 /* prepare the drm context for use with the supplied settings */
-static int drm_fb_init(const char *title, const til_setup_t *setup, void **res_context)
+static int drm_fb_init(const char *title, const til_video_setup_t *setup, void **res_context)
 {
 	drm_fb_setup_t	*s = (drm_fb_setup_t *)setup;
 	drm_fb_t	*c;
@@ -598,7 +599,7 @@ static int drm_fb_setup(const til_settings_t *settings, til_setting_t **res_sett
 	if (!setup)
 		return -ENOMEM;
 
-	return til_settings_apply_desc_generators(settings, generators, nelems(generators), &setup->til_setup, res_setting, res_desc, res_setup);
+	return til_settings_apply_desc_generators(settings, generators, nelems(generators), &setup->til_video_setup.til_setup, res_setting, res_desc, res_setup);
 }
 
 

@@ -6,15 +6,16 @@
 
 #include "til_fb.h"
 #include "til_settings.h"
+#include "til_video_setup.h"
 
 
 /* sdl fb backend, everything sdl-specific in rototiller resides here. */
 
 typedef struct sdl_fb_setup_t {
-	til_setup_t	til_setup;
-	int		fullscreen:1;
-	int		vsync:1;
-	unsigned	width, height;
+	til_video_setup_t	til_video_setup;
+	int			fullscreen:1;
+	int			vsync:1;
+	unsigned		width, height;
 } sdl_fb_setup_t;
 
 typedef struct sdl_fb_page_t sdl_fb_page_t;
@@ -54,7 +55,7 @@ static int sdl_err_to_errno(int err)
 	}
 }
 
-static int sdl_fb_init(const char *title, const til_setup_t *setup, void **res_context)
+static int sdl_fb_init(const char *title, const til_video_setup_t *setup, void **res_context)
 {
 	sdl_fb_setup_t	*s = (sdl_fb_setup_t *)setup;
 	sdl_fb_t	*c;
@@ -374,9 +375,9 @@ static int sdl_fb_setup(const til_settings_t *settings, til_setting_t **res_sett
 			setup->vsync = 1;
 
 		if (size && sscanf(size->value, "%u%*[xX]%u", &setup->width, &setup->height) != 2)
-			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, size, res_setting, -EINVAL);
+			return til_setup_free_with_failed_setting_ret_err(&setup->til_video_setup.til_setup, size, res_setting, -EINVAL);
 
-		*res_setup = &setup->til_setup;
+		*res_setup = &setup->til_video_setup.til_setup;
 	}
 
 	return 0;

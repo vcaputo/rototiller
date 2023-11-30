@@ -17,6 +17,7 @@
 #include "til_settings.h"
 #include "til_stream.h"
 #include "til_util.h"
+#include "til_video_setup.h"
 
 #include "fps.h"
 #include "setup.h"
@@ -80,14 +81,14 @@ static rototiller_t		rototiller;
 
 
 typedef struct setup_t {
-	til_settings_t	*module_settings;
-	til_setup_t	*module_setup;
-	til_settings_t	*audio_settings;
-	til_setup_t	*audio_setup;
-	til_settings_t	*video_settings;
-	til_setup_t	*video_setup;
-	unsigned	seed;
-	const char	*title;
+	til_settings_t		*module_settings;
+	til_setup_t		*module_setup;
+	til_settings_t		*audio_settings;
+	til_setup_t		*audio_setup;
+	til_settings_t		*video_settings;
+	til_video_setup_t	*video_setup;
+	unsigned		seed;
+	const char		*title;
 } setup_t;
 
 /* FIXME: this is unnecessarily copy-pasta, i think modules should just be made
@@ -153,6 +154,7 @@ static int setup_video(const til_settings_t *settings, til_setting_t **res_setti
 {
 	til_setting_t	*setting;
 	const char	*video;
+	int		r;
 
 	video = til_settings_get_value_by_idx(settings, 0, &setting);
 	if (!video || !setting->desc) {
@@ -166,7 +168,6 @@ static int setup_video(const til_settings_t *settings, til_setting_t **res_setti
 #endif
 						NULL,
 					};
-		int			r;
 
 		r = til_setting_desc_new(	settings,
 						&(til_setting_spec_t){
@@ -189,26 +190,35 @@ static int setup_video(const til_settings_t *settings, til_setting_t **res_setti
 
 	/* XXX: this is kind of hacky for now */
 #ifdef HAVE_DRM
-	if (!strcasecmp(video, "drm")) {
+	if (!strcasecmp(video, "drm"))
 		fb_ops = &drm_fb_ops;
-
-		return drm_fb_ops.setup(settings, res_setting, res_desc, res_setup);
-	}
 #endif
-	if (!strcasecmp(video, "mem")) {
+	if (!strcasecmp(video, "mem"))
 		fb_ops = &mem_fb_ops;
-
-		return mem_fb_ops.setup(settings, res_setting, res_desc, res_setup);
-	}
 #ifdef HAVE_SDL
-	if (!strcasecmp(video, "sdl")) {
+	if (!strcasecmp(video, "sdl"))
 		fb_ops = &sdl_fb_ops;
-
-		return sdl_fb_ops.setup(settings, res_setting, res_desc, res_setup);
-	}
 #endif
+	if (!fb_ops) {
+		*res_setting = setting;
+		return -EINVAL;
+	}
 
-	return -EINVAL;
+	r = fb_ops->setup(settings, res_setting, res_desc, NULL);
+	if (r)
+		return r;
+
+	if (res_setup) { /* now to finalize/bake the setup */
+		til_video_setup_t	*setup;
+
+		r = fb_ops->setup(settings, res_setting, res_desc, (til_setup_t **)&setup);
+		if (r)
+			return r;
+
+		*res_setup = &setup->til_setup;
+	}
+
+	return 0;
 }
 
 
@@ -319,7 +329,7 @@ static int setup_from_args(til_args_t *args, setup_t *res_setup, const char **re
 	if (r)
 		changes = 1;
 
-	r = setup_interactively(setup.video_settings, setup_video, args->use_defaults, &setup.video_setup, res_failed_desc_path);
+	r = setup_interactively(setup.video_settings, setup_video, args->use_defaults, (til_setup_t **)&setup.video_setup, res_failed_desc_path);
 	if (r < 0)
 		goto _err;
 	if (r)
@@ -531,7 +541,7 @@ int main(int argc, const char *argv[])
 
 		{ /* free setup (move to function? and disambiguate from til_setup_t w/rename? TODO) */
 			free((void *)setup.title);
-			til_setup_free(setup.video_setup);
+			til_setup_free(&setup.video_setup->til_setup);
 			til_settings_free(setup.video_settings);
 			til_setup_free(setup.audio_setup);
 			til_settings_free(setup.audio_settings);
