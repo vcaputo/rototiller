@@ -579,16 +579,16 @@ int til_fb_new(const til_fb_ops_t *ops, const char *title, const til_setup_t *se
 			goto fail;
 	}
 
-	for (int i = 0; i < n_pages; i++)
-		_til_fb_page_new(fb);
-
-	fb->n_pages = n_pages;
-
 	pthread_mutex_init(&fb->ready_mutex, NULL);
 	pthread_cond_init(&fb->ready_cond, NULL);
 	pthread_mutex_init(&fb->inactive_mutex, NULL);
 	pthread_cond_init(&fb->inactive_cond, NULL);
 	pthread_mutex_init(&fb->rebuild_mutex, NULL);
+
+	for (int i = 0; i < n_pages; i++)
+		_til_fb_page_new(fb);
+
+	fb->n_pages = n_pages;
 
 	page = _til_fb_page_get(fb);
 	if (!page) {
