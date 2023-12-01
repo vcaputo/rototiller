@@ -76,16 +76,21 @@ static void pan_prepare_frame(til_module_context_t *context, til_stream_t *strea
 	pan_setup_t		*s = (pan_setup_t *)context->setup;
 	til_fb_fragment_t	*fragment = *fragment_ptr;
 	float			dt = (ticks - context->last_ticks) * .1f;
-
-	ctxt->xoffset += dt * s->x;
-	ctxt->xoffset = fmodf(ctxt->xoffset, fragment->frame_width);
-	ctxt->yoffset += dt * s->y;
-	ctxt->yoffset = fmodf(ctxt->yoffset, fragment->frame_height);
-
-	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu_x16 };
+	til_fb_fragment_t	*snapshot = &ctxt->tile;
 
 	if (fragment->cleared)
 		ctxt->snapshot = til_fb_fragment_snapshot(fragment_ptr, 0);
+
+	if (ctxt->snapshot)
+		snapshot = ctxt->snapshot;
+
+	ctxt->xoffset += dt * s->x;
+	ctxt->xoffset = fmodf(ctxt->xoffset, snapshot->frame_width);
+	ctxt->yoffset += dt * s->y;
+	ctxt->yoffset = fmodf(ctxt->yoffset, snapshot->frame_height);
+
+	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu_x16 };
+
 }
 
 
