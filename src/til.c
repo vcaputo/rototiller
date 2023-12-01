@@ -29,6 +29,7 @@ static til_threads_t	*til_threads;
 static struct timeval	til_start_tv;
 
 extern til_module_t	blinds_module;
+extern til_module_t	book_module;
 extern til_module_t	checkers_module;
 extern til_module_t	compose_module;
 extern til_module_t	drizzle_module;
@@ -70,6 +71,7 @@ extern til_module_t	_pre_module;
 extern til_module_t	_ref_module;
 
 static const til_module_t	*modules[] = {
+	&book_module,
 	&blinds_module,
 	&checkers_module,
 	&compose_module,

@@ -37,6 +37,7 @@ libtil_la_CPPFLAGS = -I@top_srcdir@/src
 libtil_la_LIBADD =						\
 			modules/asc/libasc.la			\
 			modules/blinds/libblinds.la		\
+			modules/book/libbook.la			\
 			modules/checkers/libcheckers.la		\
 			modules/compose/libcompose.la		\
 			modules/drizzle/libdrizzle.la		\

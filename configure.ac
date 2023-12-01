@@ -44,6 +44,7 @@ AC_CONFIG_FILES([
  src/modules/Makefile
  src/modules/asc/Makefile
  src/modules/blinds/Makefile
+ src/modules/book/Makefile
  src/modules/checkers/Makefile
  src/modules/compose/Makefile
  src/modules/drizzle/Makefile

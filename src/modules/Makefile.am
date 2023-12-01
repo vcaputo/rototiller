@@ -1,6 +1,7 @@
 SUBDIRS =			\
 		asc		\
 		blinds		\
+		book		\
 		checkers	\
 		compose		\
 		drizzle		\
