@@ -1,5 +1,7 @@
+#include <float.h>
 #include <math.h>
 #include <stdarg.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -131,13 +133,29 @@ typedef struct rkt_pipe_t {
 	til_tap_t		tap;
 
 	union {
-		float	f;
-		double	d;
+		int8_t		i8;
+		int16_t		i16;
+		int32_t		i32;
+		int64_t		i64;
+		uint8_t		u8;
+		uint16_t	u16;
+		uint32_t	u32;
+		uint64_t	u64;
+		float		f;
+		double		d;
 	} var;
 
 	union {
-		float	*f;
-		double	*d;
+		int8_t		*i8;
+		int16_t		*i16;
+		int32_t		*i32;
+		int64_t		*i64;
+		uint8_t		*u8;
+		uint16_t	*u16;
+		uint32_t	*u32;
+		uint64_t	*u64;
+		float		*f;
+		double		*d;
 	} ptr;
 
 	const struct sync_track	*track;
@@ -155,9 +173,17 @@ static int rkt_stream_pipe_ctor(void *context, til_stream_t *stream, const void 
 	assert(res_owner_foo);
 	assert(res_driving_tap);
 
-	if (tap->type != TIL_TAP_TYPE_FLOAT &&
-	    tap->type != TIL_TAP_TYPE_DOUBLE)
-		return 0;	/* not interesting to us */
+	if (tap->type == TIL_TAP_TYPE_V2F ||
+	    tap->type == TIL_TAP_TYPE_V3F ||
+	    tap->type == TIL_TAP_TYPE_V4F ||
+	    tap->type == TIL_TAP_TYPE_M4F ||
+	    tap->type == TIL_TAP_TYPE_VOIDP)
+		return 0;	/* only scalars are interesting to us (for now?) */
+
+	/* TODO: for vector types, rkt /could/ create .{x,y,z,w} suffixed paths
+	 * for the individual members... but man would that be some cumbersome stuff
+	 * to sequence.
+	 */
 
 	/* assume pipe ownership, create driving tap and rocket track to stow @ owner_foo */
 
@@ -224,8 +250,49 @@ static int rkt_pipe_update(void *context, til_stream_pipe_t *pipe, const void *o
 	 */
 	val = sync_get_val(rkt_pipe->track, ctxt->rocket_row);
 	switch (rkt_pipe->tap.type) {
+	/* For *all* integer types, the double must be clamped to the
+	 * capacity of the type.  Relying on plain truncation isn't safe
+	 * since the track data in double form can overflow the integer,
+	 * and that's undefined behavior.  So it needs to be clamped explicitly
+	 * to within the range of the type, while still a double.
+	 * From within the range however, plain truncation in the cast to integer
+	 * does the right thing, even with negatives.  It's unclear to me if
+	 * rounding would make sense more often over truncation however.  I'm
+	 * leaning towards just always doing truncation here, and for taps that
+	 * want more explicit control there they should use FLOAT/DOUBLE and convert
+	 * to integers on their own with whatever methods they prefer.  Even if that
+	 * resembles letting Rocket implementation details bleed through to the til_tap
+	 * API.
+	 */
+#define RKT_CLAMP(_val, _min, _max) \
+	((_val < _min) ? _min : (_val > _max) ? _max : _val)
+
+	case TIL_TAP_TYPE_I8:
+		rkt_pipe->var.i8 = RKT_CLAMP(val, INT8_MIN, INT8_MAX);
+		break;
+	case TIL_TAP_TYPE_I16:
+		rkt_pipe->var.i16 = RKT_CLAMP(val, INT16_MIN, INT16_MAX);
+		break;
+	case TIL_TAP_TYPE_I32:
+		rkt_pipe->var.i32 = RKT_CLAMP(val, INT32_MIN, INT32_MAX);
+		break;
+	case TIL_TAP_TYPE_I64:
+		rkt_pipe->var.i64 = RKT_CLAMP(val, INT64_MIN, INT64_MAX);
+		break;
+	case TIL_TAP_TYPE_U8:
+		rkt_pipe->var.u8 = RKT_CLAMP(val, 0, UINT8_MAX);
+		break;
+	case TIL_TAP_TYPE_U16:
+		rkt_pipe->var.u16 = RKT_CLAMP(val, 0, UINT16_MAX);
+		break;
+	case TIL_TAP_TYPE_U32:
+		rkt_pipe->var.u32 = RKT_CLAMP(val, 0, UINT32_MAX);
+		break;
+	case TIL_TAP_TYPE_U64:
+		rkt_pipe->var.u64 = RKT_CLAMP(val, 0, UINT64_MAX);
+		break;
 	case TIL_TAP_TYPE_FLOAT:
-		rkt_pipe->var.f = val;
+		rkt_pipe->var.f = RKT_CLAMP(val, FLT_MIN, FLT_MAX);
 		break;
 	case TIL_TAP_TYPE_DOUBLE:
 		rkt_pipe->var.d = val;
