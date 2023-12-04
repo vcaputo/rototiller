@@ -263,33 +263,38 @@ static int rkt_pipe_update(void *context, til_stream_pipe_t *pipe, const void *o
 	 * to integers on their own with whatever methods they prefer.  Even if that
 	 * resembles letting Rocket implementation details bleed through to the til_tap
 	 * API.
+	 * XXX: despite the above, I've added rounding in the integer types.  It's useful
+	 * for getting reasonable results abusing Rocket's interpolation on integer tracks.
+	 * With truncation when interpolating up to an upper bound before descending, the
+	 * upper bound integer basically never arrives.  With rounding, once .5 within the
+	 * peak the peak integer value will occur...
 	 */
 #define RKT_CLAMP(_val, _min, _max) \
 	((_val < _min) ? _min : (_val > _max) ? _max : _val)
 
 	case TIL_TAP_TYPE_I8:
-		rkt_pipe->var.i8 = RKT_CLAMP(val, INT8_MIN, INT8_MAX);
+		rkt_pipe->var.i8 = RKT_CLAMP(round(val), INT8_MIN, INT8_MAX);
 		break;
 	case TIL_TAP_TYPE_I16:
-		rkt_pipe->var.i16 = RKT_CLAMP(val, INT16_MIN, INT16_MAX);
+		rkt_pipe->var.i16 = RKT_CLAMP(round(val), INT16_MIN, INT16_MAX);
 		break;
 	case TIL_TAP_TYPE_I32:
-		rkt_pipe->var.i32 = RKT_CLAMP(val, INT32_MIN, INT32_MAX);
+		rkt_pipe->var.i32 = RKT_CLAMP(round(val), INT32_MIN, INT32_MAX);
 		break;
 	case TIL_TAP_TYPE_I64:
-		rkt_pipe->var.i64 = RKT_CLAMP(val, INT64_MIN, INT64_MAX);
+		rkt_pipe->var.i64 = RKT_CLAMP(round(val), INT64_MIN, INT64_MAX);
 		break;
 	case TIL_TAP_TYPE_U8:
-		rkt_pipe->var.u8 = RKT_CLAMP(val, 0, UINT8_MAX);
+		rkt_pipe->var.u8 = RKT_CLAMP(round(val), 0, UINT8_MAX);
 		break;
 	case TIL_TAP_TYPE_U16:
-		rkt_pipe->var.u16 = RKT_CLAMP(val, 0, UINT16_MAX);
+		rkt_pipe->var.u16 = RKT_CLAMP(round(val), 0, UINT16_MAX);
 		break;
 	case TIL_TAP_TYPE_U32:
-		rkt_pipe->var.u32 = RKT_CLAMP(val, 0, UINT32_MAX);
+		rkt_pipe->var.u32 = RKT_CLAMP(round(val), 0, UINT32_MAX);
 		break;
 	case TIL_TAP_TYPE_U64:
-		rkt_pipe->var.u64 = RKT_CLAMP(val, 0, UINT64_MAX);
+		rkt_pipe->var.u64 = RKT_CLAMP(round(val), 0, UINT64_MAX);
 		break;
 	case TIL_TAP_TYPE_FLOAT:
 		rkt_pipe->var.f = RKT_CLAMP(val, FLT_MIN, FLT_MAX);
