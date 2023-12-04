@@ -15,12 +15,14 @@
 #define SPOKES_DEFAULT_ITERATIONS	3
 #define SPOKES_DEFAULT_TWIST		0.0625
 #define SPOKES_DEFAULT_THICKNESS	3
+#define SPOKES_DEFAULT_COUNT		4
 
 typedef struct spokes_setup_t {
 	til_setup_t             til_setup;
 	unsigned		iterations;
 	float                   twist;
 	unsigned		thickness;
+	unsigned		count;
 } spokes_setup_t;
 
 static void spokes_draw_line(til_fb_fragment_t *fragment, int x1, int y1, int x2, int y2, uint32_t color, int thickness)
@@ -123,8 +125,8 @@ static void spokes_render_fragment(til_module_context_t *context, til_stream_t *
 	til_fb_fragment_t       *fragment = *fragment_ptr;
 
 	int width = fragment->width, height = fragment->height;
-	int stride;
-	int offset;
+	float stride;
+	float offset;
 	uint32_t color;
 
 	int display_R, display_origin_x, display_origin_y;
@@ -153,7 +155,7 @@ static void spokes_render_fragment(til_module_context_t *context, til_stream_t *
 	origin_y=display_origin_y+sin((float)ticks*0.001)*display_R*0.7f;
 
 	/* calculate an offset for outer line endpoints based on ticks */
-	offset=(int)round((float)ticks*0.1); /* use the ticks. */
+	offset=(float)ticks*0.1f; /* use the ticks. */
 
 	/* rotate through RGB color space slowly based on ticks */
 	color=makergb(
@@ -162,33 +164,28 @@ static void spokes_render_fragment(til_module_context_t *context, til_stream_t *
 		(int)round(255.0*sinf((float)ticks*0.00001+1.3333*M_PI)),
 		1);
 
-	/* find the largest even stride for the fragments dimensions */
-	stride=1;
-	for(int i=2; i<(width+height)/2; i++) {
-		if((width+height)%i==0) {
-			stride=i;
-		}
-	}
+	stride = ((float)(width+height))/(float)s->count;
 
 	/* we're setup now to draw some shit */
 	til_fb_fragment_clear(fragment);
 
-	for(int i=0; i<=width+height-stride; i+=stride){ /* iterate over half the perimiter at a time... */
-		int perimiter_x=-1, perimiter_y=-1;
-		if(i+offset%stride<width) {
-			perimiter_x=i+offset%stride;
+	for(float i=0; i<=width+height-stride; i+=stride){ /* iterate over half the perimiter at a time... */
+		float perimiter_x, perimiter_y;
+
+		if(i+fmodf(offset, stride) < width) {
+			perimiter_x=i+fmodf(offset, stride);
 			perimiter_y=0;
 		} else {
 			perimiter_x=width-1;
-			perimiter_y=(i-width)+offset%stride;
+			perimiter_y=(i-((float)width))+fmodf(offset, stride);
 		}
 
-		spokes_draw_segmented_line(fragment, s->iterations, theta, origin_x, origin_y, perimiter_x, perimiter_y, color, s->thickness);
+		spokes_draw_segmented_line(fragment, s->iterations, theta, origin_x, origin_y, rintf(perimiter_x), rintf(perimiter_y), color, s->thickness);
 
 		/* Calculate and draw the mirror line... */
 		perimiter_x=abs(perimiter_x-width);
 		perimiter_y=abs(perimiter_y-height);
-		spokes_draw_segmented_line(fragment, s->iterations, theta, origin_x, origin_y, perimiter_x, perimiter_y, color, s->thickness);
+		spokes_draw_segmented_line(fragment, s->iterations, theta, origin_x, origin_y, rintf(perimiter_x), rintf(perimiter_y), color, s->thickness);
 	}
 }
 
@@ -246,6 +243,20 @@ int spokes_setup(const til_settings_t *settings, til_setting_t **res_setting, co
 				"5",
 				NULL
 			};
+	til_setting_t	*count;
+	const char	*count_values[] = {
+				"2",
+				"3",
+				"4",
+				"8",
+				"10",
+				"15",
+				"20",
+				"25",
+				"30",
+				"40",
+				NULL
+			};
 	int r;
 
 	r = til_settings_get_and_describe_setting(settings,
@@ -258,6 +269,21 @@ int spokes_setup(const til_settings_t *settings, til_setting_t **res_setting, co
 							.annotations = NULL
 						},
 						&iterations,
+						res_setting,
+						res_desc);
+	if (r)
+		return r;
+
+	r = til_settings_get_and_describe_setting(settings,
+						&(til_setting_spec_t){
+							.name = "Number of spokes (gets doubled)",
+							.key = "count",
+							.regex = "[0-9]+",
+							.preferred = TIL_SETTINGS_STR(SPOKES_DEFAULT_COUNT),
+							.values = count_values,
+							.annotations = NULL
+						},
+						&count,
 						res_setting,
 						res_desc);
 	if (r)
@@ -302,6 +328,9 @@ int spokes_setup(const til_settings_t *settings, til_setting_t **res_setting, co
 
 		if (sscanf(iterations->value, "%u", &setup->iterations) != 1)
 			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, iterations, res_setting, -EINVAL);
+
+		if (sscanf(count->value, "%u", &setup->count) != 1)
+			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, count, res_setting, -EINVAL);
 
 		if (sscanf(twist->value, "%f", &setup->twist) != 1)
 			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, twist, res_setting, -EINVAL);
