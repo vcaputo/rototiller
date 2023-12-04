@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <inttypes.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,10 +35,12 @@ typedef struct blinds_context_t {
 	} taps;
 
 	struct {
-		float		t, step, count;
+		float		t, step;
+		uint8_t		count;
 	} vars;
 
-	float			*t, *step, *count;
+	float			*t, *step;
+	uint8_t			*count;
 	blinds_setup_t		*setup;
 } blinds_context_t;
 
@@ -46,12 +49,18 @@ static void blinds_update_taps(blinds_context_t *ctxt, til_stream_t *stream, uns
 {
 	if (!til_stream_tap_context(stream, &ctxt->til_module_context, NULL, &ctxt->taps.t))
 		*ctxt->t = til_ticks_to_rads(ticks);
+	else
+		ctxt->vars.t = *ctxt->t;
 
 	if (!til_stream_tap_context(stream, &ctxt->til_module_context, NULL, &ctxt->taps.step))
 		*ctxt->step = .1f;
+	else
+		ctxt->vars.step = *ctxt->step;
 
 	if (!til_stream_tap_context(stream, &ctxt->til_module_context, NULL, &ctxt->taps.count))
 		*ctxt->count = ctxt->setup->count;
+	else
+		ctxt->vars.count = *ctxt->count;
 }
 
 
@@ -65,7 +74,7 @@ static til_module_context_t * blinds_create_context(const til_module_t *module, 
 
 	ctxt->taps.t = til_tap_init_float(ctxt, &ctxt->t, 1, &ctxt->vars.t, "T");
 	ctxt->taps.step = til_tap_init_float(ctxt, &ctxt->step, 1, &ctxt->vars.step, "step");
-	ctxt->taps.count = til_tap_init_float(ctxt, &ctxt->count, 1, &ctxt->vars.count, "count");
+	ctxt->taps.count = til_tap_init_u8(ctxt, &ctxt->count, 1, &ctxt->vars.count, "count");
 
 	ctxt->setup = (blinds_setup_t *)setup;
 
@@ -158,13 +167,13 @@ static void blinds_render_fragment(til_module_context_t *context, til_stream_t *
 
 	til_fb_fragment_clear(fragment);
 
-	for (t = *ctxt->t, blind = 0; blind < (unsigned)*ctxt->count; blind++, t += *ctxt->step) {
+	for (t = *ctxt->t, blind = 0; blind < ctxt->vars.count; blind++, t += *ctxt->step) {
 		switch (ctxt->setup->orientation) {
 		case BLINDS_ORIENTATION_HORIZONTAL:
-			draw_blind_horizontal(fragment, blind, ctxt->setup->count, 1.f - fabsf(cosf(t)));
+			draw_blind_horizontal(fragment, blind, ctxt->vars.count, 1.f - fabsf(cosf(t)));
 			break;
 		case BLINDS_ORIENTATION_VERTICAL:
-			draw_blind_vertical(fragment, blind, ctxt->setup->count, 1.f - fabsf(cosf(t)));
+			draw_blind_vertical(fragment, blind, ctxt->vars.count, 1.f - fabsf(cosf(t)));
 			break;
 		}
 	}
@@ -245,6 +254,9 @@ static int blinds_setup(const til_settings_t *settings, til_setting_t **res_sett
 			return -ENOMEM;
 
 		if (sscanf(count->value, "%u", &setup->count) != 1)
+			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, count, res_setting, -EINVAL);
+
+		if (setup->count > 255) /* the tap is a u8 */
 			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, count, res_setting, -EINVAL);
 
 		if (!strcasecmp(orientation->value, "horizontal"))
