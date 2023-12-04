@@ -25,9 +25,9 @@ typedef struct spokes_context_t {
 
 typedef struct spokes_setup_t {
 	til_setup_t             til_setup;
-	int			iterations;
+	unsigned		iterations;
 	float                   twist;
-	int			thickness;
+	unsigned		thickness;
 } spokes_setup_t;
 
 static void spokes_draw_line(til_fb_fragment_t *fragment, int x1, int y1, int x2, int y2, uint32_t color, int thickness)
@@ -331,13 +331,13 @@ int spokes_setup(const til_settings_t *settings, til_setting_t **res_setting, co
 		if (!setup)
 			return -ENOMEM;
 
-		if (sscanf(iterations->value, "%i", &setup->iterations) != 1)
+		if (sscanf(iterations->value, "%u", &setup->iterations) != 1)
 			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, iterations, res_setting, -EINVAL);
 
 		if (sscanf(twist->value, "%f", &setup->twist) != 1)
 			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, twist, res_setting, -EINVAL);
 
-		if (sscanf(thickness->value, "%i", &setup->thickness) != 1)
+		if (sscanf(thickness->value, "%u", &setup->thickness) != 1)
 			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, thickness, res_setting, -EINVAL);
 
 		*res_setup = &setup->til_setup;
