@@ -16,13 +16,6 @@
 #define SPOKES_DEFAULT_TWIST		0.0625
 #define SPOKES_DEFAULT_THICKNESS	3
 
-typedef struct spokes_context_t {
-	til_module_context_t    til_module_context;
-	int			iterations;
-	float                   twist;
-	int			thickness;
-} spokes_context_t;
-
 typedef struct spokes_setup_t {
 	til_setup_t             til_setup;
 	unsigned		iterations;
@@ -137,10 +130,10 @@ static void spokes_render_fragment(til_module_context_t *context, til_stream_t *
 	int display_R, display_origin_x, display_origin_y;
 	int origin_x, origin_y;
 
-	spokes_context_t *ctxt = (spokes_context_t *)context;
+	spokes_setup_t *s = (spokes_setup_t *)context->setup;
 
 	/* calculate theta for twist */
-	double theta=M_PI*ctxt->twist;
+	double theta=M_PI*s->twist;
 
 	/* Based on the fragment's dimensions, calculate the origin and radius of the largest
 	circle that can fully fit in the frame */
@@ -190,43 +183,19 @@ static void spokes_render_fragment(til_module_context_t *context, til_stream_t *
 			perimiter_y=(i-width)+offset%stride;
 		}
 
-		spokes_draw_segmented_line(fragment, ctxt->iterations, theta, origin_x, origin_y, perimiter_x, perimiter_y, color, ctxt->thickness);
+		spokes_draw_segmented_line(fragment, s->iterations, theta, origin_x, origin_y, perimiter_x, perimiter_y, color, s->thickness);
 
 		/* Calculate and draw the mirror line... */
 		perimiter_x=abs(perimiter_x-width);
 		perimiter_y=abs(perimiter_y-height);
-		spokes_draw_segmented_line(fragment, ctxt->iterations, theta, origin_x, origin_y, perimiter_x, perimiter_y, color, ctxt->thickness);
+		spokes_draw_segmented_line(fragment, s->iterations, theta, origin_x, origin_y, perimiter_x, perimiter_y, color, s->thickness);
 	}
-}
-
-
-static til_module_context_t * spokes_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
-{
-	spokes_context_t *ctxt;
-
-	ctxt = til_module_context_new(module, sizeof(spokes_context_t), stream, seed, ticks, n_cpus, setup);
-	if (!ctxt)
-	        return NULL;
-	ctxt->iterations = ((spokes_setup_t *)setup)->iterations;
-	ctxt->twist = ((spokes_setup_t *)setup)->twist;
-	ctxt->thickness = ((spokes_setup_t *)setup)->thickness;
-	return &ctxt->til_module_context;
-
-}
-
-
-static void spokes_destroy_context(til_module_context_t *context)
-{
-	free(context);
-
 }
 
 
 int spokes_setup(const til_settings_t *settings, til_setting_t **res_setting, const til_setting_desc_t **res_desc, til_setup_t **res_setup);
 
 til_module_t	spokes_module = {
-	.create_context = spokes_create_context,
-	.destroy_context = spokes_destroy_context,
 	.render_fragment = spokes_render_fragment,
 	.setup = spokes_setup,
 	.name = "spokes",
