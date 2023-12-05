@@ -19,6 +19,7 @@
 /*
  * TODO:
  * - make interlace line granularity configurable instead of always 1 pixel
+ * - ^^^ same for sine interlacing?
  */
 
 typedef enum mixer_style_t {
@@ -26,6 +27,7 @@ typedef enum mixer_style_t {
 	MIXER_STYLE_FLICKER,
 	MIXER_STYLE_INTERLACE,
 	MIXER_STYLE_PAINTROLLER,
+	MIXER_STYLE_SINE,
 } mixer_style_t;
 
 typedef enum mixer_orientation_t {
@@ -77,7 +79,6 @@ typedef struct mixer_setup_t {
 #define MIXER_DEFAULT_STYLE		MIXER_STYLE_BLEND
 #define MIXER_DEFAULT_PASSES		8
 #define MIXER_DEFAULT_ORIENTATION	MIXER_ORIENTATION_VERTICAL
-
 
 static void mixer_update_taps(mixer_context_t *ctxt, til_stream_t *stream, unsigned ticks)
 {
@@ -156,6 +157,8 @@ static void mixer_prepare_frame(til_module_context_t *context, til_stream_t *str
 	case MIXER_STYLE_INTERLACE:
 		for (int i = 0; i < context->n_cpus; i++)
 			ctxt->seeds[i].state = rand_r(&context->seed);
+		/* fallthrough */
+	case MIXER_STYLE_SINE:
 		/* fallthrough */
 	case MIXER_STYLE_PAINTROLLER: {
 		float	T = ctxt->vars.T;
@@ -345,6 +348,7 @@ static void mixer_render_fragment(til_module_context_t *context, til_stream_t *s
 		unsigned		iwhole = T * n_passes;
 		float			frac = T * n_passes - iwhole;
 
+		/* progressively transition from a->b via incremental striping */
 
 		if (T <= 0.001f || T  >= .999f)
 			break;
@@ -394,6 +398,65 @@ static void mixer_render_fragment(til_module_context_t *context, til_stream_t *s
 		}
 
 		/* progressively transition from a->b via incremental striping */
+		break;
+	}
+
+	case MIXER_STYLE_SINE: {
+		/* mixer_orientation_t	orientation = ((mixer_setup_t *)context->setup)->orientation; TODO: if vertical is implemented */
+		mixer_orientation_t	orientation = MIXER_ORIENTATION_HORIZONTAL;
+
+		til_fb_fragment_t	*snapshot_b;
+		float			T = ctxt->vars.T;
+
+		if (T <= 0.001f || T  >= .999f)
+			break;
+
+		assert(ctxt->snapshots[1]);
+
+		snapshot_b = ctxt->snapshots[1];
+
+		switch (orientation) {
+		case MIXER_ORIENTATION_HORIZONTAL: {
+			float	step = (/* TODO: make setting+tap */ 2.f * M_PI) / ((float)fragment->frame_height);
+			float	r = til_ticks_to_rads(ticks) /* * 1.f TODO: make setting+tap */  + ((float)fragment->y) * step;
+
+			for (unsigned y = 0; y < fragment->height; y++) {
+				int	xoff;
+				int	dir = ((y + fragment->y) % 2) ? -1 : 1;
+
+				/* first shift line horizontally by sign-interlaced sine wave */
+				xoff = (((cosf(r) * .5f) * (1.f - T))) * dir * (float)fragment->frame_width;
+
+				/* now push apart the opposing sines in proportion to T so snapshot_a can be 100% visible */
+				xoff += dir * ((1.f - T) * 1.5 * fragment->frame_width);
+
+				for (unsigned x = 0; x < fragment->width; x++) {
+					int	xcoord = xoff + fragment->x + x;
+
+					if (xcoord >= 0 && xcoord < (snapshot_b->x + snapshot_b->width)) {
+						uint32_t	pixel;
+
+						pixel = til_fb_fragment_get_pixel_unchecked(snapshot_b, xcoord, fragment->y + y);
+						til_fb_fragment_put_pixel_unchecked(fragment, 0, fragment->x + x, fragment->y + y, pixel);
+					}
+				}
+
+				r += step;
+			}
+			break;
+		}
+
+		case MIXER_ORIENTATION_VERTICAL: {
+			/* TODO, maybe??
+			 * Doing a vertical variant in the obvious manner will be really cache-unfriendly
+			 */
+			break;
+		}
+
+		default:
+			assert(0);
+		}
+
 		break;
 	}
 
@@ -487,6 +550,7 @@ static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setti
 					"flicker",
 					"interlace",
 					"paintroller",
+					"sine",
 					NULL
 				};
 	const char		*passes_values[] = {
