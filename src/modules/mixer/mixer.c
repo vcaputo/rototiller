@@ -103,6 +103,22 @@ static void mixer_update_taps(mixer_context_t *ctxt, til_stream_t *stream, unsig
 }
 
 
+/* this is put in a function for applying ctxt->til_module_context.setup->tee */
+static inline float mixer_get_T(mixer_context_t *ctxt)
+{
+	mixer_setup_t	*s = (mixer_setup_t *)ctxt->til_module_context.setup;
+
+	switch (s->tee) {
+	case MIXER_TEE_NORMAL:
+		return ctxt->vars.T;
+	case MIXER_TEE_INVERTED:
+		return 1.f - ctxt->vars.T;
+	default:
+		assert(0);
+	}
+}
+
+
 static til_module_context_t * mixer_create_context(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup)
 {
 	mixer_setup_t	*s = (mixer_setup_t *)setup;
@@ -176,7 +192,7 @@ static void mixer_prepare_frame(til_module_context_t *context, til_stream_t *str
 	case MIXER_STYLE_SINE:
 		/* fallthrough */
 	case MIXER_STYLE_PAINTROLLER: {
-		float	T = ctxt->vars.T;
+		float	T = mixer_get_T(ctxt);
 		/* INTERLACE and PAINTROLLER progressively overlay b_module output atop a_module,
 		 * so we can render b_module into the fragment first.  Only when (T < 1) do we
 		 * have to snapshot that then render a_module into the fragment, then the snapshot
@@ -197,7 +213,7 @@ static void mixer_prepare_frame(til_module_context_t *context, til_stream_t *str
 	}
 
 	case MIXER_STYLE_BLEND: {
-		float	T = ctxt->vars.T;
+		float	T = mixer_get_T(ctxt);
 
 		/* BLEND needs *both* contexts rendered and snapshotted for blending,
 		 * except when at the start/end points for T.  It's the most costly
@@ -275,7 +291,7 @@ static void mixer_render_fragment(til_module_context_t *context, til_stream_t *s
 		uint32_t		*dest = fragment->buf;
 		til_fb_fragment_t	*snapshot_a, *snapshot_b;
 		uint32_t		*a, *b;
-		float			T = ctxt->vars.T;
+		float			T = mixer_get_T(ctxt);
 		float			one_sub_T = 1.f - T;
 
 		if (T <= 0.001f || T  >= .999f)
@@ -335,7 +351,7 @@ static void mixer_render_fragment(til_module_context_t *context, til_stream_t *s
 
 	case MIXER_STYLE_INTERLACE: {
 		til_fb_fragment_t	*snapshot_b;
-		float			T = ctxt->vars.T;
+		float			T = mixer_get_T(ctxt);
 
 		if (T <= 0.001f || T  >= .999f)
 			break;
@@ -358,7 +374,7 @@ static void mixer_render_fragment(til_module_context_t *context, til_stream_t *s
 		unsigned		n_passes = ((mixer_setup_t *)context->setup)->n_passes;
 
 		til_fb_fragment_t	*snapshot_b;
-		float			T = ctxt->vars.T;
+		float			T = mixer_get_T(ctxt);
 		float			div = 1.f / (float)n_passes;
 		unsigned		iwhole = T * n_passes;
 		float			frac = T * n_passes - iwhole;
@@ -421,7 +437,7 @@ static void mixer_render_fragment(til_module_context_t *context, til_stream_t *s
 		mixer_orientation_t	orientation = MIXER_ORIENTATION_HORIZONTAL;
 
 		til_fb_fragment_t	*snapshot_b;
-		float			T = ctxt->vars.T;
+		float			T = mixer_get_T(ctxt);
 
 		if (T <= 0.001f || T  >= .999f)
 			break;
