@@ -35,6 +35,11 @@ typedef enum mixer_orientation_t {
 	MIXER_ORIENTATION_VERTICAL,
 } mixer_orientation_t;
 
+typedef enum mixer_bottom_t {
+	MIXER_BOTTOM_A,
+	MIXER_BOTTOM_B,
+} mixer_bottom_t;
+
 typedef struct mixer_input_t {
 	til_module_context_t	*module_ctxt;
 	/* XXX: it's expected that inputs will get more settable attributes to stick in here */
@@ -73,12 +78,14 @@ typedef struct mixer_setup_t {
 	mixer_style_t		style;
 	mixer_setup_input_t	inputs[2];
 	mixer_orientation_t	orientation;
+	mixer_bottom_t		bottom;
 	unsigned		n_passes;
 } mixer_setup_t;
 
 #define MIXER_DEFAULT_STYLE		MIXER_STYLE_BLEND
 #define MIXER_DEFAULT_PASSES		8
 #define MIXER_DEFAULT_ORIENTATION	MIXER_ORIENTATION_VERTICAL
+#define MIXER_DEFAULT_BOTTOM		MIXER_BOTTOM_A
 
 static void mixer_update_taps(mixer_context_t *ctxt, til_stream_t *stream, unsigned ticks)
 {
@@ -570,9 +577,15 @@ static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setti
 					"vertical",
 					NULL
 				};
+	const char		*bottom_values[] = {
+					"a",
+					"b",
+					NULL
+				};
 	til_setting_t		*style;
 	til_setting_t		*passes;
 	til_setting_t		*orientation;
+	til_setting_t		*bottom;
 	const til_settings_t	*inputs_settings[2];
 	til_setting_t		*inputs[2];
 	int			r;
@@ -583,13 +596,37 @@ static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setti
 							.key = "style",
 							.values = style_values,
 							.preferred = style_values[MIXER_DEFAULT_STYLE],
-							.annotations = NULL
 						},
 						&style,
 						res_setting,
 						res_desc);
 	if (r)
 		return r;
+
+	/* Though you can simply swap what you provide as a_module and b_module, it's
+	 * convenient to have a discrete setting available for specifying which one
+	 * goes on the bottom and which one goes on top as well.  Sometimes you're just
+	 * exploring mixer styles, and only for some is the "bottom" vs "top"
+	 * relevant, and the preference can be style-specific, so just give an
+	 * independent easy toggle.
+	 */
+	if (!strcasecmp(style->value, style_values[MIXER_STYLE_INTERLACE]) ||
+	    !strcasecmp(style->value, style_values[MIXER_STYLE_PAINTROLLER]) ||
+	    !strcasecmp(style->value, style_values[MIXER_STYLE_SINE])) {
+
+		r = til_settings_get_and_describe_setting(settings,
+							&(til_setting_spec_t){
+								.name = "Mixer bottom layer",
+								.key = "bottom",
+								.values = bottom_values,
+								.preferred = bottom_values[MIXER_DEFAULT_BOTTOM],
+							},
+							&bottom,
+							res_setting,
+							res_desc);
+		if (r)
+			return r;
+	}
 
 	if (!strcasecmp(style->value, style_values[MIXER_STYLE_PAINTROLLER])) {
 
@@ -599,7 +636,6 @@ static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setti
 								.key = "orientation",
 								.values = orientation_values,
 								.preferred = orientation_values[MIXER_DEFAULT_ORIENTATION],
-								.annotations = NULL
 							},
 							&orientation,
 							res_setting,
@@ -613,7 +649,6 @@ static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setti
 								.key = "passes",
 								.values = passes_values,
 								.preferred = TIL_SETTINGS_STR(MIXER_DEFAULT_PASSES),
-								.annotations = NULL
 							},
 							&passes,
 							res_setting,
@@ -664,14 +699,25 @@ static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setti
 		if (r < 0)
 			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, style, res_setting, -EINVAL);
 
-		if (setup->style == MIXER_STYLE_PAINTROLLER) {
-
+		switch (setup->style) { /* bake any style-specific settings */
+		case MIXER_STYLE_PAINTROLLER:
 			if (sscanf(passes->value, "%u", &setup->n_passes) != 1)
 				return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, passes, res_setting, -EINVAL);
 
 			r = til_value_to_pos(orientation_values, orientation->value, (unsigned *)&setup->orientation);
 			if (r < 0)
 				return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, orientation, res_setting, -EINVAL);
+		/* fallthrough */
+		case MIXER_STYLE_INTERLACE:
+		/* fallthrough */
+		case MIXER_STYLE_SINE:
+			r = til_value_to_pos(bottom_values, bottom->value, (unsigned *)&setup->bottom);
+			if (r < 0)
+				return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, bottom, res_setting, -EINVAL);
+			break;
+
+		default:
+			break;
 		}
 
 		for (i = 0; i < 2; i++) {
