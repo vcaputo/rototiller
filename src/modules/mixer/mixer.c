@@ -144,6 +144,7 @@ static inline float randf(unsigned *seed)
 static void mixer_prepare_frame(til_module_context_t *context, til_stream_t *stream, unsigned ticks, til_fb_fragment_t **fragment_ptr, til_frame_plan_t *res_frame_plan)
 {
 	mixer_context_t		*ctxt = (mixer_context_t *)context;
+	mixer_setup_t		*setup = (mixer_setup_t *)context->setup;
 	til_fb_fragment_t	*fragment = *fragment_ptr;
 	size_t			i = 0;
 
@@ -176,14 +177,14 @@ static void mixer_prepare_frame(til_module_context_t *context, til_stream_t *str
 		 */
 
 		if (T > .001f) {
-			til_module_render(ctxt->inputs[1].module_ctxt, stream, ticks, &fragment);
+			til_module_render(ctxt->inputs[setup->bottom == MIXER_BOTTOM_A ? 1 : 0].module_ctxt, stream, ticks, &fragment);
 
 			if (T < .999f)
 				ctxt->snapshots[1] = til_fb_fragment_snapshot(&fragment, 0);
 		}
 
 		if (T < .999f)
-			til_module_render(ctxt->inputs[0].module_ctxt, stream, ticks, &fragment);
+			til_module_render(ctxt->inputs[setup->bottom == MIXER_BOTTOM_A ? 0 : 1].module_ctxt, stream, ticks, &fragment);
 
 		break;
 	}
