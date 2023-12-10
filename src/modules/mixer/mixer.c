@@ -35,6 +35,11 @@ typedef enum mixer_orientation_t {
 	MIXER_ORIENTATION_VERTICAL,
 } mixer_orientation_t;
 
+typedef enum mixer_tee_t {
+	MIXER_TEE_NORMAL,
+	MIXER_TEE_INVERTED,
+} mixer_tee_t;
+
 typedef enum mixer_bottom_t {
 	MIXER_BOTTOM_A,
 	MIXER_BOTTOM_B,
@@ -78,6 +83,7 @@ typedef struct mixer_setup_t {
 	mixer_style_t		style;
 	mixer_setup_input_t	inputs[2];
 	mixer_orientation_t	orientation;
+	mixer_tee_t		tee;
 	mixer_bottom_t		bottom;
 	unsigned		n_passes;
 } mixer_setup_t;
@@ -86,6 +92,7 @@ typedef struct mixer_setup_t {
 #define MIXER_DEFAULT_PASSES		8
 #define MIXER_DEFAULT_ORIENTATION	MIXER_ORIENTATION_VERTICAL
 #define MIXER_DEFAULT_BOTTOM		MIXER_BOTTOM_A
+#define MIXER_DEFAULT_TEE		MIXER_TEE_NORMAL
 
 static void mixer_update_taps(mixer_context_t *ctxt, til_stream_t *stream, unsigned ticks)
 {
@@ -583,10 +590,16 @@ static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setti
 					"b",
 					NULL
 				};
+	const char		*tee_values[] = {
+					"normal",
+					"inverted",
+					NULL
+				};
 	til_setting_t		*style;
 	til_setting_t		*passes;
 	til_setting_t		*orientation;
 	til_setting_t		*bottom;
+	til_setting_t		*tee;
 	const til_settings_t	*inputs_settings[2];
 	til_setting_t		*inputs[2];
 	int			r;
@@ -599,6 +612,19 @@ static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setti
 							.preferred = style_values[MIXER_DEFAULT_STYLE],
 						},
 						&style,
+						res_setting,
+						res_desc);
+	if (r)
+		return r;
+
+	r = til_settings_get_and_describe_setting(settings,
+						&(til_setting_spec_t){
+							.name = "Mixer T direction",
+							.key = "t",
+							.values = tee_values,
+							.preferred = tee_values[MIXER_DEFAULT_TEE],
+						},
+						&tee,
 						res_setting,
 						res_desc);
 	if (r)
@@ -699,6 +725,10 @@ static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setti
 		r = til_value_to_pos(style_values, style->value, (unsigned *)&setup->style);
 		if (r < 0)
 			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, style, res_setting, -EINVAL);
+
+		r = til_value_to_pos(tee_values, tee->value, (unsigned *)&setup->tee);
+		if (r < 0)
+			return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, tee, res_setting, -EINVAL);
 
 		switch (setup->style) { /* bake any style-specific settings */
 		case MIXER_STYLE_PAINTROLLER:
