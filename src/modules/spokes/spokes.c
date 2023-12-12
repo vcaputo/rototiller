@@ -169,7 +169,7 @@ static void spokes_render_fragment(til_module_context_t *context, til_stream_t *
 	/* we're setup now to draw some shit */
 	til_fb_fragment_clear(fragment);
 
-	for(float i=0; i<=width+height-stride; i+=stride){ /* iterate over half the perimiter at a time... */
+	for(float i=0; floorf(i)<=((float)width+height)-stride; i+=stride){ /* iterate over half the perimiter at a time... */
 		float perimiter_x, perimiter_y;
 
 		if(i+fmodf(offset, stride) < width) {
