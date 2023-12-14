@@ -236,10 +236,8 @@ static void flow_render_fragment(til_module_context_t *context, til_stream_t *st
 			ff_data_t	d;
 
 			e->lifetime -= .1f;
-			if (e->lifetime <= 0.0f)
-				*e = rand_element(&ctxt->til_module_context.seed);
-
-			if (e->position_b.x < -1.f || e->position_b.x > 1.f ||
+			if (e->lifetime <= 0.0f ||
+			    e->position_b.x < -1.f || e->position_b.x > 1.f ||
 			    e->position_b.y < -1.f || e->position_b.y > 1.f ||
 			    e->position_b.z < 0.f || e->position_b.z > 1.f)
 				*e = rand_element(&ctxt->til_module_context.seed);
@@ -259,7 +257,7 @@ static void flow_render_fragment(til_module_context_t *context, til_stream_t *st
 			/* Compute the final position now for the next go-round.
 			 * The second pass can't just write it back willy-nilly while racing with others,
 			 * despite doing the same thing iteratively as it draws n_iters pixels.  Hence
-			 * this position_b becomes position_a situation above.
+			 * the position_b becomes position_a situation above.
 			 */
 			d.direction = v3f_mult_scalar(&d.direction, (float)ctxt->n_iters);
 			e->position_b = v3f_add(&pos, &d.direction);
