@@ -183,8 +183,8 @@ static void spokes_render_fragment(til_module_context_t *context, til_stream_t *
 		spokes_draw_segmented_line(fragment, s->iterations, theta, origin_x, origin_y, rintf(perimiter_x), rintf(perimiter_y), color, s->thickness);
 
 		/* Calculate and draw the mirror line... */
-		perimiter_x=abs(perimiter_x-width);
-		perimiter_y=abs(perimiter_y-height);
+		perimiter_x=fabsf(perimiter_x-width);
+		perimiter_y=fabsf(perimiter_y-height);
 		spokes_draw_segmented_line(fragment, s->iterations, theta, origin_x, origin_y, rintf(perimiter_x), rintf(perimiter_y), color, s->thickness);
 	}
 }
