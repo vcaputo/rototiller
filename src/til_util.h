@@ -21,11 +21,19 @@
 #define cstrlen(_str) \
 	(sizeof(_str) - 1)
 
+/* Though I don't bother including sys/param.h, some toolchains pull it in indirectly,
+ * or just define MIN/MAX elsewhere.  So I'm just doing the stupid thing here and accepting
+ * a preexisting MIN/MAX, assuming it's semantically identical.
+ */
+#ifndef MIN
 #define MIN(_a, _b) \
 	((_a) < (_b) ? (_a) : (_b))
+#endif
 
+#ifndef MAX
 #define MAX(_a, _b) \
 	((_a) > (_b) ? (_a) : (_b))
+#endif
 
 unsigned til_get_ncpus(void);
 
