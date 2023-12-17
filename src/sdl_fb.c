@@ -13,8 +13,8 @@
 
 typedef struct sdl_fb_setup_t {
 	til_video_setup_t	til_video_setup;
-	int			fullscreen:1;
-	int			vsync:1;
+	unsigned		fullscreen:1;
+	unsigned		vsync:1;
 	unsigned		width, height;
 } sdl_fb_setup_t;
 
