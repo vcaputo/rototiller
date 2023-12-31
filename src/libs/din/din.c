@@ -94,7 +94,7 @@ static inline float smootherstep(float x) {
 
 
 /* coordinate is in a unit cube of -1...+1 */
-float din(din_t *din, v3f_t *coordinate)
+float din(const din_t *din, v3f_t *coordinate)
 {
 	int	x0, y0, z0, x1, y1, z1;
 	float	i1, i2, ii1, ii2;
