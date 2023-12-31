@@ -105,6 +105,7 @@ static void swab_render_fragment(til_module_context_t *context, til_stream_t *st
 {
 	swab_context_t		*ctxt = (swab_context_t *)context;
 	til_fb_fragment_t	*fragment = *fragment_ptr;
+	unsigned		frag_w = fragment->width, frag_h = fragment->height;
 
 	float	cos_r = cos(ctxt->r);
 	float	sin_r = sin(ctxt->r);
@@ -112,12 +113,13 @@ static void swab_render_fragment(til_module_context_t *context, til_stream_t *st
 	float	z2 = sin_r;
 	float	xscale = 1.f / (float)fragment->frame_width;
 	float	yscale = 1.f / (float)fragment->frame_height;
+	float	yscaled;
 
-	for (int y = fragment->y; y < fragment->y + fragment->height; y++) {
-		float	yscaled = (float)y * yscale;
+	yscaled = (float)fragment->y * yscale;
+	for (unsigned y = 0; y < frag_h; y++, yscaled += yscale) {
+		float	xscaled = (float)fragment->x * xscale;
 
-		for (int x = fragment->x; x < fragment->x + fragment->width; x++) {
-			float		xscaled = (float)x * xscale;
+		for (unsigned x = 0; x < frag_w; x++, xscaled += xscale) {
 			color_t		color;
 			uint32_t	pixel;
 			float		t;
@@ -129,7 +131,7 @@ static void swab_render_fragment(til_module_context_t *context, til_stream_t *st
 			color.b = din(ctxt->din, &(v3f_t){ .x = xscaled * .81f, .y = yscaled * .81f, .z = z2 }) * t;
 
 			pixel = color_to_uint32(color);
-			til_fb_fragment_put_pixel_unchecked(fragment, 0, x, y, pixel);
+			til_fb_fragment_put_pixel_unchecked(fragment, 0, fragment->x + x, fragment->y + y, pixel);
 		}
 	}
 }
