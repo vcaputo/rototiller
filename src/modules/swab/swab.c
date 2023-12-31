@@ -114,21 +114,42 @@ static void swab_render_fragment(til_module_context_t *context, til_stream_t *st
 	float	xscale = 1.f / (float)fragment->frame_width;
 	float	yscale = 1.f / (float)fragment->frame_height;
 	float	yscaled;
+	v3f_t	t_coord = {
+			.z = -z2
+		};
+	v3f_t	r_coord = {
+			.z = z1
+		};
+	v3f_t	g_coord = {
+			.z = -z1
+		};
+	v3f_t	b_coord = {
+			.z = z2
+		};
 
 	yscaled = (float)fragment->y * yscale;
 	for (unsigned y = 0; y < frag_h; y++, yscaled += yscale) {
 		float	xscaled = (float)fragment->x * xscale;
+
+		t_coord.y = yscaled * .5f;
+		r_coord.y = yscaled * .7f;
+		g_coord.y = yscaled * .93f;
+		b_coord.y = yscaled * .81f;
 
 		for (unsigned x = 0; x < frag_w; x++, xscaled += xscale) {
 			color_t		color;
 			uint32_t	pixel;
 			float		t;
 
-			t = din(ctxt->din, &(v3f_t){ .x = xscaled * .5f, .y = yscaled * .5f, .z = -z2 }) * 33.f;
+			t_coord.x = xscaled * .5f;
+			r_coord.x = xscaled * .7f;
+			g_coord.x = xscaled * .93f;
+			b_coord.x = xscaled * .81f;
 
-			color.r = din(ctxt->din, &(v3f_t){ .x = xscaled * .7f, .y = yscaled * .7f, .z = z1 }) * t;
-			color.g = din(ctxt->din, &(v3f_t){ .x = xscaled * .93f, .y = yscaled * .93f, .z = -z1 }) * t;
-			color.b = din(ctxt->din, &(v3f_t){ .x = xscaled * .81f, .y = yscaled * .81f, .z = z2 }) * t;
+			t = din(ctxt->din, &t_coord) * 33.f;
+			color.r = din(ctxt->din, &r_coord) * t;
+			color.g = din(ctxt->din, &g_coord) * t;
+			color.b = din(ctxt->din, &b_coord) * t;
 
 			pixel = color_to_uint32(color);
 			til_fb_fragment_put_pixel_unchecked(fragment, 0, fragment->x + x, fragment->y + y, pixel);
