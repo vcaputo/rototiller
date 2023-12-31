@@ -113,9 +113,9 @@ float din(const din_t *din, v3f_t *coordinate)
 	coordinate->y = .5f + (coordinate->y * .5f + .5f) * (float)(din->height - 2);
 	coordinate->z = .5f + (coordinate->z * .5f + .5f) * (float)(din->depth - 2);
 
-	x0 = floorf(coordinate->x);
-	y0 = floorf(coordinate->y);
-	z0 = floorf(coordinate->z);
+	x0 = coordinate->x;
+	y0 = coordinate->y;
+	z0 = coordinate->z;
 
 	x1 = x0 + 1;
 	y1 = y0 + 1;
