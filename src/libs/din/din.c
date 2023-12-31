@@ -88,20 +88,7 @@ static inline float lerp(float a, float b, float t)
 }
 
 
-static inline float clamp(float x, float lowerlimit, float upperlimit) {
-	if (x < lowerlimit)
-		return lowerlimit;
-
-	if (x > upperlimit)
-		return upperlimit;
-
-	return x;
-}
-
-
-static inline float smootherstep(float edge0, float edge1, float x) {
-	x = clamp((x - edge0) / (edge1 - edge0), 0.f, 1.f);
-
+static inline float smootherstep(float x) {
 	return x * x * x * (x * (x * 6.f - 15.f) + 10.f);
 }
 
@@ -114,11 +101,13 @@ float din(din_t *din, v3f_t *coordinate)
 	float	tx, ty, tz;
 	float	n0, n1;
 
+#if 0
 	assert(din);
 	assert(coordinate);
 	assert(coordinate->x >= -1.f && coordinate->x <= 1.f);
 	assert(coordinate->y >= -1.f && coordinate->y <= 1.f);
 	assert(coordinate->z >= -1.f && coordinate->z <= 1.f);
+#endif
 
 	coordinate->x = .5f + (coordinate->x * .5f + .5f) * (float)(din->width - 2);
 	coordinate->y = .5f + (coordinate->y * .5f + .5f) * (float)(din->height - 2);
@@ -138,14 +127,14 @@ float din(din_t *din, v3f_t *coordinate)
 
 	n0 = dotgradient(din, x0, y0, z0, coordinate);
 	n1 = dotgradient(din, x1, y0, z0, coordinate);
-	tx = smootherstep(0.f, 1.f, tx);
+	tx = smootherstep(tx);
 	i1 = lerp(n0, n1, tx);
 
 	n0 = dotgradient(din, x0, y1, z0, coordinate);
 	n1 = dotgradient(din, x1, y1, z0, coordinate);
 	i2 = lerp(n0, n1, tx);
 
-	ty = smootherstep(0.f, 1.f, ty);
+	ty = smootherstep(ty);
 	ii1 = lerp(i1, i2, ty);
 
 	n0 = dotgradient(din, x0, y0, z1, coordinate);
@@ -158,7 +147,7 @@ float din(din_t *din, v3f_t *coordinate)
 
 	ii2 = lerp(i1, i2, ty);
 
-	tz = smootherstep(0.f, 1.f, tz);
+	tz = smootherstep(tz);
 
 	return lerp(ii1, ii2, tz) * 1.1547005383792515290182975610039f;
 }
