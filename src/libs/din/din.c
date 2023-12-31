@@ -94,12 +94,13 @@ static inline float smootherstep(float x) {
 
 
 /* coordinate is in a unit cube of -1...+1 */
-float din(const din_t *din, v3f_t *coordinate)
+float din(const din_t *din, const v3f_t *coordinate)
 {
 	int	x0, y0, z0, x1, y1, z1;
 	float	i1, i2, ii1, ii2;
 	float	tx, ty, tz;
 	float	n0, n1;
+	v3f_t	c;
 
 #if 0
 	assert(din);
@@ -109,40 +110,40 @@ float din(const din_t *din, v3f_t *coordinate)
 	assert(coordinate->z >= -1.f && coordinate->z <= 1.f);
 #endif
 
-	coordinate->x = .5f + (coordinate->x * .5f + .5f) * (float)(din->width - 2);
-	coordinate->y = .5f + (coordinate->y * .5f + .5f) * (float)(din->height - 2);
-	coordinate->z = .5f + (coordinate->z * .5f + .5f) * (float)(din->depth - 2);
+	c.x = .5f + (coordinate->x * .5f + .5f) * (float)(din->width - 2);
+	c.y = .5f + (coordinate->y * .5f + .5f) * (float)(din->height - 2);
+	c.z = .5f + (coordinate->z * .5f + .5f) * (float)(din->depth - 2);
 
-	x0 = coordinate->x;
-	y0 = coordinate->y;
-	z0 = coordinate->z;
+	x0 = c.x;
+	y0 = c.y;
+	z0 = c.z;
 
 	x1 = x0 + 1;
 	y1 = y0 + 1;
 	z1 = z0 + 1;
 
-	tx = coordinate->x - (float)x0;
-	ty = coordinate->y - (float)y0;
-	tz = coordinate->z - (float)z0;
+	tx = c.x - (float)x0;
+	ty = c.y - (float)y0;
+	tz = c.z - (float)z0;
 
-	n0 = dotgradient(din, x0, y0, z0, coordinate);
-	n1 = dotgradient(din, x1, y0, z0, coordinate);
+	n0 = dotgradient(din, x0, y0, z0, &c);
+	n1 = dotgradient(din, x1, y0, z0, &c);
 	tx = smootherstep(tx);
 	i1 = lerp(n0, n1, tx);
 
-	n0 = dotgradient(din, x0, y1, z0, coordinate);
-	n1 = dotgradient(din, x1, y1, z0, coordinate);
+	n0 = dotgradient(din, x0, y1, z0, &c);
+	n1 = dotgradient(din, x1, y1, z0, &c);
 	i2 = lerp(n0, n1, tx);
 
 	ty = smootherstep(ty);
 	ii1 = lerp(i1, i2, ty);
 
-	n0 = dotgradient(din, x0, y0, z1, coordinate);
-	n1 = dotgradient(din, x1, y0, z1, coordinate);
+	n0 = dotgradient(din, x0, y0, z1, &c);
+	n1 = dotgradient(din, x1, y0, z1, &c);
 	i1 = lerp(n0, n1, tx);
 
-	n0 = dotgradient(din, x0, y1, z1, coordinate);
-	n1 = dotgradient(din, x1, y1, z1, coordinate);
+	n0 = dotgradient(din, x0, y1, z1, &c);
+	n1 = dotgradient(din, x1, y1, z1, &c);
 	i2 = lerp(n0, n1, tx);
 
 	ii2 = lerp(i1, i2, ty);
