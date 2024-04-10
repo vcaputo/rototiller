@@ -146,7 +146,7 @@ int setup_interactively(til_settings_t *settings, int (*setup_func)(const til_se
 			if (feof(stdin))
 				return -EIO;
 
-			fgets(buf, sizeof(buf), stdin);
+			(void) fgets(buf, sizeof(buf), stdin);
 		}
 
 		if (*buf == '\n') {
