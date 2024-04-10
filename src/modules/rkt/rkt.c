@@ -282,7 +282,7 @@ static int rkt_pipe_update(void *context, til_stream_pipe_t *pipe, const void *o
 		rkt_pipe->var.i32 = RKT_CLAMP(round(val), INT32_MIN, INT32_MAX);
 		break;
 	case TIL_TAP_TYPE_I64:
-		rkt_pipe->var.i64 = RKT_CLAMP(round(val), INT64_MIN, INT64_MAX);
+		rkt_pipe->var.i64 = RKT_CLAMP((int64_t)round(val), INT64_MIN, INT64_MAX);
 		break;
 	case TIL_TAP_TYPE_U8:
 		rkt_pipe->var.u8 = RKT_CLAMP(round(val), 0, UINT8_MAX);
@@ -294,7 +294,7 @@ static int rkt_pipe_update(void *context, til_stream_pipe_t *pipe, const void *o
 		rkt_pipe->var.u32 = RKT_CLAMP(round(val), 0, UINT32_MAX);
 		break;
 	case TIL_TAP_TYPE_U64:
-		rkt_pipe->var.u64 = RKT_CLAMP(round(val), 0, UINT64_MAX);
+		rkt_pipe->var.u64 = RKT_CLAMP((uint64_t)round(val), 0, UINT64_MAX);
 		break;
 	case TIL_TAP_TYPE_FLOAT:
 		rkt_pipe->var.f = RKT_CLAMP(val, FLT_MIN, FLT_MAX);
