@@ -33,6 +33,7 @@ extern til_module_t	book_module;
 extern til_module_t	checkers_module;
 extern til_module_t	compose_module;
 extern til_module_t	drizzle_module;
+extern til_module_t	droste_module;
 extern til_module_t	flow_module;
 extern til_module_t	flui2d_module;
 extern til_module_t	julia_module;
@@ -77,6 +78,7 @@ static const til_module_t	*modules[] = {
 	&checkers_module,
 	&compose_module,
 	&drizzle_module,
+	&droste_module,
 	&flow_module,
 	&flui2d_module,
 	&julia_module,

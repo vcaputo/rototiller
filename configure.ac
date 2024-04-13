@@ -48,6 +48,7 @@ AC_CONFIG_FILES([
  src/modules/checkers/Makefile
  src/modules/compose/Makefile
  src/modules/drizzle/Makefile
+ src/modules/droste/Makefile
  src/modules/flow/Makefile
  src/modules/flui2d/Makefile
  src/modules/julia/Makefile

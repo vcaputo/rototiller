@@ -5,6 +5,7 @@ SUBDIRS =			\
 		checkers	\
 		compose		\
 		drizzle		\
+		droste		\
 		flow		\
 		flui2d		\
 		julia		\

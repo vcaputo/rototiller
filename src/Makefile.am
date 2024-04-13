@@ -41,6 +41,7 @@ libtil_la_LIBADD =						\
 			modules/checkers/libcheckers.la		\
 			modules/compose/libcompose.la		\
 			modules/drizzle/libdrizzle.la		\
+			modules/droste/libdroste.la		\
 			modules/flow/libflow.la			\
 			modules/flui2d/libflui2d.la		\
 			modules/julia/libjulia.la		\
