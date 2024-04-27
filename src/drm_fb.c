@@ -125,7 +125,7 @@ static int get_connectors(const char *dev, char ***res_connectors)
 		}
 
 		counts[con->connector_type]++;
-		asprintf(&connectors[i], "%s-%i", connector_type_name(con->connector_type), counts[con->connector_type]); /* TODO: errors */
+		assert(asprintf(&connectors[i], "%s-%i", connector_type_name(con->connector_type), counts[con->connector_type]) >= 0); /* TODO: errors */
 
 		drmModeFreeConnector(con);
 	}
@@ -200,7 +200,7 @@ static int lookup_connector(int fd, const char *connector, drmModeConnector **re
 		}
 
 		counts[con->connector_type]++;
-		asprintf(&str, "%s-%i", connector_type_name(con->connector_type), counts[con->connector_type]); /* TODO: errors */
+		assert(asprintf(&str, "%s-%i", connector_type_name(con->connector_type), counts[con->connector_type]) >= 0); /* TODO: errors */
 
 		if (!strcasecmp(str, connector)) {
 			free(str);
@@ -250,7 +250,7 @@ static int get_modes(const char *dev, const char *connector, const char ***res_m
 	}
 
 	for (int i = 0; i < con->count_modes; i++)
-		asprintf(&modes[i], "%s@%"PRIu32, con->modes[i].name, con->modes[i].vrefresh);
+		assert(asprintf(&modes[i], "%s@%"PRIu32, con->modes[i].name, con->modes[i].vrefresh) >= 0); /* TODO: errors */
 
 	*res_modes = (const char **)modes;
 
@@ -316,7 +316,7 @@ static drmModeModeInfo * lookup_mode(drmModeConnector *connector, const char *mo
 	for (i = 0; i < connector->count_modes; i++) {
 		char	*str;
 
-		asprintf(&str, "%s@%"PRIu32, connector->modes[i].name, connector->modes[i].vrefresh);
+		assert(asprintf(&str, "%s@%"PRIu32, connector->modes[i].name, connector->modes[i].vrefresh) >= 0); /* TODO: errors */
 		if (!strcasecmp(str, mode)) {
 			free(str);
 
