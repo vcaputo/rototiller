@@ -15,8 +15,6 @@
 #include "til_limits.h"
 #include "til_util.h"
 
-#define TIL_SYSFS_CPU	"/sys/devices/system/cpu/cpu"
-
 unsigned til_get_ncpus(void)
 {
 #ifdef __WIN32__
