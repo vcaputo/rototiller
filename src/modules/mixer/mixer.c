@@ -28,6 +28,7 @@ typedef enum mixer_style_t {
 	MIXER_STYLE_INTERLACE,
 	MIXER_STYLE_PAINTROLLER,
 	MIXER_STYLE_SINE,
+	MIXER_STYLE_DISSOLVE,
 } mixer_style_t;
 
 typedef enum mixer_orientation_t {
@@ -44,6 +45,11 @@ typedef enum mixer_bottom_t {
 	MIXER_BOTTOM_A,
 	MIXER_BOTTOM_B,
 } mixer_bottom_t;
+
+typedef enum mixer_stability_t {
+	MIXER_STABILITY_UNSTABLE,
+	MIXER_STABILITY_STABLE,
+} mixer_stability_t;
 
 typedef struct mixer_input_t {
 	til_module_context_t	*module_ctxt;
@@ -85,6 +91,7 @@ typedef struct mixer_setup_t {
 	mixer_orientation_t	orientation;
 	mixer_tee_t		tee;
 	mixer_bottom_t		bottom;
+	mixer_stability_t	stability;
 	unsigned		n_passes;
 } mixer_setup_t;
 
@@ -93,6 +100,7 @@ typedef struct mixer_setup_t {
 #define MIXER_DEFAULT_ORIENTATION	MIXER_ORIENTATION_VERTICAL
 #define MIXER_DEFAULT_BOTTOM		MIXER_BOTTOM_A
 #define MIXER_DEFAULT_TEE		MIXER_TEE_NORMAL
+#define MIXER_DEFAULT_STABILITY		MIXER_STABILITY_STABLE
 
 static void mixer_update_taps(mixer_context_t *ctxt, til_stream_t *stream, unsigned ticks)
 {
@@ -186,6 +194,8 @@ static void mixer_prepare_frame(til_module_context_t *context, til_stream_t *str
 		break;
 
 	case MIXER_STYLE_INTERLACE:
+		/* fallthrough */
+	case MIXER_STYLE_DISSOLVE:
 		for (int i = 0; i < context->n_cpus; i++)
 			ctxt->seeds[i].state = rand_r(&context->seed);
 		/* fallthrough */
@@ -491,6 +501,50 @@ static void mixer_render_fragment(til_module_context_t *context, til_stream_t *s
 		break;
 	}
 
+	/* dissolve is like a static/noise transition, except stable for a given context */
+	case MIXER_STYLE_DISSOLVE: {
+		til_fb_fragment_t	*snapshot_b;
+		float			T = mixer_get_T(ctxt);
+
+		if (T <= 0.001f || T  >= .999f)
+			break;
+
+		assert(ctxt->snapshots[1]);
+
+		/* to make the dissolve "stable" we deterministically set the random seed for
+		 * a given fragment.
+		 */
+		switch (((mixer_setup_t *)context->setup)->stability) {
+		case MIXER_STABILITY_UNSTABLE:
+			ctxt->seeds[cpu].state = rand_r(&(unsigned){context->seed + fragment->number});
+			break;
+		case MIXER_STABILITY_STABLE:
+			ctxt->seeds[cpu].state = rand_r(&(unsigned){fragment->number});
+			break;
+		default:
+			assert(0);
+		}
+
+		snapshot_b = ctxt->snapshots[1];
+
+		for (unsigned y = 0; y < fragment->height; y++) {
+			int	ycoord = fragment->y + y;
+
+			for (unsigned x = 0; x < fragment->width; x++) {
+				int		xcoord = fragment->x + x;
+				uint32_t	pixel;
+
+				if (randf(&ctxt->seeds[cpu].state) >= T)
+					continue;
+
+				pixel = til_fb_fragment_get_pixel_unchecked(snapshot_b, xcoord, ycoord);
+				til_fb_fragment_put_pixel_unchecked(fragment, 0, xcoord, ycoord, pixel);
+			}
+		}
+		break;
+	}
+
+
 	default:
 		assert(0);
 	}
@@ -582,6 +636,7 @@ static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setti
 					"interlace",
 					"paintroller",
 					"sine",
+					"dissolve",
 					NULL
 				};
 	const char		*passes_values[] = {
@@ -611,11 +666,17 @@ static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setti
 					"inverted",
 					NULL
 				};
+	const char		*stability_values[] = {
+					"unstable",
+					"stable",
+					NULL
+				};
 	til_setting_t		*style;
 	til_setting_t		*passes;
 	til_setting_t		*orientation;
 	til_setting_t		*bottom;
 	til_setting_t		*tee;
+	til_setting_t		*stability;
 	const til_settings_t	*inputs_settings[2];
 	til_setting_t		*inputs[2];
 	int			r;
@@ -655,7 +716,8 @@ static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setti
 	 */
 	if (!strcasecmp(style->value, style_values[MIXER_STYLE_INTERLACE]) ||
 	    !strcasecmp(style->value, style_values[MIXER_STYLE_PAINTROLLER]) ||
-	    !strcasecmp(style->value, style_values[MIXER_STYLE_SINE])) {
+	    !strcasecmp(style->value, style_values[MIXER_STYLE_SINE]) ||
+	    !strcasecmp(style->value, style_values[MIXER_STYLE_DISSOLVE])) {
 
 		r = til_settings_get_and_describe_setting(settings,
 							&(til_setting_spec_t){
@@ -694,6 +756,20 @@ static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setti
 								.preferred = TIL_SETTINGS_STR(MIXER_DEFAULT_PASSES),
 							},
 							&passes,
+							res_setting,
+							res_desc);
+		if (r)
+			return r;
+
+	} else if (!strcasecmp(style->value, style_values[MIXER_STYLE_DISSOLVE])) {
+		r = til_settings_get_and_describe_setting(settings,
+							&(til_setting_spec_t){
+								.name = "Dissolve stability",
+								.key = "stability",
+								.values = stability_values,
+								.preferred = stability_values[MIXER_DEFAULT_STABILITY],
+							},
+							&stability,
 							res_setting,
 							res_desc);
 		if (r)
@@ -758,9 +834,18 @@ static int mixer_setup(const til_settings_t *settings, til_setting_t **res_setti
 		case MIXER_STYLE_INTERLACE:
 		/* fallthrough */
 		case MIXER_STYLE_SINE:
+		/* fallthrough */
+		case MIXER_STYLE_DISSOLVE:
 			r = til_value_to_pos(bottom_values, bottom->value, (unsigned *)&setup->bottom);
 			if (r < 0)
 				return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, bottom, res_setting, -EINVAL);
+
+			if (setup->style == MIXER_STYLE_DISSOLVE) {
+				/* TODO: stability should likely apply to interlace too */
+				r = til_value_to_pos(stability_values, stability->value, (unsigned *)&setup->stability);
+				if (r < 0)
+					return til_setup_free_with_failed_setting_ret_err(&setup->til_setup, stability, res_setting, -EINVAL);
+			}
 			break;
 
 		default:
