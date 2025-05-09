@@ -451,7 +451,10 @@ static int print_setup_as_args(setup_t *setup, int wait)
 		if (r < 0)
 			goto _out_video;
 
-		(void) fgets(buf, sizeof(buf), stdin);
+		if (fgets(buf, sizeof(buf), stdin) == NULL) {
+			r = -EBADF;
+			goto _out_video;
+		}
 	}
 
 _out_video:
