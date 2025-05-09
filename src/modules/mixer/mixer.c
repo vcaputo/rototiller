@@ -544,7 +544,6 @@ static void mixer_render_fragment(til_module_context_t *context, til_stream_t *s
 		break;
 	}
 
-
 	default:
 		assert(0);
 	}
