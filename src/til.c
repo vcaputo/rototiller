@@ -327,7 +327,7 @@ void til_module_render(til_module_context_t *context, til_stream_t *stream, unsi
 }
 
 
-/* Identical to til_module_render() except with a parameterized upper bound for context->c_cpus,
+/* Identical to til_module_render() except with a parameterized upper bound for context->n_cpus,
  * this is primarily intended for modules performing nested rendering
  */
 void til_module_render_limited(til_module_context_t *context, til_stream_t *stream, unsigned ticks, unsigned max_cpus, til_fb_fragment_t **fragment_ptr)
@@ -336,13 +336,13 @@ void til_module_render_limited(til_module_context_t *context, til_stream_t *stre
 }
 
 
-/* if n_cpus == 0, it will be automatically set to n_threads.
- * to explicitly set n_cpus, just pass the value.  This is primarily intended for
+/* If n_cpus == 0, it will be automatically set to n_threads.
+ * To explicitly set n_cpus, just pass the value.  This is primarily intended for
  * the purpose of explicitly constraining rendering parallelization to less than n_threads,
  * if n_cpus is specified > n_threads it won't increase n_threads...
  *
- * if stream is non-NULL, the created contexts will be registered on-stream w/handle @setup->path.
- * any existing contexts @setup->path, will be replaced by the new one.
+ * If stream is non-NULL, the created contexts will be registered on-stream w/handle @setup->path.
+ * Any existing contexts @setup->path, will be replaced by the new one.
  */
 int til_module_create_contexts(const til_module_t *module, til_stream_t *stream, unsigned seed, unsigned ticks, unsigned n_cpus, til_setup_t *setup, size_t n_contexts, til_module_context_t **res_contexts)
 {
@@ -485,7 +485,7 @@ int til_module_setup(const til_settings_t *settings, til_setting_t **res_setting
 
 
 /* originally taken from rtv, this randomizes a module's setup @res_setup, args @res_arg
- * returns 0 on on setup successful with results stored @res_*, -errno on error.
+ * returns 0 on setup successful with results stored @res_*, -errno on error.
  */
 int til_module_settings_randomize(const til_module_t *module, til_settings_t *settings, unsigned seed, til_setup_t **res_setup, char **res_arg)
 {
@@ -613,7 +613,7 @@ int til_module_settings_randomize(const til_module_t *module, til_settings_t *se
 }
 
 
-/* This turns the incoming module+setings into a "baked" til_setup_t,
+/* This turns the incoming module+settings into a "baked" til_setup_t,
  * if module->setup() isn't provided, a minimal til_setup_t is still produced.
  */
 int til_module_settings_finalize(const til_module_t *module, const til_settings_t *module_settings, til_setup_t **res_setup)
