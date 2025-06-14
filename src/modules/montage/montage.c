@@ -287,9 +287,9 @@ static int montage_setup(const til_settings_t *settings, til_setting_t **res_set
 	}
 
 	if (res_setup) {
-		size_t			n_tiles = til_settings_get_count(tiles_settings);
-		til_setting_t		*tile_setting;
-		montage_setup_t		*setup;
+		size_t		n_tiles = til_settings_get_count(tiles_settings);
+		til_setting_t	*tile_setting;
+		montage_setup_t	*setup;
 
 		setup = til_setup_new(settings, sizeof(*setup) + n_tiles * sizeof(*setup->tiles), montage_setup_free, &montage_module);
 		if (!setup)
