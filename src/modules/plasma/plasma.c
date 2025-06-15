@@ -80,7 +80,10 @@ static void plasma_prepare_frame(til_module_context_t *context, til_stream_t *st
 	plasma_context_t	*ctxt = (plasma_context_t *)context;
 
 	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu_x16 };
-	ctxt->rr += 3;
+
+	/* FIXME: see comment in julia.c about this recurring kludge */
+	if (ticks != context->last_ticks)
+		ctxt->rr += 3;
 }
 
 
