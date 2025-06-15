@@ -112,6 +112,10 @@ static int droste_fragmenter(til_module_context_t *context, const til_fb_fragmen
 	assert(fragment);
 	assert(res_fragment);
 
+	/* This should be using half of the frame_{width,height}, but must be clipped
+	 * to the fragment dimensions.  As-is this is quite broken in scenarios like droste in a checkers filler
+	 * when the perimeter checkers get clipped. FIXME FIXME FIXME
+	 */
 	inset.width = fragment->width >> 1;
 	inset.height = fragment->height >> 1;
 	inset.frame_width = inset.width;
