@@ -153,7 +153,9 @@ static void ray_prepare_frame(til_module_context_t *context, til_stream_t *strea
 #if 1
 	/* animated point light source */
 
-	ctxt->r += -.02;
+	/* FIXME: see comment in julia.c about this recurring kludge */
+	if (ticks != context->last_ticks)
+		ctxt->r += -.02;
 
 	scene.lights[0].light.emitter.point.center.x = cosf(ctxt->r) * 4.5f;
 	scene.lights[0].light.emitter.point.center.z = sinf(ctxt->r * 3.0f) * 4.5f;
