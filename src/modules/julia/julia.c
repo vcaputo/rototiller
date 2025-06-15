@@ -112,23 +112,34 @@ static void julia_prepare_frame(til_module_context_t *context, til_stream_t *str
 
 	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_slice_per_cpu_x16 };
 
-	ctxt->rr += .01;
-			/* Rather than just sweeping creal,cimag from -2.0-+2.0, I try to keep things confined
-			 * to an interesting (visually) range.  TODO: could certainly use refinement.
-			 */
-	ctxt->realscale = 0.01f * cosf(ctxt->rr) + 0.01f;
-	ctxt->imagscale = 0.01f * sinf(ctxt->rr * 3.0f) + 0.01f;
-	ctxt->creal = (1.01f + (ctxt->realscale * cosf(1.5f * M_PI + ctxt->rr) + ctxt->realscale)) * cosf(ctxt->rr * .3f);
-	ctxt->cimag = (1.01f + (ctxt->imagscale * sinf(ctxt->rr * 3.0f) + ctxt->imagscale)) * sinf(ctxt->rr);
+	if (ticks != context->last_ticks) {
+		/* TODO: this cumulative state in the context is problematic.
+		 * It'd be better to absolutely derive this from ticks every prepare, so we could do things like
+		 * rewind and jump around by changing ticks.  As-s, this is assuming rr advances a constant rate
+		 * in a uniform direction.
+		 * To behave better in multi-render situations like as a checkers fill_module, this was all made
+		 * conditional on ticks differing from context->last_ticks, so it would at least suppress accumulating
+		 * more movement when rendered more times in a given frame... but it should just all be reworked.
+		 * roto has the same problem, these asssumptions are from a simpler time.
+		 */
+		ctxt->rr += .01;
+				/* Rather than just sweeping creal,cimag from -2.0-+2.0, I try to keep things confined
+				 * to an interesting (visually) range.  TODO: could certainly use refinement.
+				 */
+		ctxt->realscale = 0.01f * cosf(ctxt->rr) + 0.01f;
+		ctxt->imagscale = 0.01f * sinf(ctxt->rr * 3.0f) + 0.01f;
+		ctxt->creal = (1.01f + (ctxt->realscale * cosf(1.5f * M_PI + ctxt->rr) + ctxt->realscale)) * cosf(ctxt->rr * .3f);
+		ctxt->cimag = (1.01f + (ctxt->imagscale * sinf(ctxt->rr * 3.0f) + ctxt->imagscale)) * sinf(ctxt->rr);
 
-	/* Vary the divergent threshold, this has been tuned to dwell around 1 a bit since it's
-	 * quite different looking, then shoot up to a very huge value approaching FLT_MAX which
-	 * is also interesting.
-	 */
-	ctxt->threshold = cosf(M_PI + ctxt->rr * .1f) * .5f + .5f;
-	ctxt->threshold *= ctxt->threshold * ctxt->threshold;
-	ctxt->threshold *= 35.f;
-	ctxt->threshold = powf(10.f, ctxt->threshold);
+		/* Vary the divergent threshold, this has been tuned to dwell around 1 a bit since it's
+		 * quite different looking, then shoot up to a very huge value approaching FLT_MAX which
+		 * is also interesting.
+		 */
+		ctxt->threshold = cosf(M_PI + ctxt->rr * .1f) * .5f + .5f;
+		ctxt->threshold *= ctxt->threshold * ctxt->threshold;
+		ctxt->threshold *= 35.f;
+		ctxt->threshold = powf(10.f, ctxt->threshold);
+	}
 }
 
 
