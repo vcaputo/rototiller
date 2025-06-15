@@ -123,12 +123,11 @@ static ray_scene_t	scene = {
 	.gamma = .55f,
 };
 
-static float	r;
-
 
 typedef struct ray_context_t {
 	til_module_context_t	til_module_context;
 	ray_render_t		*render;
+	float			r;
 } ray_context_t;
 
 
@@ -154,24 +153,24 @@ static void ray_prepare_frame(til_module_context_t *context, til_stream_t *strea
 #if 1
 	/* animated point light source */
 
-	r += -.02;
+	ctxt->r += -.02;
 
-	scene.lights[0].light.emitter.point.center.x = cosf(r) * 4.5f;
-	scene.lights[0].light.emitter.point.center.z = sinf(r * 3.0f) * 4.5f;
+	scene.lights[0].light.emitter.point.center.x = cosf(ctxt->r) * 4.5f;
+	scene.lights[0].light.emitter.point.center.z = sinf(ctxt->r * 3.0f) * 4.5f;
 
 	/* move the camera in a circle */
-	camera.position.x = sinf(r) * (cosf(r) * 2.0f + 5.0f);
-	camera.position.z = cosf(r) * (cosf(r) * 2.0f + 5.0f);
+	camera.position.x = sinf(ctxt->r) * (cosf(ctxt->r) * 2.0f + 5.0f);
+	camera.position.z = cosf(ctxt->r) * (cosf(ctxt->r) * 2.0f + 5.0f);
 
 	/* also move up and down */
-	camera.position.y = cosf(r * 1.3f) * 4.0f + 2.08f;
+	camera.position.y = cosf(ctxt->r * 1.3f) * 4.0f + 2.08f;
 
 	/* keep camera facing the origin */
-	camera.orientation.yaw = r + RAY_EULER_DEGREES(180.0f);
+	camera.orientation.yaw = ctxt->r + RAY_EULER_DEGREES(180.0f);
 
 
 	/* tilt camera pitch in time with up and down movements, phase shifted appreciably */
-	camera.orientation.pitch = -(sinf((M_PI * 1.5f) + r * 1.3f) * .6f + -.35f);
+	camera.orientation.pitch = -(sinf((M_PI * 1.5f) + ctxt->r * 1.3f) * .6f + -.35f);
 #endif
 	ctxt->render = ray_render_new(&scene, &camera, fragment->frame_width, fragment->frame_height);
 }
