@@ -339,12 +339,19 @@ static int drm_fb_init(const char *title, const til_video_setup_t *setup, void *
 	int		r;
 
 	assert(setup);
-
+#if 0
+	/* This has proven to produce false negatives - on my X230 now I for some reason
+	 * only have /dev/dri/card1, no card0, and this is causing libdrm to fail here.
+	 * But if I disable this check, and specify /dev/dri/card1 instead of card0, I'm
+	 * able to use rototiller on drm.  I don't have time to investigate why libdrm
+	 * is broken in this check, so I'm just disabling this check.
+	 * FIXME
+	 */
 	if (!drmAvailable()) {
 		r = -errno;
 		goto _err;
 	}
-
+#endif
 	if (!s->dev || !s->connector || !s->mode) {
 		r = -EINVAL;
 		goto _err;
@@ -592,10 +599,11 @@ static int drm_fb_setup(const til_settings_t *settings, til_setting_t **res_sett
 							.func = mode_desc_generator
 						},
 					};
-
+#if 0
+	/* FIXME: see comment above by other drmAvailable() call. */
 	if (!drmAvailable())
 		return -ENOSYS;
-
+#endif
 	if (!setup)
 		return -ENOMEM;
 
