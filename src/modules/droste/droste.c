@@ -206,12 +206,6 @@ static void droste_prepare_frame(til_module_context_t *context, til_stream_t *st
 
 			return;
 		}
-
-		/* TODO: if we're not used as an overlay, here'd be a good place to generate something or
-		 * just use another module as a base layer...  until we do something sensible here, we should
-		 * keep this as an experimental module so it doesn't get used by automation as a base layer..
-		 * it also needs something to show in montage.
-		 */
 	}
 }
 
