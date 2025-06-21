@@ -202,9 +202,7 @@ static void droste_prepare_frame(til_module_context_t *context, til_stream_t *st
 			/* discard the snapshot which will prevent doing anything this frame,
 			 * since it doesn't match the incoming fragment (like a resize situation)
 			 */
-			ctxt->snapshot = til_fb_fragment_reclaim(ctxt->snapshot);
-
-			return;
+			ctxt->snapshot = til_fb_fragment_reclaim(snapshot);
 		}
 	}
 }
