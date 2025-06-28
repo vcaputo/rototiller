@@ -51,47 +51,54 @@ Quickly jump sections of this text by searching forward/reverse for ---
     tool `rototiller` without any flags.  This enters an interactive setup
     mode, beginning with selecting the module to use from a list.
 
-    Here's what's output as of writing this document:
+    Here's what's output as of last updating this document:
 
        ```
         $ build/src/rototiller
 
         /module:
          Renderer module:
-          0:    blinds: Retro 80s-inspired window blinds (threaded)
-          1:  checkers: Checker-patterned overlay (threaded)
-          2:   compose: Layered modules compositor
-          3:   drizzle: Classic 2D rain effect (threaded (poorly))
-          4:      flow: 3D flow field (threaded)
-          5:    flui2d: Fluid dynamics simulation in 2D (threaded (poorly))
-          6:     julia: Julia set fractal morpher (threaded)
-          7:    meta2d: Classic 2D metaballs (threaded)
-          8:     mixer: Module blender (threaded)
-          9:     moire: 2D Moire interference patterns (threaded)
-         10:   montage: Rototiller montage (threaded)
-         11: pixbounce: Pixmap bounce (threaded)
-         12:    plasma: Oldskool plasma effect (threaded)
-         13:     plato: Platonic solids rendered in 3D
-         14:       ray: Ray tracer (threaded)
-         15:       rkt: GNU Rocket module sequencer
-         16:      roto: Anti-aliased tiled texture rotation (threaded)
-         17:       rtv: Rototiller TV
-         18:    shapes: Procedural 2D shapes (threaded)
-         19:      snow: TV snow / white noise (threaded)
-         20:  sparkler: Particle system with spatial interactions (threaded (poorly))
-         21:     spiro: Spirograph emulator
-         22:     stars: Basic starfield
-         23:    strobe: Strobe light (threaded)
-         24:    submit: Cellular automata conquest game sim (threaded (poorly))
-         25:      swab: Colorful perlin-noise visualization (threaded)
-         26:     swarm: "Boids"-inspired particle swarm in 3D
-         27:   voronoi: Voronoi diagram (threaded)
-         28:     blank: Blanker (built-in)
-         29:      none: Disabled (built-in)
-         30:      noop: Nothing-doer (built-in)
-         31:       ref: Context referencer (built-in)
-         Enter a value 0-31 [17 (rtv)]: 
-        ```
+          0:      book: Flipbook module
+          1:    blinds: Retro 80s-inspired window blinds (threaded)
+          2:  checkers: Checker-patterned overlay (threaded)
+          3:   compose: Layered modules compositor
+          4:   drizzle: Classic 2D rain effect (threaded (poorly))
+          5:    droste: Droste effect (threaded)
+          6:      flow: 3D flow field (threaded)
+          7:    flui2d: Fluid dynamics simulation in 2D (threaded (poorly))
+          8:     julia: Julia set fractal morpher (threaded)
+          9:    meta2d: Classic 2D metaballs (threaded)
+         10:     mixer: Module blender (threaded)
+         11:     moire: 2D Moire interference patterns (threaded)
+         12:   montage: Rototiller montage (threaded)
+         13:       pan: Simple panning effect (threaded)
+         14: pixbounce: Pixmap bounce (threaded)
+         15:    plasma: Oldskool plasma effect (threaded)
+         16:     plato: Platonic solids rendered in 3D
+         17:    playit: .IT tracked music file player
+         18:       ray: Ray tracer (threaded)
+         19:       rkt: GNU Rocket module sequencer
+         20:      roto: Anti-aliased tiled texture rotation (threaded)
+         21:       rtv: Rototiller TV
+         22:    shapes: Procedural 2D shapes (threaded)
+         23:      snow: TV snow / white noise (threaded)
+         24:  sparkler: Particle system with spatial interactions (threaded (poorly))
+         25:     spiro: Spirograph emulator
+         26:    spokes: Twisted spokes
+         27:     stars: Basic starfield
+         28:    strobe: Strobe light (threaded)
+         29:    submit: Cellular automata conquest game sim (threaded (poorly))
+         30:      swab: Colorful perlin-noise visualization (threaded)
+         31:     swarm: "Boids"-inspired particle swarm in 3D
+         32:   voronoi: Voronoi diagram (threaded)
+         33:       asc: ASCII text (built-in)
+         34:     blank: Blanker (built-in)
+         35:      none: Disabled (built-in)
+         36:      noop: Nothing-doer (built-in)
+         37:       pre: Pre-render hook registration (built-in)
+         38:       ref: Context referencer (built-in)
+         Enter a value 0-38 [21 (rtv)]:
+       ```
 
       Most modules are simple rendering modules, implementing a single
     real-time graphics algorithm.
