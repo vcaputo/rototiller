@@ -295,6 +295,9 @@ static void submit_prepare_frame(til_module_context_t *context, til_stream_t *st
 
 	*res_frame_plan = (til_frame_plan_t){ .fragmenter = til_fragmenter_tile64 };
 
+	if (ticks == context->last_ticks)
+		return;
+
 	if (ctxt->game_winner)
 		setup_grid(ctxt);
 
