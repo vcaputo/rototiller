@@ -148,7 +148,7 @@ static til_module_context_t * checkers_create_context(const til_module_t *module
 		 * adding a size member to til_module_context_t, which is straightforward to add.
 		 */
 
-		 ctxt->waste_fb = (til_fb_fragment_t){
+		ctxt->waste_fb = (til_fb_fragment_t){
 					.buf = malloc(waste_fb_size * waste_fb_size * sizeof(uint32_t)),
 					.frame_width = waste_fb_size,
 					.frame_height = waste_fb_size,
@@ -476,6 +476,13 @@ static int checkers_finish_frame(til_module_context_t *context, til_stream_t *st
 			 * modules wanting to do the same thing with concurrent clones so it's worth sorting
 			 * out all the details.
 			 */
+
+			/* It's important that the waste_fb's cleared state match the actual fragment_ptr's,
+			 * since some modules do drastically different things when overlayed vs. not - which
+			 * they detect via the cleared flag.
+			 */
+			ctxt->waste_fb.cleared = (*fragment_ptr)->cleared;
+
 			til_module_render(ctxt->fill_module_contexts[i], stream, ticks, &waste_fb_ptr);
 #if 0
 			/* This is probably an interesting thing to measure.  On a busy system, it's not surprising
