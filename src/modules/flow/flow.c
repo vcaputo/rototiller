@@ -295,6 +295,8 @@ static void flow_render_fragment(til_module_context_t *context, til_stream_t *st
 
 			/* for cases obviously outside the fragment, don't draw anything */
 
+			/* FIXME: these early-outs don't consider the ctxt->n_iters interpolated coordinates */
+
 			/* totally outside (above) */
 			if (y1 < fy1 && y2 < fy1)
 				continue;
@@ -331,7 +333,8 @@ static void flow_render_fragment(til_module_context_t *context, til_stream_t *st
 					x1 = pos.x / (pos.z + ZCONST) * ffw + (ffw >> 1);
 					y1 = pos.y / (pos.z + ZCONST) * ffh + (ffh >> 1);
 
-					(void) til_fb_fragment_put_pixel_unchecked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x1, y1, pixel);
+					/* XXX: now that [xy]1 are changed, unchecked can't be used, it could be done more cleverly */
+					(void) til_fb_fragment_put_pixel_checked(fragment, TIL_FB_DRAW_FLAG_TEXTURABLE, x1, y1, pixel);
 				}
 
 				continue;
