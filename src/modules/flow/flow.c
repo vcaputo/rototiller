@@ -35,6 +35,17 @@ typedef struct flow_element_t {
 	v3f_t	position_a, position_b;
 	v3f_t	velocity;	/* per-iter step + direction applicable directly to position_a */
 	v3f_t	color;
+
+	/* In the first pass we visit each element just once for the simulation, while there
+	 * the particles are projected into the 2d fragment space with those coordinates cached
+	 * in the element.  Then the second pass accesses these to determine if the particle is
+	 * in the fragment being drawn.  As-is the second pass visits all elements since they're
+	 * not (yet) kept organized spatially.
+	 */
+	struct {
+		unsigned	x1, y1;
+		unsigned	x2, y2;
+	} fragspace;
 } flow_element_t;
 
 typedef struct flow_context_t {
@@ -219,6 +230,8 @@ static void flow_render_fragment(til_module_context_t *context, til_stream_t *st
 		flow_element_t	*e = &ctxt->elements[fragment->number * ctxt->n_elements_per_cpu];
 		unsigned	n = ctxt->n_elements_per_cpu;
 		float		w = ctxt->w * .5f + .5f;
+		unsigned	ffw = fragment->frame_width,
+				ffh = fragment->frame_height;
 
 		/* XXX: note the fragment->number is used above as the cpu number, this is to ensure all cpu #s
 		 * are actually used.  Since our noop_fragmenter_per_cpu always produces a fragment per cpu,
@@ -261,6 +274,15 @@ static void flow_render_fragment(til_module_context_t *context, til_stream_t *st
 			 */
 			d.direction = v3f_mult_scalar(&d.direction, (float)ctxt->n_iters);
 			e->position_b = v3f_add(&pos, &d.direction);
+
+			/* Now do the 2D projection part and store those results in the element, where
+			 * it can be quickly checked by the second pass.
+			 */
+#define ZCONST 1.0f
+			e->fragspace.x1 = pos.x / (pos.z + ZCONST) * ffw + (ffw >> 1);
+			e->fragspace.y1 = pos.y / (pos.z + ZCONST) * ffh + (ffh >> 1) ;
+			e->fragspace.x2 = e->position_b.x / (e->position_b.z + ZCONST) * ffw + (ffw >> 1);
+			e->fragspace.y2 = e->position_b.y / (e->position_b.z + ZCONST) * ffh + (ffh >> 1) ;
 		}
 
 		return;
@@ -281,17 +303,11 @@ static void flow_render_fragment(til_module_context_t *context, til_stream_t *st
 			flow_element_t	*e = &ctxt->elements[i];
 			v3f_t		pos = e->position_a;
 			v3f_t		v = e->velocity;
-			unsigned	x1, y1, x2, y2;
+			unsigned	x1 = e->fragspace.x1,
+					y1 = e->fragspace.y1,
+					x2 = e->fragspace.x2,
+					y2 = e->fragspace.y2;
 			uint32_t	pixel;
-
-			/* Perspective-project the endpoints of the element's travel, this is
-			 * the part we can't currently avoid doing per-element per-fragment.
-			 */
-#define ZCONST 1.0f
-			x1 = pos.x / (pos.z + ZCONST) * ffw + (ffw >> 1);
-			y1 = pos.y / (pos.z + ZCONST) * ffh + (ffh >> 1) ;
-			x2 = e->position_b.x / (e->position_b.z + ZCONST) * ffw + (ffw >> 1);
-			y2 = e->position_b.y / (e->position_b.z + ZCONST) * ffh + (ffh >> 1) ;
 
 			/* for cases obviously outside the fragment, don't draw anything */
 
@@ -326,6 +342,10 @@ static void flow_render_fragment(til_module_context_t *context, til_stream_t *st
 				if (!ctxt->n_iters)
 					continue;
 
+				/* TODO: why isn't this a simple line draw of (x1,y1)..(x2,y2)?
+				 * that would eliminate the cumulative error potential for going out of bounds,
+				 * which is the real reason put_pixel_unchecked() can't be used in this loop.
+				 */
 				for (unsigned j = 1; j < ctxt->n_iters - 1; j++) {
 
 					pos = v3f_add(&pos, &v);
