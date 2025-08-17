@@ -94,7 +94,7 @@ static void flow_ff_populator(void *context, unsigned size, const ff_data_t *oth
 				v3f_t	c = v3f_rand(seedp, 0.f, 1.0f);
 				size_t	idx = x * size * size + y * size + z;
 
-				field[idx].direction = v3f_lerp(&other[idx].direction, &v, .75f);
+				field[idx].direction = v3f_lerp(&other[idx].direction, &v, .50f);
 				field[idx].color = v3f_lerp(&other[idx].color, &c, .75f);
 			}
 		}
